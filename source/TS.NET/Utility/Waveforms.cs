@@ -24,10 +24,10 @@ public static class Waveforms
 
     public static void FourChannelCount(Span<byte> buffer)
     {
-        buffer[0] = 0;
-        buffer[1] = 1;
-        buffer[2] = 2;
-        buffer[3] = 3;
+        buffer[0] = 1;
+        buffer[1] = 2;
+        buffer[2] = 3;
+        buffer[3] = 4;
         int blocks = buffer.Length / 4;
         var source = buffer.Slice(0, 4);
         for (int i = 0; i < blocks; i++)

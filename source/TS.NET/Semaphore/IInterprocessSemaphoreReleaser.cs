@@ -2,7 +2,7 @@
 
 namespace TS.NET
 {
-    internal interface IInterprocessSemaphoreReleaser : IDisposable
+    public interface IInterprocessSemaphoreReleaser : IDisposable
     {
         void Release();
     }

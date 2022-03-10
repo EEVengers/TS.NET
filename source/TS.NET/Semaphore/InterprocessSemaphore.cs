@@ -9,9 +9,9 @@ namespace TS.NET
     /// This class opens or creates platform agnostic named semaphore. Named
     /// semaphores are synchronization constructs accessible across processes.
     /// </summary>
-    internal static class InterprocessSemaphore
+    public static class InterprocessSemaphore
     {
-        internal static IInterprocessSemaphoreWaiter CreateWaiter(string name)
+        public static IInterprocessSemaphoreWaiter CreateWaiter(string name)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 return new SemaphoreWindows(name);
@@ -22,7 +22,7 @@ namespace TS.NET
             return new SemaphoreLinux(name);
         }
 
-        internal static IInterprocessSemaphoreReleaser CreateReleaser(string name)
+        public static IInterprocessSemaphoreReleaser CreateReleaser(string name)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 return new SemaphoreWindows(name);

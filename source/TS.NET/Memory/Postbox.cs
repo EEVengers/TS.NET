@@ -12,11 +12,13 @@ namespace TS.NET
     // This is a shared memory-mapped file between processes, with only a single writer and a single reader using a primitive syncronisation header
     public class Postbox : IDisposable
     {
+        private readonly PostboxOptions options;
         private readonly IMemoryFile file;
         private readonly MemoryMappedViewAccessor view;
 
         public unsafe Postbox(PostboxOptions options, ILoggerFactory loggerFactory)
         {
+            this.options = options;
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new MemoryFileWindows(options)
                 : new MemoryFileUnix(options, loggerFactory);
@@ -29,6 +31,7 @@ namespace TS.NET
                 {
                     BasePointer = AcquirePointer();
                     DataPointer = BasePointer + sizeof(MemoryHeader);
+                    BasePointer[0] = 0;
                 }
                 catch
                 {
@@ -45,6 +48,7 @@ namespace TS.NET
 
         public unsafe byte* BasePointer { get; }
         public unsafe byte* DataPointer { get; }
+        public long BytesCapacity { get { return options.BytesCapacity; } }
 
         public void Dispose()
         {
@@ -62,6 +66,16 @@ namespace TS.NET
                 throw new InvalidOperationException("Failed to acquire a pointer to the memory mapped file view.");
 
             return ptr;
+        }
+
+        public IInterprocessSemaphoreWaiter GetReaderSemaphore()
+        {
+            return InterprocessSemaphore.CreateWaiter(options.MemoryName);
+        }
+
+        public IInterprocessSemaphoreReleaser GetWriterSemaphore()
+        {
+            return InterprocessSemaphore.CreateReleaser(options.MemoryName);
         }
 
         public unsafe bool IsReadyToWrite()

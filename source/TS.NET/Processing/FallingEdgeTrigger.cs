@@ -3,7 +3,7 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 namespace TS.NET;
 
-public class RisingEdgeTrigger
+public class FallingEdgeTrigger
 {
     enum TriggerArmState { Armed, ArmedInHoldoff, Unarmed, UnarmedInHoldoff }
     private TriggerArmState triggerArmState;
@@ -15,7 +15,7 @@ public class RisingEdgeTrigger
     private Vector256<byte> triggerLevelVector;
     private Vector256<byte> armLevelVector;
 
-    public RisingEdgeTrigger(byte triggerLevel, byte armLevel, ulong holdoffSamples)
+    public FallingEdgeTrigger(byte triggerLevel, byte armLevel, ulong holdoffSamples)
     {
         Reset(triggerLevel, armLevel, holdoffSamples);
     }
@@ -35,75 +35,6 @@ public class RisingEdgeTrigger
 
         triggerLevelVector = Vector256.Create(triggerLevel);
         armLevelVector = Vector256.Create(armLevel);
-    }
-
-    //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public uint Process(ReadOnlySpan<byte> input, Span<ulong> trigger)
-    {
-        uint inputLength = (uint)input.Length;
-        uint triggerCount = 0;
-        uint i = 0;
-        while (i < inputLength)
-        {
-            switch (triggerArmState)
-            {
-                case TriggerArmState.Armed:
-                    for (; i < inputLength; i++)
-                    {
-                        if (input[(int)i] >= triggerLevel)
-                        {
-                            triggerCount++;
-                            trigger[(int)(i / 64)] |= 0x1ul << ((int)i % 64);
-                            triggerArmState = TriggerArmState.UnarmedInHoldoff;
-                            holdoffRemaining = holdoffSamples;
-                            break;
-                        }
-                    }
-                    break;
-                case TriggerArmState.UnarmedInHoldoff:
-                    for (; i < inputLength; i++)
-                    {
-                        if (input[(int)i] <= armLevel)
-                        {
-                            triggerArmState = TriggerArmState.ArmedInHoldoff;
-                            break;
-                        }
-                        holdoffRemaining--;
-                        if (holdoffRemaining == 0)
-                        {
-                            triggerArmState = TriggerArmState.Unarmed;
-                            break;
-                        }
-                    }
-                    break;
-                case TriggerArmState.Unarmed:
-                    for (; i < inputLength; i++)
-                    {
-                        if (input[(int)i] <= armLevel)
-                        {
-                            triggerArmState = TriggerArmState.Armed;
-                            break;
-                        }
-                    }
-                    break;
-                case TriggerArmState.ArmedInHoldoff:
-                    uint remainingSamples = inputLength - i;
-                    if (remainingSamples > holdoffRemaining)
-                    {
-                        i += (uint)holdoffRemaining;    // Cast is ok because remainingSamples (in the conditional expression) is uint
-                        holdoffRemaining = 0;
-                    }
-                    else
-                    {
-                        holdoffRemaining -= remainingSamples;
-                        i = inputLength;    // Ends the state machine loop
-                    }
-                    if (holdoffRemaining == 0)
-                        triggerArmState = TriggerArmState.Armed;
-                    break;
-            }
-        }
-        return triggerCount;
     }
 
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -128,7 +59,7 @@ public class RisingEdgeTrigger
                             for (; i < simdLength; i += 32)
                             {
                                 Vector256<byte> inputVector = Avx.LoadVector256(samplesPtr + i);
-                                Vector256<byte> resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector, inputVector), triggerLevelVector);
+                                Vector256<byte> resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector, inputVector), triggerLevelVector);
                                 uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
                                 if (resultCount != 0)
                                 {
@@ -160,7 +91,7 @@ public class RisingEdgeTrigger
                             for (; i < simdLength && holdoffRemaining >= 32; i += 32)
                             {
                                 Vector256<byte> inputVector = Avx.LoadVector256(samplesPtr + i);
-                                Vector256<byte> resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector, inputVector), armLevelVector);
+                                Vector256<byte> resultVector = Avx2.CompareEqual(Avx2.Min(armLevelVector, inputVector), armLevelVector);
                                 uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
                                 if (resultCount != 0)
                                 {   // Arming level found
@@ -203,7 +134,7 @@ public class RisingEdgeTrigger
                             for (; i < simdLength; i += 32)
                             {   // Arming level found
                                 Vector256<byte> inputVector = Avx.LoadVector256(samplesPtr + i);
-                                Vector256<byte> resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector, inputVector), armLevelVector);
+                                Vector256<byte> resultVector = Avx2.CompareEqual(Avx2.Min(armLevelVector, inputVector), armLevelVector);
                                 uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
                                 if (resultCount != 0)
                                 {

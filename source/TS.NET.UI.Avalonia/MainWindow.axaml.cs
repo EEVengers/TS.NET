@@ -3,9 +3,12 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Cloudtoid.Interprocess;
+using Microsoft.Extensions.Logging;
 using ScottPlot;
 using ScottPlot.Avalonia;
 using System;
+using System.Buffers;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,6 +25,9 @@ namespace TS.NET.UI.Avalonia
         private ScottPlot.Plottable.HLine triggerLine;
         private CancellationTokenSource cancellationTokenSource;
         private Task displayTask;
+        //private IPublisher forwarderInput;
+        //private Memory<byte> forwarderInputBuffer = new byte[10000];
+        private ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
 
         public MainWindow()
         {
@@ -29,25 +35,26 @@ namespace TS.NET.UI.Avalonia
 #if DEBUG
             this.AttachDevTools();
 #endif
+
+            //var queueFactory = new QueueFactory();
+            //var queueOptions = new QueueOptions(queueName: "ThunderScopeTriggeredCaptureForwarderInput", bytesCapacity: 2 * 8000000);
+            //forwarderInput = queueFactory.CreatePublisher(queueOptions);
         }
 
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
 
-            channel1 = new double[1000];
-            channel2 = new double[1000];
-            channel3 = new double[1000];
-            channel4 = new double[1000];
+            channel1 = ArrayPool<double>.Shared.Rent(1);
+            channel2 = ArrayPool<double>.Shared.Rent(1);
+            channel3 = ArrayPool<double>.Shared.Rent(1);
+            channel4 = ArrayPool<double>.Shared.Rent(1);
 
             avaPlot1 = this.Find<AvaPlot>("AvaPlot1");
             lblStatus = this.Find<Label>("LblStatus");
             avaPlot1.Plot.Style(Style.Gray2);
             avaPlot1.Plot.Legend(true, Alignment.LowerRight);
-            avaPlot1.Plot.AddSignal(channel1, 1, null, "Ch1");
-            avaPlot1.Plot.AddSignal(channel2, 1, null, "Ch2");
-            avaPlot1.Plot.AddSignal(channel3, 1, null, "Ch3");
-            avaPlot1.Plot.AddSignal(channel4, 1, null, "Ch4");
+            ResetSeries();
             avaPlot1.Plot.XAxis.Label("Time (ns)");
             avaPlot1.Plot.YAxis.Label("ADC reading");
             avaPlot1.Plot.SetAxisLimitsY(0, 255);
@@ -59,40 +66,62 @@ namespace TS.NET.UI.Avalonia
             displayTask = Task.Factory.StartNew(() => UpdateChart(cancellationTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
-        private void UpdateChart(CancellationToken cancelToken)
+        private void ResetSeries()
+        {
+            avaPlot1.Plot.Clear();
+            avaPlot1.Plot.AddSignal(channel1, 1, null, "Ch1");
+            avaPlot1.Plot.AddSignal(channel2, 1, null, "Ch2");
+            avaPlot1.Plot.AddSignal(channel3, 1, null, "Ch3");
+            avaPlot1.Plot.AddSignal(channel4, 1, null, "Ch4");
+        }
+
+        private unsafe void UpdateChart(CancellationToken cancelToken)
         {
             try
             {
-                // This is an inter-process high-performance queue using memory-mapped file & semaphore. Used here to get data from the simulator or hardware.
-                var queueFactory = new QueueFactory();
-                var queueOptions = new QueueOptions(queueName: "ThunderScopeTriggeredCaptureForwarder", bytesCapacity: 2 * 8000000);
-                using var forwarder = queueFactory.CreateSubscriber(queueOptions);
+                Postbox postbox = new(new PostboxOptions("ThunderScope.1", 4 * 10 * 1000000), loggerFactory);
+                var postboxReadSemaphore = postbox.GetReaderSemaphore();
+                int channelLength = 10 * 1000000;
+                int viewportLength = 10000;
+                Stopwatch stopwatch = Stopwatch.StartNew();
 
                 int count = 0;
                 while (true)
                 {
                     cancelToken.ThrowIfCancellationRequested();
-                    if (forwarder.TryDequeue(cancelToken, out string dtoName, out ReadOnlyMemory<byte> payload))
+                    if (postboxReadSemaphore.Wait(500))
                     {
-                        switch (dtoName)
+                        if (channel1.Length != viewportLength)
                         {
-                            case nameof(TriggeredCaptureDto):
-                                var dto = payload.Deserialise<TriggeredCaptureDto>();
-                                var channel1Data = dto.ChannelData.Slice(0, dto.ChannelLength).Span;
-                                var channel2Data = dto.ChannelData.Slice(dto.ChannelLength, dto.ChannelLength).Span;
-                                var channel3Data = dto.ChannelData.Slice(dto.ChannelLength * 2, dto.ChannelLength).Span;
-                                var channel4Data = dto.ChannelData.Slice(dto.ChannelLength * 3, dto.ChannelLength).Span;
-                                for (int i = 0; i < dto.ChannelLength; i++)
-                                {
-                                    channel1[i] = channel1Data[i];
-                                    channel2[i] = channel2Data[i];
-                                    channel3[i] = channel3Data[i];
-                                    channel4[i] = channel4Data[i];
-                                }
-                                count++;
-                                Dispatcher.UIThread.InvokeAsync(() => { avaPlot1.Render(); lblStatus.Content = $"Count: {count}"; });
-                                break;
+                            channel1 = new double[viewportLength];
+                            ResetSeries();
                         }
+                        if (channel2.Length != viewportLength)
+                        {
+                            channel2 = new double[viewportLength];
+                            ResetSeries();
+                        }
+                        if (channel3.Length != viewportLength)
+                        {
+                            channel3 = new double[viewportLength];
+                            ResetSeries();
+                        }
+                        if (channel4.Length != viewportLength)
+                        {
+                            channel4 = new double[viewportLength];
+                            ResetSeries();
+                        }
+
+                        PointerExtensions.ExtendToDouble(postbox.DataPointer, viewportLength, channel1);
+                        PointerExtensions.ExtendToDouble(postbox.DataPointer + channelLength, viewportLength, channel2);
+                        PointerExtensions.ExtendToDouble(postbox.DataPointer + channelLength + channelLength, viewportLength, channel3);
+                        PointerExtensions.ExtendToDouble(postbox.DataPointer + channelLength + channelLength + channelLength, viewportLength, channel4);
+                        postbox.DataIsRead();
+
+                        count++;
+                        Dispatcher.UIThread.InvokeAsync(() => { avaPlot1.Render(); lblStatus.Content = $"Count: {count}"; });
+                        stopwatch.Restart();
+                        Thread.Sleep(100);
                     }
                 }
             }

@@ -1,31 +1,24 @@
-﻿using TS.NET.Engine;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System;
-using System.Runtime.Intrinsics.X86;
-using Cloudtoid.Interprocess;
 using System.Diagnostics;
 
 namespace TS.NET.Engine
 {
-    public struct TriggeredCapture
-    {
-        public SemaphoreSlim Semaphore { get; private set; } = new SemaphoreSlim(1);
-        public Channels Channels { get; set; }
-        public int ChannelLength { get; set; }
-        public Memory<byte> ChannelData { get; set; }
-    }
-
-    public class TriggeredCaptureInputTask
+    public class ProcessingTask
     {
         private CancellationTokenSource? cancelTokenSource;
         private Task? taskLoop;
 
         //, Action<Memory<double>> action
-        public void Start(ILoggerFactory loggerFactory)
+        public void Start(ILoggerFactory loggerFactory, BlockingChannelReader<ThunderscopeMemory> processingPool, BlockingChannelWriter<ThunderscopeMemory> memoryPool)
         {
-            var logger = loggerFactory.CreateLogger("InputTask");
+            var logger = loggerFactory.CreateLogger("ProcessingTask");
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(loggerFactory, logger, 8000000, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            int bufferLength = 100 * 1000 * 1000;
+            // Postbox is cross-process shared memory for the UI to read triggered acquisitions
+            // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
+            Postbox postbox = new(new PostboxOptions("ThunderScope.1", bufferLength), loggerFactory);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, processingPool, memoryPool, postbox, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -35,14 +28,11 @@ namespace TS.NET.Engine
         }
 
         // The job of this task - pull data from scope driver/simulator, shuffle if 2/4 channels, horizontal sum, trigger, and produce window segments.
-        private static void Loop(ILoggerFactory loggerFactory, ILogger logger, int readChunkLength, CancellationToken cancelToken)
+        private static void Loop(ILogger logger, BlockingChannelReader<ThunderscopeMemory> processingPool, BlockingChannelWriter<ThunderscopeMemory> memoryPool, Postbox postbox, CancellationToken cancelToken)
         {
             try
             {
-                // This is an inter-process high-performance queue using memory-mapped file & semaphore. Used here to get data from the simulator or hardware.
-                var queueFactory = new QueueFactory();
-                var queueOptions = new QueueOptions(queueName: "ThunderScope", bytesCapacity: 4 * readChunkLength);
-                using var hardwareInput = queueFactory.CreateSubscriber(queueOptions);
+                Thread.CurrentThread.Name = "TS.NET Processing";
 
                 // Configuration values to be updated during runtime
                 Channels channels = Channels.Four;
@@ -51,23 +41,23 @@ namespace TS.NET.Engine
                 BoxcarLength boxcarLength = BoxcarLength.None;
 
                 // Various buffers allocated once and reused forevermore.
-                Memory<byte> hardwareBuffer = new byte[readChunkLength];
+                Memory<byte> hardwareBuffer = new byte[ThunderscopeMemory.Length];
                 // Shuffle buffers. Only needed for 2/4 channel modes.
-                Span<byte> shuffleBuffer = new byte[readChunkLength];
+                Span<byte> shuffleBuffer = new byte[ThunderscopeMemory.Length];
                 // --2 channel buffers
-                int channelLength_2 = readChunkLength / 2;
+                int channelLength_2 = (int)ThunderscopeMemory.Length / 2;
                 Span<byte> postShuffleCh1_2 = shuffleBuffer.Slice(0, channelLength_2);
                 Span<byte> postShuffleCh2_2 = shuffleBuffer.Slice(channelLength_2, channelLength_2);
                 // --4 channel buffers
-                int channelLength_4 = readChunkLength / 4;
+                int channelLength_4 = (int)ThunderscopeMemory.Length / 4;
                 Span<byte> postShuffleCh1_4 = shuffleBuffer.Slice(0, channelLength_4);
                 Span<byte> postShuffleCh2_4 = shuffleBuffer.Slice(channelLength_4, channelLength_4);
                 Span<byte> postShuffleCh3_4 = shuffleBuffer.Slice(channelLength_4 * 2, channelLength_4);
                 Span<byte> postShuffleCh4_4 = shuffleBuffer.Slice(channelLength_4 * 3, channelLength_4);
 
-                Span<ulong> triggerResultBuffer_1 = new ulong[readChunkLength / 64];
-                Span<ulong> triggerResultBuffer_2 = new ulong[readChunkLength / 2 / 64];
-                Span<ulong> triggerResultBuffer_4 = new ulong[readChunkLength / 4 / 64];
+                Span<ulong> triggerResultBuffer_1 = new ulong[ThunderscopeMemory.Length / 64];
+                Span<ulong> triggerResultBuffer_2 = new ulong[ThunderscopeMemory.Length / 2 / 64];
+                Span<ulong> triggerResultBuffer_4 = new ulong[ThunderscopeMemory.Length / 4 / 64];
                 ulong holdoffSamples = 1000;
                 RisingEdgeTrigger trigger = new(200, 190, holdoffSamples);
 
@@ -79,43 +69,37 @@ namespace TS.NET.Engine
                 uint oneSecondTriggerCount = 0;
                 uint totalTriggerCount = 0;
 
-                int bufferCapacity = Math.Max(readChunkLength, 10 * 1000000);       // The larger of either readChunkLength or the configured buffer length
-
-                // Postbox is cross-process shared memory for the UI to read triggered acquisitions
-                // The trigger point is _always_ in the middle of the buffer, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
-                Postbox ch1 = new(new PostboxOptions("ThunderScopeCh1", bufferCapacity), loggerFactory);            
-                Postbox ch2 = new(new PostboxOptions("ThunderScopeCh2", bufferCapacity), loggerFactory);
-                Postbox ch3 = new(new PostboxOptions("ThunderScopeCh3", bufferCapacity), loggerFactory);
-                Postbox ch4 = new(new PostboxOptions("ThunderScopeCh4", bufferCapacity), loggerFactory);
-
-                int droppedTriggersCh1 = 0;
-                int droppedTriggersCh2 = 0;
-                int droppedTriggersCh3 = 0;
-                int droppedTriggersCh4 = 0;
+                // channelLength = the larger of:
+                //     ThunderscopeMemory.Length divided by the number of channels
+                //     The buffer length divided by the number of channels
+                // BoxcarUtility.ToDivisor(boxcarLength)
+                long channelLength = Math.Max(ThunderscopeMemory.Length / (long)channels, postbox.BytesCapacity / (long)channels);
+                var postboxWriterSemaphore = postbox.GetWriterSemaphore();
+                int droppedTriggers = 0;
 
                 Stopwatch oneSecond = Stopwatch.StartNew();
 
                 unsafe
                 {
-                    byte[] circularBufferBackingStoreCh1 = new byte[bufferCapacity];
-                    byte[] circularBufferBackingStoreCh2 = new byte[bufferCapacity];
-                    byte[] circularBufferBackingStoreCh3 = new byte[bufferCapacity];
-                    byte[] circularBufferBackingStoreCh4 = new byte[bufferCapacity];
+                    byte[] circularBufferBackingStoreCh1 = new byte[channelLength];
+                    byte[] circularBufferBackingStoreCh2 = new byte[channelLength];
+                    byte[] circularBufferBackingStoreCh3 = new byte[channelLength];
+                    byte[] circularBufferBackingStoreCh4 = new byte[channelLength];
                     fixed (byte*
                         circularBufferBackingStoreCh1Ptr = circularBufferBackingStoreCh1,
                         circularBufferBackingStoreCh2Ptr = circularBufferBackingStoreCh2,
                         circularBufferBackingStoreCh3Ptr = circularBufferBackingStoreCh3,
                         circularBufferBackingStoreCh4Ptr = circularBufferBackingStoreCh4)
                     {
-                        var circularBuffer1 = new CircularBuffer(circularBufferBackingStoreCh1Ptr, bufferCapacity);
-                        var circularBuffer2 = new CircularBuffer(circularBufferBackingStoreCh2Ptr, bufferCapacity);
-                        var circularBuffer3 = new CircularBuffer(circularBufferBackingStoreCh3Ptr, bufferCapacity);
-                        var circularBuffer4 = new CircularBuffer(circularBufferBackingStoreCh4Ptr, bufferCapacity);
+                        var circularBuffer1 = new CircularBuffer(circularBufferBackingStoreCh1Ptr, channelLength);
+                        var circularBuffer2 = new CircularBuffer(circularBufferBackingStoreCh2Ptr, channelLength);
+                        var circularBuffer3 = new CircularBuffer(circularBufferBackingStoreCh3Ptr, channelLength);
+                        var circularBuffer4 = new CircularBuffer(circularBufferBackingStoreCh4Ptr, channelLength);
 
                         while (true)
                         {
                             cancelToken.ThrowIfCancellationRequested();
-                            var inputBuffer = hardwareInput.Dequeue(hardwareBuffer, cancelToken);
+                            var memory = processingPool.Read(cancelToken);
                             // Add a zero-wait mechanism here that allows for configuration values to be updated
                             dequeueCounter++;
                             switch (channels)
@@ -133,14 +117,25 @@ namespace TS.NET.Engine
                                     if (boxcarLength != BoxcarLength.None)
                                         throw new NotImplementedException();
                                     // Write to circular buffer
-                                    circularBuffer1.Write(inputBuffer.Span, 0);
+                                    circularBuffer1.Write(memory.Span, 0);
                                     // Trigger
-                                    if (triggerChannel == TriggerChannel.One)
-                                        triggerCount = trigger.ProcessSimd(input: inputBuffer.Span, trigger: triggerResultBuffer_1);
+                                    if (triggerChannel != TriggerChannel.None)
+                                    {
+                                        var triggerChannelBuffer = triggerChannel switch
+                                        {
+                                            TriggerChannel.One => memory.Span,
+                                            _ => throw new ArgumentException("Invalid TriggerChannel value")
+                                        };
+                                        triggerCount = trigger.ProcessSimd(input: triggerChannelBuffer, trigger: triggerResultBuffer_1);
+                                    }
+                                    // Finished with the memory, return it
+                                    memoryPool.Write(memory);
                                     break;
                                 case Channels.Two:
                                     // Shuffle
-                                    Shuffle.TwoChannels(input: inputBuffer.Span, output: shuffleBuffer);
+                                    Shuffle.TwoChannels(input: memory.Span, output: shuffleBuffer);
+                                    // Finished with the memory, return it
+                                    memoryPool.Write(memory);
                                     // Boxcar
                                     if (boxcarLength != BoxcarLength.None)
                                         throw new NotImplementedException();
@@ -161,7 +156,9 @@ namespace TS.NET.Engine
                                     break;
                                 case Channels.Four:
                                     // Shuffle
-                                    Shuffle.FourChannels(input: inputBuffer.Span, output: shuffleBuffer);
+                                    Shuffle.FourChannels(input: memory.Span, output: shuffleBuffer);
+                                    // Finished with the memory, return it
+                                    memoryPool.Write(memory);
                                     // Boxcar
                                     if (boxcarLength != BoxcarLength.None)
                                         throw new NotImplementedException();
@@ -186,59 +183,26 @@ namespace TS.NET.Engine
                                         oneSecondTriggerCount += triggerCount;
                                         if (triggerCount > 0)
                                         {
-                                            if (oneSecond.ElapsedMilliseconds >= 1000)
-                                            {
-                                                Console.WriteLine($"Triggers/sec: {oneSecondTriggerCount / (oneSecond.ElapsedMilliseconds * 0.001):F2}, dequeue count: {dequeueCounter}, trigger count: {totalTriggerCount}");
-                                                oneSecond.Restart();
-                                                oneSecondTriggerCount = 0;
-                                            }
-
                                             // Scan through trigger buffer to find first trigger bit
                                             for (int i = 0; i < triggerResultBuffer_1.Length; i++)
                                             {
                                                 // To do: need to store pre-trigger data so it can be prepended?
                                                 if (triggerResultBuffer_1[i] > 0)
                                                 {
-                                                    var index = (i * 64) + (64 - (int)Lzcnt.X64.LeadingZeroCount(triggerResultBuffer_1[i])) - 1;
+                                                    //var index = (i * 64) + (64 - (int)Lzcnt.X64.LeadingZeroCount(triggerResultBuffer_1[i])) - 1;
 
-                                                    if (ch1.IsReadyToWrite())
+                                                    if (postbox.IsReadyToWrite())
                                                     {
-                                                        circularBuffer1.Read(0, bufferCapacity, ch1.DataPointer);
-                                                        ch1.DataIsWritten();
+                                                        circularBuffer1.Read(0, channelLength, postbox.DataPointer);
+                                                        circularBuffer2.Read(0, channelLength, postbox.DataPointer + channelLength);
+                                                        circularBuffer3.Read(0, channelLength, postbox.DataPointer + channelLength + channelLength);
+                                                        circularBuffer4.Read(0, channelLength, postbox.DataPointer + channelLength + channelLength + channelLength);
+                                                        postbox.DataIsWritten();
+                                                        postboxWriterSemaphore.Release();       // Signal to the reader that data is available
                                                     }
                                                     else
                                                     {
-                                                        droppedTriggersCh1++;
-                                                    }
-
-                                                    if (ch2.IsReadyToWrite())
-                                                    {
-                                                        circularBuffer2.Read(0, bufferCapacity, ch2.DataPointer);
-                                                        ch2.DataIsWritten();
-                                                    }
-                                                    else
-                                                    {
-                                                        droppedTriggersCh2++;
-                                                    }
-
-                                                    if (ch3.IsReadyToWrite())
-                                                    {
-                                                        circularBuffer3.Read(0, bufferCapacity, ch3.DataPointer);
-                                                        ch3.DataIsWritten();
-                                                    }
-                                                    else
-                                                    {
-                                                        droppedTriggersCh3++;
-                                                    }
-
-                                                    if (ch4.IsReadyToWrite())
-                                                    {
-                                                        circularBuffer4.Read(0, bufferCapacity, ch4.DataPointer);
-                                                        ch4.DataIsWritten();
-                                                    }
-                                                    else
-                                                    {
-                                                        droppedTriggersCh4++;
+                                                        droppedTriggers++;
                                                     }
                                                 }
                                             }
@@ -247,23 +211,31 @@ namespace TS.NET.Engine
                                     //logger.LogInformation($"Dequeue #{dequeueCounter++}, Ch1 triggers: {triggerCount1}, Ch2 triggers: {triggerCount2}, Ch3 triggers: {triggerCount3}, Ch4 triggers: {triggerCount4} ");
                                     break;
                             }
+
+
+                            if (oneSecond.ElapsedMilliseconds >= 1000)
+                            {
+                                logger.LogDebug($"Triggers/sec: {oneSecondTriggerCount / (oneSecond.ElapsedMilliseconds * 0.001):F2}, dequeue count: {dequeueCounter}, trigger count: {totalTriggerCount}");
+                                oneSecond.Restart();
+                                oneSecondTriggerCount = 0;
+                            }
                         }
                     }
                 }
             }
             catch (OperationCanceledException)
             {
-                logger.LogDebug($"{nameof(TriggeredCaptureInputTask)} stopping");
+                logger.LogDebug($"{nameof(ProcessingTask)} stopping");
                 throw;
             }
             catch (Exception ex)
             {
-                logger.LogCritical(ex, $"{nameof(TriggeredCaptureInputTask)} error");
+                logger.LogCritical(ex, $"{nameof(ProcessingTask)} error");
                 throw;
             }
             finally
             {
-                logger.LogDebug($"{nameof(TriggeredCaptureInputTask)} stopped");
+                logger.LogDebug($"{nameof(ProcessingTask)} stopped");
             }
         }
     }

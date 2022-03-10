@@ -7,21 +7,23 @@ Console.Title = "Engine";
 using (Process p = Process.GetCurrentProcess())
     p.PriorityClass = ProcessPriorityClass.High;
 
-using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-//BlockingChannel<TriggeredCapture> triggeredCaptureChannel = new();
+using var loggerFactory = LoggerFactory.Create(builder => builder.AddSimpleConsole(options => { options.SingleLine = true; options.TimestampFormat = "HH:mm:ss "; }).AddFilter(level => level >= LogLevel.Debug));
 
-// Tasks started in 'reverse' order...
+BlockingChannel<ThunderscopeMemory> memoryPool = new();
+for (int i = 0; i < 120; i++)        // 120 = about 1 seconds worth of samples at 1GSPS
+    memoryPool.Writer.Write(new ThunderscopeMemory());
 
-// Forward any triggered captures to a UI
-//TriggeredCaptureForwarderTask triggeredCaptureForwarderTask = new();
-//triggeredCaptureForwarderTask.Start(loggerFactory, triggeredCaptureChannel.Reader);
+BlockingChannel<ThunderscopeMemory> processingPool = new();
 
-// Receive data from Simulator and process
-TriggeredCaptureInputTask triggeredCaptureInputTask = new();
-triggeredCaptureInputTask.Start(loggerFactory);
+ProcessingTask processingTask = new();
+processingTask.Start(loggerFactory, processingPool.Reader, memoryPool.Writer);
+
+InputTask inputTask = new();
+inputTask.Start(loggerFactory, memoryPool.Reader, processingPool.Writer);
+
 
 Console.WriteLine("Running... press any key to stop");
 Console.ReadKey();
 
-triggeredCaptureInputTask.Stop();
-//triggeredCaptureForwarderTask.Stop();
+processingTask.Stop();
+inputTask.Stop();

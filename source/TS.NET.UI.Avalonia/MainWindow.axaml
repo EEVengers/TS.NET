@@ -6,8 +6,12 @@
         x:Class="TS.NET.UI.Avalonia.MainWindow"
 		xmlns:ScottPlot="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
         Title="TS.NET.UI.Avalonia">
-	<Grid RowDefinitions="*, Auto">
+	<Grid RowDefinitions="*, Auto" ColumnDefinitions="*, Auto">
 		<ScottPlot:AvaPlot Name="AvaPlot1" Grid.Row="0"/>
 		<Label Name="LblStatus" Grid.Row="1" Content ="Test" />
+		<Grid Column="1" Background="Black">
+			<Label>Channel 1</Label>
+			
+		</Grid>
 	</Grid>
 </Window>

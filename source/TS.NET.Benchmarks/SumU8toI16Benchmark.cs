@@ -22,21 +22,21 @@ namespace TS.NET.Benchmark
         public void I16_2()
         {
             for (int i = 0; i < 125; i++)
-                Sum.U8ToI16(input.Span, bufferI16.Span, 1);
+                Boxcar.U8ToI16(input.Span, bufferI16.Span, 1);
         }
 
         [Benchmark(Description = "I16: Sum by 4 (1GS -> 250MS)")]  // x CPU cycles per sample
         public void I16_4()
         {
             for (int i = 0; i < 125; i++)
-                Sum.U8ToI16(input.Span, bufferI16.Span, 2);
+                Boxcar.U8ToI16(input.Span, bufferI16.Span, 2);
         }
 
         [Benchmark(Description = "I16: Sum by 8 (1GS -> 125MS)")]  // x CPU cycles per sample
         public void I16_8()
         {
             for (int i = 0; i < 125; i++)
-                Sum.U8ToI16(input.Span, bufferI16.Span, 3);
+                Boxcar.U8ToI16(input.Span, bufferI16.Span, 3);
         }
 
         //[Benchmark(Description = "I16: Sum by 16 (1GS -> 62.5MS)")]  // x CPU cycles per sample

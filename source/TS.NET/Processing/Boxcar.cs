@@ -4,7 +4,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace TS.NET;
 
-public static class Sum
+public static class Boxcar
 {   
     // Assuming good noise distribution, here are the sum & shifts required to gain ENOB:
     // 9 bit =     4x sum, 1x >>
