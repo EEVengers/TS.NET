@@ -10,7 +10,7 @@ namespace TS.NET
     [StructLayout(LayoutKind.Sequential, Pack = 1)]      
     internal struct ThunderscopeBridgeHeader
     {
-        // Version + Capacity is enough data for the UI to know how big a memorymappedfile to open
+        // Version + DataCapacity is enough data for the UI to know how big a memorymappedfile to open
         internal byte Version = 1;          // Allows UI to know which ThunderscopeMemoryBridgeHeader version to use, hence the size of the header.
         internal ulong DataCapacity;        // Maximum size of the data array in bridge. Example: 400M, set from configuration file?
 
@@ -31,6 +31,7 @@ namespace TS.NET
     }
 
     // Monitoring variables that reset when configuration variables change
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct ThunderscopeMonitoring
     {       
         public ulong TotalTriggers;         // All triggers
