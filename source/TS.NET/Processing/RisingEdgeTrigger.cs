@@ -109,15 +109,17 @@ public class RisingEdgeTrigger
     //}
 
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public uint ProcessSimd(ReadOnlySpan<byte> input, Span<uint> triggerIndices)
+    public void ProcessSimd(ReadOnlySpan<byte> input, Span<uint> triggerIndices, out uint triggerCount, Span<uint> holdoffEndIndices, out uint holdoffEndCount)
     {
         uint inputLength = (uint)input.Length;
         uint simdLength = (inputLength - 32);
-        uint triggerCount = 0;
+        triggerCount = 0;
+        holdoffEndCount = 0;
         uint i = 0;
         uint popCnt = 0;
 
         triggerIndices.Clear();
+        holdoffEndIndices.Clear();
         unsafe
         {
             fixed (byte* samplesPtr = input)
@@ -135,7 +137,8 @@ public class RisingEdgeTrigger
                                 uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
                                 if (resultCount != 0)
                                 {
-                                    i += Popcnt.PopCount(~resultCount);
+                                    i += Bmi1.TrailingZeroCount(resultCount);
+                                    //i += Popcnt.PopCount(~resultCount);
                                     triggerIndices[(int)triggerCount] = i;
                                     triggerCount++;
                                     //trigger[(int)(i / 64)] |= 0x1ul << ((int)i % 64);
@@ -169,7 +172,8 @@ public class RisingEdgeTrigger
                                 uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
                                 if (resultCount != 0)
                                 {   // Arming level found
-                                    popCnt = Popcnt.PopCount(~resultCount);
+                                    //popCnt = Popcnt.PopCount(~resultCount);
+                                    popCnt = Bmi1.TrailingZeroCount(resultCount);
                                     i += popCnt;
                                     holdoffRemaining -= popCnt;
                                     triggerArmState = TriggerArmState.ArmedInHoldoff;
@@ -180,6 +184,7 @@ public class RisingEdgeTrigger
                                     holdoffRemaining -= 32;
                                     if (holdoffRemaining == 0)
                                     {
+                                        holdoffEndIndices[(int)holdoffEndCount++] = i;
                                         triggerArmState = TriggerArmState.Unarmed;
                                         break;
                                     }
@@ -198,6 +203,7 @@ public class RisingEdgeTrigger
                                 holdoffRemaining--;
                                 if (holdoffRemaining == 0)
                                 {
+                                    holdoffEndIndices[(int)holdoffEndCount++] = i;
                                     triggerArmState = TriggerArmState.Unarmed;
                                     break;
                                 }
@@ -212,7 +218,8 @@ public class RisingEdgeTrigger
                                 uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
                                 if (resultCount != 0)
                                 {
-                                    popCnt = Popcnt.PopCount(~resultCount);
+                                    //popCnt = Popcnt.PopCount(~resultCount);
+                                    popCnt = Bmi1.TrailingZeroCount(resultCount);
                                     i += popCnt;
                                     triggerArmState = TriggerArmState.Armed;
                                     break;
@@ -243,13 +250,15 @@ public class RisingEdgeTrigger
                                 i = inputLength;    // Ends the state machine loop
                             }
                             if (holdoffRemaining == 0)
-                                triggerArmState = TriggerArmState.Armed;
+                            {
+                                holdoffEndIndices[(int)holdoffEndCount++] = i;
+                                triggerArmState = TriggerArmState.Armed;                               
+                            }
                             break;
                     }
                 }
             }
         }
-        return triggerCount;
     }
 
     // To do:

@@ -12,6 +12,7 @@ namespace TS.NET
         private readonly byte* buffer;
         private readonly uint capacity;
         private uint tail = 0;
+        private ulong totalWritten = 0;
 
         public ChannelCircularAlignedBuffer(uint capacity)
         {
@@ -62,9 +63,11 @@ namespace TS.NET
                     tail = (tail + (uint)data.Length) % capacity;
                 }
             }
+
+            totalWritten += (ulong)data.Length;
         }
 
-        public void Read(Span<byte> data, uint offset)
+        public void Read(Span<byte> data, uint endOffset)
         {
             if (data.Length > capacity)
                 throw new Exception($"ChannelCircularBuffer too small to read {data.Length} bytes");
@@ -73,15 +76,19 @@ namespace TS.NET
             {
                 fixed (byte* dataPtr = data)
                 {
-                    uint offsetTail = (tail + offset) % capacity;
+                    uint offsetTail = 0;
+                    if (endOffset <= tail)
+                        offsetTail = (tail - endOffset);        //Offset tail being the index of the last byte we want
+                    else
+                        offsetTail = capacity - (endOffset - tail);
+                    //uint offsetTail = tail % capacity;
+                    uint firstCopyCount = Math.Min((uint)data.Length, offsetTail);
+                    if (firstCopyCount > 0)
+                        Buffer.MemoryCopy(buffer + (offsetTail - firstCopyCount), dataPtr + (data.Length - firstCopyCount), data.Length, firstCopyCount);
 
-                    uint firstCopy = Math.Min((uint)data.Length, capacity - offsetTail);
-                    if (firstCopy > 0)
-                        Buffer.MemoryCopy(buffer + offsetTail, dataPtr, data.Length, firstCopy);
-
-                    uint remainingCopy = (uint)data.Length - firstCopy;
-                    if (remainingCopy > 0)
-                        Buffer.MemoryCopy(buffer, dataPtr + firstCopy, data.Length, remainingCopy);
+                    uint remainingCopyCount = (uint)data.Length - firstCopyCount;
+                    if (remainingCopyCount > 0)
+                        Buffer.MemoryCopy(buffer + (capacity - remainingCopyCount), dataPtr, data.Length, remainingCopyCount);
                 }
             }
         }

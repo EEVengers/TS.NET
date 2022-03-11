@@ -32,8 +32,8 @@ namespace TS.NET
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct ThunderscopeMonitoring
     {       
-        public ulong TotalTriggers;         // All triggers
-        public ulong MissedTriggers;        // Triggers that weren't displayed
+        public ulong TotalAcquisitions;         // All triggers
+        public ulong MissedAcquisitions;        // Triggers that weren't displayed
     }
 
     public enum ThunderscopeMemoryBridgeState : byte

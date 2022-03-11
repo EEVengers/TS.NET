@@ -7,29 +7,68 @@ namespace TS.NET.Tests
         public byte TriggerLevel { get; set; }
         public byte ArmLevel { get; set; }
         public uint HoldoffSamples { get; set; }
+
+        public uint ChunkSize { get; set; }
+        public uint ChunkCount { get; set; }
         public Memory<byte> Input { get; set; }
-        public Memory<ulong> ExpectedTriggers { get; set; }
+        public Memory<uint>[] ExpectedTriggerIndices { get; set; }
+        public Memory<uint>[] ExpectedHoldoffEndIndices { get; set; }
     }
 
     public class RisingEdgeTriggerSituations
     {
         // Trigger at [0] and [^1]
-        public static TriggerSituation SituationA()
+        //public static TriggerSituation SituationA()
+        //{
+        //    Memory<byte> inputMemory = new byte[8000000];
+        //    var data = inputMemory.Span;
+
+        //    data[0] = 127;
+        //    data.Slice(1, 3999999).Fill(255);
+        //    data.Slice(4000000, 4000000).Fill(0);
+        //    data[7999999] = 127;
+
+        //    // TO DO: fix this
+        //    Memory<uint> triggerIndices = new uint[1];
+        //    var result = triggerIndices.Span;
+        //    //result[0] = 0x01;
+        //    //result[^1] = 0x8000000000000000;
+
+        //    return new() { TriggerLevel = 127, ArmLevel = 117, HoldoffSamples = 1000, Input = inputMemory, ExpectedTriggerIndices = triggerIndices };
+        //}
+
+        //4 sample wide 1 hz pulse at sample 0
+        public static TriggerSituation SituationB()
         {
-            Memory<byte> inputMemory = new byte[8000000];
-            var data = inputMemory.Span;
+            const int chunkCount = 120;
+            TriggerSituation situation = new TriggerSituation()
+            {
+                TriggerLevel = 127,
+                ArmLevel = 117,
+                HoldoffSamples = 50 * 1000000,
 
-            data[0] = 127;
-            data.Slice(1, 3999999).Fill(255);
-            data.Slice(4000000, 4000000).Fill(0);
-            data[7999999] = 127;
+                ChunkSize = 8388608,
+                ChunkCount = chunkCount,
+                Input = new byte[8388608 * chunkCount],
+                
+                ExpectedTriggerIndices = new Memory<uint>[chunkCount],
+                ExpectedHoldoffEndIndices = new Memory<uint>[chunkCount],
+            };
 
-            Memory<ulong> expectedTriggersMemory = new ulong[8000000 / 64];
-            var result = expectedTriggersMemory.Span;
-            result[0] = 0x01;
-            result[^1] = 0x8000000000000000;
+            situation.Input.Span.Clear();
+            situation.Input.Span[0] = 255;
+            situation.Input.Span[1] = 255;
+            situation.Input.Span[2] = 255;
+            situation.Input.Span[3] = 255;
 
-            return new() { TriggerLevel = 127, ArmLevel = 117, HoldoffSamples = 1000, Input = inputMemory, ExpectedTriggers = expectedTriggersMemory };
+            situation.ExpectedTriggerIndices[0] = new uint[1];
+            situation.ExpectedTriggerIndices[0].Span[0] = 0;
+            var quotient = situation.HoldoffSamples / situation.ChunkSize;
+            var remainder = situation.HoldoffSamples % situation.ChunkSize;
+            situation.ExpectedHoldoffEndIndices[quotient] = new uint[1];
+            situation.ExpectedHoldoffEndIndices[quotient].Span[0] = remainder;
+
+            return situation;
         }
     }
 }

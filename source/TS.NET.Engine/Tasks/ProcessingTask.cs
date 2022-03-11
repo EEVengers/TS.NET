@@ -39,7 +39,7 @@ namespace TS.NET.Engine
                 ThunderscopeConfiguration config = new()
                 {
                     Channels = Channels.Four,
-                    ChannelLength = (ulong)ChannelLength.OneHundredM,
+                    ChannelLength = 100 * 1000000,//(ulong)ChannelLength.OneHundredM,
                     BoxcarLength = BoxcarLength.None,
                     TriggerChannel = TriggerChannel.One,
                     TriggerMode = TriggerMode.Normal
@@ -48,8 +48,8 @@ namespace TS.NET.Engine
 
                 ThunderscopeMonitoring monitoring = new()
                 {
-                    TotalTriggers = 0,
-                    MissedTriggers = 0
+                    TotalAcquisitions = 0,
+                    MissedAcquisitions = 0
                 };
                 bridge.Monitoring = monitoring;
                 var bridgeWriterSemaphore = bridge.GetWriterSemaphore();
@@ -70,19 +70,19 @@ namespace TS.NET.Engine
                 Span<byte> postShuffleCh4_4 = shuffleBuffer.Slice(channelLength_4 * 3, channelLength_4);
 
                 Span<uint> triggerIndices = new uint[ThunderscopeMemory.Length / 1000];     // 1000 samples is the minimum holdoff
+                Span<uint> holdoffEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum holdoff
                 RisingEdgeTrigger trigger = new(200, 190, config.ChannelLength / 2);
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;
-                uint triggerCount = 0;
-                uint oneSecondTriggerCount = 0;
+                uint oneSecondHoldoffCount = 0;
                 // BoxcarUtility.ToDivisor(boxcarLength)
                 Stopwatch oneSecond = Stopwatch.StartNew();
 
-                var circularBuffer1 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength);
-                var circularBuffer2 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength);
-                var circularBuffer3 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength);
-                var circularBuffer4 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength);
+                var circularBuffer1 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength + ThunderscopeMemory.Length);
+                var circularBuffer2 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength + ThunderscopeMemory.Length);
+                var circularBuffer3 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength + ThunderscopeMemory.Length);
+                var circularBuffer4 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength + ThunderscopeMemory.Length);
 
                 while (true)
                 {
@@ -116,7 +116,7 @@ namespace TS.NET.Engine
                                     TriggerChannel.One => memory.Span,
                                     _ => throw new ArgumentException("Invalid TriggerChannel value")
                                 };
-                                triggerCount = trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices);
+                                trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out uint triggerCount, holdoffEndIndices: holdoffEndIndices, out uint holdoffEndCount);
                             }
                             // Finished with the memory, return it
                             memoryPool.Write(memory);
@@ -141,7 +141,7 @@ namespace TS.NET.Engine
                                     TriggerChannel.Two => postShuffleCh2_2,
                                     _ => throw new ArgumentException("Invalid TriggerChannel value")
                                 };
-                                triggerCount = trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices);
+                                trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out uint triggerCount, holdoffEndIndices: holdoffEndIndices, out uint holdoffEndCount);
                             }
                             break;
                         case Channels.Four:
@@ -168,28 +168,28 @@ namespace TS.NET.Engine
                                     TriggerChannel.Four => postShuffleCh4_4,
                                     _ => throw new ArgumentException("Invalid TriggerChannel value")
                                 };
-                                triggerCount = trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices);
-                                monitoring.TotalTriggers += triggerCount;
-                                oneSecondTriggerCount += triggerCount;
-                                if (triggerCount > 0)
+                                trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out uint triggerCount, holdoffEndIndices: holdoffEndIndices, out uint holdoffEndCount);
+                                monitoring.TotalAcquisitions += holdoffEndCount;
+                                oneSecondHoldoffCount += holdoffEndCount;
+                                if (holdoffEndCount > 0)
                                 {
-                                    for (int i = 0; i < triggerCount; i++)
+                                    for (int i = 0; i < holdoffEndCount; i++)
                                     {
                                         if (bridge.IsReadyToWrite)
                                         {
                                             bridge.Monitoring = monitoring;
                                             var bridgeSpan = bridge.Span;
-                                            var triggerIndex = triggerIndices[i];
-                                            circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), triggerIndex);
-                                            circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), triggerIndex);
-                                            circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), triggerIndex);
-                                            circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), triggerIndex);
+                                            uint holdoffEndIndex = (ThunderscopeMemory.Length / 2) - holdoffEndIndices[i];// - 2097152;      // WTF?
+                                            circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), holdoffEndIndex);
+                                            circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), holdoffEndIndex);
+                                            circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), holdoffEndIndex);
+                                            circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), holdoffEndIndex);
                                             bridge.DataWritten();
                                             bridgeWriterSemaphore.Release();       // Signal to the reader that data is available
                                         }
                                         else
                                         {
-                                            monitoring.MissedTriggers++;
+                                            monitoring.MissedAcquisitions++;
                                         }
                                     }
                                 }
@@ -200,9 +200,9 @@ namespace TS.NET.Engine
 
                     if (oneSecond.ElapsedMilliseconds >= 1000)
                     {
-                        logger.LogDebug($"Triggers/sec: {oneSecondTriggerCount / (oneSecond.ElapsedMilliseconds * 0.001):F2}, dequeue count: {dequeueCounter}, trigger count: {monitoring.TotalTriggers}, UI displayed triggers: {monitoring.TotalTriggers - monitoring.MissedTriggers}, UI dropped triggers: {monitoring.MissedTriggers}");
+                        logger.LogDebug($"Triggers/sec: {oneSecondHoldoffCount / (oneSecond.ElapsedMilliseconds * 0.001):F2}, dequeue count: {dequeueCounter}, trigger count: {monitoring.TotalAcquisitions}, UI displayed triggers: {monitoring.TotalAcquisitions - monitoring.MissedAcquisitions}, UI dropped triggers: {monitoring.MissedAcquisitions}");
                         oneSecond.Restart();
-                        oneSecondTriggerCount = 0;
+                        oneSecondHoldoffCount = 0;
                     }
                 }
             }

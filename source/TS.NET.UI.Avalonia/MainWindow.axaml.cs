@@ -84,8 +84,7 @@ namespace TS.NET.UI.Avalonia
                 uint bufferLength = 4 * 100 * 1000 * 1000;      //Maximum record length = 100M samples per channel
                 ThunderscopeBridgeReader bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", bufferLength), loggerFactory);
                 var bridgeReadSemaphore = bridge.GetReaderSemaphore();
-                uint channelLength = bufferLength / 4;
-                uint viewportLength = 10000;
+
                 Stopwatch stopwatch = Stopwatch.StartNew();
 
                 int count = 0;
@@ -94,6 +93,14 @@ namespace TS.NET.UI.Avalonia
                     cancelToken.ThrowIfCancellationRequested();
                     if (bridgeReadSemaphore.Wait(500))
                     {
+                        ulong channelLength = bridge.Configuration.ChannelLength;
+                        //uint viewportLength = (uint)bridge.Configuration.ChannelLength;//1000;
+                        uint viewportLength = (uint)upDownIndex.Value;
+                        if (viewportLength < 100)
+                            viewportLength = 100;
+                        if (viewportLength > 10000000)
+                            viewportLength = (uint)channelLength;
+
                         if (channel1.Length != viewportLength)
                         {
                             channel1 = new double[viewportLength];
@@ -116,16 +123,16 @@ namespace TS.NET.UI.Avalonia
                         }
 
                         var data = bridge.Span;
-                        int offset = (int)(channelLength - viewportLength);
+                        int offset = (int)((channelLength / 2) - (viewportLength / 2));
                         data.Slice(offset, (int)viewportLength).ToDoubleArray(channel1); offset += (int)channelLength;
                         data.Slice(offset, (int)viewportLength).ToDoubleArray(channel2); offset += (int)channelLength;
                         data.Slice(offset, (int)viewportLength).ToDoubleArray(channel3); offset += (int)channelLength;
                         data.Slice(offset, (int)viewportLength).ToDoubleArray(channel4);
                         bridge.DataRead();
 
-                        var reading = bridge.Span[(int)upDownIndex.Value];
+                        //var reading = bridge.Span[(int)upDownIndex.Value];
                         count++;
-                        Dispatcher.UIThread.InvokeAsync(() => { avaPlot1.Render(); lblStatus.Content = $"Count: {count}, reading at index: {reading}"; });
+                        Dispatcher.UIThread.InvokeAsync(() => { avaPlot1.Render(); lblStatus.Content = $"Count: {count}"; });
                         stopwatch.Restart();
                         Thread.Sleep(100);
                     }
