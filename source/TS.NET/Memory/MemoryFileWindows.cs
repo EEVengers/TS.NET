@@ -8,7 +8,7 @@ namespace TS.NET.Memory.Windows
     {
         private const string MapNamePrefix = "TS_NET_";
 
-        internal MemoryFileWindows(PostboxOptions options)
+        internal MemoryFileWindows(ThunderscopeBridgeOptions options)
         {
 #if NET5_0 || NET6_0
             if (!System.OperatingSystem.IsWindows())
@@ -16,7 +16,7 @@ namespace TS.NET.Memory.Windows
 #endif
             MappedFile = MemoryMappedFile.CreateOrOpen(
                 mapName: MapNamePrefix + options.MemoryName,
-                options.BytesCapacity,
+                (long)options.BridgeCapacity,
                 MemoryMappedFileAccess.ReadWrite,
                 MemoryMappedFileOptions.None,
                 HandleInheritability.None);

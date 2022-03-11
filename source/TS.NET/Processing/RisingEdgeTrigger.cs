@@ -38,76 +38,78 @@ public class RisingEdgeTrigger
     }
 
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public uint Process(ReadOnlySpan<byte> input, Span<ulong> trigger)
-    {
-        uint inputLength = (uint)input.Length;
-        uint triggerCount = 0;
-        uint i = 0;
-        while (i < inputLength)
-        {
-            switch (triggerArmState)
-            {
-                case TriggerArmState.Armed:
-                    for (; i < inputLength; i++)
-                    {
-                        if (input[(int)i] >= triggerLevel)
-                        {
-                            triggerCount++;
-                            trigger[(int)(i / 64)] |= 0x1ul << ((int)i % 64);
-                            triggerArmState = TriggerArmState.UnarmedInHoldoff;
-                            holdoffRemaining = holdoffSamples;
-                            break;
-                        }
-                    }
-                    break;
-                case TriggerArmState.UnarmedInHoldoff:
-                    for (; i < inputLength; i++)
-                    {
-                        if (input[(int)i] <= armLevel)
-                        {
-                            triggerArmState = TriggerArmState.ArmedInHoldoff;
-                            break;
-                        }
-                        holdoffRemaining--;
-                        if (holdoffRemaining == 0)
-                        {
-                            triggerArmState = TriggerArmState.Unarmed;
-                            break;
-                        }
-                    }
-                    break;
-                case TriggerArmState.Unarmed:
-                    for (; i < inputLength; i++)
-                    {
-                        if (input[(int)i] <= armLevel)
-                        {
-                            triggerArmState = TriggerArmState.Armed;
-                            break;
-                        }
-                    }
-                    break;
-                case TriggerArmState.ArmedInHoldoff:
-                    uint remainingSamples = inputLength - i;
-                    if (remainingSamples > holdoffRemaining)
-                    {
-                        i += (uint)holdoffRemaining;    // Cast is ok because remainingSamples (in the conditional expression) is uint
-                        holdoffRemaining = 0;
-                    }
-                    else
-                    {
-                        holdoffRemaining -= remainingSamples;
-                        i = inputLength;    // Ends the state machine loop
-                    }
-                    if (holdoffRemaining == 0)
-                        triggerArmState = TriggerArmState.Armed;
-                    break;
-            }
-        }
-        return triggerCount;
-    }
+    //public uint Process(ReadOnlySpan<byte> input, Span<ulong> trigger)
+    //{
+    //    uint inputLength = (uint)input.Length;
+    //    uint triggerCount = 0;
+    //    uint i = 0;
+
+    //    trigger.Clear();
+    //    while (i < inputLength)
+    //    {
+    //        switch (triggerArmState)
+    //        {
+    //            case TriggerArmState.Armed:
+    //                for (; i < inputLength; i++)
+    //                {
+    //                    if (input[(int)i] >= triggerLevel)
+    //                    {
+    //                        triggerCount++;
+    //                        trigger[(int)(i / 64)] |= 0x1ul << ((int)i % 64);
+    //                        triggerArmState = TriggerArmState.UnarmedInHoldoff;
+    //                        holdoffRemaining = holdoffSamples;
+    //                        break;
+    //                    }
+    //                }
+    //                break;
+    //            case TriggerArmState.UnarmedInHoldoff:
+    //                for (; i < inputLength; i++)
+    //                {
+    //                    if (input[(int)i] <= armLevel)
+    //                    {
+    //                        triggerArmState = TriggerArmState.ArmedInHoldoff;
+    //                        break;
+    //                    }
+    //                    holdoffRemaining--;
+    //                    if (holdoffRemaining == 0)
+    //                    {
+    //                        triggerArmState = TriggerArmState.Unarmed;
+    //                        break;
+    //                    }
+    //                }
+    //                break;
+    //            case TriggerArmState.Unarmed:
+    //                for (; i < inputLength; i++)
+    //                {
+    //                    if (input[(int)i] <= armLevel)
+    //                    {
+    //                        triggerArmState = TriggerArmState.Armed;
+    //                        break;
+    //                    }
+    //                }
+    //                break;
+    //            case TriggerArmState.ArmedInHoldoff:
+    //                uint remainingSamples = inputLength - i;
+    //                if (remainingSamples > holdoffRemaining)
+    //                {
+    //                    i += (uint)holdoffRemaining;    // Cast is ok because remainingSamples (in the conditional expression) is uint
+    //                    holdoffRemaining = 0;
+    //                }
+    //                else
+    //                {
+    //                    holdoffRemaining -= remainingSamples;
+    //                    i = inputLength;    // Ends the state machine loop
+    //                }
+    //                if (holdoffRemaining == 0)
+    //                    triggerArmState = TriggerArmState.Armed;
+    //                break;
+    //        }
+    //    }
+    //    return triggerCount;
+    //}
 
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public uint ProcessSimd(ReadOnlySpan<byte> input, Span<ulong> trigger)
+    public uint ProcessSimd(ReadOnlySpan<byte> input, Span<uint> triggerIndices)
     {
         uint inputLength = (uint)input.Length;
         uint simdLength = (inputLength - 32);
@@ -115,6 +117,7 @@ public class RisingEdgeTrigger
         uint i = 0;
         uint popCnt = 0;
 
+        triggerIndices.Clear();
         unsafe
         {
             fixed (byte* samplesPtr = input)
@@ -133,8 +136,9 @@ public class RisingEdgeTrigger
                                 if (resultCount != 0)
                                 {
                                     i += Popcnt.PopCount(~resultCount);
+                                    triggerIndices[(int)triggerCount] = i;
                                     triggerCount++;
-                                    trigger[(int)(i / 64)] |= 0x1ul << ((int)i % 64);
+                                    //trigger[(int)(i / 64)] |= 0x1ul << ((int)i % 64);
                                     triggerArmState = TriggerArmState.UnarmedInHoldoff;
                                     holdoffRemaining = holdoffSamples;
                                     break;
@@ -147,8 +151,9 @@ public class RisingEdgeTrigger
                             {
                                 if (samplesPtr[(int)i] >= triggerLevel)
                                 {
+                                    triggerIndices[(int)triggerCount] = i;
                                     triggerCount++;
-                                    trigger[(int)(i / 64)] |= 0x1ul << ((int)i % 64);
+                                    //trigger[(int)(i / 64)] |= 0x1ul << ((int)i % 64);
                                     triggerArmState = TriggerArmState.UnarmedInHoldoff;
                                     holdoffRemaining = holdoffSamples;
                                     break;

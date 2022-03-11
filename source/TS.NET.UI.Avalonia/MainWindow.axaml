@@ -9,9 +9,11 @@
 	<Grid RowDefinitions="*, Auto" ColumnDefinitions="*, Auto">
 		<ScottPlot:AvaPlot Name="AvaPlot1" Grid.Row="0"/>
 		<Label Name="LblStatus" Grid.Row="1" Content ="Test" />
-		<Grid Column="1" Background="Black">
+		<Grid Column="1" Background="Black" Width="200">
+			<StackPanel Orientation="Vertical">
 			<Label>Channel 1</Label>
-			
+			<NumericUpDown Name="UpDownIndex" Value="0"/>
+			</StackPanel>
 		</Grid>
 	</Grid>
 </Window>

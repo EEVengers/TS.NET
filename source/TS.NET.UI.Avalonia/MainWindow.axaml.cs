@@ -18,6 +18,7 @@ namespace TS.NET.UI.Avalonia
     {
         private AvaPlot avaPlot1;
         private Label lblStatus;
+        private NumericUpDown upDownIndex;
         private double[] channel1 = null;
         private double[] channel2 = null;
         private double[] channel3 = null;
@@ -52,6 +53,7 @@ namespace TS.NET.UI.Avalonia
 
             avaPlot1 = this.Find<AvaPlot>("AvaPlot1");
             lblStatus = this.Find<Label>("LblStatus");
+            upDownIndex = this.Find<NumericUpDown>("UpDownIndex");
             avaPlot1.Plot.Style(Style.Gray2);
             avaPlot1.Plot.Legend(true, Alignment.LowerRight);
             ResetSeries();
@@ -79,17 +81,18 @@ namespace TS.NET.UI.Avalonia
         {
             try
             {
-                Postbox postbox = new(new PostboxOptions("ThunderScope.1", 4 * 10 * 1000000), loggerFactory);
-                var postboxReadSemaphore = postbox.GetReaderSemaphore();
-                int channelLength = 10 * 1000000;
-                int viewportLength = 10000;
+                uint bufferLength = 4 * 100 * 1000 * 1000;      //Maximum record length = 100M samples per channel
+                ThunderscopeBridgeReader bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", bufferLength), loggerFactory);
+                var bridgeReadSemaphore = bridge.GetReaderSemaphore();
+                uint channelLength = bufferLength / 4;
+                uint viewportLength = 10000;
                 Stopwatch stopwatch = Stopwatch.StartNew();
 
                 int count = 0;
                 while (true)
                 {
                     cancelToken.ThrowIfCancellationRequested();
-                    if (postboxReadSemaphore.Wait(500))
+                    if (bridgeReadSemaphore.Wait(500))
                     {
                         if (channel1.Length != viewportLength)
                         {
@@ -112,14 +115,17 @@ namespace TS.NET.UI.Avalonia
                             ResetSeries();
                         }
 
-                        PointerExtensions.ExtendToDouble(postbox.DataPointer, viewportLength, channel1);
-                        PointerExtensions.ExtendToDouble(postbox.DataPointer + channelLength, viewportLength, channel2);
-                        PointerExtensions.ExtendToDouble(postbox.DataPointer + channelLength + channelLength, viewportLength, channel3);
-                        PointerExtensions.ExtendToDouble(postbox.DataPointer + channelLength + channelLength + channelLength, viewportLength, channel4);
-                        postbox.DataIsRead();
+                        var data = bridge.Span;
+                        int offset = (int)(channelLength - viewportLength);
+                        data.Slice(offset, (int)viewportLength).ToDoubleArray(channel1); offset += (int)channelLength;
+                        data.Slice(offset, (int)viewportLength).ToDoubleArray(channel2); offset += (int)channelLength;
+                        data.Slice(offset, (int)viewportLength).ToDoubleArray(channel3); offset += (int)channelLength;
+                        data.Slice(offset, (int)viewportLength).ToDoubleArray(channel4);
+                        bridge.DataRead();
 
+                        var reading = bridge.Span[(int)upDownIndex.Value];
                         count++;
-                        Dispatcher.UIThread.InvokeAsync(() => { avaPlot1.Render(); lblStatus.Content = $"Count: {count}"; });
+                        Dispatcher.UIThread.InvokeAsync(() => { avaPlot1.Render(); lblStatus.Content = $"Count: {count}, reading at index: {reading}"; });
                         stopwatch.Restart();
                         Thread.Sleep(100);
                     }

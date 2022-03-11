@@ -9,13 +9,6 @@ namespace TS.NET
 {
     public static class SpanExtensions
     {
-        //public static double[] ToDoubleArray(this Span<byte> input)
-        //{
-        //    double[] output = new double[input.Length];
-        //    input.ToDoubleArray(output);
-        //    return output;
-        //}
-
         public static void ToDoubleArray(this Span<byte> input, double[] output)
         {
             if (input.Length % 4 != 0)

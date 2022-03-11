@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
+using System.Runtime.Intrinsics.X86;
 
 namespace TS.NET.Engine
 {
@@ -14,11 +15,11 @@ namespace TS.NET.Engine
         {
             var logger = loggerFactory.CreateLogger("ProcessingTask");
             cancelTokenSource = new CancellationTokenSource();
-            int bufferLength = 100 * 1000 * 1000;
-            // Postbox is cross-process shared memory for the UI to read triggered acquisitions
+            ulong capacity = 4 * 100 * 1000 * 1000;      //Maximum record length = 100M samples per channel
+            // Bridge is cross-process shared memory for the UI to read triggered acquisitions
             // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
-            Postbox postbox = new(new PostboxOptions("ThunderScope.1", bufferLength), loggerFactory);
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, processingPool, memoryPool, postbox, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            ThunderscopeBridgeWriter bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", capacity), loggerFactory);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, processingPool, memoryPool, bridge, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -28,20 +29,33 @@ namespace TS.NET.Engine
         }
 
         // The job of this task - pull data from scope driver/simulator, shuffle if 2/4 channels, horizontal sum, trigger, and produce window segments.
-        private static void Loop(ILogger logger, BlockingChannelReader<ThunderscopeMemory> processingPool, BlockingChannelWriter<ThunderscopeMemory> memoryPool, Postbox postbox, CancellationToken cancelToken)
+        private static void Loop(ILogger logger, BlockingChannelReader<ThunderscopeMemory> processingPool, BlockingChannelWriter<ThunderscopeMemory> memoryPool, ThunderscopeBridgeWriter bridge, CancellationToken cancelToken)
         {
             try
             {
                 Thread.CurrentThread.Name = "TS.NET Processing";
 
-                // Configuration values to be updated during runtime
-                Channels channels = Channels.Four;
-                TriggerChannel triggerChannel = TriggerChannel.One;
-                TriggerMode triggerMode = TriggerMode.Normal;
-                BoxcarLength boxcarLength = BoxcarLength.None;
+                // Configuration values to be updated during runtime... conveiniently all on ThunderscopeMemoryBridgeHeader
+                ThunderscopeConfiguration config = new()
+                {
+                    Channels = Channels.Four,
+                    ChannelLength = (ulong)ChannelLength.OneHundredM,
+                    BoxcarLength = BoxcarLength.None,
+                    TriggerChannel = TriggerChannel.One,
+                    TriggerMode = TriggerMode.Normal
+                };
+                bridge.Configuration = config;
+
+                ThunderscopeMonitoring monitoring = new()
+                {
+                    TotalTriggers = 0,
+                    MissedTriggers = 0
+                };
+                bridge.Monitoring = monitoring;
+                var bridgeWriterSemaphore = bridge.GetWriterSemaphore();
 
                 // Various buffers allocated once and reused forevermore.
-                Memory<byte> hardwareBuffer = new byte[ThunderscopeMemory.Length];
+                //Memory<byte> hardwareBuffer = new byte[ThunderscopeMemory.Length];
                 // Shuffle buffers. Only needed for 2/4 channel modes.
                 Span<byte> shuffleBuffer = new byte[ThunderscopeMemory.Length];
                 // --2 channel buffers
@@ -55,171 +69,140 @@ namespace TS.NET.Engine
                 Span<byte> postShuffleCh3_4 = shuffleBuffer.Slice(channelLength_4 * 2, channelLength_4);
                 Span<byte> postShuffleCh4_4 = shuffleBuffer.Slice(channelLength_4 * 3, channelLength_4);
 
-                Span<ulong> triggerResultBuffer_1 = new ulong[ThunderscopeMemory.Length / 64];
-                Span<ulong> triggerResultBuffer_2 = new ulong[ThunderscopeMemory.Length / 2 / 64];
-                Span<ulong> triggerResultBuffer_4 = new ulong[ThunderscopeMemory.Length / 4 / 64];
-                ulong holdoffSamples = 1000;
-                RisingEdgeTrigger trigger = new(200, 190, holdoffSamples);
+                Span<uint> triggerIndices = new uint[ThunderscopeMemory.Length / 1000];     // 1000 samples is the minimum holdoff
+                RisingEdgeTrigger trigger = new(200, 190, config.ChannelLength / 2);
 
-                //TriggeredCapture triggeredCapture = new() { Channels = Channels.Four, ChannelLength = acquisitionLength, ChannelData = new byte[acquisitionLength * 4] };
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
-
-                int dequeueCounter = 0;
+                uint dequeueCounter = 0;
                 uint triggerCount = 0;
                 uint oneSecondTriggerCount = 0;
-                uint totalTriggerCount = 0;
-
-                // channelLength = the larger of:
-                //     ThunderscopeMemory.Length divided by the number of channels
-                //     The buffer length divided by the number of channels
                 // BoxcarUtility.ToDivisor(boxcarLength)
-                long channelLength = Math.Max(ThunderscopeMemory.Length / (long)channels, postbox.BytesCapacity / (long)channels);
-                var postboxWriterSemaphore = postbox.GetWriterSemaphore();
-                int droppedTriggers = 0;
-
                 Stopwatch oneSecond = Stopwatch.StartNew();
 
-                unsafe
+                var circularBuffer1 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength);
+                var circularBuffer2 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength);
+                var circularBuffer3 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength);
+                var circularBuffer4 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength);
+
+                while (true)
                 {
-                    byte[] circularBufferBackingStoreCh1 = new byte[channelLength];
-                    byte[] circularBufferBackingStoreCh2 = new byte[channelLength];
-                    byte[] circularBufferBackingStoreCh3 = new byte[channelLength];
-                    byte[] circularBufferBackingStoreCh4 = new byte[channelLength];
-                    fixed (byte*
-                        circularBufferBackingStoreCh1Ptr = circularBufferBackingStoreCh1,
-                        circularBufferBackingStoreCh2Ptr = circularBufferBackingStoreCh2,
-                        circularBufferBackingStoreCh3Ptr = circularBufferBackingStoreCh3,
-                        circularBufferBackingStoreCh4Ptr = circularBufferBackingStoreCh4)
+                    cancelToken.ThrowIfCancellationRequested();
+                    var memory = processingPool.Read(cancelToken);
+                    // Add a zero-wait mechanism here that allows for configuration values to be updated
+                    // (which will require updating many of the intermediate variables/buffers)
+                    dequeueCounter++;
+                    int channelLength = (int)config.ChannelLength;
+                    switch (config.Channels)
                     {
-                        var circularBuffer1 = new CircularBuffer(circularBufferBackingStoreCh1Ptr, channelLength);
-                        var circularBuffer2 = new CircularBuffer(circularBufferBackingStoreCh2Ptr, channelLength);
-                        var circularBuffer3 = new CircularBuffer(circularBufferBackingStoreCh3Ptr, channelLength);
-                        var circularBuffer4 = new CircularBuffer(circularBufferBackingStoreCh4Ptr, channelLength);
-
-                        while (true)
-                        {
-                            cancelToken.ThrowIfCancellationRequested();
-                            var memory = processingPool.Read(cancelToken);
-                            // Add a zero-wait mechanism here that allows for configuration values to be updated
-                            dequeueCounter++;
-                            switch (channels)
+                        // Processing pipeline:
+                        // Shuffle (if needed)
+                        // Boxcar
+                        // Write to circular buffer
+                        // Trigger
+                        // Data segment on trigger (if needed)
+                        case Channels.None:
+                            break;
+                        case Channels.One:
+                            // Boxcar
+                            if (config.BoxcarLength != BoxcarLength.None)
+                                throw new NotImplementedException();
+                            // Write to circular buffer
+                            circularBuffer1.Write(memory.Span);
+                            // Trigger
+                            if (config.TriggerChannel != TriggerChannel.None)
                             {
-                                // Processing pipeline:
-                                // Shuffle (if needed)
-                                // Boxcar
-                                // Write to circular buffer
-                                // Trigger
-                                // Data segment on trigger (if needed)
-                                case Channels.None:
-                                    break;
-                                case Channels.One:
-                                    // Boxcar
-                                    if (boxcarLength != BoxcarLength.None)
-                                        throw new NotImplementedException();
-                                    // Write to circular buffer
-                                    circularBuffer1.Write(memory.Span, 0);
-                                    // Trigger
-                                    if (triggerChannel != TriggerChannel.None)
+                                var triggerChannelBuffer = config.TriggerChannel switch
+                                {
+                                    TriggerChannel.One => memory.Span,
+                                    _ => throw new ArgumentException("Invalid TriggerChannel value")
+                                };
+                                triggerCount = trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices);
+                            }
+                            // Finished with the memory, return it
+                            memoryPool.Write(memory);
+                            break;
+                        case Channels.Two:
+                            // Shuffle
+                            Shuffle.TwoChannels(input: memory.Span, output: shuffleBuffer);
+                            // Finished with the memory, return it
+                            memoryPool.Write(memory);
+                            // Boxcar
+                            if (config.BoxcarLength != BoxcarLength.None)
+                                throw new NotImplementedException();
+                            // Write to circular buffer
+                            circularBuffer1.Write(postShuffleCh1_2);
+                            circularBuffer2.Write(postShuffleCh2_2);
+                            // Trigger
+                            if (config.TriggerChannel != TriggerChannel.None)
+                            {
+                                var triggerChannelBuffer = config.TriggerChannel switch
+                                {
+                                    TriggerChannel.One => postShuffleCh1_2,
+                                    TriggerChannel.Two => postShuffleCh2_2,
+                                    _ => throw new ArgumentException("Invalid TriggerChannel value")
+                                };
+                                triggerCount = trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices);
+                            }
+                            break;
+                        case Channels.Four:
+                            // Shuffle
+                            Shuffle.FourChannels(input: memory.Span, output: shuffleBuffer);
+                            // Finished with the memory, return it
+                            memoryPool.Write(memory);
+                            // Boxcar
+                            if (config.BoxcarLength != BoxcarLength.None)
+                                throw new NotImplementedException();
+                            // Write to circular buffer
+                            circularBuffer1.Write(postShuffleCh1_4);
+                            circularBuffer2.Write(postShuffleCh2_4);
+                            circularBuffer3.Write(postShuffleCh3_4);
+                            circularBuffer4.Write(postShuffleCh4_4);
+                            // Trigger
+                            if (config.TriggerChannel != TriggerChannel.None)
+                            {
+                                var triggerChannelBuffer = config.TriggerChannel switch
+                                {
+                                    TriggerChannel.One => postShuffleCh1_4,
+                                    TriggerChannel.Two => postShuffleCh2_4,
+                                    TriggerChannel.Three => postShuffleCh3_4,
+                                    TriggerChannel.Four => postShuffleCh4_4,
+                                    _ => throw new ArgumentException("Invalid TriggerChannel value")
+                                };
+                                triggerCount = trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices);
+                                monitoring.TotalTriggers += triggerCount;
+                                oneSecondTriggerCount += triggerCount;
+                                if (triggerCount > 0)
+                                {
+                                    for (int i = 0; i < triggerCount; i++)
                                     {
-                                        var triggerChannelBuffer = triggerChannel switch
+                                        if (bridge.IsReadyToWrite)
                                         {
-                                            TriggerChannel.One => memory.Span,
-                                            _ => throw new ArgumentException("Invalid TriggerChannel value")
-                                        };
-                                        triggerCount = trigger.ProcessSimd(input: triggerChannelBuffer, trigger: triggerResultBuffer_1);
-                                    }
-                                    // Finished with the memory, return it
-                                    memoryPool.Write(memory);
-                                    break;
-                                case Channels.Two:
-                                    // Shuffle
-                                    Shuffle.TwoChannels(input: memory.Span, output: shuffleBuffer);
-                                    // Finished with the memory, return it
-                                    memoryPool.Write(memory);
-                                    // Boxcar
-                                    if (boxcarLength != BoxcarLength.None)
-                                        throw new NotImplementedException();
-                                    // Write to circular buffer
-                                    circularBuffer1.Write(postShuffleCh1_2, 0);
-                                    circularBuffer2.Write(postShuffleCh2_2, 0);
-                                    // Trigger
-                                    if (triggerChannel != TriggerChannel.None)
-                                    {
-                                        var triggerChannelBuffer = triggerChannel switch
+                                            bridge.Monitoring = monitoring;
+                                            var bridgeSpan = bridge.Span;
+                                            var triggerIndex = triggerIndices[i];
+                                            circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), triggerIndex);
+                                            circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), triggerIndex);
+                                            circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), triggerIndex);
+                                            circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), triggerIndex);
+                                            bridge.DataWritten();
+                                            bridgeWriterSemaphore.Release();       // Signal to the reader that data is available
+                                        }
+                                        else
                                         {
-                                            TriggerChannel.One => postShuffleCh1_2,
-                                            TriggerChannel.Two => postShuffleCh2_2,
-                                            _ => throw new ArgumentException("Invalid TriggerChannel value")
-                                        };
-                                        triggerCount = trigger.ProcessSimd(input: triggerChannelBuffer, trigger: triggerResultBuffer_2);
-                                    }
-                                    break;
-                                case Channels.Four:
-                                    // Shuffle
-                                    Shuffle.FourChannels(input: memory.Span, output: shuffleBuffer);
-                                    // Finished with the memory, return it
-                                    memoryPool.Write(memory);
-                                    // Boxcar
-                                    if (boxcarLength != BoxcarLength.None)
-                                        throw new NotImplementedException();
-                                    // Write to circular buffer
-                                    circularBuffer1.Write(postShuffleCh1_4, 0);
-                                    circularBuffer2.Write(postShuffleCh2_4, 0);
-                                    circularBuffer3.Write(postShuffleCh3_4, 0);
-                                    circularBuffer4.Write(postShuffleCh4_4, 0);
-                                    // Trigger
-                                    if (triggerChannel != TriggerChannel.None)
-                                    {
-                                        var triggerChannelBuffer = triggerChannel switch
-                                        {
-                                            TriggerChannel.One => postShuffleCh1_4,
-                                            TriggerChannel.Two => postShuffleCh2_4,
-                                            TriggerChannel.Three => postShuffleCh3_4,
-                                            TriggerChannel.Four => postShuffleCh4_4,
-                                            _ => throw new ArgumentException("Invalid TriggerChannel value")
-                                        };
-                                        triggerCount = trigger.ProcessSimd(input: triggerChannelBuffer, trigger: triggerResultBuffer_1);
-                                        totalTriggerCount += triggerCount;
-                                        oneSecondTriggerCount += triggerCount;
-                                        if (triggerCount > 0)
-                                        {
-                                            // Scan through trigger buffer to find first trigger bit
-                                            for (int i = 0; i < triggerResultBuffer_1.Length; i++)
-                                            {
-                                                // To do: need to store pre-trigger data so it can be prepended?
-                                                if (triggerResultBuffer_1[i] > 0)
-                                                {
-                                                    //var index = (i * 64) + (64 - (int)Lzcnt.X64.LeadingZeroCount(triggerResultBuffer_1[i])) - 1;
-
-                                                    if (postbox.IsReadyToWrite())
-                                                    {
-                                                        circularBuffer1.Read(0, channelLength, postbox.DataPointer);
-                                                        circularBuffer2.Read(0, channelLength, postbox.DataPointer + channelLength);
-                                                        circularBuffer3.Read(0, channelLength, postbox.DataPointer + channelLength + channelLength);
-                                                        circularBuffer4.Read(0, channelLength, postbox.DataPointer + channelLength + channelLength + channelLength);
-                                                        postbox.DataIsWritten();
-                                                        postboxWriterSemaphore.Release();       // Signal to the reader that data is available
-                                                    }
-                                                    else
-                                                    {
-                                                        droppedTriggers++;
-                                                    }
-                                                }
-                                            }
+                                            monitoring.MissedTriggers++;
                                         }
                                     }
-                                    //logger.LogInformation($"Dequeue #{dequeueCounter++}, Ch1 triggers: {triggerCount1}, Ch2 triggers: {triggerCount2}, Ch3 triggers: {triggerCount3}, Ch4 triggers: {triggerCount4} ");
-                                    break;
+                                }
                             }
+                            //logger.LogInformation($"Dequeue #{dequeueCounter++}, Ch1 triggers: {triggerCount1}, Ch2 triggers: {triggerCount2}, Ch3 triggers: {triggerCount3}, Ch4 triggers: {triggerCount4} ");
+                            break;
+                    }
 
-
-                            if (oneSecond.ElapsedMilliseconds >= 1000)
-                            {
-                                logger.LogDebug($"Triggers/sec: {oneSecondTriggerCount / (oneSecond.ElapsedMilliseconds * 0.001):F2}, dequeue count: {dequeueCounter}, trigger count: {totalTriggerCount}");
-                                oneSecond.Restart();
-                                oneSecondTriggerCount = 0;
-                            }
-                        }
+                    if (oneSecond.ElapsedMilliseconds >= 1000)
+                    {
+                        logger.LogDebug($"Triggers/sec: {oneSecondTriggerCount / (oneSecond.ElapsedMilliseconds * 0.001):F2}, dequeue count: {dequeueCounter}, trigger count: {monitoring.TotalTriggers}, UI displayed triggers: {monitoring.TotalTriggers - monitoring.MissedTriggers}, UI dropped triggers: {monitoring.MissedTriggers}");
+                        oneSecond.Restart();
+                        oneSecondTriggerCount = 0;
                     }
                 }
             }

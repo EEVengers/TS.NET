@@ -16,7 +16,7 @@ namespace TS.NET.Memory.Unix
         private readonly string file;
         private readonly ILogger<MemoryFileUnix> logger;
 
-        internal MemoryFileUnix(PostboxOptions options, ILoggerFactory loggerFactory)
+        internal MemoryFileUnix(ThunderscopeBridgeOptions options, ILoggerFactory loggerFactory)
         {
             logger = loggerFactory.CreateLogger<MemoryFileUnix>();
             file = Path.Combine(options.Path, Folder);
@@ -53,7 +53,7 @@ namespace TS.NET.Memory.Unix
                 MappedFile = MemoryMappedFile.CreateFromFile(
                     stream,
                     mapName: null, // do not set this or it will not work on Linux/Unix/MacOS
-                    options.BytesCapacity,
+                    (long)options.BridgeCapacity,
                     MemoryMappedFileAccess.ReadWrite,
                     HandleInheritability.None,
                     false);

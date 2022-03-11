@@ -5,10 +5,11 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-
+// [assembly: DisableRuntimeMarshalling]    // Coming in .NET 7 with a source analyzer. This will guarantee interop has zero performance penalty.
 namespace TS.NET
 {
     // https://docs.microsoft.com/en-us/dotnet/standard/native-interop/best-practices#blittable-types
+    // CharSet = CharSet.Unicode helps ensure blitability
     [Flags]
     internal enum DiGetClassFlags : uint
     {
@@ -82,7 +83,7 @@ namespace TS.NET
             IntPtr requiredSize,                    // NULL
             IntPtr deviceInfoData);                 // NULL
 
-        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern IntPtr CreateFile(
             [MarshalAs(UnmanagedType.LPTStr)] string filename,
             [MarshalAs(UnmanagedType.U4)] FileAccess access,

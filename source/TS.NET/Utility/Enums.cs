@@ -1,6 +1,6 @@
 ﻿namespace TS.NET;
 
-public enum Channels
+public enum Channels : byte
 {
     None = 0,
     One = 1,
@@ -8,7 +8,7 @@ public enum Channels
     Four = 4
 }
 
-public enum TriggerChannel
+public enum TriggerChannel : byte
 {
     None = 0,
     One = 1,
@@ -17,40 +17,48 @@ public enum TriggerChannel
     Four = 4
 }
 
-public enum TriggerMode
+public enum ChannelLength : ulong
 {
-    Auto,
-    Normal,
-    Single_Unarmed,
-    Single_Armed,
+    OneK = 1000,
+    OneHundredM = 100000000
+}
+
+// Avoid using 0 value - makes it easier to find bugs [incorrect ser/deser and unset variables]
+
+public enum TriggerMode : byte
+{
+    Auto = 1,
+    Normal = 2,
+    Single_Unarmed = 3,
+    Single_Armed = 4,
 }
 
 public enum BoxcarLength
 {
-    None = 0,
-    By2 = 1,
-    By4 = 2,
-    By8 = 3,
-    By16 = 4,
-    By32 = 5,
-    By64 = 6,
-    By128 = 7,
-    By256 = 8,
-    By512 = 9,
-    By1024 = 10,
-    By2048 = 11,
-    By4096 = 12,
-    By8192 = 13,
-    By16384 = 14,
-    By32768 = 15,
-    By65536 = 16,
-    By131072 = 17,
-    By262144 = 18,
-    By524288 = 19,
-    By1048576 = 20,
-    By2097152 = 21,
-    By4194304 = 22,
-    By8388608 = 23
+    None = 1,
+    By2 = 2,
+    By4 = 3,
+    By8 = 4,
+    By16 = 5,
+    By32 = 6,
+    By64 = 7,
+    By128 = 8,
+    By256 = 9,
+    By512 = 10,
+    By1024 = 11,
+    By2048 = 12,
+    By4096 = 13,
+    By8192 = 14,
+    By16384 = 15,
+    By32768 = 16,
+    By65536 = 17,
+    By131072 = 18,
+    By262144 = 19,
+    By524288 = 20,
+    By1048576 = 21,
+    By2097152 = 22,
+    By4194304 = 23,
+    By8388608 = 24
 };
 
 public static class BoxcarUtility
