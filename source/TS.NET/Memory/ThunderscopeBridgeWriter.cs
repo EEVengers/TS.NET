@@ -11,7 +11,6 @@ using System.Runtime.CompilerServices;
 namespace TS.NET
 {
     // This is a shared memory-mapped file between processes, with only a single writer and a single reader with a header struct
-    // Maybe split this into Writer/Reader
     public class ThunderscopeBridgeWriter : IDisposable
     {
         private readonly ThunderscopeBridgeOptions options;

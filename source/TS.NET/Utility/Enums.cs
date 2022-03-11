@@ -8,29 +8,10 @@ public enum Channels : byte
     Four = 4
 }
 
-public enum TriggerChannel : byte
-{
-    None = 0,
-    One = 1,
-    Two = 2,
-    Three = 3,
-    Four = 4
-}
-
 public enum ChannelLength : ulong
 {
     OneK = 1000,
     OneHundredM = 100000000
-}
-
-// Avoid using 0 value - makes it easier to find bugs [incorrect ser/deser and unset variables]
-
-public enum TriggerMode : byte
-{
-    Auto = 1,
-    Normal = 2,
-    Single_Unarmed = 3,
-    Single_Armed = 4,
 }
 
 public enum BoxcarLength
@@ -60,6 +41,29 @@ public enum BoxcarLength
     By4194304 = 23,
     By8388608 = 24
 };
+
+public enum TriggerChannel : byte
+{
+    None = 0,
+    One = 1,
+    Two = 2,
+    Three = 3,
+    Four = 4
+}
+
+public enum TriggerMode : byte
+{
+    Auto = 1,
+    Normal = 2,
+    Single_Unarmed = 3,
+    Single_Armed = 4,
+}
+public enum ThunderscopeChannelDataType : byte
+{
+    Byte = 1,
+    Int16 = 2,
+    Int32 = 3
+}
 
 public static class BoxcarUtility
 {

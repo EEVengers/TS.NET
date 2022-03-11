@@ -2,8 +2,6 @@
 
 namespace TS.NET
 {
-
-
     // Ensure this is blitable (i.e. don't use bool)
     // Pack of 1 = No padding.
     // There might be some benefit later to setting a fixed size (64?) for memory alignment if an aligned memorymappedfile can be created.
@@ -38,17 +36,9 @@ namespace TS.NET
         public ulong MissedTriggers;        // Triggers that weren't displayed
     }
 
-    // Avoid using 0 value - makes it easier to find bugs [incorrect ser/deser and unset variables]
     public enum ThunderscopeMemoryBridgeState : byte
     {
         Empty = 1,      // Writing is allowed
         Full = 2,       // Writing is blocked, waiting for reader to set back to Unset
-    }
-
-    public enum ThunderscopeChannelDataType : byte
-    {
-        Byte = 1,
-        Int16 = 2,
-        Int32 = 3
     }
 }

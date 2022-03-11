@@ -44,7 +44,19 @@ namespace TS.NET.Engine
                 {
                     cancelToken.ThrowIfCancellationRequested();
                     var memory = memoryPool.Read();
-                    thunderscope.Read(memory);
+                    try
+                    {
+                        thunderscope.Read(memory);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex.Message == "ReadFile - failed (1359)")
+                        {
+                            logger.LogError(ex, $"{nameof(InputTask)} error");
+                            continue;
+                        }
+                        throw;
+                    }
                     processingPool.Write(memory);
                 }
             }
