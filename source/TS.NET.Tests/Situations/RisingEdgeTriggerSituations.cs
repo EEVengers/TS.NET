@@ -70,5 +70,43 @@ namespace TS.NET.Tests
 
             return situation;
         }
+
+        //4 sample wide 51hz pulse repeated 3 times
+        public static TriggerSituation SituationC()
+        {
+            const int chunkCount = 120;
+            TriggerSituation situation = new TriggerSituation()
+            {
+                TriggerLevel = 127,
+                ArmLevel = 117,
+                HoldoffSamples = 5 * 1000000,
+
+                ChunkSize = 8388608,
+                ChunkCount = chunkCount,
+                Input = new byte[8388608 * chunkCount],
+
+                ExpectedTriggerIndices = new Memory<uint>[chunkCount],
+                ExpectedHoldoffEndIndices = new Memory<uint>[chunkCount],
+            };
+
+            // Every 4901960, a pulse
+            situation.Input.Span.Clear();
+            for(int i = 0; i < situation.Input.Length; i+= 4901960)
+            {
+                situation.Input.Span[i] = 255;
+                situation.Input.Span[i+1] = 255;
+                situation.Input.Span[i+2] = 255;
+                situation.Input.Span[i+3] = 255;
+            }    
+
+            situation.ExpectedTriggerIndices[0] = new uint[1];
+            situation.ExpectedTriggerIndices[0].Span[0] = 0;
+            var quotient = situation.HoldoffSamples / situation.ChunkSize;
+            var remainder = situation.HoldoffSamples % situation.ChunkSize;
+            situation.ExpectedHoldoffEndIndices[quotient] = new uint[1];
+            situation.ExpectedHoldoffEndIndices[quotient].Span[0] = remainder;
+
+            return situation;
+        }
     }
 }

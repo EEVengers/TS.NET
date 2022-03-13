@@ -34,10 +34,23 @@ namespace TS.NET.Tests
         //}
 
         [Fact]
+        public void FiftySample()
+        {
+            RisingEdgeTrigger trigger = new(130, 120, 10);
+            Span<uint> triggerIndices = new uint[10000];
+            Span<uint> holdoffEndIndices = new uint[10000];
+            Span<byte> input = new byte[50];
+            input.Clear();
+            input[16] = 200;
+            trigger.ProcessSimd(input, triggerIndices, out uint triggerCount, holdoffEndIndices, out uint holdoffEndCount);
+
+        }
+
+        [Fact]
         public void SituationB_Simd()
         {
             var situation = RisingEdgeTriggerSituations.SituationB();
-            RisingEdgeTrigger trigger = new(situation.TriggerLevel, situation.ArmLevel, situation.HoldoffSamples);
+            RisingEdgeTriggerAlt trigger = new(situation.TriggerLevel, situation.ArmLevel, situation.HoldoffSamples);
             Span<uint> triggerIndices = new uint[10000];
             Span<uint> holdoffEndIndices = new uint[10000];
 
@@ -73,6 +86,29 @@ namespace TS.NET.Tests
                         Assert.Equal(index, holdoffEndIndices[n++]);
                     }
                 }
+            }
+        }
+
+        [Fact]
+        public void SituationC_Simd()
+        {
+            var situation = RisingEdgeTriggerSituations.SituationC();
+            RisingEdgeTrigger trigger = new(situation.TriggerLevel, situation.ArmLevel, situation.HoldoffSamples);
+            Span<uint> triggerIndices = new uint[10000];
+            Span<uint> holdoffEndIndices = new uint[10000];
+
+            for (int i = 0; i < situation.ChunkCount; i++)
+            {
+                trigger.ProcessSimd(
+                    situation.Input.Span.Slice((int)(i * situation.ChunkSize), (int)situation.ChunkSize),
+                    triggerIndices,
+                    out uint triggerCount,
+                    holdoffEndIndices,
+                    out uint holdoffEndCount);
+                if (triggerCount > 0)
+                    Console.WriteLine("Hi");
+                if (holdoffEndCount > 0)
+                    Console.WriteLine("Hi");
             }
         }
     }

@@ -39,7 +39,7 @@ namespace TS.NET.Engine
                 ThunderscopeConfiguration config = new()
                 {
                     Channels = Channels.Four,
-                    ChannelLength = 100 * 1000000,//(ulong)ChannelLength.OneHundredM,
+                    ChannelLength = 10 * 1000000,//(ulong)ChannelLength.OneHundredM,
                     BoxcarLength = BoxcarLength.None,
                     TriggerChannel = TriggerChannel.One,
                     TriggerMode = TriggerMode.Normal
@@ -59,19 +59,19 @@ namespace TS.NET.Engine
                 // Shuffle buffers. Only needed for 2/4 channel modes.
                 Span<byte> shuffleBuffer = new byte[ThunderscopeMemory.Length];
                 // --2 channel buffers
-                int channelLength_2 = (int)ThunderscopeMemory.Length / 2;
-                Span<byte> postShuffleCh1_2 = shuffleBuffer.Slice(0, channelLength_2);
-                Span<byte> postShuffleCh2_2 = shuffleBuffer.Slice(channelLength_2, channelLength_2);
+                int blockLength_2 = (int)ThunderscopeMemory.Length / 2;
+                Span<byte> postShuffleCh1_2 = shuffleBuffer.Slice(0, blockLength_2);
+                Span<byte> postShuffleCh2_2 = shuffleBuffer.Slice(blockLength_2, blockLength_2);
                 // --4 channel buffers
-                int channelLength_4 = (int)ThunderscopeMemory.Length / 4;
-                Span<byte> postShuffleCh1_4 = shuffleBuffer.Slice(0, channelLength_4);
-                Span<byte> postShuffleCh2_4 = shuffleBuffer.Slice(channelLength_4, channelLength_4);
-                Span<byte> postShuffleCh3_4 = shuffleBuffer.Slice(channelLength_4 * 2, channelLength_4);
-                Span<byte> postShuffleCh4_4 = shuffleBuffer.Slice(channelLength_4 * 3, channelLength_4);
+                int blockLength_4 = (int)ThunderscopeMemory.Length / 4;
+                Span<byte> postShuffleCh1_4 = shuffleBuffer.Slice(0, blockLength_4);
+                Span<byte> postShuffleCh2_4 = shuffleBuffer.Slice(blockLength_4, blockLength_4);
+                Span<byte> postShuffleCh3_4 = shuffleBuffer.Slice(blockLength_4 * 2, blockLength_4);
+                Span<byte> postShuffleCh4_4 = shuffleBuffer.Slice(blockLength_4 * 3, blockLength_4);
 
                 Span<uint> triggerIndices = new uint[ThunderscopeMemory.Length / 1000];     // 1000 samples is the minimum holdoff
                 Span<uint> holdoffEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum holdoff
-                RisingEdgeTrigger trigger = new(200, 190, config.ChannelLength / 2);
+                RisingEdgeTriggerAlt trigger = new(200, 190, config.ChannelLength/2);
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;
@@ -179,7 +179,7 @@ namespace TS.NET.Engine
                                         {
                                             bridge.Monitoring = monitoring;
                                             var bridgeSpan = bridge.Span;
-                                            uint holdoffEndIndex = (ThunderscopeMemory.Length / 2) - holdoffEndIndices[i];// - 2097152;      // WTF?
+                                            uint holdoffEndIndex = (uint)postShuffleCh1_4.Length - holdoffEndIndices[i];
                                             circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), holdoffEndIndex);
                                             circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), holdoffEndIndex);
                                             circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), holdoffEndIndex);
