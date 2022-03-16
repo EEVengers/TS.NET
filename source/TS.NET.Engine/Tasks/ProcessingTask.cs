@@ -40,7 +40,7 @@ namespace TS.NET.Engine
                 {
                     Channels = Channels.Four,
                     ChannelLength = 10 * 1000000,//(ulong)ChannelLength.OneHundredM,
-                    BoxcarLength = BoxcarLength.None,
+                    HorizontalSumLength = HorizontalSumLength.None,
                     TriggerChannel = TriggerChannel.One,
                     TriggerMode = TriggerMode.Normal
                 };
@@ -76,7 +76,7 @@ namespace TS.NET.Engine
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;
                 uint oneSecondHoldoffCount = 0;
-                // BoxcarUtility.ToDivisor(boxcarLength)
+                // HorizontalSumUtility.ToDivisor(horizontalSumLength)
                 Stopwatch oneSecond = Stopwatch.StartNew();
 
                 var circularBuffer1 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength + ThunderscopeMemory.Length);
@@ -96,15 +96,15 @@ namespace TS.NET.Engine
                     {
                         // Processing pipeline:
                         // Shuffle (if needed)
-                        // Boxcar
+                        // Horizontal sum
                         // Write to circular buffer
                         // Trigger
                         // Data segment on trigger (if needed)
                         case Channels.None:
                             break;
                         case Channels.One:
-                            // Boxcar
-                            if (config.BoxcarLength != BoxcarLength.None)
+                            // Horizontal sum
+                            if (config.HorizontalSumLength != HorizontalSumLength.None)
                                 throw new NotImplementedException();
                             // Write to circular buffer
                             circularBuffer1.Write(memory.Span);
@@ -126,8 +126,8 @@ namespace TS.NET.Engine
                             Shuffle.TwoChannels(input: memory.Span, output: shuffleBuffer);
                             // Finished with the memory, return it
                             memoryPool.Write(memory);
-                            // Boxcar
-                            if (config.BoxcarLength != BoxcarLength.None)
+                            // Horizontal sum
+                            if (config.HorizontalSumLength != HorizontalSumLength.None)
                                 throw new NotImplementedException();
                             // Write to circular buffer
                             circularBuffer1.Write(postShuffleCh1_2);
@@ -149,8 +149,8 @@ namespace TS.NET.Engine
                             Shuffle.FourChannels(input: memory.Span, output: shuffleBuffer);
                             // Finished with the memory, return it
                             memoryPool.Write(memory);
-                            // Boxcar
-                            if (config.BoxcarLength != BoxcarLength.None)
+                            // Horizontal sum
+                            if (config.HorizontalSumLength != HorizontalSumLength.None)
                                 throw new NotImplementedException();
                             // Write to circular buffer
                             circularBuffer1.Write(postShuffleCh1_4);

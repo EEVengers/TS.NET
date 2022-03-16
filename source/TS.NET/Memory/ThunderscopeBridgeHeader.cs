@@ -22,7 +22,7 @@ namespace TS.NET
     {
         public Channels Channels;
         public ulong ChannelLength;         // Example: 4 channels with max length = 100M, can easily be 1k for high update rate. Max: Capacity/4, Min: 1k.
-        public BoxcarLength BoxcarLength;
+        public HorizontalSumLength HorizontalSumLength;
         public TriggerChannel TriggerChannel;
         public TriggerMode TriggerMode;
         public ThunderscopeChannelDataType ChannelDataType;
