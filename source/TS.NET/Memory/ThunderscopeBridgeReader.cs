@@ -19,12 +19,14 @@ namespace TS.NET
         private unsafe byte* dataPointer { get; }
         private ThunderscopeBridgeHeader header;
 
+        public IntPtr DataPointer { get { unsafe { return (IntPtr)dataPointer; } } }
         public Span<byte> Span { get { unsafe { return new Span<byte>(dataPointer, (int)dataBytesCapacity); } } }
+        private bool IsHeaderSet { get { GetHeader(); return header.Version != 0; } }
 
         public unsafe ThunderscopeBridgeReader(ThunderscopeBridgeOptions options, ILoggerFactory loggerFactory)
         {
             this.options = options;
-            dataBytesCapacity = options.BridgeCapacity - (uint)sizeof(ThunderscopeBridgeHeader);
+            dataBytesCapacity = options.BridgeCapacityBytes - (uint)sizeof(ThunderscopeBridgeHeader);
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new MemoryFileWindows(options)
                 : new MemoryFileUnix(options, loggerFactory);
@@ -38,9 +40,14 @@ namespace TS.NET
                     basePointer = AcquirePointer();
                     dataPointer = basePointer + sizeof(ThunderscopeBridgeHeader);
 
+                    while (!IsHeaderSet)
+                    {
+                        Console.WriteLine("Waiting for Thunderscope bridge...");
+                        Thread.Sleep(1000);
+                    }
                     GetHeader();
-                    if (header.DataCapacity != options.DataCapacity)
-                        throw new Exception($"Mismatch in data capacity, options: {options.DataCapacity}, bridge: {header.DataCapacity}");
+                    if (header.DataCapacityBytes != options.DataCapacityBytes)
+                        throw new Exception($"Mismatch in data capacity, options: {options.DataCapacityBytes}, bridge: {header.DataCapacityBytes}");
                 }
                 catch
                 {

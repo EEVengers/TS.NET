@@ -9,8 +9,8 @@ namespace TS.NET
     internal struct ThunderscopeBridgeHeader
     {
         // Version + DataCapacity is enough data for the UI to know how big a memorymappedfile to open
-        internal byte Version = 1;          // Allows UI to know which ThunderscopeMemoryBridgeHeader version to use, hence the size of the header.
-        internal ulong DataCapacity;        // Maximum size of the data array in bridge. Example: 400M, set from configuration file?
+        internal byte Version;              // Allows UI to know which ThunderscopeMemoryBridgeHeader version to use, hence the size of the header.
+        internal ulong DataCapacityBytes;   // Maximum size of the data array in bridge. Example: 400M, set from configuration file?
 
         internal ThunderscopeMemoryBridgeState State;
         internal ThunderscopeConfiguration Configuration;
@@ -21,7 +21,7 @@ namespace TS.NET
     public struct ThunderscopeConfiguration
     {
         public Channels Channels;
-        public ulong ChannelLength;         // Example: 4 channels with max length = 100M, can easily be 1k for high update rate. Max: Capacity/4, Min: 1k.
+        public int ChannelLength;         // Example: 4 channels with max length = 100M, can easily be 1k for high update rate. Max: Capacity/4, Min: 1k.
         public HorizontalSumLength HorizontalSumLength;
         public TriggerChannel TriggerChannel;
         public TriggerMode TriggerMode;

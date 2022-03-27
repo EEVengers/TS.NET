@@ -6,13 +6,13 @@ namespace TS.NET
     {
         public string MemoryName { get; }
         public string Path { get; }
-        public ulong BridgeCapacity { get; }
-        public ulong DataCapacity { get; }
+        public ulong BridgeCapacityBytes { get; }
+        public ulong DataCapacityBytes { get; }
 
-        public ThunderscopeBridgeOptions(string memoryName, ulong dataCapacity)
-            : this(memoryName, System.IO.Path.GetTempPath(), dataCapacity) { }
+        public ThunderscopeBridgeOptions(string memoryName, ulong dataCapacityBytes)
+            : this(memoryName, System.IO.Path.GetTempPath(), dataCapacityBytes) { }
 
-        public unsafe ThunderscopeBridgeOptions(string memoryName, string path, ulong dataCapacity)
+        public unsafe ThunderscopeBridgeOptions(string memoryName, string path, ulong dataCapacityBytes)
         {
             if(string.IsNullOrWhiteSpace(memoryName))
                 throw new ArgumentNullException(nameof(memoryName));
@@ -21,8 +21,8 @@ namespace TS.NET
 
             MemoryName = memoryName;
             Path = path;
-            DataCapacity = dataCapacity;
-            BridgeCapacity = (ulong)sizeof(ThunderscopeBridgeHeader) + dataCapacity;
+            DataCapacityBytes = dataCapacityBytes;
+            BridgeCapacityBytes = (ulong)sizeof(ThunderscopeBridgeHeader) + dataCapacityBytes;
         }
     }
 }

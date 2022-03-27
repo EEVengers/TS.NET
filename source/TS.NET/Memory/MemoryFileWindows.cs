@@ -16,7 +16,7 @@ namespace TS.NET.Memory.Windows
 #endif
             MappedFile = MemoryMappedFile.CreateOrOpen(
                 mapName: MapNamePrefix + options.MemoryName,
-                (long)options.BridgeCapacity,
+                (long)options.BridgeCapacityBytes,
                 MemoryMappedFileAccess.ReadWrite,
                 MemoryMappedFileOptions.None,
                 HandleInheritability.None);

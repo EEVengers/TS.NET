@@ -53,7 +53,7 @@ namespace TS.NET.Memory.Unix
                 MappedFile = MemoryMappedFile.CreateFromFile(
                     stream,
                     mapName: null, // do not set this or it will not work on Linux/Unix/MacOS
-                    (long)options.BridgeCapacity,
+                    (long)options.BridgeCapacityBytes,
                     MemoryMappedFileAccess.ReadWrite,
                     HandleInheritability.None,
                     false);

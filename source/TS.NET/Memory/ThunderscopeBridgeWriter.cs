@@ -14,19 +14,19 @@ namespace TS.NET
     public class ThunderscopeBridgeWriter : IDisposable
     {
         private readonly ThunderscopeBridgeOptions options;
-        private readonly ulong dataBytesCapacity;
+        private readonly ulong dataCapacityBytes;
         private readonly IMemoryFile file;
         private readonly MemoryMappedViewAccessor view;
         private unsafe byte* basePointer;
         private unsafe byte* dataPointer { get; }
         private ThunderscopeBridgeHeader header;
 
-        public Span<byte> Span { get { unsafe { return new Span<byte>(dataPointer, (int)dataBytesCapacity); } } }
+        public Span<byte> Span { get { unsafe { return new Span<byte>(dataPointer, (int)dataCapacityBytes); } } }
 
         public unsafe ThunderscopeBridgeWriter(ThunderscopeBridgeOptions options, ILoggerFactory loggerFactory)
         {
             this.options = options;
-            dataBytesCapacity = options.BridgeCapacity - (uint)sizeof(ThunderscopeBridgeHeader);
+            dataCapacityBytes = options.BridgeCapacityBytes - (uint)sizeof(ThunderscopeBridgeHeader);
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new MemoryFileWindows(options)
                 : new MemoryFileUnix(options, loggerFactory);
@@ -42,7 +42,8 @@ namespace TS.NET
 
                     // Writer sets initial state of header
                     header.State = ThunderscopeMemoryBridgeState.Empty;
-                    header.DataCapacity = dataBytesCapacity;
+                    header.Version = 1;
+                    header.DataCapacityBytes = dataCapacityBytes;
                     SetHeader();
                 }
                 catch
