@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
 	<LangVersion>preview</LangVersion>
 	<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	<Version>0.1.0</Version>
+	<TrimMode>copyused</TrimMode>
+	<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
   </PropertyGroup>
   <ItemGroup>
     <None Remove=".gitignore" />
