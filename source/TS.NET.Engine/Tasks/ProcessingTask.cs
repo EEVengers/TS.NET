@@ -15,10 +15,10 @@ namespace TS.NET.Engine
         {
             var logger = loggerFactory.CreateLogger("ProcessingTask");
             cancelTokenSource = new CancellationTokenSource();
-            ulong capacity = 4 * 100 * 1000 * 1000;      //Maximum record length = 100M samples per channel
+            ulong capacityBytes = 4 * 100 * 1000 * 1000;      // Maximum capacity = 100M samples per channel
             // Bridge is cross-process shared memory for the UI to read triggered acquisitions
             // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
-            ThunderscopeBridgeWriter bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", capacity), loggerFactory);
+            ThunderscopeBridgeWriter bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", capacityBytes), loggerFactory);
             taskLoop = Task.Factory.StartNew(() => Loop(logger, processingPool, memoryPool, bridge, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
@@ -71,7 +71,7 @@ namespace TS.NET.Engine
 
                 Span<uint> triggerIndices = new uint[ThunderscopeMemory.Length / 1000];     // 1000 samples is the minimum holdoff
                 Span<uint> holdoffEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum holdoff
-                RisingEdgeTriggerAlt trigger = new(200, 190, config.ChannelLength/2);
+                RisingEdgeTriggerAlt trigger = new(200, 190, (ulong)(config.ChannelLength/2));
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;
@@ -91,21 +91,21 @@ namespace TS.NET.Engine
                     // Add a zero-wait mechanism here that allows for configuration values to be updated
                     // (which will require updating many of the intermediate variables/buffers)
                     dequeueCounter++;
-                    int channelLength = (int)config.ChannelLength;
+                    int channelLength = config.ChannelLength;
                     switch (config.Channels)
                     {
                         // Processing pipeline:
                         // Shuffle (if needed)
-                        // Horizontal sum
+                        // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
                         // Write to circular buffer
                         // Trigger
                         // Data segment on trigger (if needed)
                         case Channels.None:
                             break;
                         case Channels.One:
-                            // Horizontal sum
-                            if (config.HorizontalSumLength != HorizontalSumLength.None)
-                                throw new NotImplementedException();
+                            // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
+                            //if (config.HorizontalSumLength != HorizontalSumLength.None)
+                            //    throw new NotImplementedException();
                             // Write to circular buffer
                             circularBuffer1.Write(memory.Span);
                             // Trigger
@@ -126,9 +126,9 @@ namespace TS.NET.Engine
                             Shuffle.TwoChannels(input: memory.Span, output: shuffleBuffer);
                             // Finished with the memory, return it
                             memoryPool.Write(memory);
-                            // Horizontal sum
-                            if (config.HorizontalSumLength != HorizontalSumLength.None)
-                                throw new NotImplementedException();
+                            // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
+                            //if (config.HorizontalSumLength != HorizontalSumLength.None)
+                            //    throw new NotImplementedException();
                             // Write to circular buffer
                             circularBuffer1.Write(postShuffleCh1_2);
                             circularBuffer2.Write(postShuffleCh2_2);
@@ -149,9 +149,9 @@ namespace TS.NET.Engine
                             Shuffle.FourChannels(input: memory.Span, output: shuffleBuffer);
                             // Finished with the memory, return it
                             memoryPool.Write(memory);
-                            // Horizontal sum
-                            if (config.HorizontalSumLength != HorizontalSumLength.None)
-                                throw new NotImplementedException();
+                            // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
+                            //if (config.HorizontalSumLength != HorizontalSumLength.None)
+                            //    throw new NotImplementedException();
                             // Write to circular buffer
                             circularBuffer1.Write(postShuffleCh1_4);
                             circularBuffer2.Write(postShuffleCh2_4);

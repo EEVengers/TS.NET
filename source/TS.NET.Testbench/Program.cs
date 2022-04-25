@@ -9,6 +9,18 @@ using (Process p = Process.GetCurrentProcess())
 Console.WriteLine("Waiting for key press...");
 Console.ReadKey();
 
+Span<byte> data = new byte[8 * 1000000];
+ChannelCircularAlignedBuffer buffer = new ChannelCircularAlignedBuffer(10 * 1000000);
+
+data.Fill(1);
+buffer.Write(data);
+data.Fill(2);
+buffer.Write(data);
+
+Span<byte> readData = new byte[10 * 1000000];
+buffer.Read(readData, 7000000);
+
+return;
 unsafe
 {
 

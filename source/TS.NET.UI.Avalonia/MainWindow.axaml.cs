@@ -3,7 +3,9 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Cloudtoid.Interprocess;
+using FluentAvalonia.Styling;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using ScottPlot;
 using ScottPlot.Avalonia;
 using System;
@@ -19,6 +21,7 @@ namespace TS.NET.UI.Avalonia
         private AvaPlot avaPlot1;
         private Label lblStatus;
         private NumericUpDown upDownIndex;
+        private TextBlock textBlockInfo;
         private double[] channel1 = null;
         private double[] channel2 = null;
         private double[] channel3 = null;
@@ -37,9 +40,8 @@ namespace TS.NET.UI.Avalonia
             this.AttachDevTools();
 #endif
 
-            //var queueFactory = new QueueFactory();
-            //var queueOptions = new QueueOptions(queueName: "ThunderScopeTriggeredCaptureForwarderInput", bytesCapacity: 2 * 8000000);
-            //forwarderInput = queueFactory.CreatePublisher(queueOptions);
+            //var faTheme = AvaloniaLocator.Current.GetService<FluentAvaloniaTheme>();
+            //faTheme.RequestedTheme = "Dark";
         }
 
         private void InitializeComponent()
@@ -54,13 +56,17 @@ namespace TS.NET.UI.Avalonia
             avaPlot1 = this.Find<AvaPlot>("AvaPlot1");
             lblStatus = this.Find<Label>("LblStatus");
             upDownIndex = this.Find<NumericUpDown>("UpDownIndex");
-            avaPlot1.Plot.Style(Style.Gray2);
+            textBlockInfo = this.Find<TextBlock>("TextInfo");
+            //avaPlot1.Plot.Style(Style.Gray2);
             avaPlot1.Plot.Legend(true, Alignment.LowerRight);
             ResetSeries();
             avaPlot1.Plot.XAxis.Label("Time (ns)");
             avaPlot1.Plot.YAxis.Label("ADC reading");
-            avaPlot1.Plot.SetAxisLimitsY(0, 255);
             avaPlot1.Plot.SetAxisLimitsX(0, 1000);
+            avaPlot1.Plot.SetAxisLimitsY(0, 255);
+            //avaPlot1.Plot.YAxis.LockLimits(true);
+            //avaPlot1.Plot.XAxis.LockLimits(true);
+            //avaPlot1.Configuration.Pan = false;
             triggerLine = avaPlot1.Plot.AddHorizontalLine(200, System.Drawing.Color.White, 2, LineStyle.Dash);
 
             //using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
@@ -71,10 +77,10 @@ namespace TS.NET.UI.Avalonia
         private void ResetSeries()
         {
             avaPlot1.Plot.Clear();
-            avaPlot1.Plot.AddSignal(channel1, 1, null, "Ch1");
-            avaPlot1.Plot.AddSignal(channel2, 1, null, "Ch2");
-            avaPlot1.Plot.AddSignal(channel3, 1, null, "Ch3");
-            avaPlot1.Plot.AddSignal(channel4, 1, null, "Ch4");
+            avaPlot1.Plot.AddSignal(channel1, 250000000, null, "Ch1");
+            avaPlot1.Plot.AddSignal(channel2, 250000000, null, "Ch2");
+            avaPlot1.Plot.AddSignal(channel3, 250000000, null, "Ch3");
+            avaPlot1.Plot.AddSignal(channel4, 250000000, null, "Ch4");
         }
 
         private unsafe void UpdateChart(CancellationToken cancelToken)
@@ -93,9 +99,9 @@ namespace TS.NET.UI.Avalonia
                     cancelToken.ThrowIfCancellationRequested();
                     if (bridgeReadSemaphore.Wait(500))
                     {
-                        ulong channelLength = bridge.Configuration.ChannelLength;
+                        ulong channelLength = (ulong)bridge.Configuration.ChannelLength;
                         //uint viewportLength = (uint)bridge.Configuration.ChannelLength;//1000;
-                        uint viewportLength = (uint)upDownIndex.Value;
+                        uint viewportLength = 1000000;// (uint)upDownIndex.Value;
                         if (viewportLength < 100)
                             viewportLength = 100;
                         if (viewportLength > 10000000)
@@ -122,6 +128,8 @@ namespace TS.NET.UI.Avalonia
                             ResetSeries();
                         }
 
+                        var cfg = bridge.Configuration;
+                        var status = $"[Horizontal] Displaying {AddPrefix(viewportLength)} samples of {AddPrefix(channelLength)} [Acquisitions] displayed: {bridge.Monitoring.TotalAcquisitions - bridge.Monitoring.MissedAcquisitions}, missed: {bridge.Monitoring.MissedAcquisitions}, total: {bridge.Monitoring.TotalAcquisitions}";
                         var data = bridge.Span;
                         int offset = (int)((channelLength / 2) - (viewportLength / 2));
                         data.Slice(offset, (int)viewportLength).ToDoubleArray(channel1); offset += (int)channelLength;
@@ -132,7 +140,21 @@ namespace TS.NET.UI.Avalonia
 
                         //var reading = bridge.Span[(int)upDownIndex.Value];
                         count++;
-                        Dispatcher.UIThread.InvokeAsync(() => { avaPlot1.Render(); lblStatus.Content = $"Count: {count}"; });
+                        string textInfo = JsonConvert.SerializeObject(cfg, Formatting.Indented, new Newtonsoft.Json.Converters.StringEnumConverter()); 
+                        //@$"Channels: {cfg.Channels}
+                        //Channel length: {cfg.ChannelLength}
+                        //Trigger channel: {cfg.TriggerChannel}
+                        //Trigger mode: {cfg.TriggerMode}
+
+                        //Channel 1:
+                        //DC coupling
+                        //20MHz bandwidth";
+                        Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            avaPlot1.Render();
+                            textBlockInfo.Text = textInfo;
+                            lblStatus.Content = status;
+                        });
                         stopwatch.Restart();
                         Thread.Sleep(100);
                     }
@@ -140,18 +162,48 @@ namespace TS.NET.UI.Avalonia
             }
             catch (OperationCanceledException)
             {
-                //logger.LogDebug("TriggeredCaptureForwarderTask stopping");
+                //logger.LogDebug("UpdateChart stopping");
                 throw;
             }
             catch (Exception ex)
             {
-                //logger.LogCritical(ex, "TriggeredCaptureForwarderTask error");
+                //logger.LogCritical(ex, "UpdateChart error");
                 throw;
             }
             finally
             {
-                //logger.LogDebug("TriggeredCaptureForwarderTask stopped");
+                //logger.LogDebug("UpdateChart stopped");
             }
+        }
+
+        public static string AddPrefix(double value, string unit = "")
+        {
+            string[] superSuffix = new string[] { "K", "M", "G", "T", "P", "A", };
+            string[] subSuffix = new string[] { "m", "u", "n", "p", "f", "a" };
+            double v = value;
+            int exp = 0;
+            while (v - Math.Floor(v) > 0)
+            {
+                if (exp >= 18)
+                    break;
+                exp += 3;
+                v *= 1000;
+                v = Math.Round(v, 12);
+            }
+
+            while (Math.Floor(v).ToString().Length > 3)
+            {
+                if (exp <= -18)
+                    break;
+                exp -= 3;
+                v /= 1000;
+                v = Math.Round(v, 12);
+            }
+            if (exp > 0)
+                return v.ToString() + subSuffix[exp / 3 - 1] + unit;
+            else if (exp < 0)
+                return v.ToString() + superSuffix[-exp / 3 - 1] + unit;
+            return v.ToString() + unit;
         }
     }
 }

@@ -36,7 +36,7 @@ namespace TS.NET.Tests
         [Fact]
         public void FiftySample()
         {
-            RisingEdgeTrigger trigger = new(130, 120, 10);
+            RisingEdgeTriggerAlt trigger = new(130, 120, 10);
             Span<uint> triggerIndices = new uint[10000];
             Span<uint> holdoffEndIndices = new uint[10000];
             Span<byte> input = new byte[50];
@@ -93,7 +93,7 @@ namespace TS.NET.Tests
         public void SituationC_Simd()
         {
             var situation = RisingEdgeTriggerSituations.SituationC();
-            RisingEdgeTrigger trigger = new(situation.TriggerLevel, situation.ArmLevel, situation.HoldoffSamples);
+            RisingEdgeTriggerAlt trigger = new(situation.TriggerLevel, situation.ArmLevel, situation.HoldoffSamples);
             Span<uint> triggerIndices = new uint[10000];
             Span<uint> holdoffEndIndices = new uint[10000];
 

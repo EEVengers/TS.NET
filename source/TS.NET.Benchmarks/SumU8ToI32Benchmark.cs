@@ -22,21 +22,21 @@ namespace TS.NET.Benchmark
         public void I32_2_()
         {
             for (int i = 0; i < 125; i++)
-                Boxcar.U8ToI32(input.Span, bufferI16.Span, bufferI32.Span, 1);
+                HorizontalSum.U8ToI32(input.Span, bufferI16.Span, bufferI32.Span, 1);
         }
 
         [Benchmark(Description = "I32: Sum by 4 (1GS -> 250MS)")]  //  CPU cycles per sample
         public void I32_4_()
         {
             for (int i = 0; i < 125; i++)
-                Boxcar.U8ToI32(input.Span, bufferI16.Span, bufferI32.Span, 2);
+                HorizontalSum.U8ToI32(input.Span, bufferI16.Span, bufferI32.Span, 2);
         }
 
         [Benchmark(Description = "I32: Sum by 8 (1GS -> 125MS)")]  //  CPU cycles per sample
         public void I32_8_()
         {
             for (int i = 0; i < 125; i++)
-                Boxcar.U8ToI32(input.Span, bufferI16.Span, bufferI32.Span, 3);
+                HorizontalSum.U8ToI32(input.Span, bufferI16.Span, bufferI32.Span, 3);
         }
 
         //[Benchmark(Description = "I32: Sum by 16 (1GS -> 62.5MS)")]  //  CPU cycles per sample
