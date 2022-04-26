@@ -2,6 +2,7 @@
 
 internal struct ThunderscopeHardwareState
 {
+    public ThunderscopeHardwareState() { }
     public bool BoardEnabled = false;
     public bool PllEnabled = false;
     public bool FrontEndEnabled = false;
