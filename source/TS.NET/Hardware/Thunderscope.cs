@@ -56,6 +56,7 @@ namespace TS.NET
         {
             List<ThunderscopeDevice> devices = new();
 
+#if Windows
             var deviceInfo = Interop.SetupDiGetClassDevs(ref deviceGuid, NULL, NULL, DiGetClassFlags.DIGCF_PRESENT | DiGetClassFlags.DIGCF_DEVICEINTERFACE);
             if ((IntPtr.Size == 4 && deviceInfo.ToInt32() == INVALID_HANDLE_VALUE) || (IntPtr.Size == 8 && deviceInfo.ToInt64() == INVALID_HANDLE_VALUE))
                 throw new Exception("SetupDiGetClassDevs - failed with INVALID_HANDLE_VALUE");
@@ -81,7 +82,9 @@ namespace TS.NET
                     devices.Add(new ThunderscopeDevice() { DevicePath = deviceInterfaceDetail.DevicePath });
                 }
             }
-
+#elif Linux
+             
+#endif
             return devices;
         }
 
@@ -89,6 +92,7 @@ namespace TS.NET
         {
             if (open)
                 Close();
+#if Windows
             //File.OpenHandle(device.DevicePath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read, FileOptions.None);
             //userWriter = new BinaryWriter(File.Open($"{device.DevicePath}\\{USER_DEVICE_PATH}", FileMode.Open));
             //controllerToHostWriter = new BinaryWriter(File.Open($"{device.DevicePath}\\{C2H_0_DEVICE_PATH}", FileMode.Open));
@@ -96,6 +100,9 @@ namespace TS.NET
             //userMap = userFile.CreateViewAccessor(0, 0);
             userFilePointer = Interop.CreateFile($"{device.DevicePath}\\{USER_DEVICE_PATH}", FileAccess.ReadWrite, FileShare.None, NULL, FileMode.Open, FileAttributes.Normal, NULL);
             controllerToHostFilePointer = Interop.CreateFile($"{device.DevicePath}\\{C2H_0_DEVICE_PATH}", FileAccess.ReadWrite, FileShare.None, NULL, FileMode.Open, FileAttributes.Normal, NULL);
+#elif Linux
+             
+#endif
             Initialise();
             open = true;
         }
@@ -512,6 +519,7 @@ namespace TS.NET
 
         private void Write(IntPtr fileHandle, ReadOnlySpan<byte> data, ulong addr)
         {
+#if Windows
             if (!Interop.SetFilePointerEx(fileHandle, addr, NULL, FILE_BEGIN))
                 throw new Exception($"SetFilePointerEx - failed ({Marshal.GetLastWin32Error()})");
 
@@ -525,11 +533,15 @@ namespace TS.NET
                         throw new Exception($"WriteFile - failed ({Marshal.GetLastWin32Error()})");
                 }
             }
+#elif Linux
+
+#endif
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private void Read(IntPtr fileHandle, Span<byte> data, ulong addr)
         {
+#if Windows
             if (!Interop.SetFilePointerEx(fileHandle, addr, NULL, FILE_BEGIN))
                 throw new Exception($"SetFilePointerEx - failed ({Marshal.GetLastWin32Error()})");
 
@@ -543,11 +555,15 @@ namespace TS.NET
                         throw new Exception("ReadFile - failed to read all bytes");
                 }
             }
+#elif Linux
+
+#endif
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private void Read(IntPtr fileHandle, ThunderscopeMemory data, ulong offset, ulong addr, ulong length)
         {
+#if Windows
             if (!Interop.SetFilePointerEx(fileHandle, addr, NULL, FILE_BEGIN))
                 throw new Exception($"SetFilePointerEx - failed ({Marshal.GetLastWin32Error()})");
             unsafe
@@ -558,5 +574,8 @@ namespace TS.NET
                     throw new Exception("ReadFile - failed to read all bytes");
             }
         }
+#elif Linux
+
+#endif
     }
 }
