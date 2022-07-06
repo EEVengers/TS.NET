@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using TS.NET.Semaphore.Posix;
@@ -11,32 +10,7 @@ namespace TS.NET.Semaphore.Linux
     [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1513:Closing brace should be followed by blank line", Justification = "There is a bug in the rule!")]
     internal static class Interop
     {
-        static IntPtr libHandle = IntPtr.Zero;
-
-        static Interop()
-        {
-            NativeLibrary.SetDllImportResolver(typeof(Interop).Assembly, ImportResolver);
-        }
-
-        private static IntPtr ImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
-        {
-            if (libraryName == "librt")
-            {
-                if (libHandle != IntPtr.Zero)
-                    return libHandle;
-
-                if (!NativeLibrary.TryLoad("librt", assembly, null, out libHandle))
-                {
-                    if(!NativeLibrary.TryLoad("librt.so.1", assembly, null, out libHandle))
-                    {
-                        throw new Exception("Could not load librt");
-                    }
-                }
-            }
-            return libHandle;
-        }
-
-        private const string Lib = "librt";
+        private const string Lib = "librt.so.1";
         private const uint SEMVALUEMAX = 32767;
         private const int OCREAT = 0x040;   // create the semaphore if it does not exist
 

@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 // [assembly: DisableRuntimeMarshalling]    // Coming in .NET 7 with a source analyzer. This will guarantee interop has zero performance penalty.
-namespace TS.NET
+namespace TS.NET.Interop.Windows
 {
     // https://docs.microsoft.com/en-us/dotnet/standard/native-interop/best-practices#blittable-types
     // CharSet = CharSet.Unicode helps ensure blitability

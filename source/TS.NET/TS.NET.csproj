@@ -5,29 +5,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-	<IsWindows Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' == 'true'">true</IsWindows>
-	<IsOSX Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))' == 'true'">true</IsOSX>
-	<IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</IsLinux>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(IsWindows)'=='true'">
-	<DefineConstants>Windows</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(IsOSX)'=='true'">
-	<DefineConstants>OSX</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(IsLinux)'=='true'">
-	<DefineConstants>Linux</DefineConstants>
-  </PropertyGroup>
-	
   <ItemGroup>
     <PackageReference Include="Cloudtoid.Interprocess" Version="1.0.167" />
     <PackageReference Include="MathNet.Numerics" Version="4.15.0" />
     <PackageReference Include="MessagePack" Version="2.3.85" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Tasks\" />
-  </ItemGroup>
-
+	
 </Project>
