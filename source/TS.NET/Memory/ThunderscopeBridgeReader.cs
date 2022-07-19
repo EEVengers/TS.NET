@@ -12,21 +12,22 @@ namespace TS.NET
     public class ThunderscopeBridgeReader : IDisposable
     {
         private readonly ThunderscopeBridgeOptions options;
-        private readonly ulong dataBytesCapacity;
+        private readonly ulong dataCapacityInBytes;
         private readonly IMemoryFile file;
         private readonly MemoryMappedViewAccessor view;
         private unsafe byte* basePointer;
         private unsafe byte* dataPointer { get; }
         private ThunderscopeBridgeHeader header;
-
-        public IntPtr DataPointer { get { unsafe { return (IntPtr)dataPointer; } } }
-        public Span<byte> Span { get { unsafe { return new Span<byte>(dataPointer, (int)dataBytesCapacity); } } }
         private bool IsHeaderSet { get { GetHeader(); return header.Version != 0; } }
+        private readonly IInterprocessSemaphoreReleaser dataRequestSemaphore;
+        private readonly IInterprocessSemaphoreWaiter dataReadySemaphore;
+
+        public Span<byte> AcquiredRegion { get { return GetAcquiredRegion(); } }
 
         public unsafe ThunderscopeBridgeReader(ThunderscopeBridgeOptions options, ILoggerFactory loggerFactory)
         {
             this.options = options;
-            dataBytesCapacity = options.BridgeCapacityBytes - (uint)sizeof(ThunderscopeBridgeHeader);
+            dataCapacityInBytes = options.BridgeCapacityBytes - (uint)sizeof(ThunderscopeBridgeHeader);
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new MemoryFileWindows(options)
                 : new MemoryFileUnix(options, loggerFactory);
@@ -37,7 +38,7 @@ namespace TS.NET
 
                 try
                 {
-                    basePointer = AcquirePointer();
+                    basePointer = GetPointer();
                     dataPointer = basePointer + sizeof(ThunderscopeBridgeHeader);
 
                     while (!IsHeaderSet)
@@ -48,6 +49,8 @@ namespace TS.NET
                     GetHeader();
                     if (header.DataCapacityBytes != options.DataCapacityBytes)
                         throw new Exception($"Mismatch in data capacity, options: {options.DataCapacityBytes}, bridge: {header.DataCapacityBytes}");
+                    dataRequestSemaphore = InterprocessSemaphore.CreateReleaser(options.MemoryName + "DataRequest");
+                    dataReadySemaphore = InterprocessSemaphore.CreateWaiter(options.MemoryName + "DataReady");
                 }
                 catch
                 {
@@ -70,11 +73,6 @@ namespace TS.NET
             file.Dispose();
         }
 
-        public IInterprocessSemaphoreWaiter GetReaderSemaphore()
-        {
-            return InterprocessSemaphore.CreateWaiter(options.MemoryName);
-        }
-
         public ThunderscopeConfiguration Configuration
         {
             get
@@ -93,22 +91,10 @@ namespace TS.NET
             }
         }
 
-        public bool IsReadyToRead
+        public bool RequestAndWaitForData(int millisecondsTimeout)
         {
-            get
-            {
-                GetHeader();
-                return header.State == ThunderscopeMemoryBridgeState.Full;
-            }
-        }
-
-        public void DataRead()
-        {
-            unsafe
-            {
-                header.State = ThunderscopeMemoryBridgeState.Empty;
-                SetHeader();
-            }
+            dataRequestSemaphore.Release();
+            return dataReadySemaphore.Wait(millisecondsTimeout);
         }
 
         private void GetHeader()
@@ -116,12 +102,12 @@ namespace TS.NET
             unsafe { Unsafe.Copy(ref header, basePointer); }
         }
 
-        private void SetHeader()
-        {
-            unsafe { Unsafe.Copy(basePointer, ref header); }
-        }
+        //private void SetHeader()
+        //{
+        //    unsafe { Unsafe.Copy(basePointer, ref header); }
+        //}
 
-        private unsafe byte* AcquirePointer()
+        private unsafe byte* GetPointer()
         {
             byte* ptr = null;
             view.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
@@ -129,6 +115,17 @@ namespace TS.NET
                 throw new InvalidOperationException("Failed to acquire a pointer to the memory mapped file view.");
 
             return ptr;
+        }
+
+        private unsafe Span<byte> GetAcquiredRegion()
+        {
+            int regionLength = (int)dataCapacityInBytes / 2;
+            return header.AcquiringRegion switch
+            {
+                ThunderscopeMemoryAcquiringRegion.RegionA => new Span<byte>(dataPointer + regionLength, regionLength),        // If acquiring region is Region A, return Region B
+                ThunderscopeMemoryAcquiringRegion.RegionB => new Span<byte>(dataPointer, regionLength),                       // If acquiring region is Region B, return Region A
+                _ => throw new InvalidDataException("Enum value not handled, add enum value to switch")
+            };
         }
     }
 }

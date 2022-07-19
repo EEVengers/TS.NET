@@ -12,9 +12,9 @@ namespace TS.NET
         internal byte Version;              // Allows UI to know which ThunderscopeMemoryBridgeHeader version to use, hence the size of the header.
         internal ulong DataCapacityBytes;   // Maximum size of the data array in bridge. Example: 400M, set from configuration file?
 
-        internal ThunderscopeMemoryBridgeState State;
-        internal ThunderscopeConfiguration Configuration;
-        internal ThunderscopeMonitoring Monitoring;
+        internal ThunderscopeMemoryAcquiringRegion AcquiringRegion;            // Therefore 'AcquiredRegion' (to be used by UI) is the opposite
+        internal ThunderscopeConfiguration Configuration;                   // Read only from UI perspective, UI uses SCPI interface to change configuration
+        internal ThunderscopeMonitoring Monitoring;                         // Read only from UI perspective, UI displays these values
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -36,9 +36,9 @@ namespace TS.NET
         public ulong MissedAcquisitions;        // Triggers that weren't displayed
     }
 
-    public enum ThunderscopeMemoryBridgeState : byte
+    public enum ThunderscopeMemoryAcquiringRegion : byte
     {
-        Empty = 1,      // Writing is allowed
-        Full = 2,       // Writing is blocked, waiting for reader to set back to Unset
+        RegionA = 1,
+        RegionB = 2
     }
 }
