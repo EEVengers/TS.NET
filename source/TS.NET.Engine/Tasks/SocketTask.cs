@@ -33,7 +33,7 @@ namespace TS.NET.Engine
         private Task? taskLoop;
         private Socket listener;
 
-        public void Start(ILoggerFactory loggerFactory, BlockingChannelWriter<ProcessingRequestDto> processingConfigUpdateChannel)
+        public void Start(ILoggerFactory loggerFactory, BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel)
         {
             var logger = loggerFactory.CreateLogger("SocketTask");
             cancelTokenSource = new CancellationTokenSource();
@@ -43,7 +43,7 @@ namespace TS.NET.Engine
             listener = new Socket(IPAddress.Any.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             listener.LingerState = new LingerOption(true, 1);
             listener.Bind(localEndPoint);
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, bridge, listener, processingConfigUpdateChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, bridge, listener, processingRequestChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -57,7 +57,7 @@ namespace TS.NET.Engine
             ILogger logger,
             ThunderscopeBridgeReader bridge,
             Socket listener,
-            BlockingChannelWriter<ProcessingRequestDto> processingConfigUpdateChannel,
+            BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
             CancellationToken cancelToken)
         {
             Thread.CurrentThread.Name = "TS.NET Socket";
@@ -163,7 +163,7 @@ namespace TS.NET.Engine
                         }
 
                         logger.LogDebug("Remote wanted waveform but not ready, forcing trigger");
-                        processingConfigUpdateChannel.Write(new ProcessingRequestDto(ProcessingRequestCommand.ForceTrigger));
+                        processingRequestChannel.Write(new(ProcessingRequestCommand.ForceTrigger));
                     }
                 }
             }

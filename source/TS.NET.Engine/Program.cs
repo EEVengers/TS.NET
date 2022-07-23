@@ -8,7 +8,7 @@ using TS.NET.Engine;
 //   Fire up threads to handle specific loops with extremely high utilisation. These threads are created once only, so the overhead of thread creation isn't important (one of the design goals of async/await).
 //   Future work might pin CPU cores to exclusively process a particular thread, perhaps with high/rt priority.
 //   Task.Factory.StartNew(() => Loop(...TaskCreationOptions.LongRunning) is just a shorthand for creating a new Thread to process a loop, the task thread pool isn't used. 
-// The use of configUpdateChannel is to prevent 2 classes of bug: locking and thread safety.
+// The use of hardwareRequestChannel is to prevent 2 classes of bug: locking and thread safety.
 //   By serialising the config-update/data-read it also allows for specific behaviours (like pausing acquisition on certain config updates) and ensuring a perfect match between sample-block & hardware configuration that created it.
 
 Console.Title = "Engine";

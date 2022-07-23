@@ -123,8 +123,8 @@ namespace TS.NET.Engine
 
         public static string? ProcessSCPICommand(
             ILogger logger,
-            BlockingChannelWriter<HardwareRequestDto> configRequestChannel,
-            BlockingChannelReader<HardwareResponseDto> configResponseChannel,
+            BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel,
+            BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel,
             BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelReader<ProcessingResponseDto> processingResponseChannel,
             string fullCommand,
@@ -171,16 +171,16 @@ namespace TS.NET.Engine
                     {
                         // Start
                         logger.LogDebug("Start acquisition");
-                        configRequestChannel.Write(new HardwareRequestDto(HardwareRequestCommand.Start));
-                        configResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                        hardwareRequestChannel.Write(new(HardwareRequestCommand.Start));
+                        hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                         return null;
                     }
                     else if (command == "STOP")
                     {
                         // Stop
                         logger.LogDebug("Stop acquisition");
-                        configRequestChannel.Write(new HardwareRequestDto(HardwareRequestCommand.Stop));
-                        configResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                        hardwareRequestChannel.Write(new(HardwareRequestCommand.Stop));
+                        hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                         return null;
                     }
                     else if (command == "SINGLE")
@@ -193,7 +193,7 @@ namespace TS.NET.Engine
                     {
                         // force capture
                         logger.LogDebug("Force acquisition");
-                        processingRequestChannel.Write(new ProcessingRequestDto(ProcessingRequestCommand.ForceTrigger));
+                        processingRequestChannel.Write(new(ProcessingRequestCommand.ForceTrigger));
                         processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                         return null;
                     }
