@@ -11,6 +11,7 @@ namespace TS.NET.Engine
     {
         private CancellationTokenSource? cancelTokenSource;
         private Task? taskLoop;
+        private Socket listener;
 
         public void Start(
             ILoggerFactory loggerFactory,
@@ -21,17 +22,23 @@ namespace TS.NET.Engine
         {
             var logger = loggerFactory.CreateLogger("SCPITask");
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, configRequestChannel, configResponseChannel, processingRequestChannel, processingResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Any, 5025);
+            listener = new Socket(IPAddress.Any.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            listener.LingerState = new LingerOption(true, 1);
+            listener.Bind(localEndPoint);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, listener, configRequestChannel, configResponseChannel, processingRequestChannel, processingResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
         {
             cancelTokenSource?.Cancel();
+            listener.Close();
             taskLoop?.Wait();
         }
 
         private static void Loop(
             ILogger logger,
+            Socket listener,
             BlockingChannelWriter<HardwareRequestDto> configRequestChannel,
             BlockingChannelReader<HardwareResponseDto> configResponseChannel,
             BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
@@ -42,28 +49,15 @@ namespace TS.NET.Engine
             Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
 
             logger.LogDebug($"Thread ID: {Thread.CurrentThread.ManagedThreadId}");
-
             Socket clientSocket = null;
 
             try
             {
-                IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Any, 5025);
-
-                Socket listener = new Socket(IPAddress.Any.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
-                listener.LingerState = new LingerOption(true, 1);
-                listener.Bind(localEndPoint);
-
                 logger.LogInformation("Starting control plane socket server at :5025");
-
                 listener.Listen(10);
-
                 clientSocket = listener.Accept();
-
                 clientSocket.NoDelay = true;
-
                 logger.LogInformation("Client connected to control plane");
-
                 uint seqnum = 0;
 
                 while (true)
@@ -102,6 +96,11 @@ namespace TS.NET.Engine
             {
                 logger.LogDebug($"{nameof(SCPITask)} stopping");
                 // throw;
+            }
+            catch (SocketException ex)
+            {
+                if (!ex.Message.Contains("WSACancelBlockingCall"))      // On Windows; can use this string to ignore the SocketException thrown when listener.Close() called
+                    throw;
             }
             catch (Exception ex)
             {
