@@ -14,12 +14,14 @@ namespace TS.NET.Engine
 
         public void Start(
             ILoggerFactory loggerFactory,
-            BlockingChannelWriter<HardwareConfigUpdateDto> configUpdateChannel,
-            BlockingChannelReader<HardwareConfigUpdateDto> configUpdatedChannel)
+            BlockingChannelWriter<HardwareRequestDto> configRequestChannel,
+            BlockingChannelReader<HardwareResponseDto> configResponseChannel,
+            BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
+            BlockingChannelReader<ProcessingResponseDto> processingResponseChannel)
         {
             var logger = loggerFactory.CreateLogger("SCPITask");
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, configUpdateChannel, configUpdatedChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, configRequestChannel, configResponseChannel, processingRequestChannel, processingResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -30,8 +32,10 @@ namespace TS.NET.Engine
 
         private static void Loop(
             ILogger logger,
-            BlockingChannelWriter<HardwareConfigUpdateDto> configUpdateChannel,
-            BlockingChannelReader<HardwareConfigUpdateDto> configUpdatedChannel,
+            BlockingChannelWriter<HardwareRequestDto> configRequestChannel,
+            BlockingChannelReader<HardwareResponseDto> configResponseChannel,
+            BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
+            BlockingChannelReader<ProcessingResponseDto> processingResponseChannel,
             CancellationToken cancelToken)
         {
             Thread.CurrentThread.Name = "TS.NET SCPI";
@@ -64,8 +68,8 @@ namespace TS.NET.Engine
 
                 while (true)
                 {
-                    byte[] bytes = new Byte[1];
-                    String command = "";
+                    byte[] bytes = new byte[1];
+                    string command = "";
 
                     while (true)
                     {
@@ -77,7 +81,7 @@ namespace TS.NET.Engine
 
                         if (numByte == 0) continue;
 
-                        String c = Encoding.UTF8.GetString(bytes, 0, 1);
+                        string c = Encoding.UTF8.GetString(bytes, 0, 1);
 
                         if (c == "\n") break;
                         else command += c;
@@ -85,7 +89,7 @@ namespace TS.NET.Engine
 
                     // logger.LogDebug("SCPI command: '{String}'", command);
 
-                    String? r = ProcessSCPICommand(logger, configUpdateChannel, configUpdatedChannel, command, cancelToken);
+                    string? r = ProcessSCPICommand(logger, configRequestChannel, configResponseChannel, processingRequestChannel, processingResponseChannel, command, cancelToken);
 
                     if (r != null)
                     {
@@ -117,16 +121,18 @@ namespace TS.NET.Engine
             }
         }
 
-        public static String? ProcessSCPICommand(
+        public static string? ProcessSCPICommand(
             ILogger logger,
-            BlockingChannelWriter<HardwareConfigUpdateDto> configUpdateChannel,
-            BlockingChannelReader<HardwareConfigUpdateDto> configUpdatedChannel,
+            BlockingChannelWriter<HardwareRequestDto> configRequestChannel,
+            BlockingChannelReader<HardwareResponseDto> configResponseChannel,
+            BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
+            BlockingChannelReader<ProcessingResponseDto> processingResponseChannel,
             string fullCommand,
             CancellationToken cancelToken)
         {
-            String? argument = null;
-            String? subject = null;
-            String command = fullCommand; ;
+            string? argument = null;
+            string? subject = null;
+            string command = fullCommand; ;
             bool isQuery = false;
 
             if (fullCommand.Contains(" "))
@@ -165,16 +171,16 @@ namespace TS.NET.Engine
                     {
                         // Start
                         logger.LogDebug("Start acquisition");
-                        configUpdateChannel.Write(new HardwareConfigUpdateDto(Command: HardwareConfigUpdateCommand.Start));
-                        configUpdatedChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                        configRequestChannel.Write(new HardwareRequestDto(HardwareRequestCommand.Start));
+                        configResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                         return null;
                     }
                     else if (command == "STOP")
                     {
                         // Stop
                         logger.LogDebug("Stop acquisition");
-                        configUpdateChannel.Write(new HardwareConfigUpdateDto(Command: HardwareConfigUpdateCommand.Stop));
-                        configUpdatedChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                        configRequestChannel.Write(new HardwareRequestDto(HardwareRequestCommand.Stop));
+                        configResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                         return null;
                     }
                     else if (command == "SINGLE")
@@ -187,6 +193,8 @@ namespace TS.NET.Engine
                     {
                         // force capture
                         logger.LogDebug("Force acquisition");
+                        processingRequestChannel.Write(new ProcessingRequestDto(ProcessingRequestCommand.ForceTrigger));
+                        processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                         return null;
                     }
                     else if (command == "DEPTH" && hasArg)

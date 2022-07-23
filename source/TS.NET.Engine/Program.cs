@@ -23,10 +23,10 @@ BlockingChannel<ThunderscopeMemory> inputChannel = new(bufferLength);
 for (int i = 0; i < bufferLength; i++)
     inputChannel.Writer.Write(new ThunderscopeMemory());
 BlockingChannel<InputDataDto> processingChannel = new();
-BlockingChannel<HardwareConfigUpdateDto> hardwareConfigUpdateChannel = new();
-BlockingChannel<HardwareConfigUpdateDto> hardwareConfigUpdatedChannel = new();
-BlockingChannel<ProcessingConfigUpdateDto> processingConfigUpdateChannel = new();
-BlockingChannel<ProcessingConfigUpdateDto> processingConfigUpdatedChannel = new();
+BlockingChannel<HardwareRequestDto> hardwareRequestChannel = new();
+BlockingChannel<HardwareResponseDto> hardwareResponseChannel = new();
+BlockingChannel<ProcessingRequestDto> processingRequestChannel = new();
+BlockingChannel<ProcessingResponseDto> processingResponseChannel = new();
 
 Thread.Sleep(1000);
 
@@ -37,13 +37,13 @@ if (devices.Count == 0)
 
 // Start threads
 ProcessingTask processingTask = new();
-processingTask.Start(loggerFactory, processingChannel.Reader, inputChannel.Writer, processingConfigUpdateChannel.Reader, processingConfigUpdatedChannel.Writer);
+processingTask.Start(loggerFactory, processingChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
 InputTask inputTask = new();
-inputTask.Start(loggerFactory, devices[0], inputChannel.Reader, processingChannel.Writer, hardwareConfigUpdateChannel.Reader, hardwareConfigUpdatedChannel.Writer);
+inputTask.Start(loggerFactory, devices[0], inputChannel.Reader, processingChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
 SocketTask socketTask = new();
-socketTask.Start(loggerFactory, processingConfigUpdateChannel.Writer);
-//SCPITask scpiTask = new();
-//scpiTask.Start(loggerFactory, configUpdateChannel.Writer, configUpdatedChannel.Reader);
+socketTask.Start(loggerFactory, processingRequestChannel.Writer);
+SCPITask scpiTask = new();
+scpiTask.Start(loggerFactory, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
 
 Console.WriteLine("Running... press any key to stop");
 Console.ReadKey();
@@ -51,4 +51,4 @@ Console.ReadKey();
 processingTask.Stop();
 inputTask.Stop();
 socketTask.Stop();
-//scpiTask.Stop();
+scpiTask.Stop();

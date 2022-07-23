@@ -33,7 +33,7 @@ namespace TS.NET.Engine
         private Task? taskLoop;
         private Socket listener;
 
-        public void Start(ILoggerFactory loggerFactory, BlockingChannelWriter<ProcessingConfigUpdateDto> processingConfigUpdateChannel)
+        public void Start(ILoggerFactory loggerFactory, BlockingChannelWriter<ProcessingRequestDto> processingConfigUpdateChannel)
         {
             var logger = loggerFactory.CreateLogger("SocketTask");
             cancelTokenSource = new CancellationTokenSource();
@@ -54,10 +54,10 @@ namespace TS.NET.Engine
         }
 
         private static void Loop(
-            ILogger logger, 
-            ThunderscopeBridgeReader bridge, 
+            ILogger logger,
+            ThunderscopeBridgeReader bridge,
             Socket listener,
-            BlockingChannelWriter<ProcessingConfigUpdateDto> processingConfigUpdateChannel,
+            BlockingChannelWriter<ProcessingRequestDto> processingConfigUpdateChannel,
             CancellationToken cancelToken)
         {
             Thread.CurrentThread.Name = "TS.NET Socket";
@@ -163,14 +163,18 @@ namespace TS.NET.Engine
                         }
 
                         logger.LogDebug("Remote wanted waveform but not ready, forcing trigger");
-                        processingConfigUpdateChannel.Write(new ProcessingConfigUpdateDto(ProcessingConfigUpdateCommand.ForceTrigger));
+                        processingConfigUpdateChannel.Write(new ProcessingRequestDto(ProcessingRequestCommand.ForceTrigger));
                     }
                 }
             }
             catch (OperationCanceledException)
             {
                 logger.LogDebug($"{nameof(SocketTask)} stopping");
-                // throw;
+            }
+            catch (SocketException ex)
+            {
+                if (!ex.Message.Contains("WSACancelBlockingCall"))      // On Windows; can use this string to ignore the SocketException thrown when listener.Close() called
+                    throw;
             }
             catch (Exception ex)
             {
@@ -181,8 +185,8 @@ namespace TS.NET.Engine
             {
                 try
                 {
-                    clientSocket.Shutdown(SocketShutdown.Both);
-                    clientSocket.Close();
+                    clientSocket?.Shutdown(SocketShutdown.Both);
+                    clientSocket?.Close();
                 }
                 catch (Exception ex) { }
 

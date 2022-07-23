@@ -15,12 +15,12 @@ namespace TS.NET.Engine
             ThunderscopeDevice thunderscopeDevice,
             BlockingChannelReader<ThunderscopeMemory> inputChannel,
             BlockingChannelWriter<InputDataDto> processingChannel,
-            BlockingChannelReader<HardwareConfigUpdateDto> hardwareConfigUpdateChannel,
-            BlockingChannelWriter<HardwareConfigUpdateDto> hardwareConfigUpdatedChannel)
+            BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
+            BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel)
         {
             var logger = loggerFactory.CreateLogger("InputTask");
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, thunderscopeDevice, inputChannel, processingChannel, hardwareConfigUpdateChannel, hardwareConfigUpdatedChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, thunderscopeDevice, inputChannel, processingChannel, hardwareRequestChannel, hardwareResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -34,8 +34,8 @@ namespace TS.NET.Engine
             ThunderscopeDevice thunderscopeDevice,
             BlockingChannelReader<ThunderscopeMemory> inputChannel,
             BlockingChannelWriter<InputDataDto> processingChannel,
-            BlockingChannelReader<HardwareConfigUpdateDto> hardwareConfigUpdateChannel,
-            BlockingChannelWriter<HardwareConfigUpdateDto> hardwareConfigUpdatedChannel,
+            BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
+            BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel,
             CancellationToken cancelToken)
         {
             Thread.CurrentThread.Name = "TS.NET Input";
@@ -55,13 +55,13 @@ namespace TS.NET.Engine
                 {
                     cancelToken.ThrowIfCancellationRequested();
 
-                    // Check for configuration updates
-                    if (hardwareConfigUpdateChannel.TryRead(out var configUpdate))
+                    // Check for configuration requests
+                    if (hardwareRequestChannel.TryRead(out var request))
                     {
                         // Do configuration update, pausing acquisition if necessary (TBD)
 
                         // Signal back to the sender that config update happened.
-                        hardwareConfigUpdatedChannel.TryWrite(configUpdate);
+                        hardwareResponseChannel.TryWrite(new HardwareResponseDto(request.Command));
                     }
 
                     var memory = inputChannel.Read();

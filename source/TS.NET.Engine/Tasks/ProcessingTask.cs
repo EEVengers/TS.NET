@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Diagnostics;
-using System.Runtime.Intrinsics.X86;
 
 namespace TS.NET.Engine
 {
@@ -10,13 +9,12 @@ namespace TS.NET.Engine
         private CancellationTokenSource? cancelTokenSource;
         private Task? taskLoop;
 
-        //, Action<Memory<double>> action
         public void Start(
             ILoggerFactory loggerFactory,
             BlockingChannelReader<InputDataDto> processingChannel,
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
-            BlockingChannelReader<ProcessingConfigUpdateDto> processingConfigUpdateChannel,
-            BlockingChannelWriter<ProcessingConfigUpdateDto> processingConfigUpdatedChannel)
+            BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
+            BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel)
         {
             var logger = loggerFactory.CreateLogger("ProcessingTask");
             cancelTokenSource = new CancellationTokenSource();
@@ -24,7 +22,7 @@ namespace TS.NET.Engine
             // Bridge is cross-process shared memory for the UI to read triggered acquisitions
             // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
             ThunderscopeBridgeWriter bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", dataCapacityBytes), loggerFactory);
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, bridge, processingChannel, inputChannel, processingConfigUpdateChannel, processingConfigUpdatedChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, bridge, processingChannel, inputChannel, processingRequestChannel, processingResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -39,8 +37,8 @@ namespace TS.NET.Engine
             ThunderscopeBridgeWriter bridge,
             BlockingChannelReader<InputDataDto> processingChannel,
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
-            BlockingChannelReader<ProcessingConfigUpdateDto> processingConfigUpdateChannel,
-            BlockingChannelWriter<ProcessingConfigUpdateDto> processingConfigUpdatedChannel,
+            BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
+            BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel,
             CancellationToken cancelToken)
         {
             try
@@ -94,12 +92,12 @@ namespace TS.NET.Engine
                 {
                     cancelToken.ThrowIfCancellationRequested();
 
-                    // Check for processing config updates
-                    if (processingConfigUpdateChannel.TryRead(out var configUpdate))
+                    // Check for processing requests
+                    if (processingRequestChannel.TryRead(out var request))
                     {
-                        if (configUpdate.Command == ProcessingConfigUpdateCommand.ForceTrigger)
+                        if (request.Command == ProcessingRequestCommand.ForceTrigger)
                             forceTrigger = true;
-                        processingConfigUpdatedChannel.Write(configUpdate);
+                        processingResponseChannel.Write(new ProcessingResponseDto(request.Command));
                     }
 
                     InputDataDto processingDto = processingChannel.Read(cancelToken);
