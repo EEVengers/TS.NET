@@ -20,7 +20,7 @@ namespace TS.NET.Interop.Linux
         {
             List<ThunderscopeDevice> devices = new();
 
-            devices.Add(new ThunderscopeDevice() { DevicePath = "/dev/xdma0" });
+            devices.Add(new ThunderscopeDevice(DevicePath: "/dev/xdma0"));
 
             return devices;
         }
@@ -28,7 +28,8 @@ namespace TS.NET.Interop.Linux
         private Int32 userFilePointer;
         private Int32 controllerToHostFilePointer;
 
-        public ThunderscopeInteropLinux(ThunderscopeDevice device) {
+        public ThunderscopeInteropLinux(ThunderscopeDevice device)
+        {
             userFilePointer = Interop.open($"{device.DevicePath}_{USER_DEVICE_PATH}", (Int32)OpenFlags.O_RDWR);
 
             if (userFilePointer < 0)
@@ -83,7 +84,8 @@ namespace TS.NET.Interop.Linux
             }
         }
 
-        public override void Dispose() {
+        public override void Dispose()
+        {
 
         }
     }

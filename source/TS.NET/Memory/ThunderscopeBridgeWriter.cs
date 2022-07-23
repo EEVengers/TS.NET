@@ -85,6 +85,16 @@ namespace TS.NET
             }
         }
 
+        public ThunderscopeProcessing Processing
+        {
+            set
+            {
+                // This is a shallow copy, but considering the struct should be 100% blitable (i.e. no reference types), this is effectively a full copy
+                header.Processing = value;
+                SetHeader();
+            }
+        }
+
         public void MonitoringReset()
         {
             header.Monitoring.TotalAcquisitions = 0;

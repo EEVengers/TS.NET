@@ -1,35 +1,12 @@
 ﻿using System;
 using System.Buffers.Binary;
-using System.Collections.Generic;
-using System.IO.MemoryMappedFiles;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using TS.NET.Interop;
 
 namespace TS.NET
 {
-    public record ThunderscopeDevice
-    {
-        public string DevicePath { get; set; }
-    }
-
-    public record ThunderscopeChannel
-    {
-        public bool Enabled { get; set; } = true;
-        public double VoltsOffset { get; set; } = 0;
-        public int VoltsDiv { get; set; } = 100;
-        public int Bandwidth { get; set; } = 350;
-        public ThunderscopeCoupling Coupling { get; set; }
-    }
-
-    public enum ThunderscopeCoupling
-    {
-        DC,
-        AC
-    }
+    public record ThunderscopeDevice(string DevicePath);
 
     public class Thunderscope
     {
@@ -89,12 +66,12 @@ namespace TS.NET
             ConfigureDatamover(hardwareState);
         }
 
-        public void Read(ThunderscopeMemory data)     //ThunderscopeMemoryBlock ensures memory is aligned on 4k boundary
+        public void Read(ThunderscopeMemory data)     //ThunderscopeMemory ensures memory is aligned on 4k boundary
         {
             if (!open)
                 throw new Exception("Thunderscope not open");
             if (!hardwareState.DatamoverEnabled)
-                throw new Exception("Thunderscope not started");
+                throw new ThunderscopeNotRunningException("Thunderscope not started");
 
             // Buffer data must be aligned to 4096
             //if (0xFFF & (ptrdiff_t)data)
@@ -319,6 +296,13 @@ namespace TS.NET
             ConfigureChannel(channel);
         }
 
+        public void ResetBuffer()
+        {
+            hardwareState.BufferHead = 0;
+            hardwareState.BufferTail = 0;
+            ConfigureDatamover(hardwareState);
+        }
+
         private void ConfigureChannel(int channel)
         {
             ConfigureChannels();
@@ -448,7 +432,7 @@ namespace TS.NET
                 throw new Exception("Thunderscope - datamover error");
 
             if ((error_code & 1) > 0)
-                throw new Exception("Thunderscope - FIFO overflow");
+                throw new ThunderscopeFIFOOverflowException("Thunderscope - FIFO overflow");
 
             uint overflow_cycles = (transfer_counter >> 16) & 0x3FFF;
             if (overflow_cycles > 0)
@@ -463,9 +447,7 @@ namespace TS.NET
 
             ulong pages_available = hardwareState.BufferHead - hardwareState.BufferTail;
             if (pages_available >= hardwareState.RamSizePages)
-                throw new Exception("Thunderscope - memory full");
+                throw new ThunderscopeMemoryOutOfMemoryException("Thunderscope - memory full");
         }
-
-        
     }
 }

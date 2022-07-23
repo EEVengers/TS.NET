@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
+using System.Diagnostics;
 
 namespace TS.NET.Engine
 {
@@ -9,11 +10,17 @@ namespace TS.NET.Engine
         private CancellationTokenSource? cancelTokenSource;
         private Task? taskLoop;
 
-        public void Start(ILoggerFactory loggerFactory, BlockingChannelReader<ThunderscopeMemory> memoryPool, BlockingChannelWriter<ThunderscopeMemory> processingPool)
+        public void Start(
+            ILoggerFactory loggerFactory,
+            ThunderscopeDevice thunderscopeDevice,
+            BlockingChannelReader<ThunderscopeMemory> inputChannel,
+            BlockingChannelWriter<InputDataDto> processingChannel,
+            BlockingChannelReader<HardwareConfigUpdateDto> hardwareConfigUpdateChannel,
+            BlockingChannelWriter<HardwareConfigUpdateDto> hardwareConfigUpdatedChannel)
         {
             var logger = loggerFactory.CreateLogger("InputTask");
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, memoryPool, processingPool, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, thunderscopeDevice, inputChannel, processingChannel, hardwareConfigUpdateChannel, hardwareConfigUpdatedChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -22,48 +29,93 @@ namespace TS.NET.Engine
             taskLoop?.Wait();
         }
 
-        private static void Loop(ILogger logger, BlockingChannelReader<ThunderscopeMemory> memoryPool, BlockingChannelWriter<ThunderscopeMemory> processingPool, CancellationToken cancelToken)
+        private static void Loop(
+            ILogger logger,
+            ThunderscopeDevice thunderscopeDevice,
+            BlockingChannelReader<ThunderscopeMemory> inputChannel,
+            BlockingChannelWriter<InputDataDto> processingChannel,
+            BlockingChannelReader<HardwareConfigUpdateDto> hardwareConfigUpdateChannel,
+            BlockingChannelWriter<HardwareConfigUpdateDto> hardwareConfigUpdatedChannel,
+            CancellationToken cancelToken)
         {
+            Thread.CurrentThread.Name = "TS.NET Input";
+            Thread.CurrentThread.Priority = ThreadPriority.Highest;
+            Thunderscope thunderscope = new();
             try
             {
-                Thread.CurrentThread.Name = "TS.NET Input";
-                Thread.CurrentThread.Priority = ThreadPriority.Highest;
-
-                var devices = Thunderscope.IterateDevices();
-                if (devices.Count == 0)
-                    throw new Exception("No thunderscopes found");
-                Thunderscope thunderscope = new Thunderscope();
-                thunderscope.Open(devices[0]);
-                thunderscope.EnableChannel(0);
-                thunderscope.EnableChannel(1);
-                thunderscope.EnableChannel(2);
-                thunderscope.EnableChannel(3);
+                thunderscope.Open(thunderscopeDevice);
+                ThunderscopeConfiguration configuration = DoInitialConfiguration(thunderscope);
                 thunderscope.Start();
+
+                Stopwatch oneSecond = Stopwatch.StartNew();
+                uint oneSecondEnqueueCount = 0;
+                uint enqueueCounter = 0;
 
                 while (true)
                 {
                     cancelToken.ThrowIfCancellationRequested();
-                    var memory = memoryPool.Read();
-                    try
+
+                    // Check for configuration updates
+                    if (hardwareConfigUpdateChannel.TryRead(out var configUpdate))
                     {
-                        thunderscope.Read(memory);
+                        // Do configuration update, pausing acquisition if necessary (TBD)
+
+                        // Signal back to the sender that config update happened.
+                        hardwareConfigUpdatedChannel.TryWrite(configUpdate);
                     }
-                    catch (Exception ex)
+
+                    var memory = inputChannel.Read();
+
+                    while (true)
                     {
-                        if (ex.Message == "ReadFile - failed (1359)")
+                        try
                         {
-                            logger.LogError(ex, $"{nameof(InputTask)} error");
+                            thunderscope.Read(memory);
+                            break;
+                        }
+                        catch (ThunderscopeMemoryOutOfMemoryException ex)
+                        {
+                            logger.LogWarning("Scope ran out of memory - reset buffer pointers and continue");
+                            thunderscope.ResetBuffer();
                             continue;
                         }
-                        throw;
+                        catch (ThunderscopeFIFOOverflowException ex)
+                        {
+                            logger.LogWarning("Scope had FIFO overflow - ignore and continue");
+                            continue;
+                        }
+                        catch (ThunderscopeNotRunningException ex)
+                        {
+                            // logger.LogWarning("Tried to read from stopped scope");
+                            continue;
+                        }
+                        catch (Exception ex)
+                        {
+                            if (ex.Message == "ReadFile - failed (1359)")
+                            {
+                                logger.LogError(ex, $"{nameof(InputTask)} error");
+                                continue;
+                            }
+                            throw;
+                        }
                     }
-                    processingPool.Write(memory);
+
+                    oneSecondEnqueueCount++;
+                    enqueueCounter++;
+
+                    processingChannel.Write(new InputDataDto(configuration, memory), cancelToken);
+
+                    if (oneSecond.ElapsedMilliseconds >= 1000)
+                    {
+                        logger.LogDebug($"Enqueues/sec: {oneSecondEnqueueCount / (oneSecond.ElapsedMilliseconds * 0.001):F2}, enqueue count: {enqueueCounter}");
+                        oneSecond.Restart();
+                        oneSecondEnqueueCount = 0;
+                    }
                 }
             }
             catch (OperationCanceledException)
             {
                 logger.LogDebug($"{nameof(InputTask)} stopping");
-                throw;
             }
             catch (Exception ex)
             {
@@ -72,8 +124,56 @@ namespace TS.NET.Engine
             }
             finally
             {
+                thunderscope.Stop();
                 logger.LogDebug($"{nameof(InputTask)} stopped");
             }
+        }
+
+        private static ThunderscopeConfiguration DoInitialConfiguration(Thunderscope thunderscope)
+        {
+            ThunderscopeConfiguration configuration = new()
+            {
+                AdcChannels = AdcChannels.Four,
+                Channel0 = new ThunderscopeChannel()
+                {
+                    Enabled = true,
+                    VoltsOffset = 0,
+                    VoltsDiv = 100,
+                    Bandwidth = 350,
+                    Coupling = ThunderscopeCoupling.DC
+                },
+                Channel1 = new ThunderscopeChannel()
+                {
+                    Enabled = true,
+                    VoltsOffset = 0,
+                    VoltsDiv = 100,
+                    Bandwidth = 350,
+                    Coupling = ThunderscopeCoupling.DC
+                },
+                Channel2 = new ThunderscopeChannel()
+                {
+                    Enabled = true,
+                    VoltsOffset = 0,
+                    VoltsDiv = 100,
+                    Bandwidth = 350,
+                    Coupling = ThunderscopeCoupling.DC
+                },
+                Channel3 = new ThunderscopeChannel()
+                {
+                    Enabled = true,
+                    VoltsOffset = 0,
+                    VoltsDiv = 100,
+                    Bandwidth = 350,
+                    Coupling = ThunderscopeCoupling.DC
+                },
+            };
+
+            thunderscope.EnableChannel(0);
+            thunderscope.EnableChannel(1);
+            thunderscope.EnableChannel(2);
+            thunderscope.EnableChannel(3);
+
+            return configuration;
         }
     }
 }

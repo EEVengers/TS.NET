@@ -3,26 +3,52 @@ using System.Diagnostics;
 using TS.NET;
 using TS.NET.Engine;
 
+// The aim is to have a thread-safe lock-free dataflow architecture (to prevent various classes of bugs).
+// The use of async/await for processing is avoided as the task thread pool is of little use here.
+//   Fire up threads to handle specific loops with extremely high utilisation. These threads are created once only, so the overhead of thread creation isn't important (one of the design goals of async/await).
+//   Future work might pin CPU cores to exclusively process a particular thread, perhaps with high/rt priority.
+//   Task.Factory.StartNew(() => Loop(...TaskCreationOptions.LongRunning) is just a shorthand for creating a new Thread to process a loop, the task thread pool isn't used. 
+// The use of configUpdateChannel is to prevent 2 classes of bug: locking and thread safety.
+//   By serialising the config-update/data-read it also allows for specific behaviours (like pausing acquisition on certain config updates) and ensuring a perfect match between sample-block & hardware configuration that created it.
+
 Console.Title = "Engine";
 using (Process p = Process.GetCurrentProcess())
     p.PriorityClass = ProcessPriorityClass.High;
 
 using var loggerFactory = LoggerFactory.Create(builder => builder.AddSimpleConsole(options => { options.SingleLine = true; options.TimestampFormat = "HH:mm:ss "; }).AddFilter(level => level >= LogLevel.Debug));
 
-BlockingChannel<ThunderscopeMemory> memoryPool = new();
-for (int i = 0; i < 120; i++)        // 120 = about 1 seconds worth of samples at 1GSPS
-    memoryPool.Writer.Write(new ThunderscopeMemory());
+// Instantiate dataflow channels
+const int bufferLength = 120;       // 120 = about 1 seconds worth of samples at 1GSPS
+BlockingChannel<ThunderscopeMemory> inputChannel = new(bufferLength);
+for (int i = 0; i < bufferLength; i++)
+    inputChannel.Writer.Write(new ThunderscopeMemory());
+BlockingChannel<InputDataDto> processingChannel = new();
+BlockingChannel<HardwareConfigUpdateDto> hardwareConfigUpdateChannel = new();
+BlockingChannel<HardwareConfigUpdateDto> hardwareConfigUpdatedChannel = new();
+BlockingChannel<ProcessingConfigUpdateDto> processingConfigUpdateChannel = new();
+BlockingChannel<ProcessingConfigUpdateDto> processingConfigUpdatedChannel = new();
 
 Thread.Sleep(1000);
 
-BlockingChannel<ThunderscopeMemory> processingPool = new();
+// Find thunderscope
+var devices = Thunderscope.IterateDevices();
+if (devices.Count == 0)
+    throw new Exception("No thunderscopes found");
+
+// Start threads
 ProcessingTask processingTask = new();
-processingTask.Start(loggerFactory, processingPool.Reader, memoryPool.Writer);
+processingTask.Start(loggerFactory, processingChannel.Reader, inputChannel.Writer, processingConfigUpdateChannel.Reader, processingConfigUpdatedChannel.Writer);
 InputTask inputTask = new();
-inputTask.Start(loggerFactory, memoryPool.Reader, processingPool.Writer);
+inputTask.Start(loggerFactory, devices[0], inputChannel.Reader, processingChannel.Writer, hardwareConfigUpdateChannel.Reader, hardwareConfigUpdatedChannel.Writer);
+SocketTask socketTask = new();
+socketTask.Start(loggerFactory, processingConfigUpdateChannel.Writer);
+//SCPITask scpiTask = new();
+//scpiTask.Start(loggerFactory, configUpdateChannel.Writer, configUpdatedChannel.Reader);
 
 Console.WriteLine("Running... press any key to stop");
 Console.ReadKey();
 
 processingTask.Stop();
 inputTask.Stop();
+socketTask.Stop();
+//scpiTask.Stop();

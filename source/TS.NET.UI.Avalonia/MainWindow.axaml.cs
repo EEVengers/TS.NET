@@ -98,7 +98,7 @@ namespace TS.NET.UI.Avalonia
                     cancelToken.ThrowIfCancellationRequested();
                     if (bridge.RequestAndWaitForData(500))
                     {
-                        ulong channelLength = (ulong)bridge.Configuration.ChannelLength;
+                        ulong channelLength = (ulong)bridge.Processing.ChannelLength;
                         //uint viewportLength = (uint)bridge.Configuration.ChannelLength;//1000;
                         uint viewportLength = 1000000;// (uint)upDownIndex.Value;
                         if (viewportLength < 100)

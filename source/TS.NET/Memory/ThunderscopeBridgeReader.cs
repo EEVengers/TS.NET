@@ -82,6 +82,15 @@ namespace TS.NET
             }
         }
 
+        public ThunderscopeProcessing Processing
+        {
+            get
+            {
+                GetHeader();
+                return header.Processing;
+            }
+        }
+
         public ThunderscopeMonitoring Monitoring
         {
             get

@@ -11,7 +11,12 @@ namespace TS.NET.Engine
         private Task? taskLoop;
 
         //, Action<Memory<double>> action
-        public void Start(ILoggerFactory loggerFactory, BlockingChannelReader<ThunderscopeMemory> processingPool, BlockingChannelWriter<ThunderscopeMemory> memoryPool)
+        public void Start(
+            ILoggerFactory loggerFactory,
+            BlockingChannelReader<InputDataDto> processingChannel,
+            BlockingChannelWriter<ThunderscopeMemory> inputChannel,
+            BlockingChannelReader<ProcessingConfigUpdateDto> processingConfigUpdateChannel,
+            BlockingChannelWriter<ProcessingConfigUpdateDto> processingConfigUpdatedChannel)
         {
             var logger = loggerFactory.CreateLogger("ProcessingTask");
             cancelTokenSource = new CancellationTokenSource();
@@ -19,7 +24,7 @@ namespace TS.NET.Engine
             // Bridge is cross-process shared memory for the UI to read triggered acquisitions
             // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
             ThunderscopeBridgeWriter bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", dataCapacityBytes), loggerFactory);
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, processingPool, memoryPool, bridge, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, bridge, processingChannel, inputChannel, processingConfigUpdateChannel, processingConfigUpdatedChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -29,22 +34,28 @@ namespace TS.NET.Engine
         }
 
         // The job of this task - pull data from scope driver/simulator, shuffle if 2/4 channels, horizontal sum, trigger, and produce window segments.
-        private static void Loop(ILogger logger, BlockingChannelReader<ThunderscopeMemory> processingPool, BlockingChannelWriter<ThunderscopeMemory> memoryPool, ThunderscopeBridgeWriter bridge, CancellationToken cancelToken)
+        private static void Loop(
+            ILogger logger,
+            ThunderscopeBridgeWriter bridge,
+            BlockingChannelReader<InputDataDto> processingChannel,
+            BlockingChannelWriter<ThunderscopeMemory> inputChannel,
+            BlockingChannelReader<ProcessingConfigUpdateDto> processingConfigUpdateChannel,
+            BlockingChannelWriter<ProcessingConfigUpdateDto> processingConfigUpdatedChannel,
+            CancellationToken cancelToken)
         {
             try
             {
                 Thread.CurrentThread.Name = "TS.NET Processing";
 
-                // Configuration values to be updated during runtime... conveiniently all on ThunderscopeMemoryBridgeHeader
-                ThunderscopeConfiguration config = new()
+                ThunderscopeProcessing processingConfig = new()
                 {
-                    Channels = Channels.Four,
                     ChannelLength = 10 * 1000000,//(ulong)ChannelLength.OneHundredM,
                     HorizontalSumLength = HorizontalSumLength.None,
                     TriggerChannel = TriggerChannel.One,
-                    TriggerMode = TriggerMode.Normal
+                    TriggerMode = TriggerMode.Normal,
+                    ChannelDataType = ThunderscopeChannelDataType.Byte
                 };
-                bridge.Configuration = config;
+                bridge.Processing = processingConfig;
                 bridge.MonitoringReset();
 
                 // Various buffers allocated once and reused forevermore.
@@ -64,7 +75,7 @@ namespace TS.NET.Engine
 
                 Span<uint> triggerIndices = new uint[ThunderscopeMemory.Length / 1000];     // 1000 samples is the minimum holdoff
                 Span<uint> holdoffEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum holdoff
-                RisingEdgeTriggerAlt trigger = new(200, 190, (ulong)(config.ChannelLength / 2));
+                RisingEdgeTriggerAlt trigger = new(200, 190, (ulong)(processingConfig.ChannelLength / 2));
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;
@@ -72,20 +83,29 @@ namespace TS.NET.Engine
                 // HorizontalSumUtility.ToDivisor(horizontalSumLength)
                 Stopwatch oneSecond = Stopwatch.StartNew();
 
-                var circularBuffer1 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength + ThunderscopeMemory.Length);
-                var circularBuffer2 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength + ThunderscopeMemory.Length);
-                var circularBuffer3 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength + ThunderscopeMemory.Length);
-                var circularBuffer4 = new ChannelCircularAlignedBuffer((uint)config.ChannelLength + ThunderscopeMemory.Length);
+                var circularBuffer1 = new ChannelCircularAlignedBuffer((uint)processingConfig.ChannelLength + ThunderscopeMemory.Length);
+                var circularBuffer2 = new ChannelCircularAlignedBuffer((uint)processingConfig.ChannelLength + ThunderscopeMemory.Length);
+                var circularBuffer3 = new ChannelCircularAlignedBuffer((uint)processingConfig.ChannelLength + ThunderscopeMemory.Length);
+                var circularBuffer4 = new ChannelCircularAlignedBuffer((uint)processingConfig.ChannelLength + ThunderscopeMemory.Length);
+
+                bool forceTrigger = false;
 
                 while (true)
                 {
                     cancelToken.ThrowIfCancellationRequested();
-                    var memory = processingPool.Read(cancelToken);
-                    // Add a zero-wait mechanism here that allows for configuration values to be updated
-                    // (which will require updating many of the intermediate variables/buffers)
+
+                    // Check for processing config updates
+                    if (processingConfigUpdateChannel.TryRead(out var configUpdate))
+                    {
+                        if (configUpdate.Command == ProcessingConfigUpdateCommand.ForceTrigger)
+                            forceTrigger = true;
+                        processingConfigUpdatedChannel.Write(configUpdate);
+                    }
+
+                    InputDataDto processingDto = processingChannel.Read(cancelToken);
                     dequeueCounter++;
-                    int channelLength = config.ChannelLength;
-                    switch (config.Channels)
+                    int channelLength = processingConfig.ChannelLength;
+                    switch (processingDto.Configuration.AdcChannels)
                     {
                         // Processing pipeline:
                         // Shuffle (if needed)
@@ -93,32 +113,32 @@ namespace TS.NET.Engine
                         // Write to circular buffer
                         // Trigger
                         // Data segment on trigger (if needed)
-                        case Channels.None:
+                        case AdcChannels.None:
                             break;
-                        case Channels.One:
+                        case AdcChannels.One:
                             // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
                             //if (config.HorizontalSumLength != HorizontalSumLength.None)
                             //    throw new NotImplementedException();
                             // Write to circular buffer
-                            circularBuffer1.Write(memory.Span);
+                            circularBuffer1.Write(processingDto.Memory.Span);
                             // Trigger
-                            if (config.TriggerChannel != TriggerChannel.None)
+                            if (processingConfig.TriggerChannel != TriggerChannel.None)
                             {
-                                var triggerChannelBuffer = config.TriggerChannel switch
+                                var triggerChannelBuffer = processingConfig.TriggerChannel switch
                                 {
-                                    TriggerChannel.One => memory.Span,
+                                    TriggerChannel.One => processingDto.Memory.Span,
                                     _ => throw new ArgumentException("Invalid TriggerChannel value")
                                 };
                                 trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out uint triggerCount, holdoffEndIndices: holdoffEndIndices, out uint holdoffEndCount);
                             }
                             // Finished with the memory, return it
-                            memoryPool.Write(memory);
+                            inputChannel.Write(processingDto.Memory);
                             break;
-                        case Channels.Two:
+                        case AdcChannels.Two:
                             // Shuffle
-                            Shuffle.TwoChannels(input: memory.Span, output: shuffleBuffer);
+                            Shuffle.TwoChannels(input: processingDto.Memory.Span, output: shuffleBuffer);
                             // Finished with the memory, return it
-                            memoryPool.Write(memory);
+                            inputChannel.Write(processingDto.Memory);
                             // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
                             //if (config.HorizontalSumLength != HorizontalSumLength.None)
                             //    throw new NotImplementedException();
@@ -126,9 +146,9 @@ namespace TS.NET.Engine
                             circularBuffer1.Write(postShuffleCh1_2);
                             circularBuffer2.Write(postShuffleCh2_2);
                             // Trigger
-                            if (config.TriggerChannel != TriggerChannel.None)
+                            if (processingConfig.TriggerChannel != TriggerChannel.None)
                             {
-                                var triggerChannelBuffer = config.TriggerChannel switch
+                                var triggerChannelBuffer = processingConfig.TriggerChannel switch
                                 {
                                     TriggerChannel.One => postShuffleCh1_2,
                                     TriggerChannel.Two => postShuffleCh2_2,
@@ -137,11 +157,11 @@ namespace TS.NET.Engine
                                 trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out uint triggerCount, holdoffEndIndices: holdoffEndIndices, out uint holdoffEndCount);
                             }
                             break;
-                        case Channels.Four:
+                        case AdcChannels.Four:
                             // Shuffle
-                            Shuffle.FourChannels(input: memory.Span, output: shuffleBuffer);
+                            Shuffle.FourChannels(input: processingDto.Memory.Span, output: shuffleBuffer);
                             // Finished with the memory, return it
-                            memoryPool.Write(memory);
+                            inputChannel.Write(processingDto.Memory);
                             // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
                             //if (config.HorizontalSumLength != HorizontalSumLength.None)
                             //    throw new NotImplementedException();
@@ -151,9 +171,9 @@ namespace TS.NET.Engine
                             circularBuffer3.Write(postShuffleCh3_4);
                             circularBuffer4.Write(postShuffleCh4_4);
                             // Trigger
-                            if (config.TriggerChannel != TriggerChannel.None)
+                            if (processingConfig.TriggerChannel != TriggerChannel.None)
                             {
-                                var triggerChannelBuffer = config.TriggerChannel switch
+                                var triggerChannelBuffer = processingConfig.TriggerChannel switch
                                 {
                                     TriggerChannel.One => postShuffleCh1_4,
                                     TriggerChannel.Two => postShuffleCh2_4,
@@ -176,11 +196,24 @@ namespace TS.NET.Engine
                                         bridge.DataWritten();
                                         bridge.SwitchRegionIfNeeded();
                                     }
+                                    forceTrigger = false;       // Ignore the force trigger request, a normal trigger happened
+                                }
+                                else if (forceTrigger)
+                                {
+                                    var bridgeSpan = bridge.AcquiringRegion;
+                                    circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
+                                    circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
+                                    circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
+                                    circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
+                                    bridge.DataWritten();
+                                    bridge.SwitchRegionIfNeeded();
+                                    forceTrigger = false;
                                 }
                                 else
                                 {
                                     bridge.SwitchRegionIfNeeded();
                                 }
+                                
                             }
                             //logger.LogInformation($"Dequeue #{dequeueCounter++}, Ch1 triggers: {triggerCount1}, Ch2 triggers: {triggerCount2}, Ch3 triggers: {triggerCount3}, Ch4 triggers: {triggerCount4} ");
                             break;
@@ -197,7 +230,6 @@ namespace TS.NET.Engine
             catch (OperationCanceledException)
             {
                 logger.LogDebug($"{nameof(ProcessingTask)} stopping");
-                throw;
             }
             catch (Exception ex)
             {

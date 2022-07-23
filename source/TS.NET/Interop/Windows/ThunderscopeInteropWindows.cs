@@ -48,7 +48,7 @@ namespace TS.NET.Interop.Windows
                     if (!Interop.SetupDiGetDeviceInterfaceDetail(deviceInfo, ref deviceInterface, ref deviceInterfaceDetail, detailLength, NULL, NULL))
                         throw new Exception("SetupDiGetDeviceInterfaceDetail - failed");
 
-                    devices.Add(new ThunderscopeDevice() { DevicePath = deviceInterfaceDetail.DevicePath });
+                    devices.Add(new ThunderscopeDevice(DevicePath: deviceInterfaceDetail.DevicePath));
                 }
             }
 
@@ -58,7 +58,8 @@ namespace TS.NET.Interop.Windows
         private IntPtr userFilePointer;
         private IntPtr controllerToHostFilePointer;
 
-        public ThunderscopeInteropWindows(ThunderscopeDevice device) {
+        public ThunderscopeInteropWindows(ThunderscopeDevice device)
+        {
             userFilePointer = Interop.CreateFile($"{device.DevicePath}\\{USER_DEVICE_PATH}", FileAccess.ReadWrite, FileShare.None, NULL, FileMode.Open, FileAttributes.Normal, NULL);
             controllerToHostFilePointer = Interop.CreateFile($"{device.DevicePath}\\{C2H_0_DEVICE_PATH}", FileAccess.ReadWrite, FileShare.None, NULL, FileMode.Open, FileAttributes.Normal, NULL);
         }
@@ -112,7 +113,8 @@ namespace TS.NET.Interop.Windows
             }
         }
 
-        public override void Dispose() {
+        public override void Dispose()
+        {
 
         }
     }
