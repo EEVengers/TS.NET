@@ -170,30 +170,39 @@ namespace TS.NET.Engine
                     {
                         // Start
                         logger.LogDebug("Start acquisition");
-                        hardwareRequestChannel.Write(new(HardwareRequestCommand.Start));
-                        hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+
+                        processingRequestChannel.Write(new ProcessingStartTriggerDto(false, false));
+                        // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                        
                         return null;
                     }
                     else if (command == "STOP")
                     {
                         // Stop
                         logger.LogDebug("Stop acquisition");
-                        hardwareRequestChannel.Write(new(HardwareRequestCommand.Stop));
-                        hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+
+                        processingRequestChannel.Write(new ProcessingStopTriggerDto());
+                        // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                        
                         return null;
                     }
                     else if (command == "SINGLE")
                     {
                         // Single capture
                         logger.LogDebug("Single acquisition");
+
+                        processingRequestChannel.Write(new ProcessingStartTriggerDto(false, true));
+
                         return null;
                     }
                     else if (command == "FORCE")
                     {
                         // force capture
                         logger.LogDebug("Force acquisition");
-                        processingRequestChannel.Write(new(ProcessingRequestCommand.ForceTrigger));
-                        processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+
+                        processingRequestChannel.Write(new ProcessingStartTriggerDto(true, true));
+                        // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                        
                         return null;
                     }
                     else if (command == "DEPTH" && hasArg)
@@ -201,6 +210,10 @@ namespace TS.NET.Engine
                         long depth = Convert.ToInt64(argument);
                         // Set depth
                         logger.LogDebug($"Set depth to {depth}S");
+
+                        processingRequestChannel.Write(new ProcessingSetDepthDto(depth));
+                        // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                        
                         return null;
                     }
                     else if (command == "RATE" && hasArg)
@@ -208,6 +221,10 @@ namespace TS.NET.Engine
                         long rate = Convert.ToInt64(argument);
                         // Set rate
                         logger.LogDebug($"Set rate to {rate}Hz");
+
+                        processingRequestChannel.Write(new ProcessingSetRateDto(rate));
+                        // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                        
                         return null;
                     }
                 }
@@ -218,13 +235,25 @@ namespace TS.NET.Engine
                         double level = Convert.ToDouble(argument);
                         // Set trig level
                         logger.LogDebug($"Set trigger level to {level}V");
+
+                        processingRequestChannel.Write(new ProcessingSetTriggerLevelDto(level));
+                        // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                        
                         return null;
                     }
                     else if (command == "SOU" && hasArg)
                     {
                         int source = Convert.ToInt32(argument);
+
+                        if (source < 0 || source > 3)
+                            source = 0;
+
                         // Set trig channel
                         logger.LogDebug($"Set trigger source to ch {source}");
+
+                        processingRequestChannel.Write(new ProcessingSetTriggerSourceDto((TriggerChannel)(source+1)));
+                        // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                        
                         return null;
                     }
                     else if (command == "DELAY" && hasArg)
@@ -232,6 +261,10 @@ namespace TS.NET.Engine
                         long delay = Convert.ToInt64(argument);
                         // Set trig delay
                         logger.LogDebug($"Set trigger delay to {delay}fs");
+
+                        processingRequestChannel.Write(new ProcessingSetTriggerDelayDto(delay));
+                        // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                        
                         return null;
                     }
                     else if (command == "EDGE:DIR" && hasArg)
@@ -239,6 +272,10 @@ namespace TS.NET.Engine
                         String dir = argument;
                         // Set direction
                         logger.LogDebug($"Set [edge] trigger direction to {dir}");
+
+                        processingRequestChannel.Write(new ProcessingSetTriggerEdgeDirectionDto(/*dir*/));
+                        // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                        
                         return null;
                     }
                 }
@@ -246,16 +283,14 @@ namespace TS.NET.Engine
                 {
                     int chNum = subject[0] - '0';
 
-                    if (command == "ON")
+                    if (command == "ON" || command == "OFF")
                     {
-                        // Turn on
-                        logger.LogDebug($"Enable ch {chNum}");
-                        return null;
-                    }
-                    else if (command == "OFF")
-                    {
-                        // Turn off
-                        logger.LogDebug($"Disable ch {chNum}");
+                        // Turn on/off
+                        logger.LogDebug($"Set ch {chNum} enabled {command=="ON"}");
+
+                        hardwareRequestChannel.Write(new HardwareSetEnabledRequest(chNum, command=="ON"));
+                        // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+
                         return null;
                     }
                     else if (command == "COUP" && hasArg)
@@ -263,6 +298,10 @@ namespace TS.NET.Engine
                         String coup = argument;
                         // Set coupling
                         logger.LogDebug($"Set ch {chNum} coupling to {coup}");
+
+                        hardwareRequestChannel.Write(new HardwareSetCouplingRequest(chNum, (coup=="DC1M"?ThunderscopeCoupling.DC:ThunderscopeCoupling.AC)));
+                        // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+
                         return null;
                     }
                     else if (command == "OFFS" && hasArg)
@@ -273,14 +312,8 @@ namespace TS.NET.Engine
 
                         offset = Math.Clamp(offset, -0.5, 0.5);
 
-                        // This doesn't work as expected
-                        // lock (scope) {
-                        //     bool wasRunning = scope.Enabled;
-                        //     if (wasRunning) scope.Stop();
-                        //     scope.Channels[chNum].VoltsOffset = offset;
-                        //     scope.EnableChannel(chNum);
-                        //     if (wasRunning) scope.Start();
-                        // }
+                        hardwareRequestChannel.Write(new HardwareSetOffsetRequest(chNum, offset));
+                        // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
 
                         return null;
                     }
@@ -288,7 +321,25 @@ namespace TS.NET.Engine
                     {
                         double range = Convert.ToDouble(argument);
                         // Set range
-                        logger.LogDebug($"Set ch {chNum} range to {range}V");
+                        
+                        int[] available_mv = { 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000 };
+
+                        int range_mv = (int)((range * 1000d) / 10d);
+                        int computedRange = available_mv[0];
+
+                        for (int i = available_mv.Length - 1; i >= 0; i--)
+                        {
+                            if (available_mv[i] > computedRange && available_mv[i] <= range_mv)
+                            {
+                                computedRange = available_mv[i];
+                            }
+                        }
+
+                        logger.LogDebug($"Set ch {chNum} range to {range}V -> {range_mv}mV -> {computedRange} computed mV");
+
+                        hardwareRequestChannel.Write(new HardwareSetVdivRequest(chNum, computedRange));
+                        // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+
                         return null;
                     }
                 }

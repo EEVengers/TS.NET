@@ -35,7 +35,7 @@ namespace TS.NET.Engine
         private static void Loop(
             ILogger logger,
             ThunderscopeBridgeWriter bridge,
-            BlockingChannelReader<InputDataDto> processingChannel,
+            BlockingChannelReader<InputDataDto> processingInputChannel,
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel,
@@ -78,6 +78,7 @@ namespace TS.NET.Engine
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;
                 uint oneSecondHoldoffCount = 0;
+                uint oneSecondDequeueCount = 0;
                 // HorizontalSumUtility.ToDivisor(horizontalSumLength)
                 Stopwatch oneSecond = Stopwatch.StartNew();
 
@@ -87,6 +88,8 @@ namespace TS.NET.Engine
                 var circularBuffer4 = new ChannelCircularAlignedBuffer((uint)processingConfig.ChannelLength + ThunderscopeMemory.Length);
 
                 bool forceTrigger = false;
+                bool oneShotTrigger = false;
+                bool triggerRunning = false;
 
                 while (true)
                 {
@@ -95,15 +98,52 @@ namespace TS.NET.Engine
                     // Check for processing requests
                     if (processingRequestChannel.TryRead(out var request))
                     {
-                        if (request.Command == ProcessingRequestCommand.ForceTrigger)
-                            forceTrigger = true;
-                        processingResponseChannel.Write(new ProcessingResponseDto(request.Command));
+                        switch (request)
+                        {
+                            case ProcessingStartTriggerDto processingStartTriggerDto:
+                                triggerRunning = true;
+                                oneShotTrigger = processingStartTriggerDto.OneShot;
+                                forceTrigger = processingStartTriggerDto.ForceTrigger;
+                                logger.LogDebug($"Start: triggerRunning={triggerRunning}, oneShotTrigger={oneShotTrigger}, forceTrigger={forceTrigger}");
+                                break;
+                            case ProcessingStopTriggerDto processingStopTriggerDto:
+                                triggerRunning = false;
+                                logger.LogDebug("Stop");
+                                break;
+                            case ProcessingSetDepthDto processingSetDepthDto:
+                                var depth = processingSetDepthDto.Samples;
+                                break;
+                            case ProcessingSetRateDto processingSetRateDto:
+                                var rate = processingSetRateDto.SamplingHz;
+                                break;
+                            case ProcessingSetTriggerSourceDto processingSetTriggerSourceDto:
+                                var channel = processingSetTriggerSourceDto.Channel;
+                                processingConfig.TriggerChannel = channel;
+                                break;
+                            case ProcessingSetTriggerDelayDto processingSetTriggerDelayDto:
+                                var fs = processingSetTriggerDelayDto.Femtoseconds;
+                                break;
+                            case ProcessingSetTriggerLevelDto processingSetTriggerLevelDto:
+                                var level = processingSetTriggerLevelDto.Level;
+                                break;
+                            case ProcessingSetTriggerEdgeDirectionDto processingSetTriggerEdgeDirectionDto:
+                                // var edges = processingSetTriggerEdgeDirectionDto.Edges;
+                                break;
+                            default:
+                                logger.LogWarning($"Unknown ProcessingRequestDto: {request}");
+                                break;
+                        }
+
+                        bridge.Processing = processingConfig;
                     }
 
-                    InputDataDto processingDto = processingChannel.Read(cancelToken);
+                    InputDataDto inputDataDto = processingInputChannel.Read(cancelToken);
+                    bridge.Configuration = inputDataDto.Configuration;
                     dequeueCounter++;
+                    oneSecondDequeueCount++;
+
                     int channelLength = processingConfig.ChannelLength;
-                    switch (processingDto.Configuration.AdcChannels)
+                    switch (inputDataDto.Configuration.AdcChannels)
                     {
                         // Processing pipeline:
                         // Shuffle (if needed)
@@ -118,25 +158,25 @@ namespace TS.NET.Engine
                             //if (config.HorizontalSumLength != HorizontalSumLength.None)
                             //    throw new NotImplementedException();
                             // Write to circular buffer
-                            circularBuffer1.Write(processingDto.Memory.Span);
+                            circularBuffer1.Write(inputDataDto.Memory.Span);
                             // Trigger
                             if (processingConfig.TriggerChannel != TriggerChannel.None)
                             {
                                 var triggerChannelBuffer = processingConfig.TriggerChannel switch
                                 {
-                                    TriggerChannel.One => processingDto.Memory.Span,
+                                    TriggerChannel.One => inputDataDto.Memory.Span,
                                     _ => throw new ArgumentException("Invalid TriggerChannel value")
                                 };
                                 trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out uint triggerCount, holdoffEndIndices: holdoffEndIndices, out uint holdoffEndCount);
                             }
                             // Finished with the memory, return it
-                            inputChannel.Write(processingDto.Memory);
+                            inputChannel.Write(inputDataDto.Memory);
                             break;
                         case AdcChannels.Two:
                             // Shuffle
-                            Shuffle.TwoChannels(input: processingDto.Memory.Span, output: shuffleBuffer);
+                            Shuffle.TwoChannels(input: inputDataDto.Memory.Span, output: shuffleBuffer);
                             // Finished with the memory, return it
-                            inputChannel.Write(processingDto.Memory);
+                            inputChannel.Write(inputDataDto.Memory);
                             // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
                             //if (config.HorizontalSumLength != HorizontalSumLength.None)
                             //    throw new NotImplementedException();
@@ -157,9 +197,9 @@ namespace TS.NET.Engine
                             break;
                         case AdcChannels.Four:
                             // Shuffle
-                            Shuffle.FourChannels(input: processingDto.Memory.Span, output: shuffleBuffer);
+                            Shuffle.FourChannels(input: inputDataDto.Memory.Span, output: shuffleBuffer);
                             // Finished with the memory, return it
-                            inputChannel.Write(processingDto.Memory);
+                            inputChannel.Write(inputDataDto.Memory);
                             // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
                             //if (config.HorizontalSumLength != HorizontalSumLength.None)
                             //    throw new NotImplementedException();
@@ -169,7 +209,7 @@ namespace TS.NET.Engine
                             circularBuffer3.Write(postShuffleCh3_4);
                             circularBuffer4.Write(postShuffleCh4_4);
                             // Trigger
-                            if (processingConfig.TriggerChannel != TriggerChannel.None)
+                            if (triggerRunning && processingConfig.TriggerChannel != TriggerChannel.None)
                             {
                                 var triggerChannelBuffer = processingConfig.TriggerChannel switch
                                 {
@@ -183,6 +223,7 @@ namespace TS.NET.Engine
                                 oneSecondHoldoffCount += holdoffEndCount;
                                 if (holdoffEndCount > 0)
                                 {
+                                    // logger.LogDebug("Trigger Fired");
                                     for (int i = 0; i < holdoffEndCount; i++)
                                     {
                                         var bridgeSpan = bridge.AcquiringRegion;
@@ -195,9 +236,11 @@ namespace TS.NET.Engine
                                         bridge.SwitchRegionIfNeeded();
                                     }
                                     forceTrigger = false;       // Ignore the force trigger request, a normal trigger happened
+                                    if (oneShotTrigger) triggerRunning = false;
                                 }
                                 else if (forceTrigger)
                                 {
+                                    // logger.LogDebug("Force Trigger fired");
                                     var bridgeSpan = bridge.AcquiringRegion;
                                     circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
                                     circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
@@ -206,22 +249,25 @@ namespace TS.NET.Engine
                                     bridge.DataWritten();
                                     bridge.SwitchRegionIfNeeded();
                                     forceTrigger = false;
+                                    if (oneShotTrigger) triggerRunning = false;
                                 }
                                 else
                                 {
                                     bridge.SwitchRegionIfNeeded();
                                 }
-                                
+
                             }
                             //logger.LogInformation($"Dequeue #{dequeueCounter++}, Ch1 triggers: {triggerCount1}, Ch2 triggers: {triggerCount2}, Ch3 triggers: {triggerCount3}, Ch4 triggers: {triggerCount4} ");
                             break;
                     }
 
-                    if (oneSecond.ElapsedMilliseconds >= 1000)
+                    if (oneSecond.ElapsedMilliseconds >= 10000)
                     {
-                        logger.LogDebug($"Triggers/sec: {oneSecondHoldoffCount / (oneSecond.ElapsedMilliseconds * 0.001):F2}, dequeue count: {dequeueCounter}, trigger count: {bridge.Monitoring.TotalAcquisitions}, UI displayed triggers: {bridge.Monitoring.TotalAcquisitions - bridge.Monitoring.MissedAcquisitions}, UI dropped triggers: {bridge.Monitoring.MissedAcquisitions}");
+                        logger.LogDebug($"Outstanding frames: {processingInputChannel.PeekAvailable()}, dequeues/sec: {oneSecondDequeueCount / (oneSecond.ElapsedMilliseconds * 0.001):F2}, dequeue count: {dequeueCounter}");
+                        logger.LogDebug($"Triggers/sec: {oneSecondHoldoffCount / (oneSecond.ElapsedMilliseconds * 0.001):F2}, trigger count: {bridge.Monitoring.TotalAcquisitions}, UI displayed triggers: {bridge.Monitoring.TotalAcquisitions - bridge.Monitoring.MissedAcquisitions}, UI dropped triggers: {bridge.Monitoring.MissedAcquisitions}");
                         oneSecond.Restart();
                         oneSecondHoldoffCount = 0;
+                        oneSecondDequeueCount = 0;
                     }
                 }
             }

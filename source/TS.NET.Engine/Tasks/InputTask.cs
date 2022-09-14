@@ -56,12 +56,73 @@ namespace TS.NET.Engine
                     cancelToken.ThrowIfCancellationRequested();
 
                     // Check for configuration requests
-                    if (hardwareRequestChannel.TryRead(out var request))
+                    if (hardwareRequestChannel.PeekAvailable() != 0)
                     {
-                        // Do configuration update, pausing acquisition if necessary (TBD)
+                        logger.LogDebug("Stop acquisition and process commands...");
+                        thunderscope.Stop();
 
-                        // Signal back to the sender that config update happened.
-                        hardwareResponseChannel.TryWrite(new HardwareResponseDto(request.Command));
+                        while (hardwareRequestChannel.TryRead(out var request))
+                        {
+                            // Do configuration update, pausing acquisition if necessary
+                            switch(request)
+                            {
+                                case HardwareStartRequest hardwareStartRequest:
+                                    logger.LogDebug("Start request (ignore)");
+                                    break;
+                                case HardwareStopRequest hardwareStopRequest:
+                                    logger.LogDebug("Stop request (ignore)");
+                                    break;
+                                case HardwareConfigureChannelDto hardwareConfigureChannelDto:
+                                    var chNum = ((HardwareConfigureChannelDto)request).Channel;
+                                    ThunderscopeChannel ch = configuration.GetChannel(chNum);
+                                    switch (request)
+                                    {
+                                        case HardwareSetOffsetRequest hardwareSetOffsetRequest:
+                                            var voltage = hardwareSetOffsetRequest.Offset;
+                                            logger.LogDebug($"Set offset request: ch {chNum} voltage {voltage}");
+                                            ch.VoltsOffset = voltage;
+                                            break;
+                                        case HardwareSetVdivRequest hardwareSetVdivRequest:
+                                            var vdiv = hardwareSetVdivRequest.VoltsDiv;
+                                            logger.LogDebug($"Set vdiv request: ch {chNum} div {vdiv}");
+                                            ch.VoltsDiv = vdiv;
+                                            break;
+                                        case HardwareSetBandwidthRequest hardwareSetBandwidthRequest:
+                                            var bw = hardwareSetBandwidthRequest.Bandwidth;
+                                            logger.LogDebug($"Set bw request: ch {chNum} bw {bw}");
+                                            ch.Bandwidth = bw;
+                                            break;
+                                        case HardwareSetCouplingRequest hardwareSetCouplingRequest:
+                                            var coup = hardwareSetCouplingRequest.Coupling;
+                                            logger.LogDebug($"Set coup request: ch {chNum} coup {coup}");
+                                            ch.Coupling = coup;
+                                            break;
+                                        case HardwareSetEnabledRequest hardwareSetEnabledRequest:
+                                            var enabled = ((HardwareSetEnabledRequest)request).Enabled;
+                                            logger.LogDebug($"Set enabled request: ch {chNum} enabled {enabled}");
+                                            ch.Enabled = enabled;
+                                            break;
+                                        default:
+                                            logger.LogWarning($"Unknown HardwareConfigureChannelDto: {request}");
+                                            break;
+                                    }
+                                    configuration.SetChannel(chNum, ch);
+                                    ConfigureFromObject(thunderscope, configuration);
+                                    thunderscope.EnableChannel(chNum);
+                                    break;
+                                default:
+                                    logger.LogWarning($"Unknown HardwareRequestDto: {request}");
+                                    break;
+                            }
+                            // Signal back to the sender that config update happened.
+                            // hardwareResponseChannel.TryWrite(new HardwareResponseDto(request));
+
+                            if (hardwareRequestChannel.PeekAvailable() == 0)
+                                Thread.Sleep(150);
+                        }
+
+                        logger.LogDebug("Start again");
+                        thunderscope.Start();
                     }
 
                     var memory = inputChannel.Read();
@@ -105,7 +166,7 @@ namespace TS.NET.Engine
 
                     processingChannel.Write(new InputDataDto(configuration, memory), cancelToken);
 
-                    if (oneSecond.ElapsedMilliseconds >= 1000)
+                    if (oneSecond.ElapsedMilliseconds >= 10000)
                     {
                         logger.LogDebug($"Enqueues/sec: {oneSecondEnqueueCount / (oneSecond.ElapsedMilliseconds * 0.001):F2}, enqueue count: {enqueueCounter}");
                         oneSecond.Restart();
@@ -168,12 +229,22 @@ namespace TS.NET.Engine
                 },
             };
 
+            ConfigureFromObject(thunderscope, configuration);
+
             thunderscope.EnableChannel(0);
             thunderscope.EnableChannel(1);
             thunderscope.EnableChannel(2);
             thunderscope.EnableChannel(3);
 
             return configuration;
+        }
+
+        private static void ConfigureFromObject(Thunderscope thunderscope, ThunderscopeConfiguration configuration)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                thunderscope.Channels[i] = configuration.GetChannel(i);
+            }
         }
     }
 }

@@ -40,6 +40,27 @@ namespace TS.NET
                 _ => throw new ArgumentException("channel out of range")
             };
         }
+
+        public void SetChannel(int channel, ThunderscopeChannel ch)
+        {
+            switch (channel)
+            {
+                case 0:
+                    Channel0 = ch;
+                    break;
+                case 1:
+                    Channel1 = ch;
+                    break;
+                case 2:
+                    Channel2 = ch;
+                    break;
+                case 3:
+                    Channel3 = ch;
+                    break;
+                default:
+                    throw new ArgumentException("channel out of range");
+            }
+        }
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]

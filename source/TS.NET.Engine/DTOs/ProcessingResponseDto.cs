@@ -2,5 +2,5 @@
 
 namespace TS.NET.Engine
 {
-    public record ProcessingResponseDto(ProcessingRequestCommand Command);
+    public record ProcessingResponseDto(ProcessingRequestDto Command);
 }

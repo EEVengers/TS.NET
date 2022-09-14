@@ -2,5 +2,5 @@
 
 namespace TS.NET.Engine
 {
-    public record HardwareResponseDto(HardwareRequestCommand Command);
+    public record HardwareResponseDto(HardwareRequestDto Request);
 }

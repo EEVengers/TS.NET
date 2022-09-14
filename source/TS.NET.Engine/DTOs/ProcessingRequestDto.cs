@@ -2,10 +2,17 @@
 
 namespace TS.NET.Engine
 {
-    public enum ProcessingRequestCommand
-    {
-        ForceTrigger = 1
-    }
+    public abstract record ProcessingRequestDto();
 
-    public record ProcessingRequestDto(ProcessingRequestCommand Command);
+    public record ProcessingStartTriggerDto(bool ForceTrigger, bool OneShot) : ProcessingRequestDto;
+    public record ProcessingStopTriggerDto() : ProcessingRequestDto;
+
+    public record ProcessingSetDepthDto(long Samples) : ProcessingRequestDto;
+    public record ProcessingSetRateDto(long SamplingHz) : ProcessingRequestDto;
+
+    public record ProcessingSetTriggerSourceDto(TriggerChannel Channel) : ProcessingRequestDto;
+    public record ProcessingSetTriggerDelayDto(long Femtoseconds) : ProcessingRequestDto;
+    public record ProcessingSetTriggerLevelDto(double Level) : ProcessingRequestDto;
+    public record ProcessingSetTriggerEdgeDirectionDto() : ProcessingRequestDto;
+
 }

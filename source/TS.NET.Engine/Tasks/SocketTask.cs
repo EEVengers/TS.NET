@@ -74,6 +74,11 @@ namespace TS.NET.Engine
 
                 uint seqnum = 0;
 
+                var processingCfg = bridge.Processing;//.GetConfiguration();
+                ulong channelLength = (ulong)processingCfg.ChannelLength;
+
+                clientSocket.NoDelay = true;
+
                 while (true)
                 {
                     byte[] bytes = new byte[1];
@@ -87,13 +92,7 @@ namespace TS.NET.Engine
                         if (numByte != 0) break;
                     }
 
-                    logger.LogDebug("Got request for waveform...");
-
-                    var cfg = bridge.Configuration;
-                    var processingCfg = bridge.Processing;//.GetConfiguration();
-                    ulong channelLength = (ulong)processingCfg.ChannelLength;
-
-                    byte[] localBuffer = new byte[channelLength * 4];
+                    // logger.LogDebug("Got request for waveform...");
 
                     while (true)
                     {
@@ -101,6 +100,8 @@ namespace TS.NET.Engine
 
                         if (bridge.RequestAndWaitForData(500))
                         {
+                            // logger.LogDebug("Send waveform...");
+                            var cfg = bridge.Configuration;
                             var data = bridge.AcquiredRegion;
 
                             WaveformHeader header = new()
@@ -122,48 +123,42 @@ namespace TS.NET.Engine
                                 clipping = 0
                             };
 
-                            bool actuallySend = true;
-
                             unsafe
                             {
-                                // TCP is a streaming protocol, not a packet protocol, so either send length first, or end with termination character.
-                                int count = sizeof(WaveformHeader) + 4 * (sizeof(ChannelHeader) + (int)channelLength);
-                                if (actuallySend) clientSocket.Send(BitConverter.GetBytes(count));
-                                if (actuallySend) clientSocket.Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
-
-                                fixed (byte* bridgeBuf = data, localBuf = localBuffer)
-                                {
-                                    Buffer.MemoryCopy(bridgeBuf, localBuf, data.Length, (long)(channelLength * 4));
-                                }
-
-                                Span<byte> sendSpan = (Span<byte>)localBuffer;
+                                clientSocket.Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
 
                                 for (byte ch = 0; ch < 4; ch++)
                                 {
                                     ThunderscopeChannel tChannel = cfg.GetChannel(ch);
 
-                                    chHeader.chNum = ch;
-                                    chHeader.scale = (float)(tChannel.VoltsDiv / 1000f * 10f) / 255f;
-                                    chHeader.offset = -(float)tChannel.VoltsOffset;
+                                    float full_scale = ((float)tChannel.VoltsDiv / 1000f) * 5f; // 5 instead of 10 for signed
 
-                                    if (actuallySend) clientSocket.Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
-                                    if (actuallySend) clientSocket.Send(sendSpan.Slice(ch * (int)channelLength, (int)channelLength));
+                                    chHeader.chNum = ch;
+                                    chHeader.scale = full_scale / 127f; // 127 instead of 255 for signed
+                                    chHeader.offset = -((float)tChannel.VoltsOffset); // needs chHeader.scale * 0x80 for signed
+
+                                    // TODO: What is up with samples in the 245-255 range that seem to be spurious or maybe a representation of negative voltages?
+
+                                    // if (ch == 0)
+                                    //     logger.LogDebug($"ch {ch}: VoltsDiv={tChannel.VoltsDiv} -> .scale={chHeader.scale}, VoltsOffset={tChannel.VoltsOffset} -> .offset = {chHeader.offset}, Coupling={tChannel.Coupling}");
+                                    
+                                    // Length of this channel as 'depth'
+                                    clientSocket.Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
+                                    clientSocket.Send(data.Slice(ch * (int)channelLength, (int)channelLength));
                                 }
                             }
 
-                            Thread.Sleep(100);
-                            logger.LogDebug("Send!");
-
                             seqnum++;
-                            // string textInfo = JsonConvert.SerializeObject(cfg, Formatting.Indented, new Newtonsoft.Json.Converters.StringEnumConverter()); 
-                            // logger.LogInfo(textInfo);
-                            // Thread.Sleep(10);
 
                             break;
                         }
 
-                        logger.LogDebug("Remote wanted waveform but not ready, forcing trigger");
-                        processingRequestChannel.Write(new(ProcessingRequestCommand.ForceTrigger));
+                        if (false)
+                        {
+                            logger.LogDebug("Remote wanted waveform but not ready -- forcing trigger");
+                            processingRequestChannel.Write(new ProcessingStartTriggerDto(true, true));
+                            // TODO: This doesn't seem like the behavior we want, unless in "AUTO" triggering mode.
+                        }
                     }
                 }
             }
