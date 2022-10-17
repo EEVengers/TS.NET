@@ -25,13 +25,13 @@ namespace TS.NET
 
         public ReadOnlySpan<byte> AcquiredRegion { get { return GetAcquiredRegion(); } }
 
-        public unsafe ThunderscopeBridgeReader(ThunderscopeBridgeOptions options, ILoggerFactory loggerFactory)
+        public unsafe ThunderscopeBridgeReader(ThunderscopeBridgeOptions options)
         {
             this.options = options;
             dataCapacityInBytes = options.BridgeCapacityBytes - (uint)sizeof(ThunderscopeBridgeHeader);
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new MemoryFileWindows(options)
-                : new MemoryFileUnix(options, loggerFactory);
+                : new MemoryFileUnix(options);
 
             try
             {
@@ -149,6 +149,18 @@ namespace TS.NET
             {
                 ThunderscopeMemoryAcquiringRegion.RegionA => new ReadOnlySpan<byte>(dataPointer + regionLength, regionLength),        // If acquiring region is Region A, return Region B
                 ThunderscopeMemoryAcquiringRegion.RegionB => new ReadOnlySpan<byte>(dataPointer, regionLength),                       // If acquiring region is Region B, return Region A
+                _ => throw new InvalidDataException("Enum value not handled, add enum value to switch")
+            };
+        }
+
+        // For use by TS.NET.Native.BridgeReader only
+        public unsafe byte* GetAcquiredRegionPointer()
+        {
+            int regionLength = (int)dataCapacityInBytes / 2;
+            return header.AcquiringRegion switch
+            {
+                ThunderscopeMemoryAcquiringRegion.RegionA => dataPointer + regionLength,        // If acquiring region is Region A, return Region B
+                ThunderscopeMemoryAcquiringRegion.RegionB => dataPointer,                       // If acquiring region is Region B, return Region A
                 _ => throw new InvalidDataException("Enum value not handled, add enum value to switch")
             };
         }

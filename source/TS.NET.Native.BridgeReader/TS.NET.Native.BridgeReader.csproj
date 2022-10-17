@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Version>0.1.0</Version>
+		<!--https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/-->
+		<PublishAot>true</PublishAot>
+		<StripSymbols>true</StripSymbols>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\TS.NET\TS.NET.csproj" />
+	</ItemGroup>
+
+</Project>

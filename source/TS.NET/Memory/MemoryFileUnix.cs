@@ -14,11 +14,9 @@ namespace TS.NET.Memory.Unix
         private const string FileExtension = ".qu";
         private const int BufferSize = 0x1000;
         private readonly string file;
-        private readonly ILogger<MemoryFileUnix> logger;
 
-        internal MemoryFileUnix(ThunderscopeBridgeOptions options, ILoggerFactory loggerFactory)
+        internal MemoryFileUnix(ThunderscopeBridgeOptions options)
         {
-            logger = loggerFactory.CreateLogger<MemoryFileUnix>();
             file = Path.Combine(options.Path, Folder);
             Directory.CreateDirectory(file);
             file = Path.Combine(file, options.MemoryName + FileExtension);

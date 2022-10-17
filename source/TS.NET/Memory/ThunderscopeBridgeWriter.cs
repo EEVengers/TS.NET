@@ -29,13 +29,13 @@ namespace TS.NET
         public Span<byte> AcquiringRegion { get { return GetAcquiringRegion(); } }
         public ThunderscopeMonitoring Monitoring { get { return header.Monitoring; } }
 
-        public unsafe ThunderscopeBridgeWriter(ThunderscopeBridgeOptions options, ILoggerFactory loggerFactory)
+        public unsafe ThunderscopeBridgeWriter(ThunderscopeBridgeOptions options)
         {
             this.options = options;
             dataCapacityInBytes = options.BridgeCapacityBytes - (uint)sizeof(ThunderscopeBridgeHeader);
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new MemoryFileWindows(options)
-                : new MemoryFileUnix(options, loggerFactory);
+                : new MemoryFileUnix(options);
 
             try
             {
