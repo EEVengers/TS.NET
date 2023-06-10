@@ -43,12 +43,14 @@ namespace TS.NET.Engine
             Thunderscope thunderscope = new();
             try
             {
+                logger.LogInformation("Starting...");
                 thunderscope.Open(thunderscopeDevice);
                 ThunderscopeConfiguration configuration = DoInitialConfiguration(thunderscope);
                 thunderscope.Start();
+                logger.LogInformation("Started");
 
-                Stopwatch oneSecond = Stopwatch.StartNew();
-                uint oneSecondEnqueueCount = 0;
+                Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
+                uint periodicEnqueueCount = 0;
                 uint enqueueCounter = 0;
 
                 while (true)
@@ -64,7 +66,7 @@ namespace TS.NET.Engine
                         while (hardwareRequestChannel.TryRead(out var request))
                         {
                             // Do configuration update, pausing acquisition if necessary
-                            switch(request)
+                            switch (request)
                             {
                                 case HardwareStartRequest hardwareStartRequest:
                                     logger.LogDebug("Start request (ignore)");
@@ -125,7 +127,7 @@ namespace TS.NET.Engine
                         thunderscope.Start();
                     }
 
-                    var memory = inputChannel.Read();
+                    var memory = inputChannel.Read(cancelToken);
 
                     while (true)
                     {
@@ -161,32 +163,33 @@ namespace TS.NET.Engine
                         }
                     }
 
-                    oneSecondEnqueueCount++;
+                    periodicEnqueueCount++;
                     enqueueCounter++;
 
                     processingChannel.Write(new InputDataDto(configuration, memory), cancelToken);
 
-                    if (oneSecond.ElapsedMilliseconds >= 10000)
+                    if (periodicUpdateTimer.ElapsedMilliseconds >= 10000)
                     {
-                        logger.LogDebug($"Enqueues/sec: {oneSecondEnqueueCount / (oneSecond.ElapsedMilliseconds * 0.001):F2}, enqueue count: {enqueueCounter}");
-                        oneSecond.Restart();
-                        oneSecondEnqueueCount = 0;
+                        var oneSecondEnqueueCount = periodicEnqueueCount / periodicUpdateTimer.Elapsed.TotalSeconds;
+                        logger.LogDebug($"Enqueues/sec: {oneSecondEnqueueCount:F2}, MB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.Length / 1000 / 1000):F3}, MiB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.Length / 1024 / 1024):F3}, enqueue count: {enqueueCounter}");
+                        periodicUpdateTimer.Restart();
+                        periodicEnqueueCount = 0;
                     }
                 }
             }
             catch (OperationCanceledException)
             {
-                logger.LogDebug($"{nameof(InputTask)} stopping");
+                logger.LogDebug("Stopping...");
             }
             catch (Exception ex)
             {
-                logger.LogCritical(ex, $"{nameof(InputTask)} error");
+                logger.LogCritical(ex, "Error");
                 throw;
             }
             finally
             {
                 thunderscope.Stop();
-                logger.LogDebug($"{nameof(InputTask)} stopped");
+                logger.LogDebug("Stopped");
             }
         }
 

@@ -47,8 +47,6 @@ namespace TS.NET.Engine
         {
             Thread.CurrentThread.Name = "TS.NET SCPI";
             Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
-
-            logger.LogDebug($"Thread ID: {Thread.CurrentThread.ManagedThreadId}");
             Socket clientSocket = null;
 
             try

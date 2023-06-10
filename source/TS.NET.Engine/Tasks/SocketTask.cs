@@ -38,7 +38,7 @@ namespace TS.NET.Engine
             var logger = loggerFactory.CreateLogger("SocketTask");
             cancelTokenSource = new CancellationTokenSource();
             ulong dataCapacityBytes = 4 * 100 * 1000 * 1000;      // Maximum capacity = 100M samples per channel
-            ThunderscopeBridgeReader bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", dataCapacityBytes), loggerFactory);
+            ThunderscopeBridgeReader bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", dataCapacityBytes));
             IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Any, 5026);
             listener = new Socket(IPAddress.Any.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             listener.LingerState = new LingerOption(true, 1);
@@ -61,7 +61,6 @@ namespace TS.NET.Engine
             CancellationToken cancelToken)
         {
             Thread.CurrentThread.Name = "TS.NET Socket";
-            logger.LogDebug($"Thread ID: {Thread.CurrentThread.ManagedThreadId}");
             Socket clientSocket = null;
 
             try

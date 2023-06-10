@@ -16,12 +16,12 @@ namespace TS.NET.Engine
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel)
         {
-            var logger = loggerFactory.CreateLogger("ProcessingTask");
+            var logger = loggerFactory.CreateLogger(nameof(ProcessingTask));
             cancelTokenSource = new CancellationTokenSource();
             ulong dataCapacityBytes = 4 * 100 * 1000 * 1000;      // Maximum capacity = 100M samples per channel
             // Bridge is cross-process shared memory for the UI to read triggered acquisitions
             // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
-            ThunderscopeBridgeWriter bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", dataCapacityBytes), loggerFactory);
+            ThunderscopeBridgeWriter bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", dataCapacityBytes));
             taskLoop = Task.Factory.StartNew(() => Loop(logger, bridge, processingChannel, inputChannel, processingRequestChannel, processingResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
@@ -44,6 +44,7 @@ namespace TS.NET.Engine
             try
             {
                 Thread.CurrentThread.Name = "TS.NET Processing";
+                logger.LogInformation("Starting...");
 
                 ThunderscopeProcessing processingConfig = new()
                 {
@@ -80,7 +81,7 @@ namespace TS.NET.Engine
                 uint oneSecondHoldoffCount = 0;
                 uint oneSecondDequeueCount = 0;
                 // HorizontalSumUtility.ToDivisor(horizontalSumLength)
-                Stopwatch oneSecond = Stopwatch.StartNew();
+                Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
 
                 var circularBuffer1 = new ChannelCircularAlignedBuffer((uint)processingConfig.ChannelLength + ThunderscopeMemory.Length);
                 var circularBuffer2 = new ChannelCircularAlignedBuffer((uint)processingConfig.ChannelLength + ThunderscopeMemory.Length);
@@ -90,6 +91,7 @@ namespace TS.NET.Engine
                 bool forceTrigger = false;
                 bool oneShotTrigger = false;
                 bool triggerRunning = false;
+                logger.LogInformation("Started");
 
                 while (true)
                 {
@@ -261,11 +263,11 @@ namespace TS.NET.Engine
                             break;
                     }
 
-                    if (oneSecond.ElapsedMilliseconds >= 10000)
+                    if (periodicUpdateTimer.ElapsedMilliseconds >= 10000)
                     {
-                        logger.LogDebug($"Outstanding frames: {processingInputChannel.PeekAvailable()}, dequeues/sec: {oneSecondDequeueCount / (oneSecond.ElapsedMilliseconds * 0.001):F2}, dequeue count: {dequeueCounter}");
-                        logger.LogDebug($"Triggers/sec: {oneSecondHoldoffCount / (oneSecond.ElapsedMilliseconds * 0.001):F2}, trigger count: {bridge.Monitoring.TotalAcquisitions}, UI displayed triggers: {bridge.Monitoring.TotalAcquisitions - bridge.Monitoring.MissedAcquisitions}, UI dropped triggers: {bridge.Monitoring.MissedAcquisitions}");
-                        oneSecond.Restart();
+                        logger.LogDebug($"Outstanding frames: {processingInputChannel.PeekAvailable()}, dequeues/sec: {oneSecondDequeueCount / (periodicUpdateTimer.Elapsed.TotalSeconds):F2}, dequeue count: {dequeueCounter}");
+                        logger.LogDebug($"Triggers/sec: {oneSecondHoldoffCount / (periodicUpdateTimer.Elapsed.TotalSeconds):F2}, trigger count: {bridge.Monitoring.TotalAcquisitions}, UI displayed triggers: {bridge.Monitoring.TotalAcquisitions - bridge.Monitoring.MissedAcquisitions}, UI dropped triggers: {bridge.Monitoring.MissedAcquisitions}");
+                        periodicUpdateTimer.Restart();
                         oneSecondHoldoffCount = 0;
                         oneSecondDequeueCount = 0;
                     }
@@ -273,16 +275,16 @@ namespace TS.NET.Engine
             }
             catch (OperationCanceledException)
             {
-                logger.LogDebug($"{nameof(ProcessingTask)} stopping");
+                logger.LogDebug("Stopping...");
             }
             catch (Exception ex)
             {
-                logger.LogCritical(ex, $"{nameof(ProcessingTask)} error");
+                logger.LogCritical(ex, "Error");
                 throw;
             }
             finally
             {
-                logger.LogDebug($"{nameof(ProcessingTask)} stopped");
+                logger.LogDebug("Stopped");
             }
         }
     }
