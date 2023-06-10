@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -23,7 +22,8 @@ namespace TS.NET
         private readonly IInterprocessSemaphoreWaiter dataReadySemaphore;
         private bool hasSignaledRequest = false;
 
-        public ReadOnlySpan<byte> AcquiredRegion { get { return GetAcquiredRegion(); } }
+        public ReadOnlySpan<sbyte> AcquiredRegion { get { return GetAcquiredRegion(); } }
+        public ReadOnlySpan<byte> AcquiredRegionAsByte { get { return GetAcquiredRegionAsByte(); } }
 
         public unsafe ThunderscopeBridgeReader(ThunderscopeBridgeOptions options)
         {
@@ -142,7 +142,18 @@ namespace TS.NET
             return ptr;
         }
 
-        private unsafe ReadOnlySpan<byte> GetAcquiredRegion()
+        private unsafe ReadOnlySpan<sbyte> GetAcquiredRegion()
+        {
+            int regionLength = (int)dataCapacityInBytes / 2;
+            return header.AcquiringRegion switch
+            {
+                ThunderscopeMemoryAcquiringRegion.RegionA => new ReadOnlySpan<sbyte>(dataPointer + regionLength, regionLength),        // If acquiring region is Region A, return Region B
+                ThunderscopeMemoryAcquiringRegion.RegionB => new ReadOnlySpan<sbyte>(dataPointer, regionLength),                       // If acquiring region is Region B, return Region A
+                _ => throw new InvalidDataException("Enum value not handled, add enum value to switch")
+            };
+        }
+
+        private unsafe ReadOnlySpan<byte> GetAcquiredRegionAsByte()
         {
             int regionLength = (int)dataCapacityInBytes / 2;
             return header.AcquiringRegion switch

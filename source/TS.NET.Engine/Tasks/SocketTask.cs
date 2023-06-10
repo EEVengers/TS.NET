@@ -101,7 +101,7 @@ namespace TS.NET.Engine
                         {
                             // logger.LogDebug("Send waveform...");
                             var cfg = bridge.Configuration;
-                            var data = bridge.AcquiredRegion;
+                            var data = bridge.AcquiredRegionAsByte;
 
                             WaveformHeader header = new()
                             {

@@ -2,7 +2,6 @@
 using System;
 using System.IO;
 using System.IO.MemoryMappedFiles;
-using Microsoft.Extensions.Logging;
 
 namespace TS.NET.Memory.Unix
 {

@@ -7,20 +7,20 @@ public class RisingEdgeTriggerAlt
 {
     enum TriggerArmState { Unarmed, Armed, InHoldoff }
     private TriggerArmState triggerArmState;
-    private byte triggerLevel;
-    private byte armLevel;
+    private sbyte triggerLevel;
+    private sbyte armLevel;
     private ulong holdoffSamples;
     private ulong holdoffRemaining = 0;
 
-    private Vector256<byte> triggerLevelVector;
-    private Vector256<byte> armLevelVector;
+    private Vector256<sbyte> triggerLevelVector;
+    private Vector256<sbyte> armLevelVector;
 
-    public RisingEdgeTriggerAlt(byte triggerLevel, byte armLevel, ulong holdoffSamples)
+    public RisingEdgeTriggerAlt(sbyte triggerLevel, sbyte armLevel, ulong holdoffSamples)
     {
         Reset(triggerLevel, armLevel, holdoffSamples);
     }
 
-    public void Reset(byte triggerLevel, byte armLevel, ulong holdoffSamples)
+    public void Reset(sbyte triggerLevel, sbyte armLevel, ulong holdoffSamples)
     {
         if (holdoffSamples > 10000000000)
             throw new ArgumentException($"holdoffSamples cannot be greater than 10GS");
@@ -38,7 +38,7 @@ public class RisingEdgeTriggerAlt
     }
 
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ProcessSimd(ReadOnlySpan<byte> input, Span<uint> triggerIndices, out uint triggerCount, Span<uint> holdoffEndIndices, out uint holdoffEndCount)
+    public void ProcessSimd(ReadOnlySpan<sbyte> input, Span<uint> triggerIndices, out uint triggerCount, Span<uint> holdoffEndIndices, out uint holdoffEndCount)
     {
         uint inputLength = (uint)input.Length;
         uint simdLength = (inputLength - 32);
@@ -51,7 +51,7 @@ public class RisingEdgeTriggerAlt
         holdoffEndIndices.Clear();
         unsafe
         {
-            fixed (byte* samplesPtr = input)
+            fixed (sbyte* samplesPtr = input)
             {
                 while (i < inputLength)
                 {
@@ -61,8 +61,8 @@ public class RisingEdgeTriggerAlt
                             // Process 32 bytes at a time.  Edit: for this simplified version, just use SIMD to scan then fallback to serial processing
                             for (; i < simdLength; i += 32)
                             {
-                                Vector256<byte> inputVector = Avx.LoadVector256(samplesPtr + i);
-                                Vector256<byte> resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector, inputVector), armLevelVector);
+                                var inputVector = Avx.LoadVector256(samplesPtr + i);
+                                var resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector, inputVector), armLevelVector);
                                 uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
                                 if (resultCount != 0)
                                     break;
@@ -81,8 +81,8 @@ public class RisingEdgeTriggerAlt
                             // Process 32 bytes at a time. Edit: for this simplified version, just use SIMD to scan then fallback to serial processing
                             for (; i < simdLength; i += 32)
                             {
-                                Vector256<byte> inputVector = Avx.LoadVector256(samplesPtr + i);
-                                Vector256<byte> resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector, inputVector), triggerLevelVector);
+                                var inputVector = Avx.LoadVector256(samplesPtr + i);
+                                var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector, inputVector), triggerLevelVector);
                                 uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
                                 if (resultCount != 0)
                                     break;

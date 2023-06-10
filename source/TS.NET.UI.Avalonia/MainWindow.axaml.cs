@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
-using Cloudtoid.Interprocess;
+using Avalonia.X11;
 using FluentAvalonia.Styling;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -11,6 +11,7 @@ using ScottPlot.Avalonia;
 using System;
 using System.Buffers;
 using System.Diagnostics;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -31,7 +32,7 @@ namespace TS.NET.UI.Avalonia
         private Task displayTask;
         //private IPublisher forwarderInput;
         //private Memory<byte> forwarderInputBuffer = new byte[10000];
-        private ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        //private ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
 
         public MainWindow()
         {
@@ -88,8 +89,11 @@ namespace TS.NET.UI.Avalonia
             try
             {
                 uint bufferLength = 4 * 100 * 1000 * 1000;      //Maximum record length = 100M samples per channel
-                ThunderscopeBridgeReader bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", bufferLength), loggerFactory);
-
+                ThunderscopeBridgeReader bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", bufferLength));
+                Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    lblStatus.Content = "Bridge connection established";
+                });
                 Stopwatch stopwatch = Stopwatch.StartNew();
 
                 int count = 0;

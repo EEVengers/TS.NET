@@ -9,7 +9,7 @@ namespace TS.NET
 {
     public unsafe sealed class ChannelCircularAlignedBuffer
     {
-        private readonly byte* buffer;
+        private readonly sbyte* buffer;
         private readonly uint capacity;
         private uint tail = 0;
         private ulong totalWritten = 0;
@@ -17,7 +17,7 @@ namespace TS.NET
         public ChannelCircularAlignedBuffer(uint capacity)
         {
             this.capacity = capacity;
-            buffer = (byte*)NativeMemory.AlignedAlloc(capacity, 4096);
+            buffer = (sbyte*)NativeMemory.AlignedAlloc(capacity, 4096);
         }
 
         // https://tooslowexception.com/disposable-ref-structs-in-c-8-0/
@@ -44,14 +44,14 @@ namespace TS.NET
         //    }
         //}
 
-        public void Write(ReadOnlySpan<byte> data)
+        public void Write(ReadOnlySpan<sbyte> data)
         {
             if (data.Length > capacity)
                 throw new Exception($"ChannelCircularBuffer too small to write {data.Length} bytes");
 
             unsafe
             {
-                fixed (byte* dataPtr = data)
+                fixed (sbyte* dataPtr = data)
                 {
                     uint firstCopy = Math.Min((uint)data.Length, capacity - tail);
                     if (firstCopy > 0)
@@ -67,14 +67,14 @@ namespace TS.NET
             totalWritten += (ulong)data.Length;
         }
 
-        public void Read(Span<byte> data, uint endOffset)
+        public void Read(Span<sbyte> data, uint endOffset)
         {
             if (data.Length > capacity)
                 throw new Exception($"ChannelCircularBuffer too small to read {data.Length} bytes");
 
             unsafe
             {
-                fixed (byte* dataPtr = data)
+                fixed (sbyte* dataPtr = data)
                 {
                     uint offsetTail = 0;
                     if (endOffset <= tail)

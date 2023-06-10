@@ -11,7 +11,7 @@
 		<ScottPlot:AvaPlot Name="AvaPlot1" Grid.Row="0"/>
 		<Label Name="LblStatus" Grid.Row="1" Content ="Test" />
 		<StackPanel Grid.Row="0" Grid.Column="1">
-			<TextBlock Name="TextInfo" Grid.Row="0" TextWrapping="Wrap">Waiting for bridge connection...</TextBlock>
+			<TextBlock Name="TextInfo" Grid.Row="0" TextWrapping="Wrap">Waiting for first capture...</TextBlock>
 			<!--<TabControl >
 				<TabItem Header="Horizontal">
 					<controls:Timebase Grid.Row="0" Margin="3"></controls:Timebase>

@@ -60,21 +60,21 @@ namespace TS.NET.Engine
                 // Various buffers allocated once and reused forevermore.
                 //Memory<byte> hardwareBuffer = new byte[ThunderscopeMemory.Length];
                 // Shuffle buffers. Only needed for 2/4 channel modes.
-                Span<byte> shuffleBuffer = new byte[ThunderscopeMemory.Length];
+                Span<sbyte> shuffleBuffer = new sbyte[ThunderscopeMemory.Length];
                 // --2 channel buffers
                 int blockLength_2 = (int)ThunderscopeMemory.Length / 2;
-                Span<byte> postShuffleCh1_2 = shuffleBuffer.Slice(0, blockLength_2);
-                Span<byte> postShuffleCh2_2 = shuffleBuffer.Slice(blockLength_2, blockLength_2);
+                Span<sbyte> postShuffleCh1_2 = shuffleBuffer.Slice(0, blockLength_2);
+                Span<sbyte> postShuffleCh2_2 = shuffleBuffer.Slice(blockLength_2, blockLength_2);
                 // --4 channel buffers
                 int blockLength_4 = (int)ThunderscopeMemory.Length / 4;
-                Span<byte> postShuffleCh1_4 = shuffleBuffer.Slice(0, blockLength_4);
-                Span<byte> postShuffleCh2_4 = shuffleBuffer.Slice(blockLength_4, blockLength_4);
-                Span<byte> postShuffleCh3_4 = shuffleBuffer.Slice(blockLength_4 * 2, blockLength_4);
-                Span<byte> postShuffleCh4_4 = shuffleBuffer.Slice(blockLength_4 * 3, blockLength_4);
+                Span<sbyte> postShuffleCh1_4 = shuffleBuffer.Slice(0, blockLength_4);
+                Span<sbyte> postShuffleCh2_4 = shuffleBuffer.Slice(blockLength_4, blockLength_4);
+                Span<sbyte> postShuffleCh3_4 = shuffleBuffer.Slice(blockLength_4 * 2, blockLength_4);
+                Span<sbyte> postShuffleCh4_4 = shuffleBuffer.Slice(blockLength_4 * 3, blockLength_4);
 
                 Span<uint> triggerIndices = new uint[ThunderscopeMemory.Length / 1000];     // 1000 samples is the minimum holdoff
                 Span<uint> holdoffEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum holdoff
-                RisingEdgeTriggerAlt trigger = new(200, 190, (ulong)(processingConfig.ChannelLength / 2));
+                RisingEdgeTriggerAlt trigger = new(10, 0, (ulong)(processingConfig.ChannelLength / 2));
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;

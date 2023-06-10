@@ -4,7 +4,6 @@ using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 using TS.NET.Memory.Unix;
 using TS.NET.Memory.Windows;
-using Microsoft.Extensions.Logging;
 using TS.NET.Memory;
 using System.Runtime.CompilerServices;
 
@@ -26,7 +25,7 @@ namespace TS.NET
         private bool dataRequested = false;
         private bool acquiringRegionFilled = false;
 
-        public Span<byte> AcquiringRegion { get { return GetAcquiringRegion(); } }
+        public Span<sbyte> AcquiringRegion { get { return GetAcquiringRegion(); } }
         public ThunderscopeMonitoring Monitoring { get { return header.Monitoring; } }
 
         public unsafe ThunderscopeBridgeWriter(ThunderscopeBridgeOptions options)
@@ -150,13 +149,13 @@ namespace TS.NET
             return ptr;
         }
 
-        private unsafe Span<byte> GetAcquiringRegion()
+        private unsafe Span<sbyte> GetAcquiringRegion()
         {
             int regionLength = (int)dataCapacityInBytes / 2;
             return header.AcquiringRegion switch
             {
-                ThunderscopeMemoryAcquiringRegion.RegionA => new Span<byte>(dataPointer, regionLength),
-                ThunderscopeMemoryAcquiringRegion.RegionB => new Span<byte>(dataPointer + regionLength, regionLength),
+                ThunderscopeMemoryAcquiringRegion.RegionA => new Span<sbyte>(dataPointer, regionLength),
+                ThunderscopeMemoryAcquiringRegion.RegionB => new Span<sbyte>(dataPointer + regionLength, regionLength),
                 _ => throw new InvalidDataException("Enum value not handled, add enum value to switch")
             };
         }
