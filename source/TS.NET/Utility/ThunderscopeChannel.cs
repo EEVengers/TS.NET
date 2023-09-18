@@ -11,6 +11,7 @@ namespace TS.NET
         public int VoltsDiv;
         public int Bandwidth;
         public ThunderscopeCoupling Coupling;
+        public bool Term50Z;
 
         public ThunderscopeChannel()
         {
@@ -19,6 +20,7 @@ namespace TS.NET
             VoltsDiv = 100;
             Bandwidth = 350;
             Coupling = ThunderscopeCoupling.DC;
+            Term50Z = false;
         }
     }
 
