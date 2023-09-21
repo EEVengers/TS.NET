@@ -1,0 +1,30 @@
+name: dotnet build linux and windows
+
+on: [push]
+
+jobs:
+  build:
+    
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        dotnet-version: [ '7.0.x' ]
+        os: [ubuntu-latest, windows-latest]
+
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+      - name: Install dependencies
+        run: dotnet restore
+        working-directory: ./source
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+        working-directory: ./source
+      - name: Test
+        run: dotnet test --no-restore --verbosity normal
+        working-directory: ./source
+
