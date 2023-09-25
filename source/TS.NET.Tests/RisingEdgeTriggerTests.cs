@@ -36,12 +36,12 @@ namespace TS.NET.Tests
         [Fact]
         public void FiftySample()
         {
-            RisingEdgeTriggerAlt trigger = new(130, 120, 10);
+            RisingEdgeTriggerAlt trigger = new(0, -10, (ulong)10);
             Span<uint> triggerIndices = new uint[10000];
             Span<uint> holdoffEndIndices = new uint[10000];
-            Span<byte> input = new byte[50];
-            input.Clear();
-            input[16] = 200;
+            Span<sbyte> input = new sbyte[50];
+            input.Fill(sbyte.MinValue);
+            input[16] = 100;
             trigger.ProcessSimd(input, triggerIndices, out uint triggerCount, holdoffEndIndices, out uint holdoffEndCount);
 
         }
