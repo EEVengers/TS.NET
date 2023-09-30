@@ -1,121 +1,70 @@
 ﻿using Microsoft.Extensions.Logging;
-using System;
-using System.Text;
+using NetCoreServer;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
+using System.Text;
 
 namespace TS.NET.Engine
 {
-    internal class SCPITask
+    internal class ScpiSession : TcpSession
     {
-        private CancellationTokenSource? cancelTokenSource;
-        private Task? taskLoop;
-        private Socket listener;
+        private readonly ILogger logger;
+        private readonly BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel;
+        private readonly BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel;
+        private readonly BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel;
+        private readonly BlockingChannelReader<ProcessingResponseDto> processingResponseChannel;
 
-        public void Start(
-            ILoggerFactory loggerFactory,
-            BlockingChannelWriter<HardwareRequestDto> configRequestChannel,
-            BlockingChannelReader<HardwareResponseDto> configResponseChannel,
-            BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
-            BlockingChannelReader<ProcessingResponseDto> processingResponseChannel)
-        {
-            var logger = loggerFactory.CreateLogger("SCPITask");
-            cancelTokenSource = new CancellationTokenSource();
-            IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Any, 5025);
-            listener = new Socket(IPAddress.Any.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            listener.LingerState = new LingerOption(true, 1);
-            listener.Bind(localEndPoint);
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, listener, configRequestChannel, configResponseChannel, processingRequestChannel, processingResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
-        }
-
-        public void Stop()
-        {
-            cancelTokenSource?.Cancel();
-            listener.Close();
-            taskLoop?.Wait();
-        }
-
-        private static void Loop(
+        public ScpiSession(
+            TcpServer server,
             ILogger logger,
-            Socket listener,
-            BlockingChannelWriter<HardwareRequestDto> configRequestChannel,
-            BlockingChannelReader<HardwareResponseDto> configResponseChannel,
+            BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel,
+            BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel,
             BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
-            BlockingChannelReader<ProcessingResponseDto> processingResponseChannel,
-            CancellationToken cancelToken)
+            BlockingChannelReader<ProcessingResponseDto> processingResponseChannel) : base(server)
         {
-            Thread.CurrentThread.Name = "TS.NET SCPI";
-            Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
-            Socket clientSocket = null;
+            this.logger = logger;
+            this.hardwareRequestChannel = hardwareRequestChannel;
+            this.hardwareResponseChannel = hardwareResponseChannel;
+            this.processingRequestChannel = processingRequestChannel;
+            this.processingResponseChannel = processingResponseChannel;
+        }
 
-            try
+        protected override void OnConnected()
+        {
+            logger.LogDebug($"SCPI session with ID {Id} connected!");
+            //string message = "Hello from TCP chat! Please send a message or '!' to disconnect the client!";
+            //SendAsync(message);
+        }
+
+        protected override void OnDisconnected()
+        {
+            logger.LogDebug($"SCPI session with ID {Id} disconnected!");
+        }
+
+        protected override void OnReceived(byte[] buffer, long offset, long size)
+        {
+            string messageStream = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
+            var messages = messageStream.Split('\n');
+            foreach (var message in messages)
             {
-                logger.LogInformation("Starting control plane socket server at :5025");
-                listener.Listen(10);
-                clientSocket = listener.Accept();
-                clientSocket.NoDelay = true;
-                logger.LogInformation("Client connected to control plane");
-                uint seqnum = 0;
+                if (string.IsNullOrWhiteSpace(message)) { continue; }
 
-                while (true)
+                string? response = ProcessSCPICommand(logger, hardwareRequestChannel, hardwareResponseChannel, processingRequestChannel, processingResponseChannel, message.Trim());
+
+                if (response != null)
                 {
-                    byte[] bytes = new byte[1];
-                    string command = "";
-
-                    while (true)
-                    {
-                        cancelToken.ThrowIfCancellationRequested();
-
-                        if (!clientSocket.Poll(10_000, SelectMode.SelectRead)) continue;
-
-                        int numByte = clientSocket.Receive(bytes);
-
-                        if (numByte == 0) continue;
-
-                        string c = Encoding.UTF8.GetString(bytes, 0, 1);
-
-                        if (c == "\n") break;
-                        else command += c;
-                    }
-
-                    // logger.LogDebug("SCPI command: '{String}'", command);
-
-                    string? r = ProcessSCPICommand(logger, configRequestChannel, configResponseChannel, processingRequestChannel, processingResponseChannel, command, cancelToken);
-
-                    if (r != null)
-                    {
-                        logger.LogDebug(" -> SCPI reply: '{String}'", r);
-                        clientSocket.Send(Encoding.UTF8.GetBytes(r));
-                    }
+                    logger.LogDebug(" -> SCPI reply: '{String}'", response);
+                    Send(response);
                 }
             }
-            catch (OperationCanceledException)
-            {
-                logger.LogDebug($"{nameof(SCPITask)} stopping");
-                // throw;
-            }
-            catch (SocketException ex)
-            {
-                if (!ex.Message.Contains("WSACancelBlockingCall"))      // On Windows; can use this string to ignore the SocketException thrown when listener.Close() called
-                    throw;
-            }
-            catch (Exception ex)
-            {
-                logger.LogCritical(ex, $"{nameof(SCPITask)} error");
-                throw;
-            }
-            finally
-            {
-                try
-                {
-                    clientSocket?.Shutdown(SocketShutdown.Both);
-                    clientSocket?.Close();
-                }
-                catch (Exception) { }
+            //Server.Multicast(message);
+            //if (message == "!")
+            //    Disconnect();
+        }
 
-                logger.LogDebug($"{nameof(SCPITask)} stopped");
-            }
+        protected override void OnError(SocketError error)
+        {
+            logger.LogDebug($"Chat TCP session caught an error with code {error}");
         }
 
         public static string? ProcessSCPICommand(
@@ -124,24 +73,25 @@ namespace TS.NET.Engine
             BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel,
             BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelReader<ProcessingResponseDto> processingResponseChannel,
-            string fullCommand,
-            CancellationToken cancelToken)
+            string message)
         {
             string? argument = null;
             string? subject = null;
-            string command = fullCommand; ;
+            string command = message;
             bool isQuery = false;
 
-            if (fullCommand.Contains(" "))
+            logger.LogDebug($"SCPI message: {message}");
+
+            if (message.Contains(" "))
             {
-                int index = fullCommand.IndexOf(" ");
-                argument = fullCommand.Substring(index + 1);
-                command = fullCommand.Substring(0, index);
+                int index = message.IndexOf(" ");
+                argument = message.Substring(index + 1);
+                command = message.Substring(0, index);
             }
             else if (command.Contains("?"))
             {
                 isQuery = true;
-                command = fullCommand.Substring(0, fullCommand.Length - 1);
+                command = message.Substring(0, message.Length - 1);
             }
 
             if (command.StartsWith(":"))
@@ -169,9 +119,9 @@ namespace TS.NET.Engine
                         // Start
                         logger.LogDebug("Start acquisition");
 
-                        processingRequestChannel.Write(new ProcessingStartTriggerDto(false, false));
+                        processingRequestChannel.Write(new ProcessingStartTriggerDto());
                         // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-                        
+
                         return null;
                     }
                     else if (command == "STOP")
@@ -181,7 +131,7 @@ namespace TS.NET.Engine
 
                         processingRequestChannel.Write(new ProcessingStopTriggerDto());
                         // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-                        
+
                         return null;
                     }
                     else if (command == "SINGLE")
@@ -189,7 +139,7 @@ namespace TS.NET.Engine
                         // Single capture
                         logger.LogDebug("Single acquisition");
 
-                        processingRequestChannel.Write(new ProcessingStartTriggerDto(false, true));
+                        processingRequestChannel.Write(new ProcessingSingleTriggerDto());
 
                         return null;
                     }
@@ -198,20 +148,20 @@ namespace TS.NET.Engine
                         // force capture
                         logger.LogDebug("Force acquisition");
 
-                        processingRequestChannel.Write(new ProcessingStartTriggerDto(true, true));
+                        processingRequestChannel.Write(new ProcessingForceTriggerDto());
                         // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-                        
+
                         return null;
                     }
                     else if (command == "DEPTH" && hasArg)
                     {
-                        long depth = Convert.ToInt64(argument);
+                        ulong depth = Convert.ToUInt64(argument);
                         // Set depth
                         logger.LogDebug($"Set depth to {depth}S");
 
                         processingRequestChannel.Write(new ProcessingSetDepthDto(depth));
                         // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-                        
+
                         return null;
                     }
                     else if (command == "RATE" && hasArg)
@@ -222,7 +172,7 @@ namespace TS.NET.Engine
 
                         processingRequestChannel.Write(new ProcessingSetRateDto(rate));
                         // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-                        
+
                         return null;
                     }
                 }
@@ -236,7 +186,7 @@ namespace TS.NET.Engine
 
                         processingRequestChannel.Write(new ProcessingSetTriggerLevelDto(level));
                         // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-                        
+
                         return null;
                     }
                     else if (command == "SOU" && hasArg)
@@ -249,9 +199,9 @@ namespace TS.NET.Engine
                         // Set trig channel
                         logger.LogDebug($"Set trigger source to ch {source}");
 
-                        processingRequestChannel.Write(new ProcessingSetTriggerSourceDto((TriggerChannel)(source+1)));
+                        processingRequestChannel.Write(new ProcessingSetTriggerSourceDto((TriggerChannel)(source + 1)));
                         // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-                        
+
                         return null;
                     }
                     else if (command == "DELAY" && hasArg)
@@ -262,7 +212,7 @@ namespace TS.NET.Engine
 
                         processingRequestChannel.Write(new ProcessingSetTriggerDelayDto(delay));
                         // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-                        
+
                         return null;
                     }
                     else if (command == "EDGE:DIR" && hasArg)
@@ -273,7 +223,7 @@ namespace TS.NET.Engine
 
                         processingRequestChannel.Write(new ProcessingSetTriggerEdgeDirectionDto(/*dir*/));
                         // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-                        
+
                         return null;
                     }
                 }
@@ -284,9 +234,9 @@ namespace TS.NET.Engine
                     if (command == "ON" || command == "OFF")
                     {
                         // Turn on/off
-                        logger.LogDebug($"Set ch {chNum} enabled {command=="ON"}");
+                        logger.LogDebug($"Set ch {chNum} enabled {command == "ON"}");
 
-                        hardwareRequestChannel.Write(new HardwareSetEnabledRequest(chNum, command=="ON"));
+                        hardwareRequestChannel.Write(new HardwareSetEnabledRequest(chNum, command == "ON"));
                         // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
 
                         return null;
@@ -297,7 +247,7 @@ namespace TS.NET.Engine
                         // Set coupling
                         logger.LogDebug($"Set ch {chNum} coupling to {coup}");
 
-                        hardwareRequestChannel.Write(new HardwareSetCouplingRequest(chNum, (coup=="DC1M"?ThunderscopeCoupling.DC:ThunderscopeCoupling.AC)));
+                        hardwareRequestChannel.Write(new HardwareSetCouplingRequest(chNum, (coup == "DC1M" ? ThunderscopeCoupling.DC : ThunderscopeCoupling.AC)));
                         // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
 
                         return null;
@@ -319,7 +269,7 @@ namespace TS.NET.Engine
                     {
                         double range = Convert.ToDouble(argument);
                         // Set range
-                        
+
                         int[] available_mv = { 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000 };
 
                         int range_mv = (int)((range * 1000d) / 10d);
@@ -354,9 +304,43 @@ namespace TS.NET.Engine
                 }
             }
 
-            logger.LogWarning("Unknown SCPI Operation: {String}", fullCommand);
+            logger.LogWarning("Unknown SCPI Operation: {String}", message);
 
             return null;
+        }
+    }
+
+    class ScpiServer : TcpServer
+    {
+        private readonly ILogger logger;
+        private readonly BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel;
+        private readonly BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel;
+        private readonly BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel;
+        private readonly BlockingChannelReader<ProcessingResponseDto> processingResponseChannel;
+
+        public ScpiServer(ILoggerFactory loggerFactory,
+            IPAddress address,
+            int port,
+            BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel,
+            BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel,
+            BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
+            BlockingChannelReader<ProcessingResponseDto> processingResponseChannel) : base(address, port)
+        {
+            logger = loggerFactory.CreateLogger(nameof(ScpiServer));
+            this.hardwareRequestChannel = hardwareRequestChannel;
+            this.hardwareResponseChannel = hardwareResponseChannel;
+            this.processingRequestChannel = processingRequestChannel;
+            this.processingResponseChannel = processingResponseChannel;
+        }
+
+        protected override TcpSession CreateSession()
+        {
+            return new ScpiSession(this, logger, hardwareRequestChannel, hardwareResponseChannel, processingRequestChannel, processingResponseChannel);
+        }
+
+        protected override void OnError(SocketError error)
+        {
+            logger.LogDebug($"SCPI server caught an error with code {error}");
         }
     }
 }

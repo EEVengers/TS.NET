@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Avalonia.X11;
@@ -30,6 +31,7 @@ namespace TS.NET.UI.Avalonia
         private ScottPlot.Plottable.HLine triggerLine;
         private CancellationTokenSource cancellationTokenSource;
         private Task displayTask;
+        private ThunderscopeScpiClient scpiClient = new("127.0.0.1", 5025);
         //private IPublisher forwarderInput;
         //private Memory<byte> forwarderInputBuffer = new byte[10000];
         //private ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
@@ -43,6 +45,7 @@ namespace TS.NET.UI.Avalonia
 
             //var faTheme = AvaloniaLocator.Current.GetService<FluentAvaloniaTheme>();
             //faTheme.RequestedTheme = "Dark";
+            scpiClient.Connect();
         }
 
         private void InitializeComponent()
@@ -89,7 +92,7 @@ namespace TS.NET.UI.Avalonia
             try
             {
                 uint bufferLength = 4 * 100 * 1000 * 1000;      //Maximum record length = 100M samples per channel
-                ThunderscopeBridgeReader bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", bufferLength));
+                ThunderscopeBridgeReader bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", 4, 100 * 1000000));
                 Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     lblStatus.Content = "Bridge connection established";
@@ -102,7 +105,7 @@ namespace TS.NET.UI.Avalonia
                     cancelToken.ThrowIfCancellationRequested();
                     if (bridge.RequestAndWaitForData(500))
                     {
-                        ulong channelLength = (ulong)bridge.Processing.ChannelLength;
+                        ulong channelLength = bridge.Processing.CurrentChannelBytes;
                         //uint viewportLength = (uint)bridge.Configuration.ChannelLength;//1000;
                         uint viewportLength = 1000000;// (uint)upDownIndex.Value;
                         if (viewportLength < 100)
@@ -177,7 +180,6 @@ namespace TS.NET.UI.Avalonia
                 //logger.LogDebug("UpdateChart stopped");
             }
         }
-
         public static string AddPrefix(double value, string unit = "")
         {
             string[] superSuffix = new string[] { "K", "M", "G", "T", "P", "A", };
@@ -206,6 +208,36 @@ namespace TS.NET.UI.Avalonia
             else if (exp < 0)
                 return v.ToString() + superSuffix[-exp / 3 - 1] + unit;
             return v.ToString() + unit;
+        }
+
+        public async void BtnStart_Click(object sender, RoutedEventArgs e)
+        {
+            scpiClient.Send(":START");
+        }
+
+        public async void BtnStop_Click(object sender, RoutedEventArgs e)
+        {
+            scpiClient.Send(":STOP");
+        }
+
+        public async void BtnSingle_Click(object sender, RoutedEventArgs e)
+        {
+            scpiClient.Send(":SINGLE");
+        }
+
+        public async void BtnForce_Click(object sender, RoutedEventArgs e)
+        {
+            scpiClient.Send(":FORCE");
+        }
+
+        public async void BtnAuto_Click(object sender, RoutedEventArgs e)
+        {
+            //scpiClient.Send(":AUTO");
+        }
+
+        public async void BtnNormal_Click(object sender, RoutedEventArgs e)
+        {
+            //scpiClient.Send(":NORMAL");
         }
     }
 }

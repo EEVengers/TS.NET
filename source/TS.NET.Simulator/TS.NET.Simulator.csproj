@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Cloudtoid.Interprocess" Version="1.0.167" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.0" />
   </ItemGroup>
 
   <ItemGroup>

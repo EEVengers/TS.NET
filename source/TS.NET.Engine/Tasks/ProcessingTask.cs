@@ -6,22 +6,36 @@ namespace TS.NET.Engine
 {
     public class ProcessingTask
     {
+        private readonly ILogger logger;
+        private readonly BlockingChannelReader<InputDataDto> processingChannel;
+        private readonly BlockingChannelWriter<ThunderscopeMemory> inputChannel;
+        private readonly BlockingChannelReader<ProcessingRequestDto> processingRequestChannel;
+        private readonly BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel;
+
         private CancellationTokenSource? cancelTokenSource;
         private Task? taskLoop;
 
-        public void Start(
+        public ProcessingTask(
             ILoggerFactory loggerFactory,
             BlockingChannelReader<InputDataDto> processingChannel,
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel)
         {
-            var logger = loggerFactory.CreateLogger(nameof(ProcessingTask));
+            logger = loggerFactory.CreateLogger(nameof(ProcessingTask));
+            this.processingChannel = processingChannel;
+            this.inputChannel = inputChannel;
+            this.processingRequestChannel = processingRequestChannel;
+            this.processingResponseChannel = processingResponseChannel;
+        }
+
+        public void Start()
+        {
             cancelTokenSource = new CancellationTokenSource();
             ulong dataCapacityBytes = 4 * 100 * 1000 * 1000;      // Maximum capacity = 100M samples per channel
             // Bridge is cross-process shared memory for the UI to read triggered acquisitions
             // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
-            ThunderscopeBridgeWriter bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", dataCapacityBytes));
+            ThunderscopeBridgeWriter bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", 4, 100 * 1000000));
             taskLoop = Task.Factory.StartNew(() => Loop(logger, bridge, processingChannel, inputChannel, processingRequestChannel, processingResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
@@ -46,15 +60,19 @@ namespace TS.NET.Engine
                 Thread.CurrentThread.Name = "TS.NET Processing";
                 logger.LogInformation("Starting...");
 
-                ThunderscopeProcessing processingConfig = new()
+                // Set some sensible defaults
+                var processingConfig = new ThunderscopeProcessing
                 {
-                    ChannelLength = 10 * 1000000,//(ulong)ChannelLength.OneHundredM,
+                    CurrentChannelCount = 4,
+                    CurrentChannelBytes = 10 * 1000000,
                     HorizontalSumLength = HorizontalSumLength.None,
                     TriggerChannel = TriggerChannel.One,
                     TriggerMode = TriggerMode.Normal,
                     ChannelDataType = ThunderscopeChannelDataType.Byte
                 };
                 bridge.Processing = processingConfig;
+
+                // Reset monitoring
                 bridge.MonitoringReset();
 
                 // Various buffers allocated once and reused forevermore.
@@ -74,7 +92,7 @@ namespace TS.NET.Engine
 
                 Span<uint> triggerIndices = new uint[ThunderscopeMemory.Length / 1000];     // 1000 samples is the minimum holdoff
                 Span<uint> holdoffEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum holdoff
-                RisingEdgeTriggerAlt trigger = new(10, 0, (ulong)(processingConfig.ChannelLength / 2));
+                RisingEdgeTriggerAlt trigger = new(5, 0, processingConfig.CurrentChannelBytes);
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;
@@ -83,14 +101,14 @@ namespace TS.NET.Engine
                 // HorizontalSumUtility.ToDivisor(horizontalSumLength)
                 Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
 
-                var circularBuffer1 = new ChannelCircularAlignedBuffer((uint)processingConfig.ChannelLength + ThunderscopeMemory.Length);
-                var circularBuffer2 = new ChannelCircularAlignedBuffer((uint)processingConfig.ChannelLength + ThunderscopeMemory.Length);
-                var circularBuffer3 = new ChannelCircularAlignedBuffer((uint)processingConfig.ChannelLength + ThunderscopeMemory.Length);
-                var circularBuffer4 = new ChannelCircularAlignedBuffer((uint)processingConfig.ChannelLength + ThunderscopeMemory.Length);
+                var circularBuffer1 = new ChannelCircularAlignedBuffer((uint)processingConfig.CurrentChannelBytes + ThunderscopeMemory.Length);
+                var circularBuffer2 = new ChannelCircularAlignedBuffer((uint)processingConfig.CurrentChannelBytes + ThunderscopeMemory.Length);
+                var circularBuffer3 = new ChannelCircularAlignedBuffer((uint)processingConfig.CurrentChannelBytes + ThunderscopeMemory.Length);
+                var circularBuffer4 = new ChannelCircularAlignedBuffer((uint)processingConfig.CurrentChannelBytes + ThunderscopeMemory.Length);
 
+                bool triggerRunning = true;
                 bool forceTrigger = false;
-                bool oneShotTrigger = false;
-                bool triggerRunning = false;
+                bool singleTrigger = false;
                 logger.LogInformation("Started");
 
                 while (true)
@@ -104,13 +122,25 @@ namespace TS.NET.Engine
                         {
                             case ProcessingStartTriggerDto processingStartTriggerDto:
                                 triggerRunning = true;
-                                oneShotTrigger = processingStartTriggerDto.OneShot;
-                                forceTrigger = processingStartTriggerDto.ForceTrigger;
-                                logger.LogDebug($"Start: triggerRunning={triggerRunning}, oneShotTrigger={oneShotTrigger}, forceTrigger={forceTrigger}");
+                                singleTrigger = false;
+                                forceTrigger = false;
+                                logger.LogDebug(nameof(ProcessingStartTriggerDto));
                                 break;
                             case ProcessingStopTriggerDto processingStopTriggerDto:
                                 triggerRunning = false;
-                                logger.LogDebug("Stop");
+                                singleTrigger = false;
+                                forceTrigger = false;
+                                logger.LogDebug(nameof(ProcessingStopTriggerDto));
+                                break;
+                            case ProcessingForceTriggerDto processingForceTriggerDto:
+                                if(triggerRunning)
+                                    forceTrigger = true;
+                                logger.LogDebug(nameof(ProcessingForceTriggerDto));
+                                break;
+                            case ProcessingSingleTriggerDto processingSingleTriggerDto:
+                                triggerRunning = true;
+                                singleTrigger = true;
+                                logger.LogDebug(nameof(ProcessingSingleTriggerDto));
                                 break;
                             case ProcessingSetDepthDto processingSetDepthDto:
                                 var depth = processingSetDepthDto.Samples;
@@ -144,7 +174,7 @@ namespace TS.NET.Engine
                     dequeueCounter++;
                     oneSecondDequeueCount++;
 
-                    int channelLength = processingConfig.ChannelLength;
+                    int channelLength = (int)processingConfig.CurrentChannelBytes;
                     switch (inputDataDto.Configuration.AdcChannels)
                     {
                         // Processing pipeline:
@@ -238,7 +268,7 @@ namespace TS.NET.Engine
                                         bridge.SwitchRegionIfNeeded();
                                     }
                                     forceTrigger = false;       // Ignore the force trigger request, a normal trigger happened
-                                    if (oneShotTrigger) triggerRunning = false;
+                                    if (singleTrigger) triggerRunning = false;
                                 }
                                 else if (forceTrigger)
                                 {
@@ -251,7 +281,7 @@ namespace TS.NET.Engine
                                     bridge.DataWritten();
                                     bridge.SwitchRegionIfNeeded();
                                     forceTrigger = false;
-                                    if (oneShotTrigger) triggerRunning = false;
+                                    if (singleTrigger) triggerRunning = false;
                                 }
                                 else
                                 {
@@ -266,7 +296,7 @@ namespace TS.NET.Engine
                     if (periodicUpdateTimer.ElapsedMilliseconds >= 10000)
                     {
                         logger.LogDebug($"Outstanding frames: {processingInputChannel.PeekAvailable()}, dequeues/sec: {oneSecondDequeueCount / (periodicUpdateTimer.Elapsed.TotalSeconds):F2}, dequeue count: {dequeueCounter}");
-                        logger.LogDebug($"Triggers/sec: {oneSecondHoldoffCount / (periodicUpdateTimer.Elapsed.TotalSeconds):F2}, trigger count: {bridge.Monitoring.TotalAcquisitions}, UI displayed triggers: {bridge.Monitoring.TotalAcquisitions - bridge.Monitoring.MissedAcquisitions}, UI dropped triggers: {bridge.Monitoring.MissedAcquisitions}");
+                        logger.LogDebug($"Triggers/sec: {oneSecondHoldoffCount / (periodicUpdateTimer.Elapsed.TotalSeconds):F2}, trigger count: {bridge.Monitoring.TotalAcquisitions}, UI dropped triggers: {bridge.Monitoring.MissedAcquisitions}");
                         periodicUpdateTimer.Restart();
                         oneSecondHoldoffCount = 0;
                         oneSecondDequeueCount = 0;

@@ -18,7 +18,7 @@ namespace TS.NET.Engine
             BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
             BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel)
         {
-            var logger = loggerFactory.CreateLogger("InputTask");
+            var logger = loggerFactory.CreateLogger(nameof(InputTask));
             cancelTokenSource = new CancellationTokenSource();
             taskLoop = Task.Factory.StartNew(() => Loop(logger, thunderscopeDevice, inputChannel, processingChannel, hardwareRequestChannel, hardwareResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
@@ -43,11 +43,13 @@ namespace TS.NET.Engine
             Thunderscope thunderscope = new();
             try
             {
-                logger.LogInformation("Starting...");
+                logger.LogDebug("Starting...");
                 thunderscope.Open(thunderscopeDevice);
                 ThunderscopeConfiguration configuration = DoInitialConfiguration(thunderscope);
                 thunderscope.Start();
-                logger.LogInformation("Started");
+                logger.LogDebug("Started");
+
+                logger.LogDebug("Waiting for first block of data...");
 
                 Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
                 uint periodicEnqueueCount = 0;
@@ -128,12 +130,13 @@ namespace TS.NET.Engine
                     }
 
                     var memory = inputChannel.Read(cancelToken);
-
                     while (true)
                     {
                         try
                         {
                             thunderscope.Read(memory);
+                            if(enqueueCounter == 0)
+                                logger.LogDebug("First block of data received");
                             break;
                         }
                         catch (ThunderscopeMemoryOutOfMemoryException ex)

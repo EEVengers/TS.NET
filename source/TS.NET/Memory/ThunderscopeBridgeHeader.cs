@@ -10,18 +10,31 @@ namespace TS.NET
     {
         // Version + DataCapacity is enough data for the UI to know how big a memorymappedfile to open
         internal byte Version;              // Allows UI to know which ThunderscopeMemoryBridgeHeader version to use, hence the size of the header.
-        internal ulong DataCapacityBytes;   // Maximum size of the data array in bridge. Example: 400M, set from configuration file?
+        internal ulong DataCapacityBytes;   // Maximum size of the data array in bridge.
+        internal byte MaxChannelCount;      // Set during bridge initialisation, limited by DataCapacityBytes       
+        internal ulong MaxChannelBytes;     // Set during bridge initialisation, limited by DataCapacityBytes
+        // All the above variables can only be set once, during bridge creation.
 
-        internal ThunderscopeMemoryAcquiringRegion AcquiringRegion;         // Therefore 'AcquiredRegion' (to be used by UI) is the opposite
-        internal ThunderscopeConfiguration Configuration;                   // Read only from UI perspective, UI uses SCPI interface to change configuration
-        internal ThunderscopeProcessing Processing;            // Read only from UI perspective, UI displays these values
-        internal ThunderscopeMonitoring Monitoring;                         // Read only from UI perspective, UI displays these values
+        // DataCapacityBytes is calculated:
+        // MaxChannelCount * MaxChannelBytes * 2.
+        // Multiply by 2 because there is an "AcquiringRegion" and an "AcquiredRegion" so the engine can be populating a region whilst the UI is using the other region. Standard memory swapping.
+        //
+        // Example memory mapped file layout:
+        // [Header][Channel 0 region A][Channel 1 region A][Channel 2 region A][Channel 3 region A][Channel 0 region B][Channel 1 region B][Channel 2 region B][Channel 3 region B]
+        // If CurrentChannelBytes is less than MaxChannelBytes then the channel regions pack together without gaps, leaving spare bytes at the very end e.g. [Header][Chan 0...][Chan 1...][Chan 2...][Chan 3...][Chan 0...][Chan 1...][Chan 2...][Chan 3...][Empty bytes]
+        // Similar logic if CurrentChannelCount is less than MaxChannelCount
+
+        internal ThunderscopeMemoryAcquiringRegion AcquiringRegion;     // Therefore 'AcquiredRegion' (to be used by UI) is the opposite
+        internal ThunderscopeConfiguration Configuration;             // Read only from UI perspective, UI uses SCPI interface to change configuration
+        internal ThunderscopeProcessing Processing;         // Read only from UI perspective, UI uses SCPI interface to change configuration
+        internal ThunderscopeMonitoring Monitoring;         // Read only from UI perspective, UI optionally displays these values
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct ThunderscopeConfiguration             // Idempotent so that UI doesn't have to store state and removes the possibility of config mismatch with multiple actors changing config (e.g. SCPI and Web UI)
     {
         public AdcChannels AdcChannels;                 // The number of channels enabled on ADC. ADC has input mux, e.g. Channel1.Enabled and Channel4.Enabled could have AdcChannels of Two. Useful for UI to know this, in order to clamp maximum sample rate.
+        // This is a bit different to "CurrentChannelCount" because it reflects the configuration of the hardware, not the configuration of the memory mapped file.
         //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
         //public ThunderscopeChannel* Channels;         // Commented out as requires unsafe context but maybe switch to it later?
         public ThunderscopeChannel Channel0;
@@ -66,7 +79,8 @@ namespace TS.NET
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct ThunderscopeProcessing   // Idempotent so that UI doesn't have to store state and removes the possibility of config mismatch with multiple actors changing config (e.g. SCPI and Web UI)
     {
-        public int ChannelLength;                       // Example: 4 channels with max length = 100M, can easily be 1k for high update rate. Max: Capacity/4, Min: 1k.
+        public byte CurrentChannelCount;        // From 0 to MaxChannelCount
+        public ulong CurrentChannelBytes;       // From 0 to MaxChannelBytes
         public HorizontalSumLength HorizontalSumLength;
         public TriggerChannel TriggerChannel;
         public TriggerMode TriggerMode;

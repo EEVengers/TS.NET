@@ -1,5 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Net;
 using TS.NET;
 using TS.NET.Engine;
 
@@ -15,10 +17,21 @@ Console.Title = "Engine";
 using (Process p = Process.GetCurrentProcess())
     p.PriorityClass = ProcessPriorityClass.High;
 
-using var loggerFactory = LoggerFactory.Create(builder => builder.AddSimpleConsole(options => { options.SingleLine = true; options.TimestampFormat = "HH:mm:ss "; }).AddFilter(level => level >= LogLevel.Debug));
+IConfigurationBuilder configurationBuilder = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json");
+var configuration = configurationBuilder.Build();
+
+var loggerFactory = LoggerFactory.Create(configure =>
+{
+    configure
+        .ClearProviders()
+        .AddConfiguration(configuration.GetSection("Logging"))
+        .AddFile(configuration.GetSection("Logging"))
+        .AddSimpleConsole(options => { options.SingleLine = true; options.TimestampFormat = "HH:mm:ss "; });
+});
 
 // Instantiate dataflow channels
-const int bufferLength = 120;       // 120 = about 1 seconds worth of samples at 1GSPS
+const int bufferLength = 120;       // 120 = about 1 seconds worth of samples at 1GSPS (each ThunderscopeMemory is 8388608 bytes), 120x = 1006632960
 BlockingChannel<ThunderscopeMemory> inputChannel = new(bufferLength);
 for (int i = 0; i < bufferLength; i++)
     inputChannel.Writer.Write(new ThunderscopeMemory());
@@ -36,14 +49,14 @@ if (devices.Count == 0)
     throw new Exception("No thunderscopes found");
 
 // Start threads
-ProcessingTask processingTask = new();
-processingTask.Start(loggerFactory, processingChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
+ProcessingTask processingTask = new(loggerFactory, processingChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
+processingTask.Start();
 InputTask inputTask = new();
 inputTask.Start(loggerFactory, devices[0], inputChannel.Reader, processingChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
 SocketTask socketTask = new();
 socketTask.Start(loggerFactory, processingRequestChannel.Writer);
-SCPITask scpiTask = new();
-scpiTask.Start(loggerFactory, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
+ScpiServer scpiServer = new(loggerFactory, IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
+scpiServer.Start();
 
 Console.WriteLine("Running... press any key to stop");
 Console.ReadKey();
@@ -51,4 +64,4 @@ Console.ReadKey();
 processingTask.Stop();
 inputTask.Stop();
 socketTask.Stop();
-scpiTask.Stop();
+scpiServer.Stop();

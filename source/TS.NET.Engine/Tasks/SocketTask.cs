@@ -35,10 +35,9 @@ namespace TS.NET.Engine
 
         public void Start(ILoggerFactory loggerFactory, BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel)
         {
-            var logger = loggerFactory.CreateLogger("SocketTask");
+            var logger = loggerFactory.CreateLogger(nameof(SocketTask));
             cancelTokenSource = new CancellationTokenSource();
-            ulong dataCapacityBytes = 4 * 100 * 1000 * 1000;      // Maximum capacity = 100M samples per channel
-            ThunderscopeBridgeReader bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", dataCapacityBytes));
+            ThunderscopeBridgeReader bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", 4, 100 * 1000000));
             IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Any, 5026);
             listener = new Socket(IPAddress.Any.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             listener.LingerState = new LingerOption(true, 1);
@@ -74,7 +73,7 @@ namespace TS.NET.Engine
                 uint seqnum = 0;
 
                 var processingCfg = bridge.Processing;//.GetConfiguration();
-                ulong channelLength = (ulong)processingCfg.ChannelLength;
+                ulong channelLength = (ulong)processingCfg.CurrentChannelBytes;
 
                 clientSocket.NoDelay = true;
 
@@ -155,7 +154,7 @@ namespace TS.NET.Engine
                         if (false)
                         {
                             logger.LogDebug("Remote wanted waveform but not ready -- forcing trigger");
-                            processingRequestChannel.Write(new ProcessingStartTriggerDto(true, true));
+                            //processingRequestChannel.Write(new ProcessingStartTriggerDto(true, true));
                             // TODO: This doesn't seem like the behavior we want, unless in "AUTO" triggering mode.
                         }
                     }
@@ -163,7 +162,7 @@ namespace TS.NET.Engine
             }
             catch (OperationCanceledException)
             {
-                logger.LogDebug($"{nameof(SocketTask)} stopping");
+                logger.LogDebug("Stopping...");
             }
             catch (SocketException ex)
             {
@@ -172,7 +171,7 @@ namespace TS.NET.Engine
             }
             catch (Exception ex)
             {
-                logger.LogCritical(ex, $"{nameof(SocketTask)} error");
+                logger.LogCritical(ex, $"Error");
                 throw;
             }
             finally
@@ -184,7 +183,7 @@ namespace TS.NET.Engine
                 }
                 catch (Exception ex) { }
 
-                logger.LogDebug($"{nameof(SocketTask)} stopped");
+                logger.LogDebug($"Stopped");
             }
         }
     }

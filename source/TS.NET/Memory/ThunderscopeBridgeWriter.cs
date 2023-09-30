@@ -1,11 +1,9 @@
 ﻿// https://github.com/cloudtoid/interprocess
-using System;
 using System.IO.MemoryMappedFiles;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TS.NET.Memory.Unix;
 using TS.NET.Memory.Windows;
-using TS.NET.Memory;
-using System.Runtime.CompilerServices;
 
 namespace TS.NET
 {
@@ -31,7 +29,7 @@ namespace TS.NET
         public unsafe ThunderscopeBridgeWriter(ThunderscopeBridgeOptions options)
         {
             this.options = options;
-            dataCapacityInBytes = options.BridgeCapacityBytes - (uint)sizeof(ThunderscopeBridgeHeader);
+            dataCapacityInBytes = options.DataCapacityBytes;
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new MemoryFileWindows(options)
                 : new MemoryFileUnix(options);
@@ -46,9 +44,11 @@ namespace TS.NET
                     dataPointer = basePointer + sizeof(ThunderscopeBridgeHeader);
 
                     // Writer sets initial state of header
-                    header.AcquiringRegion = ThunderscopeMemoryAcquiringRegion.RegionA;
                     header.Version = 1;
                     header.DataCapacityBytes = dataCapacityInBytes;
+                    header.MaxChannelCount = options.MaxChannelCount;
+                    header.MaxChannelBytes = options.MaxChannelCount;
+                    header.AcquiringRegion = ThunderscopeMemoryAcquiringRegion.RegionA;
                     SetHeader();
                     dataRequestSemaphore = InterprocessSemaphore.CreateWaiter(options.MemoryName + "DataRequest");
                     dataReadySemaphore = InterprocessSemaphore.CreateReleaser(options.MemoryName + "DataReady");
@@ -151,7 +151,7 @@ namespace TS.NET
 
         private unsafe Span<sbyte> GetAcquiringRegion()
         {
-            int regionLength = (int)dataCapacityInBytes / 2;
+            int regionLength = (int)(header.Processing.CurrentChannelCount * header.Processing.CurrentChannelBytes);
             return header.AcquiringRegion switch
             {
                 ThunderscopeMemoryAcquiringRegion.RegionA => new Span<sbyte>(dataPointer, regionLength),

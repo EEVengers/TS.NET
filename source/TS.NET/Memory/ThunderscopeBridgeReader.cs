@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO.MemoryMappedFiles;
+﻿using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TS.NET.Memory.Unix;
@@ -23,7 +22,7 @@ namespace TS.NET
         private bool hasSignaledRequest = false;
 
         public ReadOnlySpan<sbyte> AcquiredRegion { get { return GetAcquiredRegion(); } }
-        public ReadOnlySpan<byte> AcquiredRegionAsByte { get { return GetAcquiredRegionAsByte(); } }
+        public ReadOnlySpan<byte> AcquiredRegionAsByte { get { return GetAcquiredRegionAsByte(); } }        // Useful for the Socket API which only accepts byte
 
         public unsafe ThunderscopeBridgeReader(ThunderscopeBridgeOptions options)
         {
@@ -144,7 +143,7 @@ namespace TS.NET
 
         private unsafe ReadOnlySpan<sbyte> GetAcquiredRegion()
         {
-            int regionLength = (int)dataCapacityInBytes / 2;
+            int regionLength = (int)(header.Processing.CurrentChannelCount * header.Processing.CurrentChannelBytes);
             return header.AcquiringRegion switch
             {
                 ThunderscopeMemoryAcquiringRegion.RegionA => new ReadOnlySpan<sbyte>(dataPointer + regionLength, regionLength),        // If acquiring region is Region A, return Region B
@@ -155,7 +154,7 @@ namespace TS.NET
 
         private unsafe ReadOnlySpan<byte> GetAcquiredRegionAsByte()
         {
-            int regionLength = (int)dataCapacityInBytes / 2;
+            int regionLength = (int)(header.Processing.CurrentChannelCount * header.Processing.CurrentChannelBytes);
             return header.AcquiringRegion switch
             {
                 ThunderscopeMemoryAcquiringRegion.RegionA => new ReadOnlySpan<byte>(dataPointer + regionLength, regionLength),        // If acquiring region is Region A, return Region B
@@ -167,7 +166,7 @@ namespace TS.NET
         // For use by TS.NET.Native.BridgeReader only
         public unsafe byte* GetAcquiredRegionPointer()
         {
-            int regionLength = (int)dataCapacityInBytes / 2;
+            int regionLength = (int)(header.Processing.CurrentChannelCount * header.Processing.CurrentChannelBytes);
             return header.AcquiringRegion switch
             {
                 ThunderscopeMemoryAcquiringRegion.RegionA => dataPointer + regionLength,        // If acquiring region is Region A, return Region B

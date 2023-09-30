@@ -7,10 +7,20 @@
         x:Class="TS.NET.UI.Avalonia.MainWindow"
 		xmlns:ScottPlot="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
         Title="TS.NET.UI.Avalonia">
-	<Grid RowDefinitions="*, Auto" ColumnDefinitions="*, 250" Background="White">
+	<Grid RowDefinitions="*, Auto" ColumnDefinitions="*, 300" Background="White">
 		<ScottPlot:AvaPlot Name="AvaPlot1" Grid.Row="0"/>
 		<Label Name="LblStatus" Grid.Row="1" Content ="Test" />
 		<StackPanel Grid.Row="0" Grid.Column="1">
+			<StackPanel Orientation="Horizontal">
+				<Button x:Name="btnStart" Content="Start" Click="BtnStart_Click"></Button>
+				<Button Name="btnStop" Content="Stop" Click="BtnStop_Click"></Button>
+				<Button Name="btnSingle" Content="Single" Click="BtnSingle_Click"></Button>
+			</StackPanel>
+			<StackPanel Orientation="Horizontal">
+				<!--<Button Name="btnNormal" Content="Normal" Click="BtnNormal_Click"></Button>
+				<Button Name="btnAuto" Content="Auto" Click="BtnAuto_Click"></Button>-->
+				<Button Name="btnForce" Content="Force" Click="BtnForce_Click"></Button>
+			</StackPanel>
 			<TextBlock Name="TextInfo" Grid.Row="0" TextWrapping="Wrap">Waiting for first capture...</TextBlock>
 			<!--<TabControl >
 				<TabItem Header="Horizontal">

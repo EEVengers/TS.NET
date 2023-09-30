@@ -4,7 +4,7 @@ namespace TS.NET;
 
 public unsafe struct ThunderscopeMemory
 {
-    public const uint Length = 1 << 23;
+    public const uint Length = 1 << 23;     // 8388608 bytes
     public byte* Pointer;
     public Span<sbyte> Span { get { return new Span<sbyte>(Pointer, (int)Length); } }
 
