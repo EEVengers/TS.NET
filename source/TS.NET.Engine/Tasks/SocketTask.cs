@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -33,11 +32,11 @@ namespace TS.NET.Engine
         private Task? taskLoop;
         private Socket listener;
 
-        public void Start(ILoggerFactory loggerFactory, BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel)
+        public void Start(ILoggerFactory loggerFactory, ThunderscopeSettings settings, BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel)
         {
             var logger = loggerFactory.CreateLogger(nameof(SocketTask));
             cancelTokenSource = new CancellationTokenSource();
-            ThunderscopeBridgeReader bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", 4, 100 * 1000000));
+            ThunderscopeBridgeReader bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", 4, settings.MaxChannelBytes));
             IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Any, 5026);
             listener = new Socket(IPAddress.Any.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             listener.LingerState = new LingerOption(true, 1);
@@ -71,10 +70,6 @@ namespace TS.NET.Engine
                 logger.LogInformation("Client connected to data plane");
 
                 uint seqnum = 0;
-
-                var processingCfg = bridge.Processing;//.GetConfiguration();
-                ulong channelLength = (ulong)processingCfg.CurrentChannelBytes;
-
                 clientSocket.NoDelay = true;
 
                 while (true)
@@ -90,7 +85,7 @@ namespace TS.NET.Engine
                         if (numByte != 0) break;
                     }
 
-                    // logger.LogDebug("Got request for waveform...");
+                    //logger.LogDebug("Got request for waveform...");
 
                     while (true)
                     {
@@ -98,15 +93,25 @@ namespace TS.NET.Engine
 
                         if (bridge.RequestAndWaitForData(500))
                         {
-                            // logger.LogDebug("Send waveform...");
-                            var cfg = bridge.Configuration;
+                            //logger.LogDebug("Send waveform...");
+                            var configuration = bridge.Configuration;
+                            var processing = bridge.Processing;
                             var data = bridge.AcquiredRegionAsByte;
+
+                            // Remember AdcChannelMode reflects the hardware reality - user may only have 3 channels enabled but hardware has to capture 4.
+                            ulong femtosecondsPerSample = configuration.AdcChannelMode switch
+                            {
+                                AdcChannelMode.Single => 1000000,         // 1 GSPS
+                                AdcChannelMode.Dual => 1000000 * 2,     // 500 MSPS
+                                AdcChannelMode.Quad => 1000000 * 4,    // 250 MSPS
+                                _ => throw new NotImplementedException(),
+                            };
 
                             WaveformHeader header = new()
                             {
                                 seqnum = seqnum,
-                                numChannels = 4,
-                                fsPerSample = 1000000 * 4, // 1GS / 4 channels (?)
+                                numChannels = processing.CurrentChannelCount,
+                                fsPerSample = femtosecondsPerSample,
                                 triggerFs = 0,
                                 hwWaveformsPerSec = 1
                             };
@@ -114,7 +119,7 @@ namespace TS.NET.Engine
                             ChannelHeader chHeader = new()
                             {
                                 chNum = 0,
-                                depth = channelLength,
+                                depth = processing.CurrentChannelBytes,
                                 scale = 1,
                                 offset = 0,
                                 trigphase = 0,
@@ -125,37 +130,28 @@ namespace TS.NET.Engine
                             {
                                 clientSocket.Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
 
-                                for (byte ch = 0; ch < 4; ch++)
+                                for (byte channel = 0; channel < processing.CurrentChannelCount; channel++)
                                 {
-                                    ThunderscopeChannel tChannel = cfg.GetChannel(ch);
+                                    ThunderscopeChannel thunderscopeChannel = configuration.GetChannel(channel);
 
-                                    float full_scale = ((float)tChannel.VoltsDiv / 1000f) * 5f; // 5 instead of 10 for signed
+                                    float full_scale = ((float)thunderscopeChannel.VoltsDiv / 1000f) * 5f; // 5 instead of 10 for signed
 
-                                    chHeader.chNum = ch;
+                                    chHeader.chNum = channel;
                                     chHeader.scale = full_scale / 127f; // 127 instead of 255 for signed
-                                    chHeader.offset = -((float)tChannel.VoltsOffset); // needs chHeader.scale * 0x80 for signed
-
-                                    // TODO: What is up with samples in the 245-255 range that seem to be spurious or maybe a representation of negative voltages?
+                                    chHeader.offset = -((float)thunderscopeChannel.VoltsOffset); // needs chHeader.scale * 0x80 for signed
 
                                     // if (ch == 0)
                                     //     logger.LogDebug($"ch {ch}: VoltsDiv={tChannel.VoltsDiv} -> .scale={chHeader.scale}, VoltsOffset={tChannel.VoltsOffset} -> .offset = {chHeader.offset}, Coupling={tChannel.Coupling}");
                                     
                                     // Length of this channel as 'depth'
                                     clientSocket.Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
-                                    clientSocket.Send(data.Slice(ch * (int)channelLength, (int)channelLength));
+                                    clientSocket.Send(data.Slice(channel * (int)processing.CurrentChannelBytes, (int)processing.CurrentChannelBytes));
                                 }
                             }
 
                             seqnum++;
 
                             break;
-                        }
-
-                        if (false)
-                        {
-                            logger.LogDebug("Remote wanted waveform but not ready -- forcing trigger");
-                            //processingRequestChannel.Write(new ProcessingStartTriggerDto(true, true));
-                            // TODO: This doesn't seem like the behavior we want, unless in "AUTO" triggering mode.
                         }
                     }
                 }

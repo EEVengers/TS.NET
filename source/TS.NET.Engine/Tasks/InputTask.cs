@@ -200,7 +200,7 @@ namespace TS.NET.Engine
         {
             ThunderscopeConfiguration configuration = new()
             {
-                AdcChannels = AdcChannels.Four,
+                AdcChannelMode = AdcChannelMode.Quad,
                 Channel0 = new ThunderscopeChannel()
                 {
                     Enabled = true,

@@ -1,12 +1,10 @@
 ﻿namespace TS.NET;
 
-public enum AdcChannels : byte
+public enum AdcChannelMode : byte
 {
-    None = 0,
-    One = 1,
-    Two = 2,
-    Three = 3,
-    Four = 4
+    Single = 1,
+    Dual = 2,
+    Quad = 4
 }
 
 public enum ChannelLength : ulong

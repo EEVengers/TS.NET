@@ -32,8 +32,7 @@ namespace TS.NET.Engine
         protected override void OnConnected()
         {
             logger.LogDebug($"SCPI session with ID {Id} connected!");
-            //string message = "Hello from TCP chat! Please send a message or '!' to disconnect the client!";
-            //SendAsync(message);
+            //SendAsync("Hello!");
         }
 
         protected override void OnDisconnected()
@@ -107,73 +106,51 @@ namespace TS.NET.Engine
             }
 
             bool hasArg = argument != null;
-
             // logger.LogDebug("o:'{String}', q:{bool}, s:'{String?}', c:'{String?}', a:'{String?}'", fullCommand, isQuery, subject, command, argument);
 
             if (!isQuery)
             {
                 if (subject == null)
                 {
-                    if (command == "START")
+                    switch (command)
                     {
-                        // Start
-                        logger.LogDebug("Start acquisition");
-
-                        processingRequestChannel.Write(new ProcessingStartTriggerDto());
-                        // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-
-                        return null;
-                    }
-                    else if (command == "STOP")
-                    {
-                        // Stop
-                        logger.LogDebug("Stop acquisition");
-
-                        processingRequestChannel.Write(new ProcessingStopTriggerDto());
-                        // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-
-                        return null;
-                    }
-                    else if (command == "SINGLE")
-                    {
-                        // Single capture
-                        logger.LogDebug("Single acquisition");
-
-                        processingRequestChannel.Write(new ProcessingSingleTriggerDto());
-
-                        return null;
-                    }
-                    else if (command == "FORCE")
-                    {
-                        // force capture
-                        logger.LogDebug("Force acquisition");
-
-                        processingRequestChannel.Write(new ProcessingForceTriggerDto());
-                        // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-
-                        return null;
-                    }
-                    else if (command == "DEPTH" && hasArg)
-                    {
-                        ulong depth = Convert.ToUInt64(argument);
-                        // Set depth
-                        logger.LogDebug($"Set depth to {depth}S");
-
-                        processingRequestChannel.Write(new ProcessingSetDepthDto(depth));
-                        // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-
-                        return null;
-                    }
-                    else if (command == "RATE" && hasArg)
-                    {
-                        long rate = Convert.ToInt64(argument);
-                        // Set rate
-                        logger.LogDebug($"Set rate to {rate}Hz");
-
-                        processingRequestChannel.Write(new ProcessingSetRateDto(rate));
-                        // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-
-                        return null;
+                        case "START":
+                            processingRequestChannel.Write(new ProcessingStartTriggerDto());
+                            logger.LogDebug($"{nameof(ProcessingStartTriggerDto)} sent");
+                            // processingResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                            return null;
+                        case "STOP":
+                            processingRequestChannel.Write(new ProcessingStopTriggerDto());
+                            logger.LogDebug($"{nameof(ProcessingStopTriggerDto)} sent");
+                            // processingResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                            return null;
+                        case "SINGLE":
+                            processingRequestChannel.Write(new ProcessingSingleTriggerDto());
+                            logger.LogDebug($"{nameof(ProcessingSingleTriggerDto)} sent");
+                            return null;
+                        case "FORCE":
+                            processingRequestChannel.Write(new ProcessingForceTriggerDto());
+                            logger.LogDebug($"{nameof(ProcessingForceTriggerDto)} sent");
+                            // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                            return null;
+                        case "DEPTH":
+                            if (hasArg)
+                            {
+                                ulong depth = Convert.ToUInt64(argument);
+                                processingRequestChannel.Write(new ProcessingSetDepthDto(depth));
+                                logger.LogDebug($"{nameof(ProcessingSetDepthDto)} sent with argument: {depth}");
+                                // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                            }
+                            return null;
+                        case "RATE":
+                            if (hasArg)
+                            {
+                                long rate = Convert.ToInt64(argument);
+                                processingRequestChannel.Write(new ProcessingSetRateDto(rate));
+                                logger.LogDebug($"{nameof(ProcessingSetRateDto)} sent with argument: {rate}");
+                                // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
+                            }
+                            return null;
                     }
                 }
                 else if (subject == "TRIG")
@@ -227,7 +204,7 @@ namespace TS.NET.Engine
                         return null;
                     }
                 }
-                else if (subject.Length == 1 && Char.IsDigit(subject[0]))
+                else if (subject.Length == 1 && char.IsDigit(subject[0]))
                 {
                     int chNum = subject[0] - '0';
 
@@ -305,7 +282,6 @@ namespace TS.NET.Engine
             }
 
             logger.LogWarning("Unknown SCPI Operation: {String}", message);
-
             return null;
         }
     }

@@ -7,6 +7,7 @@ namespace TS.NET.Engine
     public class ProcessingTask
     {
         private readonly ILogger logger;
+        private readonly ThunderscopeSettings settings;
         private readonly BlockingChannelReader<InputDataDto> processingChannel;
         private readonly BlockingChannelWriter<ThunderscopeMemory> inputChannel;
         private readonly BlockingChannelReader<ProcessingRequestDto> processingRequestChannel;
@@ -17,12 +18,14 @@ namespace TS.NET.Engine
 
         public ProcessingTask(
             ILoggerFactory loggerFactory,
+            ThunderscopeSettings settings,
             BlockingChannelReader<InputDataDto> processingChannel,
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel)
         {
             logger = loggerFactory.CreateLogger(nameof(ProcessingTask));
+            this.settings = settings;
             this.processingChannel = processingChannel;
             this.inputChannel = inputChannel;
             this.processingRequestChannel = processingRequestChannel;
@@ -32,11 +35,7 @@ namespace TS.NET.Engine
         public void Start()
         {
             cancelTokenSource = new CancellationTokenSource();
-            ulong dataCapacityBytes = 4 * 100 * 1000 * 1000;      // Maximum capacity = 100M samples per channel
-            // Bridge is cross-process shared memory for the UI to read triggered acquisitions
-            // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
-            ThunderscopeBridgeWriter bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", 4, 100 * 1000000));
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, bridge, processingChannel, inputChannel, processingRequestChannel, processingResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, settings, processingChannel, inputChannel, processingRequestChannel, processingResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -48,7 +47,7 @@ namespace TS.NET.Engine
         // The job of this task - pull data from scope driver/simulator, shuffle if 2/4 channels, horizontal sum, trigger, and produce window segments.
         private static void Loop(
             ILogger logger,
-            ThunderscopeBridgeWriter bridge,
+            ThunderscopeSettings settings,
             BlockingChannelReader<InputDataDto> processingInputChannel,
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
@@ -60,11 +59,15 @@ namespace TS.NET.Engine
                 Thread.CurrentThread.Name = "TS.NET Processing";
                 logger.LogInformation("Starting...");
 
+                // Bridge is cross-process shared memory for the UI to read triggered acquisitions
+                // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
+                ThunderscopeBridgeWriter bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", 4, settings.MaxChannelBytes));
+
                 // Set some sensible defaults
                 var processingConfig = new ThunderscopeProcessing
                 {
                     CurrentChannelCount = 4,
-                    CurrentChannelBytes = 10 * 1000000,
+                    CurrentChannelBytes = settings.MaxChannelBytes,
                     HorizontalSumLength = HorizontalSumLength.None,
                     TriggerChannel = TriggerChannel.One,
                     TriggerMode = TriggerMode.Normal,
@@ -175,7 +178,7 @@ namespace TS.NET.Engine
                     oneSecondDequeueCount++;
 
                     int channelLength = (int)processingConfig.CurrentChannelBytes;
-                    switch (inputDataDto.Configuration.AdcChannels)
+                    switch (inputDataDto.Configuration.AdcChannelMode)
                     {
                         // Processing pipeline:
                         // Shuffle (if needed)
@@ -183,9 +186,7 @@ namespace TS.NET.Engine
                         // Write to circular buffer
                         // Trigger
                         // Data segment on trigger (if needed)
-                        case AdcChannels.None:
-                            break;
-                        case AdcChannels.One:
+                        case AdcChannelMode.Single:
                             // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
                             //if (config.HorizontalSumLength != HorizontalSumLength.None)
                             //    throw new NotImplementedException();
@@ -204,7 +205,7 @@ namespace TS.NET.Engine
                             // Finished with the memory, return it
                             inputChannel.Write(inputDataDto.Memory);
                             break;
-                        case AdcChannels.Two:
+                        case AdcChannelMode.Dual:
                             // Shuffle
                             Shuffle.TwoChannels(input: inputDataDto.Memory.Span, output: shuffleBuffer);
                             // Finished with the memory, return it
@@ -227,7 +228,7 @@ namespace TS.NET.Engine
                                 trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out uint triggerCount, holdoffEndIndices: holdoffEndIndices, out uint holdoffEndCount);
                             }
                             break;
-                        case AdcChannels.Four:
+                        case AdcChannelMode.Quad:
                             // Shuffle
                             Shuffle.FourChannels(input: inputDataDto.Memory.Span, output: shuffleBuffer);
                             // Finished with the memory, return it

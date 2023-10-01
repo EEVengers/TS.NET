@@ -20,6 +20,7 @@ using (Process p = Process.GetCurrentProcess())
 IConfigurationBuilder configurationBuilder = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json");
 var configuration = configurationBuilder.Build();
+var thunderscopeSettings = configuration.GetRequiredSection("Thunderscope").Get<ThunderscopeSettings>();
 
 var loggerFactory = LoggerFactory.Create(configure =>
 {
@@ -49,12 +50,12 @@ if (devices.Count == 0)
     throw new Exception("No thunderscopes found");
 
 // Start threads
-ProcessingTask processingTask = new(loggerFactory, processingChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
+ProcessingTask processingTask = new(loggerFactory, thunderscopeSettings, processingChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
 processingTask.Start();
 InputTask inputTask = new();
 inputTask.Start(loggerFactory, devices[0], inputChannel.Reader, processingChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
 SocketTask socketTask = new();
-socketTask.Start(loggerFactory, processingRequestChannel.Writer);
+socketTask.Start(loggerFactory, thunderscopeSettings, processingRequestChannel.Writer);
 ScpiServer scpiServer = new(loggerFactory, IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
 scpiServer.Start();
 
