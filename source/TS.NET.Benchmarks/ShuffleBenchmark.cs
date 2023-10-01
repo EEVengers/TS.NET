@@ -10,13 +10,13 @@ namespace TS.NET.Benchmark
     public class ShuffleBenchmark
     {
         private const int byteBufferSize = 8000000;
-        private readonly Memory<byte> input = new byte[byteBufferSize];
-        private readonly Memory<byte> output = new byte[byteBufferSize];
+        private readonly Memory<sbyte> input = new sbyte[byteBufferSize];
+        private readonly Memory<sbyte> output = new sbyte[byteBufferSize];
 
         [GlobalSetup]
         public void Setup()
         {
-            Waveforms.FourChannelCount(input.Span);
+            Waveforms.FourChannelCountSignedByte(input.Span);
         }
 
         [Benchmark(Description = "Four channel shuffle (125 x 8MS)")]   // 0.40 CPU cycles per sample

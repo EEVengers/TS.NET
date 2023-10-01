@@ -19,9 +19,9 @@ var factory = new QueueFactory(loggerFactory);
 var options = new QueueOptions(queueName: "ThunderScope", bytesCapacity: 4 * byteBufferSize);
 using var publisher = factory.CreatePublisher(options);
 
-Memory<byte> waveformBytes = new byte[byteBufferSize];
+Memory<sbyte> waveformBytes = new sbyte[byteBufferSize];
 //Waveforms.FourChannelSine(sineBytes.Span, samplingRate, frequency);
-Waveforms.FourChannelCount(waveformBytes.Span);
+Waveforms.FourChannelCountSignedByte(waveformBytes.Span);
 
 // Transmit messages
 ulong counter = 0;
@@ -31,11 +31,11 @@ int totalTime = 0;
 Stopwatch oneSecond = Stopwatch.StartNew();
 while (true)
 {
-    if (publisher.TryEnqueue(waveformBytes.Span))
-    {
-        counter++;
-        //logger.LogInformation($"Enqueue #{counter}");
-    }
+    //if (publisher.TryEnqueue(waveformBytes.Span))
+    //{
+    //    counter++;
+    //    //logger.LogInformation($"Enqueue #{counter}");
+    //}
     totalTime += 8;
 
     if (oneSecond.ElapsedMilliseconds >= 1000)

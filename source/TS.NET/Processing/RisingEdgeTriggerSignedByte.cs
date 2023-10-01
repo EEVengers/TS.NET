@@ -3,7 +3,7 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 namespace TS.NET;
 
-public class RisingEdgeTriggerAlt
+public class RisingEdgeTriggerSignedByte
 {
     enum TriggerArmState { Unarmed, Armed, InHoldoff }
     private TriggerArmState triggerArmState;
@@ -15,7 +15,7 @@ public class RisingEdgeTriggerAlt
     private Vector256<sbyte> triggerLevelVector;
     private Vector256<sbyte> armLevelVector;
 
-    public RisingEdgeTriggerAlt(sbyte triggerLevel, sbyte armLevel, ulong holdoffSamples)
+    public RisingEdgeTriggerSignedByte(sbyte triggerLevel, sbyte armLevel, ulong holdoffSamples)
     {
         Reset(triggerLevel, armLevel, holdoffSamples);
     }

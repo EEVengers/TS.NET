@@ -95,7 +95,7 @@ namespace TS.NET.Engine
 
                 Span<uint> triggerIndices = new uint[ThunderscopeMemory.Length / 1000];     // 1000 samples is the minimum holdoff
                 Span<uint> holdoffEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum holdoff
-                RisingEdgeTriggerAlt trigger = new(5, 0, processingConfig.CurrentChannelBytes);
+                RisingEdgeTriggerSignedByte trigger = new(5, 0, processingConfig.CurrentChannelBytes);
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;

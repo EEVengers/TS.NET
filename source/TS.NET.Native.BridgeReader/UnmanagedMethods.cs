@@ -16,8 +16,7 @@ namespace TS.NET.Native.BridgeReader
         [UnmanagedCallersOnly(EntryPoint = "init")]
         public static IntPtr Init()
         {
-            ulong dataCapacityBytes = 4 * 100 * 1000 * 1000;      // Maximum capacity = 100M samples per channel
-            ThunderscopeBridgeReader bridgeReader = new(new ThunderscopeBridgeOptions("ThunderScope.1", dataCapacityBytes));
+            ThunderscopeBridgeReader bridgeReader = new(new ThunderscopeBridgeOptions("ThunderScope.1", 4, 1000000));
 
             GCHandle handle = GCHandle.Alloc(bridgeReader, GCHandleType.Pinned);
             return handle.AddrOfPinnedObject();

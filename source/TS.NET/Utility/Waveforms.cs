@@ -22,7 +22,7 @@ public static class Waveforms
         }
     }
 
-    public static void FourChannelCount(Span<byte> buffer)
+    public static void FourChannelCountSignedByte(Span<sbyte> buffer)
     {
         buffer[0] = 1;
         buffer[1] = 2;

@@ -12,10 +12,10 @@ namespace TS.NET.Benchmark
         private readonly Memory<byte> input = new byte[byteBufferSize];
         private readonly Memory<byte> shuffleOutput = new byte[byteBufferSize];
         private readonly Memory<ulong> triggerBuffer = new ulong[byteBufferSize / 64];
-        private readonly RisingEdgeTrigger trigger1 = new(200, 190, 1000);
-        private readonly RisingEdgeTrigger trigger2 = new(200, 190, 1000);
-        private readonly RisingEdgeTrigger trigger3 = new(200, 190, 1000);
-        private readonly RisingEdgeTrigger trigger4 = new(200, 190, 1000);
+        private readonly RisingEdgeTriggerSignedByte trigger1 = new(0, -10, 1000);
+        private readonly RisingEdgeTriggerSignedByte trigger2 = new(0, -10, 1000);
+        private readonly RisingEdgeTriggerSignedByte trigger3 = new(0, -10, 1000);
+        private readonly RisingEdgeTriggerSignedByte trigger4 = new(0, -10, 1000);
         private Memory<byte> channel1;
         private Memory<byte> channel2;
         private Memory<byte> channel3;
@@ -44,11 +44,11 @@ namespace TS.NET.Benchmark
         {
             for (int i = 0; i < 125; i++)
             {
-                Shuffle.FourChannels(input.Span, shuffleOutput.Span);
-                trigger1.ProcessSimd(input: channel1.Span, trigger: triggerChannel1.Span);
-                trigger2.ProcessSimd(input: channel2.Span, trigger: triggerChannel2.Span);
-                trigger3.ProcessSimd(input: channel3.Span, trigger: triggerChannel3.Span);
-                trigger4.ProcessSimd(input: channel4.Span, trigger: triggerChannel4.Span);
+                //Shuffle.FourChannels(input.Span, shuffleOutput.Span);
+                //trigger1.ProcessSimd(input: channel1.Span, trigger: triggerChannel1.Span);
+                //trigger2.ProcessSimd(input: channel2.Span, trigger: triggerChannel2.Span);
+                //trigger3.ProcessSimd(input: channel3.Span, trigger: triggerChannel3.Span);
+                //trigger4.ProcessSimd(input: channel4.Span, trigger: triggerChannel4.Span);
             }
         }
     }
