@@ -121,13 +121,25 @@ namespace TS.NET
         private void Initialise()
         {
             Write32(BarRegister.DATAMOVER_REG_OUT, 0);
+            
             hardwareState.PllEnabled = true;    //RSTn high --> PLL active
             ConfigureDatamover(hardwareState);
+            
             Thread.Sleep(1);
+            
             hardwareState.BoardEnabled = true;
             ConfigureDatamover(hardwareState);
+            
             ConfigurePLL();
             ConfigureADC();
+
+            hardwareState.FrontEndEnabled = true;
+            ConfigureDatamover(hardwareState);
+
+            SetPga(0);
+            SetPga(1);
+            SetPga(2);
+            SetPga(3);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -391,15 +403,14 @@ namespace TS.NET
             //Select 8-bit mode for HMCAD1520s
             SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_RES_SEL, 0x0000);
 
-            //Set LVDS phase
+            //Set LVDS phase to 0 Deg & Drive Strength to RSDS
             SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_LVDS_PHASE, 0x0060);
+            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_LVDS_DRIVE, 0x0222);
 
             AdcPower(true);
             //_FIFO_WRITE(user_handle,currentBoardState.adc_in_sel_12,sizeof(currentBoardState.adc_in_sel_12));
             //_FIFO_WRITE(user_handle,currentBoardState.adc_in_sel_34,sizeof(currentBoardState.adc_in_sel_34));
 
-            hardwareState.FrontEndEnabled = true;
-            ConfigureDatamover(hardwareState);
         }
 
         const byte SPI_BYTE_ADC = 0xFD;
