@@ -87,7 +87,12 @@ namespace TS.NET.Benchmark
 			public string Unit => "ns";
 			public bool TheGreaterTheBetter => false;
 			public int PriorityInCategory => 1;
-		}
+
+            public bool GetIsAvailable(Metric metric)
+            {
+                throw new NotImplementedException();
+            }
+        }
 
 		class CpuPrivilegedMetricDescriptor : IMetricDescriptor
 		{
@@ -101,6 +106,11 @@ namespace TS.NET.Benchmark
 			public string Unit => "ns";
 			public bool TheGreaterTheBetter => false;
 			public int PriorityInCategory => 1;
-		}
+
+            public bool GetIsAvailable(Metric metric)
+            {
+                throw new NotImplementedException();
+            }
+        }
 	}
 }

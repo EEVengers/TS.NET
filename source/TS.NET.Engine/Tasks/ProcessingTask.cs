@@ -57,7 +57,6 @@ namespace TS.NET.Engine
             try
             {
                 Thread.CurrentThread.Name = "TS.NET Processing";
-                logger.LogInformation("Starting...");
 
                 // Bridge is cross-process shared memory for the UI to read triggered acquisitions
                 // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
@@ -95,7 +94,7 @@ namespace TS.NET.Engine
 
                 Span<uint> triggerIndices = new uint[ThunderscopeMemory.Length / 1000];     // 1000 samples is the minimum holdoff
                 Span<uint> holdoffEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum holdoff
-                RisingEdgeTriggerSignedByte trigger = new(5, 0, processingConfig.CurrentChannelBytes);
+                RisingEdgeTriggerInt8 trigger = new(5, 0, processingConfig.CurrentChannelBytes);
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;

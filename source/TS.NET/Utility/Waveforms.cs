@@ -2,7 +2,7 @@
 
 public static class Waveforms
 {
-    public static void Sine(Span<byte> buffer, double samplingRate, double frequency, double scaleRelativeToFull = 1.0)
+    public static void SineUInt8(Span<byte> buffer, double samplingRate, double frequency, double scaleRelativeToFull = 1.0)
     {
         int samplesForOneCycle = (int)(samplingRate / frequency);
         if (buffer.Length % samplesForOneCycle != 0)
@@ -14,6 +14,26 @@ public static class Waveforms
         {
             //buffer[i] = (byte)((sine[i] * 127.0) + 127.0);  // Convert double sine to byte sine
             buffer[i] = (byte)((sine[i] * scale) + 127.0);  // Convert double sine to byte sine
+        }
+        var copySource = buffer.Slice(0, samplesForOneCycle);
+        for (int n = 1; n < (buffer.Length / samplesForOneCycle); n++)                // Copy byte sines throughout whole buffer
+        {
+            copySource.CopyTo(buffer.Slice(n * samplesForOneCycle, samplesForOneCycle));
+        }
+    }
+
+    public static void SineInt8(Span<sbyte> buffer, double samplingRate, double frequency, double scaleRelativeToFull = 1.0)
+    {
+        int samplesForOneCycle = (int)(samplingRate / frequency);
+        if (buffer.Length % samplesForOneCycle != 0)
+            throw new ArgumentException("buffer length not integer multiple of (samplingRate/frequency) [aka length for one cycle]");
+
+        var sine = MathNet.Numerics.Generate.Sinusoidal(samplesForOneCycle, samplingRate, frequency, 1);
+        var scale = 127.0 * scaleRelativeToFull;
+        for (int i = 0; i < samplesForOneCycle; i++)
+        {
+            //buffer[i] = (byte)((sine[i] * 127.0) + 127.0);  // Convert double sine to byte sine
+            buffer[i] = (sbyte)((sine[i] * scale) + 127.0);  // Convert double sine to byte sine
         }
         var copySource = buffer.Slice(0, samplesForOneCycle);
         for (int n = 1; n < (buffer.Length / samplesForOneCycle); n++)                // Copy byte sines throughout whole buffer
@@ -40,13 +60,13 @@ public static class Waveforms
     {
         var channelLength = buffer.Length / 4;
         Span<byte> singleChannelBuffer1 = new byte[channelLength];
-        Sine(singleChannelBuffer1, samplingRate, frequency);
+        SineUInt8(singleChannelBuffer1, samplingRate, frequency);
         Span<byte> singleChannelBuffer2 = new byte[channelLength];
-        Sine(singleChannelBuffer2, samplingRate, frequency * 2, 0.75);
+        SineUInt8(singleChannelBuffer2, samplingRate, frequency * 2, 0.75);
         Span<byte> singleChannelBuffer3 = new byte[channelLength];
-        Sine(singleChannelBuffer3, samplingRate, frequency * 4, 0.5);
+        SineUInt8(singleChannelBuffer3, samplingRate, frequency * 4, 0.5);
         Span<byte> singleChannelBuffer4 = new byte[channelLength];
-        Sine(singleChannelBuffer4, samplingRate, frequency* 8, 0.25);
+        SineUInt8(singleChannelBuffer4, samplingRate, frequency* 8, 0.25);
         // Now interleave samples
         for (int i = 0; i < channelLength; i++)
         {

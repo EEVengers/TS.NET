@@ -20,7 +20,7 @@ using (Process p = Process.GetCurrentProcess())
 IConfigurationBuilder configurationBuilder = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json");
 var configuration = configurationBuilder.Build();
-var thunderscopeSettings = configuration.GetRequiredSection("Thunderscope").Get<ThunderscopeSettings>();
+var thunderscopeSettings = configuration.GetRequiredSection("Thunderscope").Get<ThunderscopeSettings>() ?? throw new NullReferenceException();
 
 var loggerFactory = LoggerFactory.Create(configure =>
 {
@@ -54,15 +54,14 @@ ProcessingTask processingTask = new(loggerFactory, thunderscopeSettings, process
 processingTask.Start();
 InputTask inputTask = new();
 inputTask.Start(loggerFactory, devices[0], inputChannel.Reader, processingChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
-SocketTask socketTask = new();
-socketTask.Start(loggerFactory, thunderscopeSettings, processingRequestChannel.Writer);
+WaveformServer waveformServer = new(loggerFactory, thunderscopeSettings, IPAddress.Any, 5026, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
+waveformServer.Start();
 ScpiServer scpiServer = new(loggerFactory, IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
 scpiServer.Start();
 
-Console.WriteLine("Running... press any key to stop");
 Console.ReadKey();
 
-processingTask.Stop();
-inputTask.Stop();
-socketTask.Stop();
 scpiServer.Stop();
+waveformServer.Stop();
+inputTask.Stop();
+processingTask.Stop();

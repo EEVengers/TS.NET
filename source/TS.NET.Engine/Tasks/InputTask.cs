@@ -43,7 +43,6 @@ namespace TS.NET.Engine
             Thunderscope thunderscope = new();
             try
             {
-                logger.LogDebug("Starting...");
                 thunderscope.Open(thunderscopeDevice);
                 ThunderscopeConfiguration configuration = DoInitialConfiguration(thunderscope);
                 thunderscope.Start();
@@ -139,18 +138,18 @@ namespace TS.NET.Engine
                                 logger.LogDebug("First block of data received");
                             break;
                         }
-                        catch (ThunderscopeMemoryOutOfMemoryException ex)
+                        catch (ThunderscopeMemoryOutOfMemoryException)
                         {
                             logger.LogWarning("Scope ran out of memory - reset buffer pointers and continue");
                             thunderscope.ResetBuffer();
                             continue;
                         }
-                        catch (ThunderscopeFIFOOverflowException ex)
+                        catch (ThunderscopeFIFOOverflowException)
                         {
                             logger.LogWarning("Scope had FIFO overflow - ignore and continue");
                             continue;
                         }
-                        catch (ThunderscopeNotRunningException ex)
+                        catch (ThunderscopeNotRunningException)
                         {
                             // logger.LogWarning("Tried to read from stopped scope");
                             continue;

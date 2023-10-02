@@ -194,7 +194,7 @@ namespace TS.NET.Engine
                     }
                     else if (command == "EDGE:DIR" && hasArg)
                     {
-                        String dir = argument;
+                        string dir = argument ?? throw new NullReferenceException();
                         // Set direction
                         logger.LogDebug($"Set [edge] trigger direction to {dir}");
 
@@ -220,7 +220,7 @@ namespace TS.NET.Engine
                     }
                     else if (command == "COUP" && hasArg)
                     {
-                        String coup = argument;
+                        string coup = argument ?? throw new NullReferenceException();
                         // Set coupling
                         logger.LogDebug($"Set ch {chNum} coupling to {coup}");
 
@@ -307,6 +307,7 @@ namespace TS.NET.Engine
             this.hardwareResponseChannel = hardwareResponseChannel;
             this.processingRequestChannel = processingRequestChannel;
             this.processingResponseChannel = processingResponseChannel;
+            logger.LogDebug("Started");
         }
 
         protected override TcpSession CreateSession()

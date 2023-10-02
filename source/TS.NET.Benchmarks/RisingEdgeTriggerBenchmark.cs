@@ -4,7 +4,7 @@ using BenchmarkDotNet.Jobs;
 
 namespace TS.NET.Benchmark
 {
-    [SimpleJob(RuntimeMoniker.Net60)]
+    [SimpleJob(RuntimeMoniker.Net80)]
     [MemoryDiagnoser]
     //[CpuDiagnoser]
     //[InProcess]
@@ -13,16 +13,18 @@ namespace TS.NET.Benchmark
     {
         private const int samplingRate = 1000000000;
         private const int byteBufferSize = 8000000;
-        private readonly Memory<byte> buffer1MHz = new byte[byteBufferSize];
-        private readonly Memory<byte> buffer1KHz = new byte[byteBufferSize];
-        private readonly Memory<ulong> triggerBufferU64 = new ulong[byteBufferSize / 64];
-        private readonly RisingEdgeTriggerSignedByte trigger = new(0, -10, 1000);
+        private readonly Memory<sbyte> buffer1MHz = new sbyte[byteBufferSize];
+        private readonly Memory<sbyte> buffer1KHz = new sbyte[byteBufferSize];
+        private readonly Memory<uint> triggerIndicesU64 = new uint[byteBufferSize / 64];
+        private readonly Memory<uint> holdoffIndicesU64 = new uint[byteBufferSize / 64];
+        private readonly RisingEdgeTriggerInt8 trigger = new(0, -10, 1000);
+        private readonly ulong ChannelLength = 1000;
 
         [GlobalSetup]
         public void Setup()
         {
-            Waveforms.Sine(buffer1MHz.Span, samplingRate, 1000000);
-            Waveforms.Sine(buffer1KHz.Span, samplingRate, 1000);
+            Waveforms.SineInt8(buffer1MHz.Span, samplingRate, 1000000);
+            Waveforms.SineInt8(buffer1KHz.Span, samplingRate, 1000);
         }
 
         //[Benchmark(Description = "Rising edge with hysteresis (10 counts) & holdoff (1us) and no SIMD, 1KHz sine (125 x 8MS)")]
@@ -32,21 +34,21 @@ namespace TS.NET.Benchmark
         //        trigger.RisingEdge(buffer1KHz.Span, triggerBufferU64.Span);
         //}
 
-        [Benchmark(Description = "Rising edge with hysteresis (10 counts), holdoff (1us) & SIMD, 1KHz sine (125 x 8MS)")]
+        [Benchmark(Description = "Rising edge with hysteresis (10 counts), holdoff (1us) & SIMD, 1KHz sine (125 x 8MS = 1GS)")]
         public void RisingEdge1()
         {
-            //trigger.Reset(200, 190, 1000);
-            //for (int i = 0; i < 125; i++)
-            //    trigger.ProcessSimd(buffer1KHz.Span, triggerBufferU64.Span);
+            trigger.Reset(0, -10, ChannelLength);
+            for (int i = 0; i < 125; i++)
+                trigger.ProcessSimd(input: buffer1KHz.Span, triggerIndices: triggerIndicesU64.Span, out uint triggerCount, holdoffEndIndices: holdoffIndicesU64.Span, out uint holdoffEndCount);
         }
 
         // 0.18 CPU cycles per sample
-        [Benchmark(Description = "Rising edge with hysteresis (10 counts), holdoff (1us) & SIMD, 1MHz sine (125 x 8MS)")]
+        [Benchmark(Description = "Rising edge with hysteresis (10 counts), holdoff (1us) & SIMD, 1MHz sine (125 x 8MS = 1GS)")]
         public void RisingEdge2()
         {
-            //trigger.Reset(200, 190, 1000);
-            //for (int i = 0; i < 125; i++)
-            //    trigger.ProcessSimd(buffer1MHz.Span, triggerBufferU64.Span);
+            trigger.Reset(0, -10, ChannelLength);
+            for (int i = 0; i < 125; i++)
+                trigger.ProcessSimd(input: buffer1KHz.Span, triggerIndices: triggerIndicesU64.Span, out uint triggerCount, holdoffEndIndices: holdoffIndicesU64.Span, out uint holdoffEndCount);
         }
 
         //[Benchmark(Description = "Rising edge with hysteresis (10 counts), holdoff (1ms) & SIMD, 1KHz sine (125 x 8MS)")]
