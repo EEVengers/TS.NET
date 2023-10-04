@@ -9,8 +9,6 @@ namespace TS.NET
     // This is a shared memory-mapped file between processes, with only a single writer and a single reader with a header struct
     public class ThunderscopeBridgeReader : IDisposable
     {
-        private readonly ThunderscopeBridgeOptions options;
-        private readonly ulong dataCapacityInBytes;
         private readonly IMemoryFile file;
         private readonly MemoryMappedViewAccessor view;
         private unsafe byte* basePointer;
@@ -24,13 +22,38 @@ namespace TS.NET
         public ReadOnlySpan<sbyte> AcquiredRegion { get { return GetAcquiredRegion(); } }
         public ReadOnlySpan<byte> AcquiredRegionAsByte { get { return GetAcquiredRegionAsByte(); } }        // Useful for the Socket API which only accepts byte
 
-        public unsafe ThunderscopeBridgeReader(ThunderscopeBridgeOptions options)
+        public unsafe ThunderscopeBridgeReader(string memoryName)
         {
-            this.options = options;
-            dataCapacityInBytes = options.BridgeCapacityBytes - (uint)sizeof(ThunderscopeBridgeHeader);
+            if (OperatingSystem.IsWindows())
+            {
+                while (!MemoryFileWindows.Exists(memoryName))
+                {
+                    Console.WriteLine("Waiting for Thunderscope bridge writer...");
+                    Thread.Sleep(1000);
+                }
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                while (!MemoryFileUnix.Exists(memoryName, Path.GetTempPath()))
+                {
+                    Console.WriteLine("Waiting for Thunderscope bridge writer...");
+                    Thread.Sleep(1000);
+                }
+            }
+            else
+                throw new NotImplementedException();
+
+            ulong dataCapacityBytes = 0;
+            using (var headerReader = new ThunderscopeBridgeHeaderReader(memoryName))
+            {
+                dataCapacityBytes = headerReader.GetDataCapacityBytes();
+            }
+
+            // Now open the full bridge connection
+            ulong bridgeCapacityInBytes = (ulong)sizeof(ThunderscopeBridgeHeader) + dataCapacityBytes;
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? new MemoryFileWindows(options)
-                : new MemoryFileUnix(options);
+                ? new MemoryFileWindows(memoryName, bridgeCapacityInBytes)
+                : new MemoryFileUnix(memoryName, bridgeCapacityInBytes, Path.GetTempPath());
 
             try
             {
@@ -47,10 +70,8 @@ namespace TS.NET
                         Thread.Sleep(1000);
                     }
                     GetHeader();
-                    if (header.DataCapacityBytes != options.DataCapacityBytes)
-                        throw new Exception($"Mismatch in data capacity, options: {options.DataCapacityBytes}, bridge: {header.DataCapacityBytes}");
-                    dataRequestSemaphore = InterprocessSemaphore.CreateReleaser(options.MemoryName + "DataRequest");
-                    dataReadySemaphore = InterprocessSemaphore.CreateWaiter(options.MemoryName + "DataReady");
+                    dataRequestSemaphore = InterprocessSemaphore.CreateReleaser(memoryName + "DataRequest");
+                    dataReadySemaphore = InterprocessSemaphore.CreateWaiter(memoryName + "DataReady");
                 }
                 catch
                 {
@@ -173,6 +194,57 @@ namespace TS.NET
                 ThunderscopeMemoryAcquiringRegion.RegionB => dataPointer,                       // If acquiring region is Region B, return Region A
                 _ => throw new InvalidDataException("Enum value not handled, add enum value to switch")
             };
+        }
+    }
+
+    public class ThunderscopeBridgeHeaderReader : IDisposable
+    {
+        private readonly IMemoryFile file;
+        private readonly MemoryMappedViewAccessor view;
+        private readonly ulong dataCapacityBytes;
+
+        public unsafe ThunderscopeBridgeHeaderReader(string memoryName)
+        {
+            file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? new MemoryFileWindows(memoryName, (ulong)sizeof(ThunderscopeBridgeHeader))
+                : new MemoryFileUnix(memoryName, (ulong)sizeof(ThunderscopeBridgeHeader), System.IO.Path.GetTempPath());
+            try
+            {
+                view = file.MappedFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite);
+                try
+                {
+                    using (var handle = view.SafeMemoryMappedViewHandle)
+                    {
+                        while (handle.Read<ThunderscopeBridgeHeader>(0).Version == 0)
+                        {
+                            Console.WriteLine("Waiting for Thunderscope bridge writer...");
+                            Thread.Sleep(1000);
+                        }
+                        dataCapacityBytes = view.SafeMemoryMappedViewHandle.Read<ThunderscopeBridgeHeader>(0).DataCapacityBytes;
+                    }
+                }
+                catch
+                {
+                    view.Dispose();
+                    throw;
+                }
+            }
+            catch
+            {
+                file.Dispose();
+                throw;
+            }
+        }
+
+        public ulong GetDataCapacityBytes()
+        {
+            return dataCapacityBytes;
+        }
+
+        public void Dispose()
+        {
+            view.Dispose();
+            file.Dispose();
         }
     }
 }

@@ -11,8 +11,6 @@ namespace TS.NET
     // Not thread safe
     public class ThunderscopeBridgeWriter : IDisposable
     {
-        private readonly ThunderscopeBridgeOptions options;
-        private readonly ulong dataCapacityInBytes;
         private readonly IMemoryFile file;
         private readonly MemoryMappedViewAccessor view;
         private unsafe byte* basePointer;
@@ -26,13 +24,13 @@ namespace TS.NET
         public Span<sbyte> AcquiringRegion { get { return GetAcquiringRegion(); } }
         public ThunderscopeMonitoring Monitoring { get { return header.Monitoring; } }
 
-        public unsafe ThunderscopeBridgeWriter(ThunderscopeBridgeOptions options)
+        public unsafe ThunderscopeBridgeWriter(string memoryName, byte maxChannelCount, ulong maxChannelBytes)
         {
-            this.options = options;
-            dataCapacityInBytes = options.DataCapacityBytes;
+            var dataCapacityBytes = maxChannelCount * maxChannelBytes * 2;      // * 2 as there are 2 regions used in tick-tock fashion
+            var bridgeCapacityBytes = (ulong)sizeof(ThunderscopeBridgeHeader) + dataCapacityBytes;
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? new MemoryFileWindows(options)
-                : new MemoryFileUnix(options);
+                ? new MemoryFileWindows(memoryName, bridgeCapacityBytes)
+                : new MemoryFileUnix(memoryName, bridgeCapacityBytes, System.IO.Path.GetTempPath());
 
             try
             {
@@ -45,13 +43,13 @@ namespace TS.NET
 
                     // Writer sets initial state of header
                     header.Version = 1;
-                    header.DataCapacityBytes = dataCapacityInBytes;
-                    header.MaxChannelCount = options.MaxChannelCount;
-                    header.MaxChannelBytes = options.MaxChannelCount;
+                    header.DataCapacityBytes = dataCapacityBytes;
+                    header.MaxChannelCount = maxChannelCount;
+                    header.MaxChannelBytes = maxChannelBytes;
                     header.AcquiringRegion = ThunderscopeMemoryAcquiringRegion.RegionA;
                     SetHeader();
-                    dataRequestSemaphore = InterprocessSemaphore.CreateWaiter(options.MemoryName + "DataRequest");
-                    dataReadySemaphore = InterprocessSemaphore.CreateReleaser(options.MemoryName + "DataReady");
+                    dataRequestSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + "DataRequest");
+                    dataReadySemaphore = InterprocessSemaphore.CreateReleaser(memoryName + "DataReady");
                 }
                 catch
                 {

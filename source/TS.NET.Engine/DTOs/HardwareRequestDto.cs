@@ -8,8 +8,8 @@ namespace TS.NET.Engine
 
     public abstract record HardwareConfigureChannelDto(int Channel): HardwareRequestDto;
     public record HardwareSetEnabledRequest(int Channel, bool Enabled) : HardwareConfigureChannelDto(Channel);
-    public record HardwareSetOffsetRequest(int Channel, double Offset) : HardwareConfigureChannelDto(Channel);
-    public record HardwareSetVdivRequest(int Channel, int VoltsDiv) : HardwareConfigureChannelDto(Channel);
+    public record HardwareSetVoltOffsetRequest(int Channel, double VoltOffset) : HardwareConfigureChannelDto(Channel);
+    public record HardwareSetVoltFullScaleRequest(int Channel, double VoltFullScale) : HardwareConfigureChannelDto(Channel);
     public record HardwareSetBandwidthRequest(int Channel, int Bandwidth) : HardwareConfigureChannelDto(Channel);
     public record HardwareSetCouplingRequest(int Channel, ThunderscopeCoupling Coupling) : HardwareConfigureChannelDto(Channel);
 }

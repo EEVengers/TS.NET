@@ -13,7 +13,7 @@ namespace TS.NET.Engine
     // Trigger configuration
     public record ProcessingSetTriggerSourceDto(TriggerChannel Channel) : ProcessingRequestDto;
     public record ProcessingSetTriggerDelayDto(long Femtoseconds) : ProcessingRequestDto;
-    public record ProcessingSetTriggerLevelDto(double Level) : ProcessingRequestDto;
+    public record ProcessingSetTriggerLevelDto(double LevelVolts) : ProcessingRequestDto;
     public record ProcessingSetTriggerEdgeDirectionDto() : ProcessingRequestDto;
 
     public record ProcessingSetDepthDto(ulong Samples) : ProcessingRequestDto;

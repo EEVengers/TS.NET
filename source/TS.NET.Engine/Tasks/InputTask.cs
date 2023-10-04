@@ -76,42 +76,37 @@ namespace TS.NET.Engine
                                     logger.LogDebug("Stop request (ignore)");
                                     break;
                                 case HardwareConfigureChannelDto hardwareConfigureChannelDto:
-                                    var chNum = ((HardwareConfigureChannelDto)request).Channel;
-                                    ThunderscopeChannel ch = configuration.GetChannel(chNum);
+                                    var channelIndex = ((HardwareConfigureChannelDto)request).Channel;
+                                    ThunderscopeChannel channel = configuration.GetChannel(channelIndex);
                                     switch (request)
                                     {
-                                        case HardwareSetOffsetRequest hardwareSetOffsetRequest:
-                                            var voltage = hardwareSetOffsetRequest.Offset;
-                                            logger.LogDebug($"Set offset request: ch {chNum} voltage {voltage}");
-                                            ch.VoltsOffset = voltage;
+                                        case HardwareSetVoltOffsetRequest hardwareSetOffsetRequest:
+                                            logger.LogDebug($"Set offset request: channel {channelIndex} volt offset {hardwareSetOffsetRequest.VoltOffset}");
+                                            channel.VoltOffset = hardwareSetOffsetRequest.VoltOffset;
                                             break;
-                                        case HardwareSetVdivRequest hardwareSetVdivRequest:
-                                            var vdiv = hardwareSetVdivRequest.VoltsDiv;
-                                            logger.LogDebug($"Set vdiv request: ch {chNum} div {vdiv}");
-                                            ch.VoltsDiv = vdiv;
+                                        case HardwareSetVoltFullScaleRequest hardwareSetVdivRequest:
+                                            logger.LogDebug($"Set vdiv request: channel {channelIndex} volt full scale {hardwareSetVdivRequest.VoltFullScale}");
+                                            channel.VoltFullScale = hardwareSetVdivRequest.VoltFullScale;
                                             break;
                                         case HardwareSetBandwidthRequest hardwareSetBandwidthRequest:
-                                            var bw = hardwareSetBandwidthRequest.Bandwidth;
-                                            logger.LogDebug($"Set bw request: ch {chNum} bw {bw}");
-                                            ch.Bandwidth = bw;
+                                            logger.LogDebug($"Set bw request: channel {channelIndex} bandwidth {hardwareSetBandwidthRequest.Bandwidth}");
+                                            channel.Bandwidth = hardwareSetBandwidthRequest.Bandwidth;
                                             break;
                                         case HardwareSetCouplingRequest hardwareSetCouplingRequest:
-                                            var coup = hardwareSetCouplingRequest.Coupling;
-                                            logger.LogDebug($"Set coup request: ch {chNum} coup {coup}");
-                                            ch.Coupling = coup;
+                                            logger.LogDebug($"Set coup request: channel {channelIndex} coupling {hardwareSetCouplingRequest.Coupling}");
+                                            channel.Coupling = hardwareSetCouplingRequest.Coupling;
                                             break;
                                         case HardwareSetEnabledRequest hardwareSetEnabledRequest:
-                                            var enabled = ((HardwareSetEnabledRequest)request).Enabled;
-                                            logger.LogDebug($"Set enabled request: ch {chNum} enabled {enabled}");
-                                            ch.Enabled = enabled;
+                                            logger.LogDebug($"Set enabled request: channel {channelIndex} enabled {hardwareSetEnabledRequest.Enabled}");
+                                            channel.Enabled = hardwareSetEnabledRequest.Enabled;
                                             break;
                                         default:
                                             logger.LogWarning($"Unknown HardwareConfigureChannelDto: {request}");
                                             break;
                                     }
-                                    configuration.SetChannel(chNum, ch);
+                                    configuration.SetChannel(channelIndex, channel);
                                     ConfigureFromObject(thunderscope, configuration);
-                                    thunderscope.EnableChannel(chNum);
+                                    thunderscope.EnableChannel(channelIndex);
                                     break;
                                 default:
                                     logger.LogWarning($"Unknown HardwareRequestDto: {request}");
@@ -200,39 +195,13 @@ namespace TS.NET.Engine
             ThunderscopeConfiguration configuration = new()
             {
                 AdcChannelMode = AdcChannelMode.Quad,
-                Channel0 = new ThunderscopeChannel()
-                {
-                    Enabled = true,
-                    VoltsOffset = 0,
-                    VoltsDiv = 100,
-                    Bandwidth = 350,
-                    Coupling = ThunderscopeCoupling.DC
-                },
-                Channel1 = new ThunderscopeChannel()
-                {
-                    Enabled = true,
-                    VoltsOffset = 0,
-                    VoltsDiv = 100,
-                    Bandwidth = 350,
-                    Coupling = ThunderscopeCoupling.DC
-                },
-                Channel2 = new ThunderscopeChannel()
-                {
-                    Enabled = true,
-                    VoltsOffset = 0,
-                    VoltsDiv = 100,
-                    Bandwidth = 350,
-                    Coupling = ThunderscopeCoupling.DC
-                },
-                Channel3 = new ThunderscopeChannel()
-                {
-                    Enabled = true,
-                    VoltsOffset = 0,
-                    VoltsDiv = 100,
-                    Bandwidth = 350,
-                    Coupling = ThunderscopeCoupling.DC
-                },
+                Channel1 = ThunderscopeChannel.Default(),
+                Channel2 = ThunderscopeChannel.Default(),
+                Channel3 = ThunderscopeChannel.Default(),
+                Channel4 = ThunderscopeChannel.Default(),
             };
+
+            configuration.Channel2.VoltOffset = 0.5;
 
             ConfigureFromObject(thunderscope, configuration);
 

@@ -139,11 +139,12 @@ namespace TS.NET.Engine
                         {
                             ThunderscopeChannel thunderscopeChannel = configuration.GetChannel(channel);
 
-                            float full_scale = ((float)thunderscopeChannel.VoltsDiv / 1000f) * 5f; // 5 instead of 10 for signed
+                            //float full_scale = ((float)thunderscopeChannel.VoltFullScale) * 5f; // 5 instead of 10 for signed
+                            Thunderscope.CalculateAfeGainConfiguration(thunderscopeChannel.VoltFullScale, out _, out _, out double actualVoltFullScale);
 
                             chHeader.chNum = channel;
-                            chHeader.scale = full_scale / 127f; // 127 instead of 255 for signed
-                            chHeader.offset = -((float)thunderscopeChannel.VoltsOffset); // needs chHeader.scale * 0x80 for signed
+                            chHeader.scale = (float)(actualVoltFullScale / 255.0);
+                            chHeader.offset = -((float)thunderscopeChannel.VoltOffset); // needs chHeader.scale * 0x80 for signed
 
                             // if (ch == 0)
                             //     logger.LogDebug($"ch {ch}: VoltsDiv={tChannel.VoltsDiv} -> .scale={chHeader.scale}, VoltsOffset={tChannel.VoltsOffset} -> .offset = {chHeader.offset}, Coupling={tChannel.Coupling}");
@@ -190,7 +191,7 @@ namespace TS.NET.Engine
             this.processingRequestChannel = processingRequestChannel;
             this.processingResponseChannel = processingResponseChannel;
             cancellationTokenSource = new();
-            bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", 4, settings.MaxChannelBytes));
+            bridge = new("ThunderScope.1");
             logger.LogDebug("Started");
         }
 

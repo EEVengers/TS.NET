@@ -1,5 +1,4 @@
 ﻿// https://github.com/cloudtoid/interprocess
-using System.IO;
 using System.IO.MemoryMappedFiles;
 
 namespace TS.NET.Memory.Windows
@@ -8,15 +7,14 @@ namespace TS.NET.Memory.Windows
     {
         private const string MapNamePrefix = "TS_NET_";
 
-        internal MemoryFileWindows(ThunderscopeBridgeOptions options)
+        internal MemoryFileWindows(string memoryName, ulong bridgeCapacityBytes)
         {
-#if NET5_0 || NET6_0
-            if (!System.OperatingSystem.IsWindows())
-                throw new System.PlatformNotSupportedException();
-#endif
+            if (!OperatingSystem.IsWindows())
+                throw new PlatformNotSupportedException();
+
             MappedFile = MemoryMappedFile.CreateOrOpen(
-                mapName: MapNamePrefix + options.MemoryName,
-                (long)options.BridgeCapacityBytes,
+                mapName: MapNamePrefix + memoryName,
+                (long)bridgeCapacityBytes,
                 MemoryMappedFileAccess.ReadWrite,
                 MemoryMappedFileOptions.None,
                 HandleInheritability.None);
@@ -26,5 +24,21 @@ namespace TS.NET.Memory.Windows
 
         public void Dispose()
             => MappedFile.Dispose();
+
+        public static bool Exists(string memoryName)
+        {
+            if (!OperatingSystem.IsWindows())
+                throw new PlatformNotSupportedException();
+
+            try
+            {
+                using var file = MemoryMappedFile.OpenExisting(MapNamePrefix + memoryName); 
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }

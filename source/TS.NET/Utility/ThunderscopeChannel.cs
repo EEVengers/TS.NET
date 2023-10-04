@@ -7,18 +7,21 @@ namespace TS.NET
     public struct ThunderscopeChannel
     {
         public bool Enabled;
-        public double VoltsOffset;
-        public int VoltsDiv;
+        public double VoltFullScale;
+        public double VoltOffset;
         public int Bandwidth;
         public ThunderscopeCoupling Coupling;
 
-        public ThunderscopeChannel()
+        public static ThunderscopeChannel Default()
         {
-            Enabled = true;
-            VoltsOffset = 0;
-            VoltsDiv = 100;
-            Bandwidth = 350;
-            Coupling = ThunderscopeCoupling.DC;
+            return new ThunderscopeChannel()
+            {
+                Enabled = true,
+                VoltFullScale = 0.5,
+                VoltOffset = 0,
+                Bandwidth = 350,
+                Coupling = ThunderscopeCoupling.DC
+            };
         }
     }
 

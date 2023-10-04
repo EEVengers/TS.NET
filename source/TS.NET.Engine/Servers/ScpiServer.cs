@@ -237,7 +237,7 @@ namespace TS.NET.Engine
 
                         offset = Math.Clamp(offset, -0.5, 0.5);
 
-                        hardwareRequestChannel.Write(new HardwareSetOffsetRequest(chNum, offset));
+                        //hardwareRequestChannel.Write(new HardwareSetVoltOffsetRequest(chNum, offset));
                         // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
 
                         return null;
@@ -245,26 +245,9 @@ namespace TS.NET.Engine
                     else if (command == "RANGE" && hasArg)
                     {
                         double range = Convert.ToDouble(argument);
-                        // Set range
-
-                        int[] available_mv = { 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000 };
-
-                        int range_mv = (int)((range * 1000d) / 10d);
-                        int computedRange = available_mv[0];
-
-                        for (int i = available_mv.Length - 1; i >= 0; i--)
-                        {
-                            if (available_mv[i] > computedRange && available_mv[i] <= range_mv)
-                            {
-                                computedRange = available_mv[i];
-                            }
-                        }
-
-                        logger.LogDebug($"Set ch {chNum} range to {range}V -> {range_mv}mV -> {computedRange} computed mV");
-
-                        hardwareRequestChannel.Write(new HardwareSetVdivRequest(chNum, computedRange));
+                        logger.LogDebug($"Set channel {chNum} range to {range}V");
+                        hardwareRequestChannel.Write(new HardwareSetVoltFullScaleRequest(chNum, range));
                         // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-
                         return null;
                     }
                 }

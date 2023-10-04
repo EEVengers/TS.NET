@@ -92,7 +92,7 @@ namespace TS.NET.UI.Avalonia
             try
             {
                 uint bufferLength = 4 * 100 * 1000 * 1000;      //Maximum record length = 100M samples per channel
-                ThunderscopeBridgeReader bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", 4, 100 * 1000000));
+                ThunderscopeBridgeReader bridge = new("ThunderScope.1");
                 Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     lblStatus.Content = "Bridge connection established";

@@ -1,4 +1,7 @@
-﻿using System;
+﻿#define TsRev3
+// Define options: TsRev1, TsRev3, TsRev4
+
+using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -15,7 +18,8 @@ namespace TS.NET
         private bool open = false;
         private ThunderscopeHardwareState hardwareState = new();
 
-        public ThunderscopeChannel[] Channels = new ThunderscopeChannel[] { new(), new(), new(), new() };
+        public ThunderscopeChannel[] Channels = new ThunderscopeChannel[] { ThunderscopeChannel.Default(), ThunderscopeChannel.Default(), ThunderscopeChannel.Default(), ThunderscopeChannel.Default() };
+        //public ThunderscopeChannel[] ChannelStates = new ThunderscopeChannelState[]
 
         public static List<ThunderscopeDevice> IterateDevices()
         {
@@ -118,6 +122,20 @@ namespace TS.NET
             }
         }
 
+        public void EnableChannel(int channelIndex)
+        {
+            // channelIndex is zero-indexed
+            Channels[channelIndex].Enabled = true;
+            ConfigureChannel(channelIndex);
+        }
+
+        public void ResetBuffer()
+        {
+            hardwareState.BufferHead = 0;
+            hardwareState.BufferTail = 0;
+            ConfigureDatamover(hardwareState);
+        }
+
         private void Initialise()
         {
             Write32(BarRegister.DATAMOVER_REG_OUT, 0);
@@ -134,7 +152,6 @@ namespace TS.NET
             ConfigureADC();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private uint Read32(BarRegister register)
         {
             Span<byte> bytes = new byte[4];
@@ -197,7 +214,8 @@ namespace TS.NET
                 {
                     numChannelsEnabled++;
                 }
-                if (Channels[channel].VoltsDiv <= 100)
+                CalculateAfeGainConfiguration(Channels[channel].VoltFullScale, out _, out bool afeAttenuatorEnabled, out _);
+                if (!afeAttenuatorEnabled)
                 {
                     datamoverRegister |= (uint)1 << (16 + channel);
                 }
@@ -215,109 +233,6 @@ namespace TS.NET
             }
             Write32(BarRegister.DATAMOVER_REG_OUT, datamoverRegister);
         }
-
-        /*
-        ------------------------------------------------------------------
-        UNCOMMENT THIS FOR REV 1 BASEBOARD
-        ------------------------------------------------------------------
-
-        private void ConfigurePLL()
-        {
-            // These were provided by the chip configuration tool.
-            ushort[] config_clk_gen = {
-                0x0010, 0x010B, 0x0233, 0x08B0,
-                0x0901, 0x1000, 0x1180, 0x1501,
-                0x1600, 0x1705, 0x1900, 0x1A32,
-                0x1B00, 0x1C00, 0x1D00, 0x1E00,
-                0x1F00, 0x2001, 0x210C, 0x2228,
-                0x2303, 0x2408, 0x2500, 0x2600,
-                0x2700, 0x2F00, 0x3000, 0x3110,
-                0x3200, 0x3300, 0x3400, 0x3500,
-                0x3800, 0x4802 };
-
-            // write to the clock generator
-            for (int i = 0; i < config_clk_gen.Length / 2; i++)
-            {
-                SetPllRegister((byte)(config_clk_gen[i] >> 8), (byte)(config_clk_gen[i] & 0xff));
-            }
-
-            hardwareState.PllEnabled = true;
-            ConfigureDatamover(hardwareState);
-        }
-
-        const byte I2C_BYTE_PLL = 0xFF;
-        const byte CLOCK_GEN_I2C_ADDRESS_WRITE = 0b10110000;
-        private void SetPllRegister(byte register, byte value)
-        {
-            Span<byte> fifo = new byte[4];
-            fifo[0] = I2C_BYTE_PLL;
-            fifo[1] = CLOCK_GEN_I2C_ADDRESS_WRITE;
-            fifo[2] = register;
-            fifo[3] = value;
-            WriteFifo(fifo);
-        }
-        */
-
-        /*
-        ------------------------------------------------------------------
-        COMMENT BELOW OUT FOR REV 1 BASEBOARD
-        ------------------------------------------------------------------
-        */
-
-        private void ConfigurePLL()
-        {
-            //Strobe RST line on power on
-            Thread.Sleep(1);
-            hardwareState.PllEnabled = false;    //RSTn low --> PLL reset
-            ConfigureDatamover(hardwareState);
-            Thread.Sleep(1);
-            hardwareState.PllEnabled = true;    //RSTn high --> PLL active
-            ConfigureDatamover(hardwareState);
-            Thread.Sleep(1);
-
-            // These were provided by the chip configuration tool.
-            uint[] config_clk_gen = {
-                0X000902, 0X062108, 0X063140, 0X010006,
-                0X010120, 0X010202, 0X010380, 0X010A20,
-                0X010B03, 0X01140D, 0X012006, 0X0125C0,
-                0X012660, 0X01277F, 0X012904, 0X012AB3,
-                0X012BC0, 0X012C80, 0X001C10, 0X001D80,
-                0X034003, 0X020141, 0X022135, 0X022240,
-                0X000C02, 0X000B01};
-
-            // write to the clock generator
-            for (int i = 0; i < config_clk_gen.Length; i++)
-            {
-                SetPllRegister((byte)(config_clk_gen[i] >> 16), (byte)(config_clk_gen[i] >> 8), (byte)(config_clk_gen[i] & 0xff));
-            }
-
-            Thread.Sleep(10);
-
-            SetPllRegister((byte)(0x00), (byte)(0x0D), (byte)(0x05));
-
-            Thread.Sleep(10);
-        }
-
-        const byte I2C_BYTE_PLL = 0xFF;
-        const byte CLOCK_GEN_I2C_ADDRESS_WRITE = 0b11011000;
-        const byte CLOCK_GEN_WRITE_COMMAND = 0x02;
-        private void SetPllRegister(byte reg_high, byte reg_low, byte value)
-        {
-            Span<byte> fifo = new byte[6];
-            fifo[0] = I2C_BYTE_PLL;
-            fifo[1] = CLOCK_GEN_I2C_ADDRESS_WRITE;
-            fifo[2] = CLOCK_GEN_WRITE_COMMAND;
-            fifo[3] = reg_high;
-            fifo[4] = reg_low;
-            fifo[5] = value;
-            WriteFifo(fifo);
-        }
-
-        /*
-        ------------------------------------------------------------------
-        COMMENT ABOVE OUT FOR REV 1 BASEBOARD
-        ------------------------------------------------------------------
-        */
 
         private void ConfigureADC()
         {
@@ -369,25 +284,12 @@ namespace TS.NET
             SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_POWER, (ushort)(on ? 0x0000 : 0x0200));
         }
 
-        public void EnableChannel(int channel)
-        {
-            Channels[channel].Enabled = true;
-            ConfigureChannel(channel);
-        }
-
-        public void ResetBuffer()
-        {
-            hardwareState.BufferHead = 0;
-            hardwareState.BufferTail = 0;
-            ConfigureDatamover(hardwareState);
-        }
-
         private void ConfigureChannel(int channel)
         {
             ConfigureChannels();
             SetDAC(channel);
             ConfigureDatamover(hardwareState);
-            SetPga(channel);
+            SetPGA(channel);
         }
 
         private void ConfigureChannels()
@@ -449,7 +351,7 @@ namespace TS.NET
         {
             // value is 12-bit
             // Is this right?? Or is it rounding wrong?
-            uint dac_value = (uint)Math.Round((Channels[channel].VoltsOffset + 0.5) * 4095);
+            uint dac_value = (uint)Math.Round((Channels[channel].VoltOffset + 0.5) * 4095);
             if (dac_value < 0)
                 throw new Exception("DAC offset too low");
             if (dac_value > 0xFFF)
@@ -457,39 +359,22 @@ namespace TS.NET
 
             Span<byte> fifo = new byte[5];
             fifo[0] = 0xFF;  // I2C
-            fifo[1] = 0xC2;  // DAC?
+            fifo[1] = 0xC0;  // DAC?
             fifo[2] = (byte)(0x40 + (channel << 1));
             fifo[3] = (byte)((dac_value >> 8) & 0xF);
             fifo[4] = (byte)(dac_value & 0xFF);
             WriteFifo(fifo);
         }
 
-        private void SetPga(int channel)
+        private void SetPGA(int channel)
         {
             Span<byte> fifo = new byte[4];
             fifo[0] = (byte)(0xFB - channel);  // SPI chip enable
             fifo[1] = 0;
             fifo[2] = 0x04;  // ??
 
-            int vdiv = Channels[channel].VoltsDiv;
-            if (vdiv > 100)
-            {
-                // Attenuator relay on, handled by
-                // thunderscopehw_set_datamover_reg.
-                vdiv /= 100;
-            }
-
-            switch (vdiv)
-            {
-                case 100: fifo[3] = 0x0A; break;
-                case 50: fifo[3] = 0x07; break;
-                case 20: fifo[3] = 0x03; break;
-                case 10: fifo[3] = 0x1A; break;
-                case 5: fifo[3] = 0x17; break;
-                case 2: fifo[3] = 0x13; break;
-                case 1: fifo[3] = 0x10; break;
-                default: throw new Exception("Invalid volts per div");
-            }
+            CalculateAfeGainConfiguration(Channels[channel].VoltFullScale, out byte pgaConfiguration, out _, out _);
+            fifo[3] = pgaConfiguration;
             switch (Channels[channel].Bandwidth)
             {
                 case 20: fifo[3] |= 0x40; break;
@@ -501,7 +386,6 @@ namespace TS.NET
             WriteFifo(fifo);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         private void UpdateBufferHead()
         {
             // 1 page = 4k
@@ -528,5 +412,176 @@ namespace TS.NET
             if (pages_available >= hardwareState.RamSizePages)
                 throw new ThunderscopeMemoryOutOfMemoryException("Thunderscope - memory full");
         }
+
+        public static void CalculateAfeGainConfiguration(double requestedVoltFullScale, out byte pgaConfiguration, out bool afeAttenuatorEnabled, out double actualVoltFullScale)
+        {
+            double attenuatorFactor = 1.0 / 50.0;
+            double headroomFactor = 1.0;        // Buf802 has 0.961 so can get away with setting this to 1.0 instead of something like 0.95
+            double adcFullScaleRange = 0.7;     // Vpp
+            double adcFullScaleRangeWithHeadroom = headroomFactor * adcFullScaleRange;
+            // Remember the minimum PGA LNA gain is 10dB, that's a factor of 3.162 which might hit a PGA voltage rail internally before it has a chance to be attenuated...
+            // So might need to change this attenuatorThreasholdVolts calculation
+            double attenuatorThresholdVolts = adcFullScaleRangeWithHeadroom / Math.Pow(10, -1.14 / 20.0);   // -1.14dB is the minimum possible PGA gain however the PGA gain chain is 10dB + -20dB + 8.86dB, so be cautious.
+
+            // Check attenuator threshold and set afeAttenuatorEnabled if needed
+            afeAttenuatorEnabled = false;
+            if (requestedVoltFullScale > attenuatorThresholdVolts)
+            {
+                afeAttenuatorEnabled = true;
+                requestedVoltFullScale *= attenuatorFactor;
+            }
+
+            // Calculate the ideal PGA gain before searching the possible PGA gains (where possible range is -1.14dB to 38.8dB in 2dB steps)
+            double requestedPgaGainDb = 20 * Math.Log10(adcFullScaleRangeWithHeadroom / requestedVoltFullScale);
+
+            // Now check all the PGA gain options, starting from highest gain setting
+            bool gainFound = false;
+            bool lnaHighGain = true;
+            int n;
+            double pgaGainCalculation() { return (lnaHighGain ? 30 : 10) - (2 * n) + 8.86; }
+            for (n = 0; n < 10; n++)
+            {
+                var potentialPgaGainDb = pgaGainCalculation();
+                if (potentialPgaGainDb < requestedPgaGainDb)
+                {
+                    gainFound = true;
+                    break;
+                }
+            }
+            if (!gainFound)
+            {
+                lnaHighGain = false;
+                for (n = 0; n <= 10; n++)
+                {
+                    var potentialPgaGainDb = pgaGainCalculation();
+                    if (potentialPgaGainDb < requestedPgaGainDb)
+                    {
+                        gainFound = true;
+                        break;
+                    }
+                }
+            }
+            if (!gainFound)
+                throw new NotSupportedException();
+
+            var actualPgaGainDb = pgaGainCalculation();
+            actualVoltFullScale = adcFullScaleRangeWithHeadroom / Math.Pow(10, actualPgaGainDb / 20);
+            if (afeAttenuatorEnabled)
+                actualVoltFullScale /= attenuatorFactor;
+
+            // Decode N into PGA LNA gain and PGA attentuator step
+            pgaConfiguration = (byte)n;
+            if (lnaHighGain)
+                pgaConfiguration |= 0x10;
+
+            // fifo[3] register
+            // [PGA LPF][PGA LPF][PGA LPF][PGA LNA gain][PGA attenuator][PGA attenuator][PGA attenuator][PGA attenuator]
+
+            // case 100: fifo[3] = 0x0A; break;
+            // case 50: fifo[3] = 0x07; break;
+            // case 20: fifo[3] = 0x03; break;
+            // case 10: fifo[3] = 0x1A; break;
+            // case 5: fifo[3] = 0x17; break;
+            // case 2: fifo[3] = 0x13; break;
+            // case 1: fifo[3] = 0x10; break;
+
+            // https://www.ti.com/lit/ds/symlink/lmh6518.pdf page 22
+            // case 20: fifo[3] |= 0x40; break;
+            // case 100: fifo[3] |= 0x80; break;
+            // case 200: fifo[3] |= 0xC0; break;
+            // case 350: /* 0 */ break;
+        }
+#if TsRev1
+        private void ConfigurePLL()
+        {
+            // These were provided by the chip configuration tool.
+            ushort[] config_clk_gen = {
+                0x0010, 0x010B, 0x0233, 0x08B0,
+                0x0901, 0x1000, 0x1180, 0x1501,
+                0x1600, 0x1705, 0x1900, 0x1A32,
+                0x1B00, 0x1C00, 0x1D00, 0x1E00,
+                0x1F00, 0x2001, 0x210C, 0x2228,
+                0x2303, 0x2408, 0x2500, 0x2600,
+                0x2700, 0x2F00, 0x3000, 0x3110,
+                0x3200, 0x3300, 0x3400, 0x3500,
+                0x3800, 0x4802 };
+
+            // write to the clock generator
+            for (int i = 0; i < config_clk_gen.Length / 2; i++)
+            {
+                SetPllRegister((byte)(config_clk_gen[i] >> 8), (byte)(config_clk_gen[i] & 0xff));
+            }
+
+            hardwareState.PllEnabled = true;
+            ConfigureDatamover(hardwareState);
+        }
+
+        const byte I2C_BYTE_PLL = 0xFF;
+        const byte CLOCK_GEN_I2C_ADDRESS_WRITE = 0b10110000;
+        private void SetPllRegister(byte register, byte value)
+        {
+            Span<byte> fifo = new byte[4];
+            fifo[0] = I2C_BYTE_PLL;
+            fifo[1] = CLOCK_GEN_I2C_ADDRESS_WRITE;
+            fifo[2] = register;
+            fifo[3] = value;
+            WriteFifo(fifo);
+        }
+#endif
+
+#if TsRev3
+        private void ConfigurePLL()
+        {
+            //Strobe RST line on power on
+            Thread.Sleep(1);
+            hardwareState.PllEnabled = false;    //RSTn low --> PLL reset
+            ConfigureDatamover(hardwareState);
+            Thread.Sleep(1);
+            hardwareState.PllEnabled = true;    //RSTn high --> PLL active
+            ConfigureDatamover(hardwareState);
+            Thread.Sleep(1);
+
+            // These were provided by the chip configuration tool.
+            uint[] config_clk_gen = {
+                0X000902, 0X062108, 0X063140, 0X010006,
+                0X010120, 0X010202, 0X010380, 0X010A20,
+                0X010B03, 0X01140D, 0X012006, 0X0125C0,
+                0X012660, 0X01277F, 0X012904, 0X012AB3,
+                0X012BC0, 0X012C80, 0X001C10, 0X001D80,
+                0X034003, 0X020141, 0X022135, 0X022240,
+                0X000C02, 0X000B01};
+
+            // write to the clock generator
+            for (int i = 0; i < config_clk_gen.Length; i++)
+            {
+                SetPllRegister((byte)(config_clk_gen[i] >> 16), (byte)(config_clk_gen[i] >> 8), (byte)(config_clk_gen[i] & 0xff));
+            }
+
+            Thread.Sleep(10);
+
+            SetPllRegister((byte)(0x00), (byte)(0x0D), (byte)(0x05));
+
+            Thread.Sleep(10);
+        }
+
+        const byte I2C_BYTE_PLL = 0xFF;
+        const byte CLOCK_GEN_I2C_ADDRESS_WRITE = 0b11011000;
+        const byte CLOCK_GEN_WRITE_COMMAND = 0x02;
+        private void SetPllRegister(byte reg_high, byte reg_low, byte value)
+        {
+            Span<byte> fifo = new byte[6];
+            fifo[0] = I2C_BYTE_PLL;
+            fifo[1] = CLOCK_GEN_I2C_ADDRESS_WRITE;
+            fifo[2] = CLOCK_GEN_WRITE_COMMAND;
+            fifo[3] = reg_high;
+            fifo[4] = reg_low;
+            fifo[5] = value;
+            WriteFifo(fifo);
+        }
+#endif
+
+#if TsRev4
+
+#endif
     }
 }

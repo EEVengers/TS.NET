@@ -1,6 +1,4 @@
 ﻿// https://github.com/cloudtoid/interprocess
-using System;
-using System.IO;
 using System.IO.MemoryMappedFiles;
 
 namespace TS.NET.Memory.Unix
@@ -14,11 +12,11 @@ namespace TS.NET.Memory.Unix
         private const int BufferSize = 0x1000;
         private readonly string file;
 
-        internal MemoryFileUnix(ThunderscopeBridgeOptions options)
+        internal MemoryFileUnix(string memoryName, ulong bridgeCapacityBytes, string path)
         {
-            file = Path.Combine(options.Path, Folder);
+            file = Path.Combine(path, Folder);
             Directory.CreateDirectory(file);
-            file = Path.Combine(file, options.MemoryName + FileExtension);
+            file = Path.Combine(file, memoryName + FileExtension);
 
             FileStream stream;
 
@@ -50,7 +48,7 @@ namespace TS.NET.Memory.Unix
                 MappedFile = MemoryMappedFile.CreateFromFile(
                     stream,
                     mapName: null, // do not set this or it will not work on Linux/Unix/MacOS
-                    (long)options.BridgeCapacityBytes,
+                    (long)bridgeCapacityBytes,
                     MemoryMappedFileAccess.ReadWrite,
                     HandleInheritability.None,
                     false);
@@ -122,6 +120,15 @@ namespace TS.NET.Memory.Unix
             {
                 return true;
             }
+        }
+
+        public static bool Exists(string memoryName, string path)
+        {
+            var file = Path.Combine(path, Folder);
+            Directory.CreateDirectory(file);
+            file = Path.Combine(file, memoryName + FileExtension);
+
+            return IsFileInUse(file);
         }
     }
 }

@@ -38,45 +38,10 @@ namespace TS.NET
 
         //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
         //public ThunderscopeChannel* Channels;         // Commented out as requires unsafe context but maybe switch to it later?
-        public ThunderscopeChannel Channel0;
         public ThunderscopeChannel Channel1;
         public ThunderscopeChannel Channel2;
         public ThunderscopeChannel Channel3;
-
-        public ThunderscopeChannel GetChannel(int channel)
-        {
-            // Channels are 0-indexed but on the UI, they might be displayed +1
-            return channel switch
-            {
-                0 => Channel0,
-                1 => Channel1,
-                2 => Channel2,
-                3 => Channel3,
-                _ => throw new ArgumentException("channel out of range")
-            };
-        }
-
-        public void SetChannel(int channel, ThunderscopeChannel ch)
-        {
-            // Channels are 0-indexed but on the UI, they might be displayed +1
-            switch (channel)
-            {
-                case 0:
-                    Channel0 = ch;
-                    break;
-                case 1:
-                    Channel1 = ch;
-                    break;
-                case 2:
-                    Channel2 = ch;
-                    break;
-                case 3:
-                    Channel3 = ch;
-                    break;
-                default:
-                    throw new ArgumentException("channel out of range");
-            }
-        }
+        public ThunderscopeChannel Channel4;
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]

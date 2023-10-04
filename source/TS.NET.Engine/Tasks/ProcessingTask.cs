@@ -60,7 +60,9 @@ namespace TS.NET.Engine
 
                 // Bridge is cross-process shared memory for the UI to read triggered acquisitions
                 // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
-                ThunderscopeBridgeWriter bridge = new(new ThunderscopeBridgeOptions("ThunderScope.1", 4, settings.MaxChannelBytes));
+                ThunderscopeBridgeWriter bridge = new("ThunderScope.1", 4, settings.MaxChannelBytes);
+
+                ThunderscopeConfiguration cachedThunderscopeConfiguration = default;
 
                 // Set some sensible defaults
                 var processingConfig = new ThunderscopeProcessing
@@ -94,7 +96,7 @@ namespace TS.NET.Engine
 
                 Span<uint> triggerIndices = new uint[ThunderscopeMemory.Length / 1000];     // 1000 samples is the minimum holdoff
                 Span<uint> holdoffEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum holdoff
-                RisingEdgeTriggerInt8 trigger = new(5, 0, processingConfig.CurrentChannelBytes);
+                RisingEdgeTriggerI8 trigger = new(0, -10, processingConfig.CurrentChannelBytes);
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;
@@ -135,7 +137,7 @@ namespace TS.NET.Engine
                                 logger.LogDebug(nameof(ProcessingStopTriggerDto));
                                 break;
                             case ProcessingForceTriggerDto processingForceTriggerDto:
-                                if(triggerRunning)
+                                if (triggerRunning)
                                     forceTrigger = true;
                                 logger.LogDebug(nameof(ProcessingForceTriggerDto));
                                 break;
@@ -158,7 +160,29 @@ namespace TS.NET.Engine
                                 var fs = processingSetTriggerDelayDto.Femtoseconds;
                                 break;
                             case ProcessingSetTriggerLevelDto processingSetTriggerLevelDto:
-                                var level = processingSetTriggerLevelDto.Level;
+                                var requestedTriggerLevel = processingSetTriggerLevelDto.LevelVolts;
+                                // Convert the voltage to Int8
+
+                                var triggerChannel = cachedThunderscopeConfiguration.GetTriggerChannel(processingConfig.TriggerChannel);
+
+                                if (requestedTriggerLevel > triggerChannel.VoltFullScale / 2)
+                                {
+                                    logger.LogWarning($"Could not set trigger level {requestedTriggerLevel}");
+                                    break;
+                                }
+                                if (requestedTriggerLevel < -triggerChannel.VoltFullScale / 2)
+                                {
+                                    logger.LogWarning($"Could not set trigger level {requestedTriggerLevel}");
+                                    break;
+                                }
+
+                                sbyte triggerLevel = (sbyte)((requestedTriggerLevel / (triggerChannel.VoltFullScale/2)) * 127f);
+
+                                if (triggerLevel == sbyte.MinValue)
+                                    triggerLevel+=10;     // Coerce so that the trigger arm level is correct
+
+                                logger.LogDebug($"Setting trigger level to {triggerLevel}");
+                                trigger.Reset(triggerLevel, triggerLevel-=10, processingConfig.CurrentChannelBytes);
                                 break;
                             case ProcessingSetTriggerEdgeDirectionDto processingSetTriggerEdgeDirectionDto:
                                 // var edges = processingSetTriggerEdgeDirectionDto.Edges;
@@ -172,6 +196,7 @@ namespace TS.NET.Engine
                     }
 
                     InputDataDto inputDataDto = processingInputChannel.Read(cancelToken);
+                    cachedThunderscopeConfiguration = inputDataDto.Configuration;
                     bridge.Configuration = inputDataDto.Configuration;
                     dequeueCounter++;
                     oneSecondDequeueCount++;
