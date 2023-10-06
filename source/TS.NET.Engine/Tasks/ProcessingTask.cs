@@ -165,18 +165,18 @@ namespace TS.NET.Engine
 
                                 var triggerChannel = cachedThunderscopeConfiguration.GetTriggerChannel(processingConfig.TriggerChannel);
 
-                                if (requestedTriggerLevel > triggerChannel.VoltFullScale / 2)
+                                if (requestedTriggerLevel > triggerChannel.ActualVoltFullScale / 2)
                                 {
                                     logger.LogWarning($"Could not set trigger level {requestedTriggerLevel}");
                                     break;
                                 }
-                                if (requestedTriggerLevel < -triggerChannel.VoltFullScale / 2)
+                                if (requestedTriggerLevel < -triggerChannel.ActualVoltFullScale / 2)
                                 {
                                     logger.LogWarning($"Could not set trigger level {requestedTriggerLevel}");
                                     break;
                                 }
 
-                                sbyte triggerLevel = (sbyte)((requestedTriggerLevel / (triggerChannel.VoltFullScale/2)) * 127f);
+                                sbyte triggerLevel = (sbyte)((requestedTriggerLevel / (triggerChannel.ActualVoltFullScale / 2)) * 127f);
 
                                 if (triggerLevel == sbyte.MinValue)
                                     triggerLevel+=10;     // Coerce so that the trigger arm level is correct

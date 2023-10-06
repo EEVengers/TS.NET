@@ -9,7 +9,8 @@ namespace TS.NET
 {
     public static class ThunderscopeBridgeHeaderExtensions
     {
-        public static ThunderscopeChannel GetTriggerChannel(this ThunderscopeConfiguration configuration, TriggerChannel triggerChannel)
+        // By-value return
+        public unsafe static ThunderscopeChannel GetTriggerChannel(this ThunderscopeConfiguration configuration, TriggerChannel triggerChannel)
         {
             return triggerChannel switch
             {
@@ -21,7 +22,8 @@ namespace TS.NET
             };
         }
 
-        public static ThunderscopeChannel GetChannel(this ThunderscopeConfiguration configuration, int channelIndex)
+        // By-value return
+        public static ThunderscopeChannel GetChannel(this ref ThunderscopeConfiguration configuration, int channelIndex)
         {
             // channelIndex is zero-indexed
             return channelIndex switch
@@ -32,27 +34,27 @@ namespace TS.NET
                 3 => configuration.Channel4,
                 _ => throw new ArgumentException("channel out of range")
             };
-        }
+    }
 
-        public static void SetChannel(this ref ThunderscopeConfiguration configuration, int channelIndex, ThunderscopeChannel ch)
+        public static void SetChannel(this ref ThunderscopeConfiguration configuration, ref ThunderscopeChannel channel, int channelIndex)
         {
             // channelIndex is zero-indexed
             switch (channelIndex)
             {
                 case 0:
-                    configuration.Channel1 = ch;
+                    configuration.Channel1 = channel;
                     break;
                 case 1:
-                    configuration.Channel2 = ch;
+                    configuration.Channel2 = channel;
                     break;
                 case 2:
-                    configuration.Channel3 = ch;
+                    configuration.Channel3 = channel;
                     break;
                 case 3:
-                    configuration.Channel4 = ch;
+                    configuration.Channel4 = channel;
                     break;
                 default:
-                    throw new ArgumentException("channel out of range");
+                    throw new ArgumentException("channelIndex out of range");
             }
         }
     }

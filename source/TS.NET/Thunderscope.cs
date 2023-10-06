@@ -1,10 +1,7 @@
 ﻿#define TsRev3
 // Define options: TsRev1, TsRev3, TsRev4
 
-using System;
 using System.Buffers.Binary;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using TS.NET.Interop;
 
 namespace TS.NET
@@ -14,24 +11,30 @@ namespace TS.NET
     public class Thunderscope
     {
         private ThunderscopeInterop interop;
-
+        private ThunderscopeCalibration calibration;
         private bool open = false;
         private ThunderscopeHardwareState hardwareState = new();
-
-        public ThunderscopeChannel[] Channels = new ThunderscopeChannel[] { ThunderscopeChannel.Default(), ThunderscopeChannel.Default(), ThunderscopeChannel.Default(), ThunderscopeChannel.Default() };
-        //public ThunderscopeChannel[] ChannelStates = new ThunderscopeChannelState[]
+        private ThunderscopeConfiguration configuration = new()
+        {
+            AdcChannelMode = AdcChannelMode.Quad,
+            Channel1 = ThunderscopeChannel.Default(),
+            Channel2 = ThunderscopeChannel.Default(),
+            Channel3 = ThunderscopeChannel.Default(),
+            Channel4 = ThunderscopeChannel.Default()
+        };
 
         public static List<ThunderscopeDevice> IterateDevices()
         {
             return ThunderscopeInterop.IterateDevices();
         }
 
-        public void Open(ThunderscopeDevice device)
+        public void Open(ThunderscopeDevice device, ThunderscopeCalibration calibration)
         {
             if (open)
                 Close();
 
             interop = ThunderscopeInterop.CreateInterop(device);
+            this.calibration = calibration;
 
             Initialise();
             open = true;
@@ -122,11 +125,23 @@ namespace TS.NET
             }
         }
 
-        public void EnableChannel(int channelIndex)
+        // Returns a by-value copy
+        public ThunderscopeChannel GetChannel(int channelIndex)
         {
-            // channelIndex is zero-indexed
-            Channels[channelIndex].Enabled = true;
-            ConfigureChannel(channelIndex);
+            return configuration.GetChannel(channelIndex);
+        }
+
+        public void SetChannel(ThunderscopeChannel channel, int channelIndex)
+        {
+            CalculateAfeConfiguration(ref channel);
+            configuration.SetChannel(ref channel, channelIndex);
+            ConfigureChannels();
+        }
+
+        // Returns a by-value copy
+        public ThunderscopeConfiguration GetConfiguration()
+        {
+            return configuration;
         }
 
         public void ResetBuffer()
@@ -138,6 +153,11 @@ namespace TS.NET
 
         private void Initialise()
         {
+            CalculateAfeConfiguration(ref configuration.Channel1);
+            CalculateAfeConfiguration(ref configuration.Channel2);
+            CalculateAfeConfiguration(ref configuration.Channel3);
+            CalculateAfeConfiguration(ref configuration.Channel4);
+
             Write32(BarRegister.DATAMOVER_REG_OUT, 0);
 
             //Comment out below for Rev.1
@@ -150,6 +170,12 @@ namespace TS.NET
             ConfigureDatamover(hardwareState);
             ConfigurePLL();
             ConfigureADC();
+
+            ConfigureChannels();
+            //ConfigureChannel(0);
+            //ConfigureChannel(1);
+            //ConfigureChannel(2);
+            //ConfigureChannel(3);
         }
 
         private uint Read32(BarRegister register)
@@ -188,7 +214,7 @@ namespace TS.NET
             // write to TLR (the size of the packet)
             Write32(BarRegister.SERIAL_FIFO_TLR_ADDRESS, (uint)(data.Length * 4));
             // read ISR for a done value
-            while ((Read32(BarRegister.SERIAL_FIFO_ISR_ADDRESS) >> 24) != 8)
+            while (Read32(BarRegister.SERIAL_FIFO_ISR_ADDRESS) >> 24 != 8)
             {
                 Thread.Sleep(1);
             }
@@ -210,18 +236,17 @@ namespace TS.NET
             int numChannelsEnabled = 0;
             for (int channel = 0; channel < 4; channel++)
             {
-                if (Channels[channel].Enabled == true)
+                if (configuration.GetChannel(channel).Enabled == true)
                 {
                     numChannelsEnabled++;
                 }
-                CalculateAfeGainConfiguration(Channels[channel].VoltFullScale, out _, out bool afeAttenuatorEnabled, out _);
-                if (!afeAttenuatorEnabled)
+                if (!configuration.GetChannel(channel).Attenuator)
                 {
-                    datamoverRegister |= (uint)1 << (16 + channel);
+                    datamoverRegister |= (uint)1 << 16 + channel;
                 }
-                if (Channels[channel].Coupling == ThunderscopeCoupling.DC)
+                if (configuration.GetChannel(channel).Coupling == ThunderscopeCoupling.DC)
                 {
-                    datamoverRegister |= (uint)1 << (20 + channel);
+                    datamoverRegister |= (uint)1 << 20 + channel;
                 }
             }
             switch (numChannelsEnabled)
@@ -284,28 +309,21 @@ namespace TS.NET
             SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_POWER, (ushort)(on ? 0x0000 : 0x0200));
         }
 
-        private void ConfigureChannel(int channel)
-        {
-            ConfigureChannels();
-            SetDAC(channel);
-            ConfigureDatamover(hardwareState);
-            SetPGA(channel);
-        }
-
         private void ConfigureChannels()
         {
             byte[] on_channels = new byte[4];
             int num_channels_on = 0;
-            byte clkdiv = 0;
-
             for (int i = 0; i < 4; i++)
             {
-                if (Channels[i].Enabled)
+                if (configuration.GetChannel(i).Enabled)
                 {
                     on_channels[num_channels_on++] = (byte)i;
                 }
+                SetDAC(i);
+                SetPGA(i);
             }
 
+            byte clkdiv;
             switch (num_channels_on)
             {
                 case 0:
@@ -313,13 +331,11 @@ namespace TS.NET
                     on_channels[1] = on_channels[2] = on_channels[3] = on_channels[0];
                     clkdiv = 0;
                     break;
-
                 case 2:
                     on_channels[2] = on_channels[3] = on_channels[1];
                     on_channels[1] = on_channels[0];
                     clkdiv = 1;
                     break;
-
                 default:
                     on_channels[0] = 0;
                     on_channels[1] = 1;
@@ -331,10 +347,10 @@ namespace TS.NET
             }
 
             AdcPower(false);
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_CHNUM_CLKDIV, (ushort)((clkdiv << 8) | num_channels_on));
+            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_CHNUM_CLKDIV, (ushort)(clkdiv << 8 | num_channels_on));
             AdcPower(true);
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL12, (ushort)((2 << on_channels[0]) | (512 << on_channels[1])));
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL34, (ushort)((2 << on_channels[2]) | (512 << on_channels[3])));
+            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL12, (ushort)(2 << on_channels[0] | 512 << on_channels[1]));
+            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL34, (ushort)(2 << on_channels[2] | 512 << on_channels[3]));
 
             ThunderscopeHardwareState temporaryState = hardwareState;
             temporaryState.DatamoverEnabled = false;
@@ -351,18 +367,26 @@ namespace TS.NET
         {
             // value is 12-bit
             // Is this right?? Or is it rounding wrong?
-            uint dac_value = (uint)Math.Round((Channels[channel].VoltOffset + 0.5) * 4095);
-            if (dac_value < 0)
+            //uint dac_value = (uint)Math.Round((configuration.GetChannel(channel).VoltOffset + 0.5) * 4095);
+
+            ushort dacValue = channel switch
+            {
+                0 => calibration.Channel1_Dac0V,
+                1 => calibration.Channel2_Dac0V,
+                2 => calibration.Channel3_Dac0V,
+                3 => calibration.Channel4_Dac0V,
+            };
+            if (dacValue < 0)
                 throw new Exception("DAC offset too low");
-            if (dac_value > 0xFFF)
+            if (dacValue > 0xFFF)
                 throw new Exception("DAC offset too high");
 
             Span<byte> fifo = new byte[5];
             fifo[0] = 0xFF;  // I2C
             fifo[1] = 0xC0;  // DAC?
             fifo[2] = (byte)(0x40 + (channel << 1));
-            fifo[3] = (byte)((dac_value >> 8) & 0xF);
-            fifo[4] = (byte)(dac_value & 0xFF);
+            fifo[3] = (byte)(dacValue >> 8 & 0xF);
+            fifo[4] = (byte)(dacValue & 0xFF);
             WriteFifo(fifo);
         }
 
@@ -372,10 +396,8 @@ namespace TS.NET
             fifo[0] = (byte)(0xFB - channel);  // SPI chip enable
             fifo[1] = 0;
             fifo[2] = 0x04;  // ??
-
-            CalculateAfeGainConfiguration(Channels[channel].VoltFullScale, out byte pgaConfiguration, out _, out _);
-            fifo[3] = pgaConfiguration;
-            switch (Channels[channel].Bandwidth)
+            fifo[3] = configuration.GetChannel(channel).PgaConfigurationByte;
+            switch (configuration.GetChannel(channel).Bandwidth)
             {
                 case 20: fifo[3] |= 0x40; break;
                 case 100: fifo[3] |= 0x80; break;
@@ -397,12 +419,12 @@ namespace TS.NET
             if ((error_code & 1) > 0)
                 throw new ThunderscopeFIFOOverflowException("Thunderscope - FIFO overflow");
 
-            uint overflow_cycles = (transfer_counter >> 16) & 0x3FFF;
+            uint overflow_cycles = transfer_counter >> 16 & 0x3FFF;
             if (overflow_cycles > 0)
                 throw new Exception("Thunderscope - pipeline overflow");
 
             uint pages_moved = transfer_counter & 0xFFFF;
-            ulong buffer_head = (hardwareState.BufferHead & ~0xFFFFUL) | pages_moved;
+            ulong buffer_head = hardwareState.BufferHead & ~0xFFFFUL | pages_moved;
             if (buffer_head < hardwareState.BufferHead)
                 buffer_head += 0x10000UL;
 
@@ -413,8 +435,11 @@ namespace TS.NET
                 throw new ThunderscopeMemoryOutOfMemoryException("Thunderscope - memory full");
         }
 
-        public static void CalculateAfeGainConfiguration(double requestedVoltFullScale, out byte pgaConfiguration, out bool afeAttenuatorEnabled, out double actualVoltFullScale)
+        // Channel passed by ref to do in-place updating
+        // Returns PGA configuration byte
+        public static void CalculateAfeConfiguration(ref ThunderscopeChannel channel)
         {
+            double requestedVoltFullScale = channel.VoltFullScale;
             double attenuatorFactor = 1.0 / 50.0;
             double headroomFactor = 1.0;        // Buf802 has 0.961 so can get away with setting this to 1.0 instead of something like 0.95
             double adcFullScaleRange = 0.7;     // Vpp
@@ -424,10 +449,10 @@ namespace TS.NET
             double attenuatorThresholdVolts = adcFullScaleRangeWithHeadroom / Math.Pow(10, -1.14 / 20.0);   // -1.14dB is the minimum possible PGA gain however the PGA gain chain is 10dB + -20dB + 8.86dB, so be cautious.
 
             // Check attenuator threshold and set afeAttenuatorEnabled if needed
-            afeAttenuatorEnabled = false;
+            channel.Attenuator = false;
             if (requestedVoltFullScale > attenuatorThresholdVolts)
             {
-                afeAttenuatorEnabled = true;
+                channel.Attenuator = true;
                 requestedVoltFullScale *= attenuatorFactor;
             }
 
@@ -438,7 +463,7 @@ namespace TS.NET
             bool gainFound = false;
             bool lnaHighGain = true;
             int n;
-            double pgaGainCalculation() { return (lnaHighGain ? 30 : 10) - (2 * n) + 8.86; }
+            double pgaGainCalculation() { return (lnaHighGain ? 30 : 10) - 2 * n + 8.86; }
             for (n = 0; n < 10; n++)
             {
                 var potentialPgaGainDb = pgaGainCalculation();
@@ -465,14 +490,14 @@ namespace TS.NET
                 throw new NotSupportedException();
 
             var actualPgaGainDb = pgaGainCalculation();
-            actualVoltFullScale = adcFullScaleRangeWithHeadroom / Math.Pow(10, actualPgaGainDb / 20);
-            if (afeAttenuatorEnabled)
-                actualVoltFullScale /= attenuatorFactor;
+            channel.ActualVoltFullScale = adcFullScaleRangeWithHeadroom / Math.Pow(10, actualPgaGainDb / 20);
+            if (channel.Attenuator)
+                channel.ActualVoltFullScale /= attenuatorFactor;
 
             // Decode N into PGA LNA gain and PGA attentuator step
-            pgaConfiguration = (byte)n;
+            channel.PgaConfigurationByte = (byte)n;
             if (lnaHighGain)
-                pgaConfiguration |= 0x10;
+                channel.PgaConfigurationByte |= 0x10;
 
             // fifo[3] register
             // [PGA LPF][PGA LPF][PGA LPF][PGA LNA gain][PGA attenuator][PGA attenuator][PGA attenuator][PGA attenuator]
@@ -559,7 +584,7 @@ namespace TS.NET
 
             Thread.Sleep(10);
 
-            SetPllRegister((byte)(0x00), (byte)(0x0D), (byte)(0x05));
+            SetPllRegister(0x00, 0x0D, 0x05);
 
             Thread.Sleep(10);
         }

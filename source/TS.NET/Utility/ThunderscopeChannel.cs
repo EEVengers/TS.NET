@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace TS.NET
 {
@@ -7,20 +6,25 @@ namespace TS.NET
     public struct ThunderscopeChannel
     {
         public bool Enabled;
+        public ThunderscopeCoupling Coupling;
         public double VoltFullScale;
         public double VoltOffset;
         public int Bandwidth;
-        public ThunderscopeCoupling Coupling;
+
+        // Calculated data
+        public bool Attenuator;
+        public double ActualVoltFullScale;
+        public byte PgaConfigurationByte;
 
         public static ThunderscopeChannel Default()
         {
             return new ThunderscopeChannel()
             {
                 Enabled = true,
+                Coupling = ThunderscopeCoupling.DC,
                 VoltFullScale = 0.5,
                 VoltOffset = 0,
-                Bandwidth = 350,
-                Coupling = ThunderscopeCoupling.DC
+                Bandwidth = 350,               
             };
         }
     }

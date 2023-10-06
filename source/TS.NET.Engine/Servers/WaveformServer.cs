@@ -135,15 +135,13 @@ namespace TS.NET.Engine
                     {
                         Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
 
-                        for (byte channel = 0; channel < processing.CurrentChannelCount; channel++)
+                        for (byte channelIndex = 0; channelIndex < processing.CurrentChannelCount; channelIndex++)
                         {
-                            ThunderscopeChannel thunderscopeChannel = configuration.GetChannel(channel);
+                            ThunderscopeChannel thunderscopeChannel = configuration.GetChannel(channelIndex);
 
                             //float full_scale = ((float)thunderscopeChannel.VoltFullScale) * 5f; // 5 instead of 10 for signed
-                            Thunderscope.CalculateAfeGainConfiguration(thunderscopeChannel.VoltFullScale, out _, out _, out double actualVoltFullScale);
-
-                            chHeader.chNum = channel;
-                            chHeader.scale = (float)(actualVoltFullScale / 255.0);
+                            chHeader.chNum = channelIndex;
+                            chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
                             chHeader.offset = -((float)thunderscopeChannel.VoltOffset); // needs chHeader.scale * 0x80 for signed
 
                             // if (ch == 0)
@@ -151,7 +149,7 @@ namespace TS.NET.Engine
 
                             // Length of this channel as 'depth'
                             Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
-                            Send(data.Slice(channel * (int)processing.CurrentChannelBytes, (int)processing.CurrentChannelBytes));
+                            Send(data.Slice(channelIndex * (int)processing.CurrentChannelBytes, (int)processing.CurrentChannelBytes));
                         }
                     }
                     sequenceNumber++;

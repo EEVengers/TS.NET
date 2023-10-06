@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using System;
 using System.Diagnostics;
 
 namespace TS.NET.Engine
@@ -43,8 +42,8 @@ namespace TS.NET.Engine
             Thunderscope thunderscope = new();
             try
             {
-                thunderscope.Open(thunderscopeDevice);
-                ThunderscopeConfiguration configuration = DoInitialConfiguration(thunderscope);
+                var calibration = ThunderscopeCalibrationFile.Read("calibration.json");
+                thunderscope.Open(thunderscopeDevice, calibration);
                 thunderscope.Start();
                 logger.LogDebug("Started");
 
@@ -77,7 +76,7 @@ namespace TS.NET.Engine
                                     break;
                                 case HardwareConfigureChannelDto hardwareConfigureChannelDto:
                                     var channelIndex = ((HardwareConfigureChannelDto)request).Channel;
-                                    ThunderscopeChannel channel = configuration.GetChannel(channelIndex);
+                                    ThunderscopeChannel channel = thunderscope.GetChannel(channelIndex);
                                     switch (request)
                                     {
                                         case HardwareSetVoltOffsetRequest hardwareSetOffsetRequest:
@@ -104,9 +103,7 @@ namespace TS.NET.Engine
                                             logger.LogWarning($"Unknown HardwareConfigureChannelDto: {request}");
                                             break;
                                     }
-                                    configuration.SetChannel(channelIndex, channel);
-                                    ConfigureFromObject(thunderscope, configuration);
-                                    thunderscope.EnableChannel(channelIndex);
+                                    thunderscope.SetChannel(channel, channelIndex);
                                     break;
                                 default:
                                     logger.LogWarning($"Unknown HardwareRequestDto: {request}");
@@ -163,7 +160,7 @@ namespace TS.NET.Engine
                     periodicEnqueueCount++;
                     enqueueCounter++;
 
-                    processingChannel.Write(new InputDataDto(configuration, memory), cancelToken);
+                    processingChannel.Write(new InputDataDto(thunderscope.GetConfiguration(), memory), cancelToken);
 
                     if (periodicUpdateTimer.ElapsedMilliseconds >= 10000)
                     {
@@ -187,37 +184,6 @@ namespace TS.NET.Engine
             {
                 thunderscope.Stop();
                 logger.LogDebug("Stopped");
-            }
-        }
-
-        private static ThunderscopeConfiguration DoInitialConfiguration(Thunderscope thunderscope)
-        {
-            ThunderscopeConfiguration configuration = new()
-            {
-                AdcChannelMode = AdcChannelMode.Quad,
-                Channel1 = ThunderscopeChannel.Default(),
-                Channel2 = ThunderscopeChannel.Default(),
-                Channel3 = ThunderscopeChannel.Default(),
-                Channel4 = ThunderscopeChannel.Default(),
-            };
-
-            configuration.Channel2.VoltOffset = 0.5;
-
-            ConfigureFromObject(thunderscope, configuration);
-
-            thunderscope.EnableChannel(0);
-            thunderscope.EnableChannel(1);
-            thunderscope.EnableChannel(2);
-            thunderscope.EnableChannel(3);
-
-            return configuration;
-        }
-
-        private static void ConfigureFromObject(Thunderscope thunderscope, ThunderscopeConfiguration configuration)
-        {
-            for (int i = 0; i < 4; i++)
-            {
-                thunderscope.Channels[i] = configuration.GetChannel(i);
             }
         }
     }
