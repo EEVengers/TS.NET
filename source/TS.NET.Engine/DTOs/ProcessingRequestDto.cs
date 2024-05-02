@@ -7,10 +7,10 @@ namespace TS.NET.Engine
     // Trigger actions
     public record ProcessingStartTriggerDto() : ProcessingRequestDto;
     public record ProcessingStopTriggerDto() : ProcessingRequestDto;
-    public record ProcessingSingleTriggerDto() : ProcessingRequestDto;
     public record ProcessingForceTriggerDto() : ProcessingRequestDto;
 
     // Trigger configuration
+    public record ProcessingSetTriggerModeDto(TriggerMode Mode) : ProcessingRequestDto;
     public record ProcessingSetTriggerSourceDto(TriggerChannel Channel) : ProcessingRequestDto;
     public record ProcessingSetTriggerDelayDto(long Femtoseconds) : ProcessingRequestDto;
     public record ProcessingSetTriggerLevelDto(double LevelVolts) : ProcessingRequestDto;

@@ -1,4 +1,4 @@
-﻿#define TsRev3
+﻿#define TsRev4
 // Define options: TsRev1, TsRev3, TsRev4
 
 using System.Buffers.Binary;
@@ -265,8 +265,6 @@ namespace TS.NET
             SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_RESET, 0x0001);
             // Power Down ADC
             AdcPower(false);
-            // LVDS Phase to 0deg to work with edge aligned receiver
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_LVDS_CNTRL, 0x0000);
             // Invert channels
             SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INVERT, 0x007F);
             // Adjust full scale value
@@ -284,6 +282,10 @@ namespace TS.NET
 
             // Set 8-bit mode (for HMCAD1520, won't do anything for HMCAD1511)
             SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_RES_SEL, 0x0000);
+
+            //Set LVDS phase to 0 Deg & Drive Strength to RSDS
+            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_LVDS_PHASE, 0x0060);
+            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_LVDS_DRIVE, 0x0222);
 
             AdcPower(true);
             //_FIFO_WRITE(user_handle,currentBoardState.adc_in_sel_12,sizeof(currentBoardState.adc_in_sel_12));
@@ -383,7 +385,7 @@ namespace TS.NET
 
             Span<byte> fifo = new byte[5];
             fifo[0] = 0xFF;  // I2C
-            fifo[1] = 0xC0;  // DAC?
+            fifo[1] = 0xC0;  // DAC? New address is C0 since part is A0 variant
             fifo[2] = (byte)(0x40 + (channel << 1));
             fifo[3] = (byte)(dacValue >> 8 & 0xF);
             fifo[4] = (byte)(dacValue & 0xFF);
@@ -606,7 +608,56 @@ namespace TS.NET
 #endif
 
 #if TsRev4
+        private void ConfigurePLL()
+        {
+            //Strobe RST line on power on
+            Thread.Sleep(10);
+            hardwareState.PllEnabled = false;    //RSTn low --> PLL reset
+            ConfigureDatamover(hardwareState);
+            Thread.Sleep(10);
+            hardwareState.PllEnabled = true;    //RSTn high --> PLL active
+            ConfigureDatamover(hardwareState);
+            Thread.Sleep(10);
 
+            // These were provided by the chip configuration tool.
+            uint[] config_clk_gen = {
+                0x042308, 0x000301, 0x000402, 0x000521,
+                0x000701, 0x010042, 0x010100, 0x010201,
+                0x010600, 0x010700, 0x010800, 0x010900,
+                0x010A20, 0x010B03, 0x012160, 0x012790,
+                0x014100, 0x014200, 0x014300, 0x014400,
+                0x0145A0, 0x015300, 0x015450, 0x0155CE,
+                0x018000, 0x020080, 0x020105, 0x025080,
+                0x025102, 0x04300C, 0x043000};
+
+            // write to the clock generator
+            for (int i = 0; i < config_clk_gen.Length; i++)
+            {
+                SetPllRegister((byte)(config_clk_gen[i] >> 16), (byte)(config_clk_gen[i] >> 8), (byte)(config_clk_gen[i] & 0xff));
+            }
+
+            Thread.Sleep(10);
+
+            SetPllRegister((byte)(0x01), (byte)(0x00), (byte)(0x02)); //0x010002
+            SetPllRegister((byte)(0x01), (byte)(0x00), (byte)(0x42)); //0x010042
+
+            Thread.Sleep(10);
+        }
+
+        const byte I2C_BYTE_PLL = 0xFF;
+        const byte CLOCK_GEN_I2C_ADDRESS_WRITE = 0b11101000;
+        const byte CLOCK_GEN_WRITE_COMMAND = 0x02;
+        private void SetPllRegister(byte reg_high, byte reg_low, byte value)
+        {
+            Span<byte> fifo = new byte[6];
+            fifo[0] = I2C_BYTE_PLL;
+            fifo[1] = CLOCK_GEN_I2C_ADDRESS_WRITE;
+            fifo[2] = CLOCK_GEN_WRITE_COMMAND;
+            fifo[3] = reg_high;
+            fifo[4] = reg_low;
+            fifo[5] = value;
+            WriteFifo(fifo);
+        }
 #endif
     }
 }

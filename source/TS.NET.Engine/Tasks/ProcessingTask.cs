@@ -71,7 +71,7 @@ namespace TS.NET.Engine
                     CurrentChannelBytes = settings.MaxChannelBytes,
                     HorizontalSumLength = HorizontalSumLength.None,
                     TriggerChannel = TriggerChannel.One,
-                    TriggerMode = TriggerMode.Normal,
+                    TriggerMode = TriggerMode.Auto,
                     ChannelDataType = ThunderscopeChannelDataType.Byte
                 };
                 bridge.Processing = processingConfig;
@@ -110,9 +110,22 @@ namespace TS.NET.Engine
                 var circularBuffer3 = new ChannelCircularAlignedBuffer((uint)processingConfig.CurrentChannelBytes + ThunderscopeMemory.Length);
                 var circularBuffer4 = new ChannelCircularAlignedBuffer((uint)processingConfig.CurrentChannelBytes + ThunderscopeMemory.Length);
 
-                bool triggerRunning = true;
-                bool forceTrigger = false;
-                bool singleTrigger = false;
+                // Triggering:
+                // There are 3 states for Trigger Mode: normal, single, auto.
+                // (these only run during Start, not during Stop. Invoking Force will ignore Start/Stop.)
+                // Normal: wait for trigger indefinately and run continuously.
+                // Single: wait for trigger indefinately and then stop.
+                // Auto: wait for trigger indefinately, push update when timeout occurs, and run continously.
+                //
+                // runTrigger: enables/disables trigger subsystem. 
+                // forceTriggerLatch: disregards the Trigger Mode, push update immediately and set forceTrigger to false. If a standard trigger happened at the same time as a force, the force is ignored so the bridge only updates once.
+                // singleTriggerLatch: used in Single mode to stop the trigger subsystem after a trigger.
+
+                bool runTrigger = true;
+                bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false automatically. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
+                bool singleTriggerLatch = false;    // "Latch" because it will reset state back to false automatically. When reset, runTrigger will be set to false.
+                Stopwatch autoTimer = Stopwatch.StartNew();
+
                 logger.LogInformation("Started");
 
                 while (true)
@@ -125,26 +138,29 @@ namespace TS.NET.Engine
                         switch (request)
                         {
                             case ProcessingStartTriggerDto processingStartTriggerDto:
-                                triggerRunning = true;
-                                singleTrigger = false;
-                                forceTrigger = false;
+                                runTrigger = true;
                                 logger.LogDebug(nameof(ProcessingStartTriggerDto));
                                 break;
                             case ProcessingStopTriggerDto processingStopTriggerDto:
-                                triggerRunning = false;
-                                singleTrigger = false;
-                                forceTrigger = false;
+                                runTrigger = false;
                                 logger.LogDebug(nameof(ProcessingStopTriggerDto));
                                 break;
                             case ProcessingForceTriggerDto processingForceTriggerDto:
-                                if (triggerRunning)
-                                    forceTrigger = true;
+                                forceTriggerLatch = true;
                                 logger.LogDebug(nameof(ProcessingForceTriggerDto));
                                 break;
-                            case ProcessingSingleTriggerDto processingSingleTriggerDto:
-                                triggerRunning = true;
-                                singleTrigger = true;
-                                logger.LogDebug(nameof(ProcessingSingleTriggerDto));
+                            case ProcessingSetTriggerModeDto processingSetTriggerModeDto:
+                                processingConfig.TriggerMode = processingSetTriggerModeDto.Mode;
+                                switch (processingSetTriggerModeDto.Mode)
+                                {
+                                    case TriggerMode.Single:
+                                        singleTriggerLatch = true;
+                                        break;
+                                    case TriggerMode.Auto:
+                                        autoTimer.Restart();
+                                        break;
+                                }
+                                logger.LogDebug(nameof(ProcessingSetTriggerModeDto));
                                 break;
                             case ProcessingSetDepthDto processingSetDepthDto:
                                 var depth = processingSetDepthDto.Samples;
@@ -266,7 +282,7 @@ namespace TS.NET.Engine
                             circularBuffer3.Write(postShuffleCh3_4);
                             circularBuffer4.Write(postShuffleCh4_4);
                             // Trigger
-                            if (triggerRunning && processingConfig.TriggerChannel != TriggerChannel.None)
+                            if (runTrigger && processingConfig.TriggerChannel != TriggerChannel.None)
                             {
                                 var triggerChannelBuffer = processingConfig.TriggerChannel switch
                                 {
@@ -280,7 +296,7 @@ namespace TS.NET.Engine
                                 oneSecondHoldoffCount += holdoffEndCount;
                                 if (holdoffEndCount > 0)
                                 {
-                                    // logger.LogDebug("Trigger Fired");
+                                    //logger.LogDebug("Trigger fired");
                                     for (int i = 0; i < holdoffEndCount; i++)
                                     {
                                         var bridgeSpan = bridge.AcquiringRegion;
@@ -292,12 +308,16 @@ namespace TS.NET.Engine
                                         bridge.DataWritten();
                                         bridge.SwitchRegionIfNeeded();
                                     }
-                                    forceTrigger = false;       // Ignore the force trigger request, a normal trigger happened
-                                    if (singleTrigger) triggerRunning = false;
+                                    forceTriggerLatch = false;      // Ignore the force trigger request, if any, as a non-force trigger happened
+                                    if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
+                                    {
+                                        singleTriggerLatch = false;
+                                        runTrigger = false;
+                                    }
                                 }
-                                else if (forceTrigger)
+                                else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimer.ElapsedMilliseconds > 1000)
                                 {
-                                    // logger.LogDebug("Force Trigger fired");
+                                    //logger.LogDebug("Auto trigger fired");
                                     var bridgeSpan = bridge.AcquiringRegion;
                                     circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
                                     circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
@@ -305,15 +325,28 @@ namespace TS.NET.Engine
                                     circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
                                     bridge.DataWritten();
                                     bridge.SwitchRegionIfNeeded();
-                                    forceTrigger = false;
-                                    if (singleTrigger) triggerRunning = false;
+                                    forceTriggerLatch = false;      // Ignore the force trigger request, if any, as a non-force trigger happened
+                                    autoTimer.Restart();            // Restart the timer so we get auto updates at a regular interval
                                 }
                                 else
                                 {
-                                    bridge.SwitchRegionIfNeeded();
+                                    bridge.SwitchRegionIfNeeded();  // To do: add a comment here when the reason for this LoC is discovered...!
                                 }
 
                             }
+                            if (forceTriggerLatch)             // If a forceTriggerLatch is still active, send data to the bridge and reset latch.
+                            {
+                                //logger.LogDebug("Force trigger fired");
+                                var bridgeSpan = bridge.AcquiringRegion;
+                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
+                                circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
+                                circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
+                                circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
+                                bridge.DataWritten();
+                                bridge.SwitchRegionIfNeeded();
+                                forceTriggerLatch = false;
+                            }
+
                             //logger.LogInformation($"Dequeue #{dequeueCounter++}, Ch1 triggers: {triggerCount1}, Ch2 triggers: {triggerCount2}, Ch3 triggers: {triggerCount3}, Ch4 triggers: {triggerCount4} ");
                             break;
                     }

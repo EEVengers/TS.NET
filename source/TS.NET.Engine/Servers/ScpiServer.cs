@@ -125,8 +125,8 @@ namespace TS.NET.Engine
                             // processingResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                             return null;
                         case "SINGLE":
-                            processingRequestChannel.Write(new ProcessingSingleTriggerDto());
-                            logger.LogDebug($"{nameof(ProcessingSingleTriggerDto)} sent");
+                            processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Single));
+                            logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
                             return null;
                         case "FORCE":
                             processingRequestChannel.Write(new ProcessingForceTriggerDto());

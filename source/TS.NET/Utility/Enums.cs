@@ -54,8 +54,9 @@ public enum TriggerMode : byte
 {
     Auto = 1,
     Normal = 2,
-    Single_Unarmed = 3,
-    Single_Armed = 4,
+    Single = 3,
+    //Single_Armed?
+    //Single_Unarmed?
 }
 public enum ThunderscopeChannelDataType : byte
 {
