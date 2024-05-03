@@ -1,0 +1,52 @@
+<mxfile host="Electron" modified="2024-05-03T13:38:22.691Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/22.0.2 Chrome/114.0.5735.289 Electron/25.8.4 Safari/537.36" etag="i2hawHRYUIKibkpIMF6s" version="22.0.2" type="device">
+  <diagram name="Page-1" id="3fCfbCUHCSVRy5XrL_X2">
+    <mxGraphModel dx="2088" dy="902" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="wwbpqvvTFsqUCXfduj0K-1" value="x1 or &lt;br&gt;x50 attenuator" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="-120" y="320" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wwbpqvvTFsqUCXfduj0K-2" value="BUF802&lt;br&gt;x0.961 &lt;br&gt;&lt;br&gt;Powered from +/-5V&lt;br&gt;Output clamps set to +5V/0V&lt;br&gt;&lt;br&gt;Output swing 0V to +3V&lt;br&gt;&lt;br&gt;2.2nV/rHz noise" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="320" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="wwbpqvvTFsqUCXfduj0K-3" value="LMH6518 PGA&lt;br&gt;&lt;br&gt;Powered from +5V/0V&lt;br&gt;&lt;br&gt;Minimum Gain: −1.16 dB&lt;br&gt;Maximum Gain: 38.8 dB&amp;nbsp;&lt;br&gt;&lt;br&gt;1.8Vpp output range&lt;br&gt;&lt;br&gt;0.98nV/rHz to 4.1nV/rHz noise" style="rounded=0;whiteSpace=wrap;html=1;align=center;verticalAlign=top;" parent="1" vertex="1">
+          <mxGeometry x="240" y="320" width="400" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="wwbpqvvTFsqUCXfduj0K-4" value="HMCAD1511&lt;br&gt;&lt;br&gt;Coarse and Fine Gain Control&lt;br&gt;Digital Fine Gain Adjustment for each ADC&lt;br&gt;&lt;br&gt;2Vpp input range" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="680" y="320" width="160" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="wwbpqvvTFsqUCXfduj0K-5" value="10dB or 30dB" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="260" y="600" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="wwbpqvvTFsqUCXfduj0K-6" value="0 to -20dB in 2dB steps" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="390" y="600" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="wwbpqvvTFsqUCXfduj0K-7" value="8.86dB" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="540" y="600" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="wwbpqvvTFsqUCXfduj0K-8" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="wwbpqvvTFsqUCXfduj0K-5" target="wwbpqvvTFsqUCXfduj0K-6" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="630" as="sourcePoint" />
+            <mxPoint x="440" y="580" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wwbpqvvTFsqUCXfduj0K-9" value="" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" target="wwbpqvvTFsqUCXfduj0K-7" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="510" y="620" as="sourcePoint" />
+            <mxPoint x="440" y="580" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wwbpqvvTFsqUCXfduj0K-10" value="Trim DAC into In-" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="70" y="600" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="wwbpqvvTFsqUCXfduj0K-11" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="wwbpqvvTFsqUCXfduj0K-10" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="390" y="630" as="sourcePoint" />
+            <mxPoint x="230" y="630" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
