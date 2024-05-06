@@ -202,33 +202,37 @@ namespace TS.NET.Engine
                 {
                     Enabled = true,
                     VoltsOffset = 0,
-                    VoltsDiv = 100,
+                    VoltsDiv = 5000,
                     Bandwidth = 350,
-                    Coupling = ThunderscopeCoupling.DC
+                    Coupling = ThunderscopeCoupling.DC,
+                    Term50Z = false
                 },
                 Channel1 = new ThunderscopeChannel()
                 {
                     Enabled = true,
                     VoltsOffset = 0,
-                    VoltsDiv = 100,
+                    VoltsDiv = 5000,
                     Bandwidth = 350,
-                    Coupling = ThunderscopeCoupling.DC
+                    Coupling = ThunderscopeCoupling.DC,
+                    Term50Z = false
                 },
                 Channel2 = new ThunderscopeChannel()
                 {
                     Enabled = true,
                     VoltsOffset = 0,
-                    VoltsDiv = 100,
+                    VoltsDiv = 5000,
                     Bandwidth = 350,
-                    Coupling = ThunderscopeCoupling.DC
+                    Coupling = ThunderscopeCoupling.DC,
+                    Term50Z = false
                 },
                 Channel3 = new ThunderscopeChannel()
                 {
                     Enabled = true,
                     VoltsOffset = 0,
-                    VoltsDiv = 100,
+                    VoltsDiv = 5000,
                     Bandwidth = 350,
-                    Coupling = ThunderscopeCoupling.DC
+                    Coupling = ThunderscopeCoupling.DC,
+                    Term50Z = false
                 },
             };
 
