@@ -460,7 +460,7 @@ namespace TS.NET
             {
                 if (Channels[i].Enabled)
                 {
-                    on_channels[num_channels_on++] = (byte)i;
+                    on_channels[num_channels_on++] = (byte)(3-i);
                 }
             }
 
@@ -468,21 +468,21 @@ namespace TS.NET
             {
                 case 0:
                 case 1:
-                    on_channels[1] = on_channels[2] = on_channels[3] = on_channels[0];
+                    on_channels[0] = on_channels[1] = on_channels[2] = on_channels[3];
                     clkdiv = 0;
                     break;
 
                 case 2:
-                    on_channels[2] = on_channels[3] = on_channels[1];
-                    on_channels[1] = on_channels[0];
+                    on_channels[0] = on_channels[1];
+                    on_channels[2] = on_channels[3];
                     clkdiv = 1;
                     break;
 
                 default:
-                    on_channels[0] = 0;
-                    on_channels[1] = 1;
-                    on_channels[2] = 2;
-                    on_channels[3] = 3;
+                    on_channels[0] = 3;
+                    on_channels[1] = 2;
+                    on_channels[2] = 1;
+                    on_channels[3] = 0;
                     num_channels_on = 4;
                     clkdiv = 2;
                     break;
