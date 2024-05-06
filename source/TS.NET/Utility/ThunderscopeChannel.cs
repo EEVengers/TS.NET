@@ -17,7 +17,7 @@ namespace TS.NET
         {
             Enabled = true;
             VoltsOffset = 0;
-            VoltsDiv = 100;
+            VoltsDiv = 5000;
             Bandwidth = 350;
             Coupling = ThunderscopeCoupling.DC;
             Term50Z = false;
