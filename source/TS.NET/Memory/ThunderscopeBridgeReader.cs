@@ -32,7 +32,7 @@ namespace TS.NET
                     Thread.Sleep(1000);
                 }
             }
-            else if (OperatingSystem.IsLinux())
+            else
             {
                 while (!MemoryFileUnix.Exists(memoryName, Path.GetTempPath()))
                 {
@@ -40,8 +40,6 @@ namespace TS.NET
                     Thread.Sleep(1000);
                 }
             }
-            else
-                throw new NotImplementedException();
 
             ulong dataCapacityBytes = 0;
             using (var headerReader = new ThunderscopeBridgeHeaderReader(memoryName))
