@@ -24,7 +24,7 @@ namespace TS.NET
                 Coupling = ThunderscopeCoupling.DC,
                 VoltFullScale = 0.5,
                 VoltOffset = 0,
-                Bandwidth = 350,               
+                Bandwidth = 20,               
             };
         }
     }

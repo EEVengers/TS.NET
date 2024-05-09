@@ -1,17 +1,8 @@
-using System;
-using System.Buffers.Binary;
-using System.Collections.Generic;
-using System.IO.MemoryMappedFiles;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using TS.NET.Interop;
-using TS.NET.Interop.Windows;
-using TS.NET.Interop.Linux;
+using TS.NET.Driver.XMDA.Interop.Linux;
+using TS.NET.Driver.XMDA.Interop.Windows;
 
-namespace TS.NET.Interop
+namespace TS.NET.Driver.XMDA.Interop
 {
     public abstract class ThunderscopeInterop : IDisposable
     {

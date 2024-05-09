@@ -1,25 +1,44 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using TS.NET.Driver.XMDA;
 
 namespace TS.NET.Engine
 {
     // The job of this task is to read from the thunderscope as fast as possible with minimal jitter
     internal class InputTask
     {
+        private readonly ILogger logger;
+        private readonly ThunderscopeSettings settings;
+        private readonly ThunderscopeDevice thunderscopeDevice;
+        private readonly BlockingChannelReader<ThunderscopeMemory> inputChannel;
+        private readonly BlockingChannelWriter<InputDataDto> processingChannel;
+        private readonly BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel;
+        private readonly BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel;
+
         private CancellationTokenSource? cancelTokenSource;
         private Task? taskLoop;
 
-        public void Start(
-            ILoggerFactory loggerFactory,
+        public InputTask(ILoggerFactory loggerFactory,
+            ThunderscopeSettings settings,
             ThunderscopeDevice thunderscopeDevice,
             BlockingChannelReader<ThunderscopeMemory> inputChannel,
             BlockingChannelWriter<InputDataDto> processingChannel,
             BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
             BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel)
         {
-            var logger = loggerFactory.CreateLogger(nameof(InputTask));
+            logger = loggerFactory.CreateLogger(nameof(InputTask));
+            this.settings = settings;
+            this.thunderscopeDevice = thunderscopeDevice;
+            this.inputChannel = inputChannel;
+            this.processingChannel = processingChannel;
+            this.hardwareRequestChannel = hardwareRequestChannel;
+            this.hardwareResponseChannel = hardwareResponseChannel;
+        }
+
+        public void Start()
+        {
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, thunderscopeDevice, inputChannel, processingChannel, hardwareRequestChannel, hardwareResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, settings, thunderscopeDevice, inputChannel, processingChannel, hardwareRequestChannel, hardwareResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -30,6 +49,7 @@ namespace TS.NET.Engine
 
         private static void Loop(
             ILogger logger,
+            ThunderscopeSettings settings,
             ThunderscopeDevice thunderscopeDevice,
             BlockingChannelReader<ThunderscopeMemory> inputChannel,
             BlockingChannelWriter<InputDataDto> processingChannel,
@@ -42,8 +62,7 @@ namespace TS.NET.Engine
             Thunderscope thunderscope = new();
             try
             {
-                var calibration = ThunderscopeCalibrationFile.Read("calibration.json");
-                thunderscope.Open(thunderscopeDevice, calibration);
+                thunderscope.Open(thunderscopeDevice, settings.Calibration);
                 thunderscope.Start();
                 logger.LogDebug("Started");
 
@@ -126,7 +145,7 @@ namespace TS.NET.Engine
                         try
                         {
                             thunderscope.Read(memory);
-                            if(enqueueCounter == 0)
+                            if (enqueueCounter == 0)
                                 logger.LogDebug("First block of data received");
                             break;
                         }

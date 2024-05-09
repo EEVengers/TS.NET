@@ -1,14 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 // [assembly: DisableRuntimeMarshalling]    // Coming in .NET 7 with a source analyzer. This will guarantee interop has zero performance penalty.
-namespace TS.NET.Interop.Linux
+namespace TS.NET.Driver.XMDA.Interop.Linux
 {
-	[Flags]
+    [Flags]
     internal enum OpenFlags : uint
     {
         O_RDONLY = 0,

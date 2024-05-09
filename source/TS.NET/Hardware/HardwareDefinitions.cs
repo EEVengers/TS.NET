@@ -11,6 +11,9 @@ internal struct ThunderscopeHardwareState
     public ulong BufferHead = 0;
     public ulong BufferTail = 0;
     public ulong RamSizePages = 0x10000;
+    public bool[] ChannelEnables = new bool[4];
+    public bool[] ChannelAttenuators = new bool[4];
+    public ThunderscopeCoupling[] ChannelCoupling = new ThunderscopeCoupling[4];
 }
 
 internal enum BarRegister : uint

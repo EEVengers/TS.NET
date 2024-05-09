@@ -2,7 +2,9 @@
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Net;
+using System.Text.Json;
 using TS.NET;
+using TS.NET.Driver.XMDA;
 using TS.NET.Engine;
 
 // The aim is to have a thread-safe lock-free dataflow architecture (to prevent various classes of bugs).
@@ -17,10 +19,17 @@ Console.Title = "Engine";
 using (Process p = Process.GetCurrentProcess())
     p.PriorityClass = ProcessPriorityClass.High;
 
+if (true)
+{
+    ThunderscopeSettings settings = ThunderscopeSettings.Default();
+    string json = JsonSerializer.Serialize(settings);
+    File.WriteAllText("new_configuration.json", json);
+}
+
 IConfigurationBuilder configurationBuilder = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json");
 var configuration = configurationBuilder.Build();
-var thunderscopeSettings = configuration.GetRequiredSection("Thunderscope").Get<ThunderscopeSettings>() ?? throw new NullReferenceException();
+var thunderscopeConfiguration = ThunderscopeSettings.FromFile("thunderscope.json");
 
 var loggerFactory = LoggerFactory.Create(configure =>
 {
@@ -50,16 +59,26 @@ if (devices.Count == 0)
     throw new Exception("No thunderscopes found");
 
 // Start threads
-ProcessingTask processingTask = new(loggerFactory, thunderscopeSettings, processingChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
+ProcessingTask processingTask = new(loggerFactory, thunderscopeConfiguration, processingChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
 processingTask.Start();
-InputTask inputTask = new();
-inputTask.Start(loggerFactory, devices[0], inputChannel.Reader, processingChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
-WaveformServer waveformServer = new(loggerFactory, thunderscopeSettings, IPAddress.Any, 5026, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
+InputTask inputTask = new(loggerFactory, thunderscopeConfiguration, devices[0], inputChannel.Reader, processingChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
+inputTask.Start();
+WaveformServer waveformServer = new(loggerFactory, thunderscopeConfiguration, IPAddress.Any, 5026, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
 waveformServer.Start();
 ScpiServer scpiServer = new(loggerFactory, IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
 scpiServer.Start();
 
-Console.ReadKey();
+bool loop = true;
+while (loop)
+{
+    var key = Console.ReadKey();
+    switch (key.Key)
+    {
+        case ConsoleKey.Escape:
+            loop = false;
+            break;
+    }
+}
 
 scpiServer.Stop();
 waveformServer.Stop();

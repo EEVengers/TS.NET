@@ -1,0 +1,25 @@
+{
+  "MaxChannelBytes": 1000000,
+  "Calibration": {
+    "Channel1": {
+      "AttenuatorGain": 0.02,
+      "ZeroVoltOffsetTrimDac": 2048,
+      "ZeroVoltOffsetSensitivityDac": 64
+    },
+    "Channel2": {
+      "AttenuatorGain": 0.02,
+      "ZeroVoltOffsetTrimDac": 2048,
+      "ZeroVoltOffsetSensitivityDac": 64
+    },
+    "Channel3": {
+      "AttenuatorGain": 0.02,
+      "ZeroVoltOffsetTrimDac": 2048,
+      "ZeroVoltOffsetSensitivityDac": 64
+    },
+    "Channel4": {
+      "AttenuatorGain": 0.02,
+      "ZeroVoltOffsetTrimDac": 2048,
+      "ZeroVoltOffsetSensitivityDac": 64
+    }
+  }
+}

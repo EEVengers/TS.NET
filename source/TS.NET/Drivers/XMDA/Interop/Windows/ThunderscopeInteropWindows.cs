@@ -1,15 +1,7 @@
-using System;
-using System.Buffers.Binary;
-using System.Collections.Generic;
-using System.IO.MemoryMappedFiles;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using TS.NET.Interop;
 
-namespace TS.NET.Interop.Windows
+namespace TS.NET.Driver.XMDA.Interop.Windows
 {
     internal class ThunderscopeInteropWindows : ThunderscopeInterop
     {
