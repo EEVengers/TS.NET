@@ -14,26 +14,26 @@
                 Channel1 = new ThunderscopeChannelCalibration()
                 {
                     AttenuatorGain = 0.02,
-                    ZeroVoltOffsetTrimDac = 2048,
-                    ZeroVoltOffsetSensitivityDac = 64
+                    TrimOffsetDac = 2048,
+                    TrimSensitivityDac = 64
                 },
                 Channel2 = new ThunderscopeChannelCalibration()
                 {
                     AttenuatorGain = 0.02,
-                    ZeroVoltOffsetTrimDac = 2048,
-                    ZeroVoltOffsetSensitivityDac = 64
+                    TrimOffsetDac = 2048,
+                    TrimSensitivityDac = 64
                 },
                 Channel3 = new ThunderscopeChannelCalibration()
                 {
                     AttenuatorGain = 0.02,
-                    ZeroVoltOffsetTrimDac = 2048,
-                    ZeroVoltOffsetSensitivityDac = 64
+                    TrimOffsetDac = 2048,
+                    TrimSensitivityDac = 64
                 },
                 Channel4 = new ThunderscopeChannelCalibration()
                 {
                     AttenuatorGain = 0.02,
-                    ZeroVoltOffsetTrimDac = 2048,
-                    ZeroVoltOffsetSensitivityDac = 64
+                    TrimOffsetDac = 2048,
+                    TrimSensitivityDac = 64
                 }
             };
         }
@@ -43,7 +43,7 @@
     public class ThunderscopeChannelCalibration
     {
         public double AttenuatorGain { get; set; }
-        public ushort ZeroVoltOffsetTrimDac { get; set; }
-        public ushort ZeroVoltOffsetSensitivityDac { get; set; }
+        public ushort TrimOffsetDac { get; set; }
+        public ushort TrimSensitivityDac { get; set; }
     }
 }

@@ -3,23 +3,23 @@
   "Calibration": {
     "Channel1": {
       "AttenuatorGain": 0.02,
-      "ZeroVoltOffsetTrimDac": 2800,
-      "ZeroVoltOffsetSensitivityDac": 64
+      "TrimOffsetDac": 2800,
+      "TrimSensitivityDac": 64
     },
     "Channel2": {
       "AttenuatorGain": 0.02,
-      "ZeroVoltOffsetTrimDac": 2700,
-      "ZeroVoltOffsetSensitivityDac": 64
+      "TrimOffsetDac": 2700,
+      "TrimSensitivityDac": 64
     },
     "Channel3": {
       "AttenuatorGain": 0.02,
-      "ZeroVoltOffsetTrimDac": 2800,
-      "ZeroVoltOffsetSensitivityDac": 64
+      "TrimOffsetDac": 2800,
+      "TrimSensitivityDac": 64
     },
     "Channel4": {
       "AttenuatorGain": 0.02,
-      "ZeroVoltOffsetTrimDac": 2900,
-      "ZeroVoltOffsetSensitivityDac": 64
+      "TrimOffsetDac": 2900,
+      "TrimSensitivityDac": 64
     }
   }
 }

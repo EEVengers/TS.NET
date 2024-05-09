@@ -375,10 +375,10 @@ namespace TS.NET.Driver.XMDA
 
             ushort dacValue = channel switch
             {
-                0 => calibration.Channel1.ZeroVoltOffsetTrimDac,
-                1 => calibration.Channel2.ZeroVoltOffsetTrimDac,
-                2 => calibration.Channel3.ZeroVoltOffsetTrimDac,
-                3 => calibration.Channel4.ZeroVoltOffsetTrimDac,
+                0 => calibration.Channel1.TrimOffsetDac,
+                1 => calibration.Channel2.TrimOffsetDac,
+                2 => calibration.Channel3.TrimOffsetDac,
+                3 => calibration.Channel4.TrimOffsetDac,
             };
             if (dacValue < 0)
                 throw new Exception("DAC offset too low");
