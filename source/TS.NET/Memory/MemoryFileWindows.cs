@@ -5,7 +5,7 @@ namespace TS.NET.Memory.Windows
 {
     internal sealed class MemoryFileWindows : IMemoryFile
     {
-        private const string MapNamePrefix = "TS_NET_";
+        private const string MapNamePrefix = "TS.NET.";
 
         internal MemoryFileWindows(string memoryName, ulong bridgeCapacityBytes)
         {

@@ -1,5 +1,4 @@
-﻿// https://github.com/cloudtoid/interprocess
-using System.IO.MemoryMappedFiles;
+﻿using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TS.NET.Memory.Unix;
@@ -16,8 +15,8 @@ namespace TS.NET
         private unsafe byte* basePointer;
         private unsafe byte* dataPointer { get; }
         private ThunderscopeBridgeHeader header;
-        private readonly IInterprocessSemaphoreWaiter dataRequestSemaphore;
-        private readonly IInterprocessSemaphoreReleaser dataReadySemaphore;
+        private readonly IInterprocessSemaphoreWaiter dataRequestSemaphore;         // When this is signalled, a consumer (UI or intermediary) has requested data.
+        private readonly IInterprocessSemaphoreReleaser dataResponseSemaphore;      // When data has been gathered, this is signalled to the consumer to indicate they can consume data.
         private bool dataRequested = false;
         private bool acquiringRegionFilled = false;
 
@@ -48,8 +47,11 @@ namespace TS.NET
                     header.MaxChannelBytes = maxChannelBytes;
                     header.AcquiringRegion = ThunderscopeMemoryAcquiringRegion.RegionA;
                     SetHeader();
-                    dataRequestSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + "DataRequest");
-                    dataReadySemaphore = InterprocessSemaphore.CreateReleaser(memoryName + "DataReady");
+                    dataRequestSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + ".DataRequest");
+#if DEBUG
+                    ((IInterprocessSemaphoreReleaser)dataRequestSemaphore).Release();       // Always trigger the bridge once. This allows for the Engine to restart without restarting TS.NET.UI.Avalonia.
+#endif
+                    dataResponseSemaphore = InterprocessSemaphore.CreateReleaser(memoryName + ".DataResponse");
                 }
                 catch
                 {
@@ -114,7 +116,7 @@ namespace TS.NET
                     _ => throw new InvalidDataException("Enum value not handled, add enum value to switch")
                 };
                 SetHeader();
-                dataReadySemaphore.Release();        // Allow UI to use the acquired region
+                dataResponseSemaphore.Release();        // Allow UI to use the acquired region
             }
         }
 

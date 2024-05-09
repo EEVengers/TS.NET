@@ -321,10 +321,10 @@ namespace TS.NET.Driver.XMDA
                 {
                     on_channels[num_channels_on++] = (byte)i;
                 }
+                Thread.Sleep(100);      // This delay is essential for ensuring channel 1 value gets set (the assumption is that the FIFO isn't ready immediately)
                 SetDAC(i);
-                Thread.Sleep(100);
+                Thread.Sleep(100);      // Don't know if this delay is needed, added for belt'n'braces
                 SetPGA(i);
-                Thread.Sleep(100);
             }
 
             byte clkdiv;

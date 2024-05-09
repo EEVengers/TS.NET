@@ -7,8 +7,7 @@ namespace TS.NET.Memory.Unix
     {
         private const FileAccess FileAccessOption = FileAccess.ReadWrite;
         private const FileShare FileShareOption = FileShare.ReadWrite | FileShare.Delete;
-        private const string Folder = ".ts.net/mmf";
-        private const string FileExtension = ".qu";
+        private const string Folder = "TS.NET";
         private const int BufferSize = 0x1000;
         private readonly string file;
 
@@ -16,7 +15,7 @@ namespace TS.NET.Memory.Unix
         {
             file = Path.Combine(path, Folder);
             Directory.CreateDirectory(file);
-            file = Path.Combine(file, memoryName + FileExtension);
+            file = Path.Combine(file, memoryName);
 
             FileStream stream;
 
@@ -126,7 +125,7 @@ namespace TS.NET.Memory.Unix
         {
             var file = Path.Combine(path, Folder);
             Directory.CreateDirectory(file);
-            file = Path.Combine(file, memoryName + FileExtension);
+            file = Path.Combine(file, memoryName);
 
             return IsFileInUse(file);
         }

@@ -15,8 +15,8 @@ namespace TS.NET
         private unsafe byte* dataPointer { get; }
         private ThunderscopeBridgeHeader header;
         private bool IsHeaderSet { get { GetHeader(); return header.Version != 0; } }
-        private readonly IInterprocessSemaphoreReleaser dataRequestSemaphore;
-        private readonly IInterprocessSemaphoreWaiter dataReadySemaphore;
+        private readonly IInterprocessSemaphoreReleaser dataRequestSemaphore;           // When data is desired, this is signalled to the engine to gather data.
+        private readonly IInterprocessSemaphoreWaiter dataResponseSemaphore;            // When this is signalled, data is ready to be consumed.
         private bool hasSignaledRequest = false;
 
         public ReadOnlySpan<sbyte> AcquiredRegion { get { return GetAcquiredRegion(); } }
@@ -68,8 +68,8 @@ namespace TS.NET
                         Thread.Sleep(1000);
                     }
                     GetHeader();
-                    dataRequestSemaphore = InterprocessSemaphore.CreateReleaser(memoryName + "DataRequest");
-                    dataReadySemaphore = InterprocessSemaphore.CreateWaiter(memoryName + "DataReady");
+                    dataRequestSemaphore = InterprocessSemaphore.CreateReleaser(memoryName + ".DataRequest");
+                    dataResponseSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + ".DataResponse");
                 }
                 catch
                 {
@@ -128,16 +128,16 @@ namespace TS.NET
                 hasSignaledRequest = true;
             }
 
-            bool wasReady = dataReadySemaphore.Wait(millisecondsTimeout);
+            bool responded = dataResponseSemaphore.Wait(millisecondsTimeout);
 
-            if (wasReady)
+            if (responded)
             {
                 // Now that the bridge has tick-tocked, the next request will be 'real'
                 // TODO: Should this be a separate method, or part of GetPointer() ?
                 hasSignaledRequest = false;
             }
 
-            return wasReady;
+            return responded;
         }
 
         private void GetHeader()
