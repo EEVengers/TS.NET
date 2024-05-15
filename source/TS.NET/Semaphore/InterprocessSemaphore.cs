@@ -11,26 +11,26 @@ namespace TS.NET
     /// </summary>
     public static class InterprocessSemaphore
     {
-        public static IInterprocessSemaphoreWaiter CreateWaiter(string name)
+        public static IInterprocessSemaphoreWaiter CreateWaiter(string name, int initialCount)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                return new SemaphoreWindows(name);
+                return new SemaphoreWindows(name, initialCount);
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 return new SemaphoreMacOS(name);
 
-            return new SemaphoreLinux(name);
+            return new SemaphoreLinux(name, (uint)initialCount);
         }
 
-        public static IInterprocessSemaphoreReleaser CreateReleaser(string name)
+        public static IInterprocessSemaphoreReleaser CreateReleaser(string name, int initialCount)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                return new SemaphoreWindows(name);
+                return new SemaphoreWindows(name, initialCount);
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 return new SemaphoreMacOS(name);
 
-            return new SemaphoreLinux(name);
+            return new SemaphoreLinux(name, (uint)initialCount);
         }
     }
 }

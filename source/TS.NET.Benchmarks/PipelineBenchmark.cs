@@ -28,7 +28,7 @@ namespace TS.NET.Benchmark
         [GlobalSetup]
         public void Setup()
         {
-            Waveforms.FourChannelSine(input.Span, samplingRate, 1000);
+            Waveforms.FourChannelSineU8(input.Span, samplingRate, 1000);
             channel1 = shuffleOutput.Slice(0, 2000000);
             channel2 = shuffleOutput.Slice(2000000, 2000000);
             channel3 = shuffleOutput.Slice(4000000, 2000000);

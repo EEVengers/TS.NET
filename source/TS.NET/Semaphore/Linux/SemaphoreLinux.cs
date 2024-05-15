@@ -7,11 +7,11 @@
         private readonly bool deleteOnDispose;
         private readonly IntPtr handle;
 
-        internal SemaphoreLinux(string name, bool deleteOnDispose = false)
+        internal SemaphoreLinux(string name, uint initialCount, bool deleteOnDispose = false)
         {
             this.name = name = HandleNamePrefix + name;
             this.deleteOnDispose = deleteOnDispose;
-            handle = Interop.CreateOrOpenSemaphore(name, 0);
+            handle = Interop.CreateOrOpenSemaphore(name, initialCount);
         }
 
         ~SemaphoreLinux()

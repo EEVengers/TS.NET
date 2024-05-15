@@ -48,11 +48,8 @@ namespace TS.NET
                     header.MaxChannelDataByteCount = maxChannelDataByteCount;
                     header.AcquiringRegion = ThunderscopeMemoryAcquiringRegion.RegionA;
                     SetHeader();
-                    dataRequestSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + ".DataRequest");
-#if DEBUG
-                    ((IInterprocessSemaphoreReleaser)dataRequestSemaphore).Release();       // Always trigger the bridge once. This allows for the Engine to restart without restarting TS.NET.UI.Avalonia.
-#endif
-                    dataResponseSemaphore = InterprocessSemaphore.CreateReleaser(memoryName + ".DataResponse");
+                    dataRequestSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + ".DataRequest", 1);
+                    dataResponseSemaphore = InterprocessSemaphore.CreateReleaser(memoryName + ".DataResponse", 0);
                 }
                 catch
                 {

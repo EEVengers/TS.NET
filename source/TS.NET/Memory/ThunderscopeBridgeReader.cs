@@ -68,8 +68,8 @@ namespace TS.NET
                         Thread.Sleep(1000);
                     }
                     GetHeader();
-                    dataRequestSemaphore = InterprocessSemaphore.CreateReleaser(memoryName + ".DataRequest");
-                    dataResponseSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + ".DataResponse");
+                    dataRequestSemaphore = InterprocessSemaphore.CreateReleaser(memoryName + ".DataRequest", 1);
+                    dataResponseSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + ".DataResponse", 0);
                 }
                 catch
                 {

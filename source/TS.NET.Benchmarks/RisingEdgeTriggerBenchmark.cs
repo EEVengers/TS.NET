@@ -23,8 +23,8 @@ namespace TS.NET.Benchmark
         [GlobalSetup]
         public void Setup()
         {
-            Waveforms.SineInt8(buffer1MHz.Span, samplingRate, 1000000);
-            Waveforms.SineInt8(buffer1KHz.Span, samplingRate, 1000);
+            Waveforms.SineI8(buffer1MHz.Span, samplingRate, 1000000);
+            Waveforms.SineI8(buffer1KHz.Span, samplingRate, 1000);
         }
 
         //[Benchmark(Description = "Rising edge with hysteresis (10 counts) & holdoff (1us) and no SIMD, 1KHz sine (125 x 8MS)")]

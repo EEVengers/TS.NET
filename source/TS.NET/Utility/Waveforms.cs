@@ -77,6 +77,27 @@ public static class Waveforms
         }
     }
 
+    public static void FourChannelSineU8(Span<byte> buffer, double samplingRate, double frequency)
+    {
+        var channelLength = buffer.Length / 4;
+        Span<byte> singleChannelBuffer1 = new byte[channelLength];
+        SineU8(singleChannelBuffer1, samplingRate, frequency);
+        Span<byte> singleChannelBuffer2 = new byte[channelLength];
+        SineU8(singleChannelBuffer2, samplingRate, frequency * 2, 0.75);
+        Span<byte> singleChannelBuffer3 = new byte[channelLength];
+        SineU8(singleChannelBuffer3, samplingRate, frequency * 4, 0.5);
+        Span<byte> singleChannelBuffer4 = new byte[channelLength];
+        SineU8(singleChannelBuffer4, samplingRate, frequency * 8, 0.25);
+        // Now interleave samples
+        for (int i = 0; i < channelLength; i++)
+        {
+            buffer[i * 4] = singleChannelBuffer1[i];
+            buffer[(i * 4) + 1] = singleChannelBuffer2[i];
+            buffer[(i * 4) + 2] = singleChannelBuffer3[i];
+            buffer[(i * 4) + 3] = singleChannelBuffer4[i];
+        }
+    }
+
     public static void TwoChannelCount(Span<byte> buffer)
     {
         buffer[0] = 0;

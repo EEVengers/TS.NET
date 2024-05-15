@@ -6,9 +6,9 @@
         private const string HandleNamePrefix = @"Global\TS.NET.";
         private readonly System.Threading.Semaphore handle;
 
-        internal SemaphoreWindows(string name)
+        internal SemaphoreWindows(string name, int initialCount)
         {
-            handle = new System.Threading.Semaphore(0, int.MaxValue, HandleNamePrefix + name);
+            handle = new System.Threading.Semaphore(initialCount, int.MaxValue, HandleNamePrefix + name);
         }
 
         public void Dispose()
