@@ -6,7 +6,8 @@ namespace TS.NET.Engine
     public class ThunderscopeSettings
     {
         public string Driver { get; set; }
-        public ulong MaxChannelBytes { get; set; }
+        public ushort MaxChannelCount { get; set; }
+        public ulong MaxChannelDataLength { get; set; }
         public ThunderscopeCalibration Calibration { get; set; }
 
         public static ThunderscopeSettings Default()
@@ -14,7 +15,8 @@ namespace TS.NET.Engine
             return new ThunderscopeSettings()
             {
                 Driver = "XDMA",
-                MaxChannelBytes = 1000000,
+                MaxChannelCount = 4,
+                MaxChannelDataLength = 1000000,
                 Calibration = ThunderscopeCalibration.Default()
             };
         }

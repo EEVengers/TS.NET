@@ -6,7 +6,7 @@
         void Stop();
         ThunderscopeChannel GetChannel(int channelIndex);
         void SetChannel(ThunderscopeChannel channel, int channelIndex);
-        void Read(ThunderscopeMemory data);
+        void Read(ThunderscopeMemory data, CancellationToken cancellationToken);
         ThunderscopeConfiguration GetConfiguration();
     }
 }

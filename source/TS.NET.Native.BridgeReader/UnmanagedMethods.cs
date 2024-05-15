@@ -53,7 +53,7 @@ namespace TS.NET.Native.BridgeReader
             if (handle.Target != null)
             {
                 var bridgeReader = (ThunderscopeBridgeReader)handle.Target;
-                var acquiredRegionLength = bridgeReader.AcquiredRegion.Length;
+                var acquiredRegionLength = bridgeReader.AcquiredRegionI8.Length;
                 return acquiredRegionLength;
             }
             return 0;

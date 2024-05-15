@@ -23,9 +23,9 @@ namespace TS.NET
         public Span<sbyte> AcquiringRegion { get { return GetAcquiringRegion(); } }
         public ThunderscopeMonitoring Monitoring { get { return header.Monitoring; } }
 
-        public unsafe ThunderscopeBridgeWriter(string memoryName, byte maxChannelCount, ulong maxChannelBytes)
+        public unsafe ThunderscopeBridgeWriter(string memoryName, ushort maxChannelCount, ulong maxChannelDataLength, byte maxChannelDataByteCount)
         {
-            var dataCapacityBytes = maxChannelCount * maxChannelBytes * 2;      // * 2 as there are 2 regions used in tick-tock fashion
+            var dataCapacityBytes = maxChannelCount * maxChannelDataLength * maxChannelDataByteCount * 2;   // * 2 as there are 2 regions used in tick-tock fashion
             var bridgeCapacityBytes = (ulong)sizeof(ThunderscopeBridgeHeader) + dataCapacityBytes;
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new MemoryFileWindows(memoryName, bridgeCapacityBytes)
@@ -44,7 +44,8 @@ namespace TS.NET
                     header.Version = 1;
                     header.DataCapacityBytes = dataCapacityBytes;
                     header.MaxChannelCount = maxChannelCount;
-                    header.MaxChannelBytes = maxChannelBytes;
+                    header.MaxChannelDataLength = maxChannelDataLength;
+                    header.MaxChannelDataByteCount = maxChannelDataByteCount;
                     header.AcquiringRegion = ThunderscopeMemoryAcquiringRegion.RegionA;
                     SetHeader();
                     dataRequestSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + ".DataRequest");
@@ -151,7 +152,7 @@ namespace TS.NET
 
         private unsafe Span<sbyte> GetAcquiringRegion()
         {
-            int regionLength = (int)(header.Processing.CurrentChannelCount * header.Processing.CurrentChannelBytes);
+            int regionLength = (int)(header.Processing.CurrentChannelCount * header.Processing.CurrentChannelDataLength * header.Processing.CurrentChannelDataByteCount);
             return header.AcquiringRegion switch
             {
                 ThunderscopeMemoryAcquiringRegion.RegionA => new Span<sbyte>(dataPointer, regionLength),

@@ -5,7 +5,6 @@ namespace TS.NET.Driver.Simulator
     public class Thunderscope : IThunderscope
     {
         private readonly ISubscriber subscriber;
-        private CancellationToken cancellationToken;
 
         public Thunderscope()
         {
@@ -24,7 +23,7 @@ namespace TS.NET.Driver.Simulator
             return new ThunderscopeConfiguration() { AdcChannelMode = AdcChannelMode.Quad };
         }
 
-        public void Read(ThunderscopeMemory data)
+        public void Read(ThunderscopeMemory data, CancellationToken cancellationToken)
         {
             var memory = subscriber.Dequeue(cancellationToken);
             memory.Span.CopyTo(data.SpanU8);
@@ -40,11 +39,6 @@ namespace TS.NET.Driver.Simulator
 
         public void Stop()
         {
-        }
-
-        public void SetCancellationToken(CancellationToken cancellationToken)
-        {
-            this.cancellationToken = cancellationToken;
         }
     }
 }

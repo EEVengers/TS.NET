@@ -105,7 +105,7 @@ namespace TS.NET.UI.Avalonia
                     cancelToken.ThrowIfCancellationRequested();
                     if (bridge.RequestAndWaitForData(500))
                     {
-                        ulong channelLength = bridge.Processing.CurrentChannelBytes;
+                        ulong channelLength = bridge.Processing.CurrentChannelDataLength;
                         //uint viewportLength = (uint)bridge.Configuration.ChannelLength;//1000;
                         uint viewportLength = 1000000;// (uint)upDownIndex.Value;
                         if (viewportLength < 100)
@@ -136,7 +136,7 @@ namespace TS.NET.UI.Avalonia
 
                         var cfg = bridge.Configuration;
                         var status = $"[Horizontal] Displaying {AddPrefix(viewportLength)} samples of {AddPrefix(channelLength)} [Acquisitions] displayed: {bridge.Monitoring.TotalAcquisitions - bridge.Monitoring.MissedAcquisitions}, missed: {bridge.Monitoring.MissedAcquisitions}, total: {bridge.Monitoring.TotalAcquisitions}";
-                        var data = bridge.AcquiredRegion;
+                        var data = bridge.AcquiredRegionI8;
                         int offset = (int)((channelLength / 2) - (viewportLength / 2));
                         data.Slice(offset, (int)viewportLength).ToDoubleArray(channel1); offset += (int)channelLength;
                         data.Slice(offset, (int)viewportLength).ToDoubleArray(channel2); offset += (int)channelLength;

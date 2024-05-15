@@ -60,15 +60,17 @@ namespace TS.NET.Engine
 
                 // Bridge is cross-process shared memory for the UI to read triggered acquisitions
                 // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
-                ThunderscopeBridgeWriter bridge = new("ThunderScope.1", 4, settings.MaxChannelBytes);
+                byte maxChannelDataByteCount = 1;
+                ThunderscopeBridgeWriter bridge = new("ThunderScope.1", settings.MaxChannelCount, settings.MaxChannelDataLength, maxChannelDataByteCount);
 
                 ThunderscopeConfiguration cachedThunderscopeConfiguration = default;
 
                 // Set some sensible defaults
                 var processingConfig = new ThunderscopeProcessing
                 {
-                    CurrentChannelCount = 4,
-                    CurrentChannelBytes = settings.MaxChannelBytes,
+                    CurrentChannelCount = settings.MaxChannelCount,
+                    CurrentChannelDataLength = settings.MaxChannelDataLength,
+                    CurrentChannelDataByteCount = maxChannelDataByteCount,
                     HorizontalSumLength = HorizontalSumLength.None,
                     TriggerChannel = TriggerChannel.One,
                     TriggerMode = TriggerMode.Auto,
@@ -96,7 +98,7 @@ namespace TS.NET.Engine
 
                 Span<uint> triggerIndices = new uint[ThunderscopeMemory.Length / 1000];     // 1000 samples is the minimum holdoff
                 Span<uint> holdoffEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum holdoff
-                RisingEdgeTriggerI8 trigger = new(0, -10, processingConfig.CurrentChannelBytes);
+                RisingEdgeTriggerI8 trigger = new(0, -10, processingConfig.CurrentChannelDataLength);
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;
@@ -105,10 +107,10 @@ namespace TS.NET.Engine
                 // HorizontalSumUtility.ToDivisor(horizontalSumLength)
                 Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
 
-                var circularBuffer1 = new ChannelCircularAlignedBuffer((uint)processingConfig.CurrentChannelBytes + ThunderscopeMemory.Length);
-                var circularBuffer2 = new ChannelCircularAlignedBuffer((uint)processingConfig.CurrentChannelBytes + ThunderscopeMemory.Length);
-                var circularBuffer3 = new ChannelCircularAlignedBuffer((uint)processingConfig.CurrentChannelBytes + ThunderscopeMemory.Length);
-                var circularBuffer4 = new ChannelCircularAlignedBuffer((uint)processingConfig.CurrentChannelBytes + ThunderscopeMemory.Length);
+                var circularBuffer1 = new ChannelCircularAlignedBufferI8((uint)processingConfig.CurrentChannelDataLength + ThunderscopeMemory.Length);
+                var circularBuffer2 = new ChannelCircularAlignedBufferI8((uint)processingConfig.CurrentChannelDataLength + ThunderscopeMemory.Length);
+                var circularBuffer3 = new ChannelCircularAlignedBufferI8((uint)processingConfig.CurrentChannelDataLength + ThunderscopeMemory.Length);
+                var circularBuffer4 = new ChannelCircularAlignedBufferI8((uint)processingConfig.CurrentChannelDataLength + ThunderscopeMemory.Length);
 
                 // Triggering:
                 // There are 3 states for Trigger Mode: normal, single, auto.
@@ -195,10 +197,10 @@ namespace TS.NET.Engine
                                 sbyte triggerLevel = (sbyte)((requestedTriggerLevel / (triggerChannel.ActualVoltFullScale / 2)) * 127f);
 
                                 if (triggerLevel == sbyte.MinValue)
-                                    triggerLevel+=10;     // Coerce so that the trigger arm level is correct
+                                    triggerLevel += 10;     // Coerce so that the trigger arm level is correct
 
                                 logger.LogDebug($"Setting trigger level to {triggerLevel}");
-                                trigger.Reset(triggerLevel, triggerLevel-=10, processingConfig.CurrentChannelBytes);
+                                trigger.Reset(triggerLevel, triggerLevel -= 10, processingConfig.CurrentChannelDataLength);
                                 break;
                             case ProcessingSetTriggerEdgeDirectionDto processingSetTriggerEdgeDirectionDto:
                                 // var edges = processingSetTriggerEdgeDirectionDto.Edges;
@@ -217,7 +219,7 @@ namespace TS.NET.Engine
                     dequeueCounter++;
                     oneSecondDequeueCount++;
 
-                    int channelLength = (int)processingConfig.CurrentChannelBytes;
+                    int channelLength = (int)processingConfig.CurrentChannelDataLength;
                     switch (inputDataDto.Configuration.AdcChannelMode)
                     {
                         // Processing pipeline:

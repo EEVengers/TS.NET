@@ -101,7 +101,7 @@ namespace TS.NET.Engine
                     //logger.LogDebug("Send waveform...");
                     var configuration = bridge.Configuration;
                     var processing = bridge.Processing;
-                    var data = bridge.AcquiredRegionAsByte;
+                    var data = bridge.AcquiredRegionU8;
 
                     // Remember AdcChannelMode reflects the hardware reality - user may only have 3 channels enabled but hardware has to capture 4.
                     ulong femtosecondsPerSample = configuration.AdcChannelMode switch
@@ -124,7 +124,7 @@ namespace TS.NET.Engine
                     ChannelHeader chHeader = new()
                     {
                         chNum = 0,
-                        depth = processing.CurrentChannelBytes,
+                        depth = processing.CurrentChannelDataLength,
                         scale = 1,
                         offset = 0,
                         trigphase = 0,
@@ -149,7 +149,7 @@ namespace TS.NET.Engine
 
                             // Length of this channel as 'depth'
                             Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
-                            Send(data.Slice(channelIndex * (int)processing.CurrentChannelBytes, (int)processing.CurrentChannelBytes));
+                            Send(data.Slice(channelIndex * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength));
                         }
                     }
                     sequenceNumber++;

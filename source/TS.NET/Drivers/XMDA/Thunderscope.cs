@@ -73,7 +73,7 @@ namespace TS.NET.Driver.XMDA
             ConfigureDatamover(hardwareState);
         }
 
-        public void Read(ThunderscopeMemory data)     //ThunderscopeMemory ensures memory is aligned on 4k boundary
+        public void Read(ThunderscopeMemory data, CancellationToken cancellationToken)     //ThunderscopeMemory ensures memory is aligned on 4k boundary
         {
             if (!open)
                 throw new Exception("Thunderscope not open");

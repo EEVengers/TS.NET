@@ -1,6 +1,7 @@
 {
   "Driver": "Simulator",
-  "MaxChannelBytes": 1000000,
+  "MaxChannelCount": 4,
+  "MaxChannelDataLength": 1000000,
   "Calibration": {
     "Channel1": {
       "AttenuatorGain": 0.02,

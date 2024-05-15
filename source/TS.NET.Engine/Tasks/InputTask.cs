@@ -139,7 +139,7 @@ namespace TS.NET.Engine
                     {
                         try
                         {
-                            thunderscope.Read(memory);
+                            thunderscope.Read(memory, cancelToken);
                             if (enqueueCounter == 0)
                                 logger.LogDebug("First block of data received");
                             //logger.LogDebug($"Acquisition block {enqueueCounter}");

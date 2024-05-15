@@ -11,18 +11,20 @@ namespace TS.NET
         // Version + DataCapacity is enough data for the UI to know how big a memorymappedfile to open
         internal byte Version;              // Allows UI to know which ThunderscopeMemoryBridgeHeader version to use, hence the size of the header.
         internal ulong DataCapacityBytes;   // Maximum size of the data array in bridge.
-        internal byte MaxChannelCount;      // Set during bridge initialisation, limited by DataCapacityBytes       
-        internal ulong MaxChannelBytes;     // Set during bridge initialisation, limited by DataCapacityBytes
-        // All the above variables can only be set once, during bridge creation.
 
-        // DataCapacityBytes is calculated:
-        // MaxChannelCount * MaxChannelBytes * 2.
+        internal ushort MaxChannelCount;    
+        internal ulong MaxChannelDataLength;        // Could be uint, but 4.3 billion samples (uint.max) is within the capability of a large RAM system so err on the side of caution.
+        internal byte MaxChannelDataByteCount;
+        // All the above variables can only be set once, during bridge creation.
+        // DataCapacityBytes = MaxChannelCount * MaxChannelDataLength * MaxChannelDataByteWidth * 2
+        // (* 2 as there are 2 regions used in tick-tock fashion)
         // Multiply by 2 because there is an "AcquiringRegion" and an "AcquiredRegion" so the engine can be populating a region whilst the UI is using the other region. Standard memory swapping.
         //
         // Example memory mapped file layout:
         // [Header][Channel 0 region A][Channel 1 region A][Channel 2 region A][Channel 3 region A][Channel 0 region B][Channel 1 region B][Channel 2 region B][Channel 3 region B]
         // If CurrentChannelBytes is less than MaxChannelBytes then the channel regions pack together without gaps, leaving spare bytes at the very end e.g. [Header][Chan 0...][Chan 1...][Chan 2...][Chan 3...][Chan 0...][Chan 1...][Chan 2...][Chan 3...][Empty bytes]
         // Similar logic if CurrentChannelCount is less than MaxChannelCount
+        // This ensures minimum paging
 
         internal ThunderscopeMemoryAcquiringRegion AcquiringRegion;     // Therefore 'AcquiredRegion' (to be used by UI) is the opposite
         internal ThunderscopeConfiguration Configuration;             // Read only from UI perspective, UI uses SCPI interface to change configuration
@@ -47,8 +49,9 @@ namespace TS.NET
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct ThunderscopeProcessing   // Idempotent so that UI doesn't have to store state and removes the possibility of config mismatch with multiple actors changing config (e.g. SCPI and Web UI)
     {
-        public byte CurrentChannelCount;        // From 0 to MaxChannelCount
-        public ulong CurrentChannelBytes;       // From 0 to MaxChannelBytes
+        public ushort CurrentChannelCount;          // From 1 to ThunderscopeBridgeHeader.MaxChannelCount
+        public ulong CurrentChannelDataLength;      // From 1 to ThunderscopeBridgeHeader.MaxChannelDataLength
+        public byte CurrentChannelDataByteCount;    // From 1 to ThunderscopeBridgeHeader.MaxChannelDataByteCount
         public HorizontalSumLength HorizontalSumLength;
         public TriggerChannel TriggerChannel;
         public TriggerMode TriggerMode;

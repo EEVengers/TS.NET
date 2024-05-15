@@ -1,20 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.InteropServices;
 
 namespace TS.NET
 {
-    public unsafe sealed class ChannelCircularAlignedBuffer
+    public unsafe sealed class ChannelCircularAlignedBufferI8
     {
         private readonly sbyte* buffer;
         private readonly uint capacity;
         private uint tail = 0;
         private ulong totalWritten = 0;
 
-        public ChannelCircularAlignedBuffer(uint capacity)
+        public ChannelCircularAlignedBufferI8(uint capacity)
         {
             this.capacity = capacity;
             buffer = (sbyte*)NativeMemory.AlignedAlloc(capacity, 4096);

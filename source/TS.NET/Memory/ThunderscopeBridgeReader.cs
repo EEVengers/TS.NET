@@ -19,8 +19,8 @@ namespace TS.NET
         private readonly IInterprocessSemaphoreWaiter dataResponseSemaphore;            // When this is signalled, data is ready to be consumed.
         private bool hasSignaledRequest = false;
 
-        public ReadOnlySpan<sbyte> AcquiredRegion { get { return GetAcquiredRegion(); } }
-        public ReadOnlySpan<byte> AcquiredRegionAsByte { get { return GetAcquiredRegionAsByte(); } }        // Useful for the Socket API which only accepts byte
+        public ReadOnlySpan<sbyte> AcquiredRegionI8 { get { return GetAcquiredRegionI8(); } }
+        public ReadOnlySpan<byte> AcquiredRegionU8 { get { return GetAcquiredRegionU8(); } }        // Useful for the Socket API which only accepts byte
 
         public unsafe ThunderscopeBridgeReader(string memoryName)
         {
@@ -48,10 +48,10 @@ namespace TS.NET
             }
 
             // Now open the full bridge connection
-            ulong bridgeCapacityInBytes = (ulong)sizeof(ThunderscopeBridgeHeader) + dataCapacityBytes;
+            ulong bridgeCapacityBytes = (ulong)sizeof(ThunderscopeBridgeHeader) + dataCapacityBytes;
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? new MemoryFileWindows(memoryName, bridgeCapacityInBytes)
-                : new MemoryFileUnix(memoryName, bridgeCapacityInBytes, Path.GetTempPath());
+                ? new MemoryFileWindows(memoryName, bridgeCapacityBytes)
+                : new MemoryFileUnix(memoryName, bridgeCapacityBytes, Path.GetTempPath());
 
             try
             {
@@ -160,9 +160,9 @@ namespace TS.NET
             return ptr;
         }
 
-        private unsafe ReadOnlySpan<sbyte> GetAcquiredRegion()
+        private unsafe ReadOnlySpan<sbyte> GetAcquiredRegionI8()
         {
-            int regionLength = (int)(header.Processing.CurrentChannelCount * header.Processing.CurrentChannelBytes);
+            int regionLength = (int)(header.Processing.CurrentChannelCount * header.Processing.CurrentChannelDataLength * header.Processing.CurrentChannelDataByteCount);
             return header.AcquiringRegion switch
             {
                 ThunderscopeMemoryAcquiringRegion.RegionA => new ReadOnlySpan<sbyte>(dataPointer + regionLength, regionLength),        // If acquiring region is Region A, return Region B
@@ -171,9 +171,9 @@ namespace TS.NET
             };
         }
 
-        private unsafe ReadOnlySpan<byte> GetAcquiredRegionAsByte()
+        private unsafe ReadOnlySpan<byte> GetAcquiredRegionU8()
         {
-            int regionLength = (int)(header.Processing.CurrentChannelCount * header.Processing.CurrentChannelBytes);
+            int regionLength = (int)(header.Processing.CurrentChannelCount * header.Processing.CurrentChannelDataLength * header.Processing.CurrentChannelDataByteCount);
             return header.AcquiringRegion switch
             {
                 ThunderscopeMemoryAcquiringRegion.RegionA => new ReadOnlySpan<byte>(dataPointer + regionLength, regionLength),        // If acquiring region is Region A, return Region B
@@ -185,7 +185,7 @@ namespace TS.NET
         // For use by TS.NET.Native.BridgeReader only
         public unsafe byte* GetAcquiredRegionPointer()
         {
-            int regionLength = (int)(header.Processing.CurrentChannelCount * header.Processing.CurrentChannelBytes);
+            int regionLength = (int)(header.Processing.CurrentChannelCount * header.Processing.CurrentChannelDataLength * header.Processing.CurrentChannelDataByteCount);
             return header.AcquiringRegion switch
             {
                 ThunderscopeMemoryAcquiringRegion.RegionA => dataPointer + regionLength,        // If acquiring region is Region A, return Region B
