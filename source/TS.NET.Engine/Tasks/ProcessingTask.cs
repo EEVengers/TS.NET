@@ -98,6 +98,9 @@ namespace TS.NET.Engine
 
                 Span<uint> triggerIndices = new uint[ThunderscopeMemory.Length / 1000];     // 1000 samples is the minimum holdoff
                 Span<uint> holdoffEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum holdoff
+                // By setting holdoffSamples to processingConfig.CurrentChannelDataLength, the holdoff is the exact length of the data sent over the bridge which gives near gapless triggering
+                // Arguably could add logic that if the last sample of the previous window is within the range of armLevel-to-triggerLevel, re-arm immediately.
+                // ^ now implemented, to be reviewed later after usage in the wild.
                 RisingEdgeTriggerI8 trigger = new(0, -10, processingConfig.CurrentChannelDataLength);
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;

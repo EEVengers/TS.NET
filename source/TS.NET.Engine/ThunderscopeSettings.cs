@@ -5,10 +5,10 @@ namespace TS.NET.Engine
 {
     public class ThunderscopeSettings
     {
-        public string Driver { get; set; }
-        public ushort MaxChannelCount { get; set; }
-        public ulong MaxChannelDataLength { get; set; }
-        public ThunderscopeCalibration Calibration { get; set; }
+        public required string Driver { get; set; }
+        public required ushort MaxChannelCount { get; set; }
+        public required ulong MaxChannelDataLength { get; set; }
+        public required ThunderscopeCalibration Calibration { get; set; }
 
         public static ThunderscopeSettings Default()
         {
@@ -26,13 +26,11 @@ namespace TS.NET.Engine
             if (!File.Exists(file))
                 throw new FileNotFoundException(file);
 
-            return JsonSerializer.Deserialize(File.ReadAllText(file), SourceGenerationContext.Default.ThunderscopeSettings);
+            return JsonSerializer.Deserialize(File.ReadAllText(file), SourceGenerationContext.Default.ThunderscopeSettings) ?? throw new ArgumentNullException();
         }
     }
 
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(ThunderscopeSettings))]
-    internal partial class SourceGenerationContext : JsonSerializerContext
-    {
-    }
+    internal partial class SourceGenerationContext : JsonSerializerContext { }
 }

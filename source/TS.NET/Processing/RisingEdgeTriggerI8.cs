@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.Intrinsics;
+﻿using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 namespace TS.NET;
 
@@ -45,7 +44,6 @@ public class RisingEdgeTriggerI8
         triggerCount = 0;
         holdoffEndCount = 0;
         uint i = 0;
-        uint popCnt = 0;
 
         triggerIndices.Clear();
         holdoffEndIndices.Clear();
@@ -90,10 +88,9 @@ public class RisingEdgeTriggerI8
                             // Process 1 byte at a time
                             for (; i < inputLength; i++)
                             {
-                                if (samplesPtr[(int)i] >= triggerLevel)
+                                if (samplesPtr[(int)i] > triggerLevel)
                                 {
-                                    triggerIndices[(int)triggerCount] = i;
-                                    triggerCount++;
+                                    triggerIndices[(int)triggerCount++] = i;
                                     triggerArmState = TriggerArmState.InHoldoff;
                                     holdoffRemaining = holdoffSamples;
                                     break;
@@ -115,7 +112,14 @@ public class RisingEdgeTriggerI8
                             if (holdoffRemaining == 0)
                             {
                                 holdoffEndIndices[(int)holdoffEndCount++] = i;
-                                triggerArmState = TriggerArmState.Unarmed;
+
+                                // Special edge case logic: if the last sample is *within* the range of armLevel to triggerLevel, immediately rearm
+                                // This allows for near gapless triggering (where the trigger frequency is very slightly lower than the windows/second)
+                                // To be reviewed after trying it for a while. Preliminary tests = 99.8% throughput (jitter on sig-gen or local clock gen negatively effects this)
+                                if (samplesPtr[(int)i] > armLevel && samplesPtr[(int)i] <= triggerLevel)
+                                    triggerArmState = TriggerArmState.Armed;
+                                else
+                                    triggerArmState = TriggerArmState.Unarmed;
                             }
                             break;
                     }
