@@ -1,10 +1,8 @@
-﻿using System;
-
-namespace TS.NET.Semaphore.Linux
+﻿namespace TS.NET.Semaphore.Linux
 {
     internal class SemaphoreLinux : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
     {
-        private const string HandleNamePrefix = "/ts.net.";
+        private const string HandleNamePrefix = "/TS.NET.";
         private readonly string name;
         private readonly bool deleteOnDispose;
         private readonly IntPtr handle;
