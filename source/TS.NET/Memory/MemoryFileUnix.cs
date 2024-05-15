@@ -115,12 +115,9 @@ namespace TS.NET.Memory.Unix
             }
         }
 
-        public static bool Exists(string memoryName, string path)
+        public static bool Exists(string memoryName)
         {
-            var file = Path.Combine(path, Folder);
-            Directory.CreateDirectory(file);
-            file = Path.Combine(file, memoryName);
-
+            var file = Path.Combine("/dev/shm", memoryName);
             return IsFileInUse(file);
         }
     }

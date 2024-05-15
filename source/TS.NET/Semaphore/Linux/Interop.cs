@@ -24,25 +24,25 @@ namespace TS.NET.Semaphore.Linux
 
         private static unsafe int Error => Marshal.GetLastWin32Error();
 
-        [LibraryImport(Lib, EntryPoint = "sem_open", StringMarshalling = StringMarshalling.Utf8)]
+        [LibraryImport(Lib, EntryPoint = "sem_open", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
         private static partial IntPtr SemaphoreOpen(string name, int oflag, uint mode, uint value);
 
-        [LibraryImport(Lib, EntryPoint = "sem_post")]
+        [LibraryImport(Lib, EntryPoint = "sem_post", SetLastError = true)]
         private static partial int SemaphorePost(IntPtr handle);
 
-        [LibraryImport(Lib, EntryPoint = "sem_wait")]
+        [LibraryImport(Lib, EntryPoint = "sem_wait", SetLastError = true)]
         private static partial int SemaphoreWait(IntPtr handle);
 
-        [LibraryImport(Lib, EntryPoint = "sem_trywait")]
+        [LibraryImport(Lib, EntryPoint = "sem_trywait", SetLastError = true)]
         private static partial int SemaphoreTryWait(IntPtr handle);
 
-        [LibraryImport(Lib, EntryPoint = "sem_timedwait")]
+        [LibraryImport(Lib, EntryPoint = "sem_timedwait", SetLastError = true)]
         private static partial int SemaphoreTimedWait(IntPtr handle, ref PosixTimespec abs_timeout);
 
-        [LibraryImport(Lib, EntryPoint = "sem_unlink", StringMarshalling = StringMarshalling.Utf8)]
+        [LibraryImport(Lib, EntryPoint = "sem_unlink", SetLastError = true, StringMarshalling = StringMarshalling.Utf8)]
         private static partial int SemaphoreUnlink(string name);
 
-        [LibraryImport(Lib, EntryPoint = "sem_close")]
+        [LibraryImport(Lib, EntryPoint = "sem_close", SetLastError = true)]
         private static partial int SemaphoreClose(IntPtr handle);
 
         internal static IntPtr CreateOrOpenSemaphore(string name, uint initialCount)

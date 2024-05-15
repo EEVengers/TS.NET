@@ -24,6 +24,7 @@ namespace TS.NET
 
         public unsafe ThunderscopeBridgeReader(string memoryName)
         {
+            ulong bridgeCapacityBytes;
             if (OperatingSystem.IsWindows())
             {
                 while (!MemoryFileWindows.Exists(memoryName))
@@ -31,24 +32,34 @@ namespace TS.NET
                     Console.WriteLine("Waiting for Thunderscope bridge writer...");
                     Thread.Sleep(1000);
                 }
+
+                ulong dataCapacityBytes = 0;
+                using (var headerReader = new ThunderscopeBridgeHeaderReader(memoryName))
+                {
+                    dataCapacityBytes = headerReader.GetDataCapacityBytes();
+                }
+                bridgeCapacityBytes = (ulong)sizeof(ThunderscopeBridgeHeader) + dataCapacityBytes;
             }
             else
             {
-                while (!MemoryFileUnix.Exists(memoryName, Path.GetTempPath()))
+                while (!MemoryFileUnix.Exists(memoryName))
                 {
                     Console.WriteLine("Waiting for Thunderscope bridge writer...");
                     Thread.Sleep(1000);
                 }
-            }
 
-            ulong dataCapacityBytes = 0;
-            using (var headerReader = new ThunderscopeBridgeHeaderReader(memoryName))
-            {
-                dataCapacityBytes = headerReader.GetDataCapacityBytes();
+                var file = Path.Combine("/dev/shm", memoryName);
+                FileStream stream = new(
+                    file,
+                    FileMode.Open,
+                    FileAccess.ReadWrite,
+                    FileShare.ReadWrite | FileShare.Delete,
+                    0x1000);
+                bridgeCapacityBytes = (ulong)stream.Length;
+                Console.WriteLine($"Bridge capacity in bytes: {bridgeCapacityBytes}");
             }
 
             // Now open the full bridge connection
-            ulong bridgeCapacityBytes = (ulong)sizeof(ThunderscopeBridgeHeader) + dataCapacityBytes;
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new MemoryFileWindows(memoryName, bridgeCapacityBytes)
                 : new MemoryFileUnix(memoryName, bridgeCapacityBytes);
