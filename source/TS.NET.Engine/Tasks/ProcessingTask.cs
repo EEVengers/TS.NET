@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using System;
 using System.Diagnostics;
 
 namespace TS.NET.Engine
@@ -99,8 +98,6 @@ namespace TS.NET.Engine
                 Span<uint> triggerIndices = new uint[ThunderscopeMemory.Length / 1000];     // 1000 samples is the minimum holdoff
                 Span<uint> holdoffEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum holdoff
                 // By setting holdoffSamples to processingConfig.CurrentChannelDataLength, the holdoff is the exact length of the data sent over the bridge which gives near gapless triggering
-                // Arguably could add logic that if the last sample of the previous window is within the range of armLevel-to-triggerLevel, re-arm immediately.
-                // ^ now implemented, to be reviewed later after usage in the wild.
                 RisingEdgeTriggerI8 trigger = new(0, -10, processingConfig.CurrentChannelDataLength);
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
@@ -199,8 +196,12 @@ namespace TS.NET.Engine
 
                                 sbyte triggerLevel = (sbyte)((requestedTriggerLevel / (triggerChannel.ActualVoltFullScale / 2)) * 127f);
 
+                                // This validation is for the rising edge trigger...
+                                // i.e. ArmLevel = LTE, TriggerLevel = GT
                                 if (triggerLevel == sbyte.MinValue)
-                                    triggerLevel += 10;     // Coerce so that the trigger arm level is correct
+                                    triggerLevel += 10;     // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
+                                if (triggerLevel == sbyte.MaxValue)
+                                    triggerLevel -= 1;      // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms
 
                                 logger.LogDebug($"Setting trigger level to {triggerLevel}");
                                 trigger.Reset(triggerLevel, triggerLevel -= 10, processingConfig.CurrentChannelDataLength);
