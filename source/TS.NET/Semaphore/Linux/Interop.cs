@@ -11,6 +11,7 @@ namespace TS.NET.Semaphore.Linux
 
         private const int ENOENT = 2;        // The named semaphore does not exist.
         private const int EINTR = 4;         // Semaphore operation was interrupted by a signal.
+        private const int EAGAIN = 11;       // Couldn't be acquired (sem_trywait)
         private const int ENOMEM = 12;       // Out of memory
         private const int EACCES = 13;       // Semaphore exists, but the caller does not have permission to open it.
         private const int EEXIST = 17;       // O_CREAT and O_EXCL were specified and the semaphore exists.
@@ -83,6 +84,19 @@ namespace TS.NET.Semaphore.Linux
             {
                 Wait(handle);
                 return true;
+            }
+            else if (millisecondsTimeout == 0)
+            {
+                if (SemaphoreTryWait(handle) == 0)
+                    return true;
+
+                return Error switch
+                {
+                    EAGAIN => false,
+                    EINVAL => throw new InvalidPosixSempahoreException(),
+                    EINTR => throw new OperationCanceledException(),
+                    _ => throw new PosixSempahoreException(Error),
+                };
             }
 
             var timeout = DateTimeOffset.UtcNow.AddMilliseconds(millisecondsTimeout);
