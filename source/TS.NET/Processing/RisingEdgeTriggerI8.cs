@@ -113,10 +113,8 @@ public class RisingEdgeTriggerI8
                             {
                                 holdoffEndIndices[(int)holdoffEndCount++] = i;
 
-                                // Special edge case logic: if the last sample is *within* the range of armLevel to triggerLevel, immediately rearm
-                                // This allows for near gapless triggering (where the trigger frequency is very slightly lower than the windows/second)
-                                // To be reviewed after trying it for a while. Preliminary tests = 99.8% throughput (jitter on sig-gen or local clock gen negatively effects this)
-                                if (samplesPtr[(int)i] > armLevel && samplesPtr[(int)i] <= triggerLevel)
+                                // Special edge case logic: if the last sample is below the armLevel, immediately rearm
+                                if (samplesPtr[(int)i] <= armLevel)
                                     triggerArmState = TriggerArmState.Armed;
                                 else
                                     triggerArmState = TriggerArmState.Unarmed;
