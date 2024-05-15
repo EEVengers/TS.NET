@@ -151,7 +151,7 @@ namespace TS.NET.Engine
                             ((Driver.XMDA.Thunderscope)thunderscope).ResetBuffer();
                             continue;
                         }
-                        catch (ThunderscopeFIFOOverflowException)
+                        catch (ThunderscopeFifoOverflowException)
                         {
                             logger.LogWarning("Scope had FIFO overflow - ignore and continue");
                             continue;

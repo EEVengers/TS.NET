@@ -21,8 +21,8 @@ namespace TS.NET
         public ThunderscopeMemoryOutOfMemoryException(string v) : base(v) { }
     }
 
-    public class ThunderscopeFIFOOverflowException : ThunderscopeRecoverableOverflowException
+    public class ThunderscopeFifoOverflowException : ThunderscopeRecoverableOverflowException
     {
-        public ThunderscopeFIFOOverflowException(string v) : base(v) { }
+        public ThunderscopeFifoOverflowException(string v) : base(v) { }
     }
 }

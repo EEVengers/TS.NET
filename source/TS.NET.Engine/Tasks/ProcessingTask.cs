@@ -311,6 +311,7 @@ namespace TS.NET.Engine
                                         bridge.SwitchRegionIfNeeded();
                                     }
                                     forceTriggerLatch = false;      // Ignore the force trigger request, if any, as a non-force trigger happened
+                                    autoTimer.Restart();            // Restart the timer so there aren't auto updates if regular triggering is happening.
                                     if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
                                     {
                                         singleTriggerLatch = false;
