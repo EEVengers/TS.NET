@@ -11,18 +11,14 @@ namespace TS.NET.Memory.Unix
         private const int BufferSize = 0x1000;
         private readonly string file;
 
-        internal MemoryFileUnix(string memoryName, ulong bridgeCapacityBytes, string path)
+        internal MemoryFileUnix(string memoryName, ulong bridgeCapacityBytes)
         {
-            file = Path.Combine(path, Folder);
-            Directory.CreateDirectory(file);
-            file = Path.Combine(file, memoryName);
-
+            // https://github.com/dotnet/runtime/blob/main/src/libraries/System.IO.MemoryMappedFiles/src/System/IO/MemoryMappedFiles/MemoryMappedFile.Unix.cs
+            file = Path.Combine("/dev/shm", memoryName);
             FileStream stream;
-
             if (IsFileInUse(file))
             {
                 // just open the file
-
                 stream = new FileStream(
                     file,
                     FileMode.Open, // just open it
@@ -33,7 +29,6 @@ namespace TS.NET.Memory.Unix
             else
             {
                 // override (or create if no longer exist) as it is not being used
-
                 stream = new FileStream(
                     file,
                     FileMode.Create,
@@ -55,7 +50,6 @@ namespace TS.NET.Memory.Unix
             catch
             {
                 // do not leave any resources hanging
-
                 try
                 {
                     stream.Dispose();

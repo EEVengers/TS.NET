@@ -29,7 +29,7 @@ namespace TS.NET
             var bridgeCapacityBytes = (ulong)sizeof(ThunderscopeBridgeHeader) + dataCapacityBytes;
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new MemoryFileWindows(memoryName, bridgeCapacityBytes)
-                : new MemoryFileUnix(memoryName, bridgeCapacityBytes, System.IO.Path.GetTempPath());
+                : new MemoryFileUnix(memoryName, bridgeCapacityBytes);
 
             try
             {

@@ -2,7 +2,7 @@
 
 public static class Waveforms
 {
-    public static void SineUInt8(Span<byte> buffer, double samplingRate, double frequency, double scaleRelativeToFull = 1.0)
+    public static void SineU8(Span<byte> buffer, double samplingRate, double frequency, double scaleRelativeToFull = 1.0)
     {
         int samplesForOneCycle = (int)(samplingRate / frequency);
         if (buffer.Length % samplesForOneCycle != 0)
@@ -22,7 +22,7 @@ public static class Waveforms
         }
     }
 
-    public static void SineInt8(Span<sbyte> buffer, double samplingRate, double frequency, double scaleRelativeToFull = 1.0)
+    public static void SineI8(Span<sbyte> buffer, double samplingRate, double frequency, double scaleRelativeToFull = 1.0)
     {
         int samplesForOneCycle = (int)(samplingRate / frequency);
         if (buffer.Length % samplesForOneCycle != 0)
@@ -33,7 +33,7 @@ public static class Waveforms
         for (int i = 0; i < samplesForOneCycle; i++)
         {
             //buffer[i] = (byte)((sine[i] * 127.0) + 127.0);  // Convert double sine to byte sine
-            buffer[i] = (sbyte)((sine[i] * scale) + 127.0);  // Convert double sine to byte sine
+            buffer[i] = (sbyte)(sine[i] * scale);
         }
         var copySource = buffer.Slice(0, samplesForOneCycle);
         for (int n = 1; n < (buffer.Length / samplesForOneCycle); n++)                // Copy byte sines throughout whole buffer
@@ -56,17 +56,17 @@ public static class Waveforms
         }
     }
 
-    public static void FourChannelSine(Span<byte> buffer, double samplingRate, double frequency)
+    public static void FourChannelSineI8(Span<sbyte> buffer, double samplingRate, double frequency)
     {
         var channelLength = buffer.Length / 4;
-        Span<byte> singleChannelBuffer1 = new byte[channelLength];
-        SineUInt8(singleChannelBuffer1, samplingRate, frequency);
-        Span<byte> singleChannelBuffer2 = new byte[channelLength];
-        SineUInt8(singleChannelBuffer2, samplingRate, frequency * 2, 0.75);
-        Span<byte> singleChannelBuffer3 = new byte[channelLength];
-        SineUInt8(singleChannelBuffer3, samplingRate, frequency * 4, 0.5);
-        Span<byte> singleChannelBuffer4 = new byte[channelLength];
-        SineUInt8(singleChannelBuffer4, samplingRate, frequency* 8, 0.25);
+        Span<sbyte> singleChannelBuffer1 = new sbyte[channelLength];
+        SineI8(singleChannelBuffer1, samplingRate, frequency);
+        Span<sbyte> singleChannelBuffer2 = new sbyte[channelLength];
+        SineI8(singleChannelBuffer2, samplingRate, frequency * 2, 0.75);
+        Span<sbyte> singleChannelBuffer3 = new sbyte[channelLength];
+        SineI8(singleChannelBuffer3, samplingRate, frequency * 4, 0.5);
+        Span<sbyte> singleChannelBuffer4 = new sbyte[channelLength];
+        SineI8(singleChannelBuffer4, samplingRate, frequency* 8, 0.25);
         // Now interleave samples
         for (int i = 0; i < channelLength; i++)
         {

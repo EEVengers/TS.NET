@@ -5,8 +5,6 @@ VisualStudioVersion = 17.1.31911.260
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TS.NET", "TS.NET\TS.NET.csproj", "{47918564-DCF0-4BF3-AA47-6E0006CFDE97}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TS.NET.Simulator", "TS.NET.Simulator\TS.NET.Simulator.csproj", "{4E6F7CF7-B86A-441A-B637-E7EC4E0CB4B4}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TS.NET.Tests", "TS.NET.Tests\TS.NET.Tests.csproj", "{AA4610F2-BBB1-4A3D-829C-E892330C9727}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TS.NET.Engine", "TS.NET.Engine\TS.NET.Engine.csproj", "{3DD9F2C4-9F49-4970-892A-C3D304F819BE}"
@@ -15,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TS.NET.Benchmarks", "TS.NET
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TS.NET.UI.Avalonia", "TS.NET.UI.Avalonia\TS.NET.UI.Avalonia.csproj", "{30F7019C-564D-4855-9123-5BAA6FA430C5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TS.NET.Native.BridgeReader", "TS.NET.Native.BridgeReader\TS.NET.Native.BridgeReader.csproj", "{BD808896-7D1D-4912-8984-A3E829797AB3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TS.NET.Native.BridgeReader", "TS.NET.Native.BridgeReader\TS.NET.Native.BridgeReader.csproj", "{BD808896-7D1D-4912-8984-A3E829797AB3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,10 +25,6 @@ Global
 		{47918564-DCF0-4BF3-AA47-6E0006CFDE97}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{47918564-DCF0-4BF3-AA47-6E0006CFDE97}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{47918564-DCF0-4BF3-AA47-6E0006CFDE97}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4E6F7CF7-B86A-441A-B637-E7EC4E0CB4B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4E6F7CF7-B86A-441A-B637-E7EC4E0CB4B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4E6F7CF7-B86A-441A-B637-E7EC4E0CB4B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4E6F7CF7-B86A-441A-B637-E7EC4E0CB4B4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{AA4610F2-BBB1-4A3D-829C-E892330C9727}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AA4610F2-BBB1-4A3D-829C-E892330C9727}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AA4610F2-BBB1-4A3D-829C-E892330C9727}.Release|Any CPU.ActiveCfg = Release|Any CPU

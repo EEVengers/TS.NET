@@ -51,7 +51,7 @@ namespace TS.NET
             ulong bridgeCapacityBytes = (ulong)sizeof(ThunderscopeBridgeHeader) + dataCapacityBytes;
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new MemoryFileWindows(memoryName, bridgeCapacityBytes)
-                : new MemoryFileUnix(memoryName, bridgeCapacityBytes, Path.GetTempPath());
+                : new MemoryFileUnix(memoryName, bridgeCapacityBytes);
 
             try
             {
@@ -205,7 +205,7 @@ namespace TS.NET
         {
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new MemoryFileWindows(memoryName, (ulong)sizeof(ThunderscopeBridgeHeader))
-                : new MemoryFileUnix(memoryName, (ulong)sizeof(ThunderscopeBridgeHeader), System.IO.Path.GetTempPath());
+                : new MemoryFileUnix(memoryName, (ulong)sizeof(ThunderscopeBridgeHeader));
             try
             {
                 view = file.MappedFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite);
