@@ -1,12 +1,12 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 namespace TS.NET;
 
 public unsafe struct ThunderscopeMemory
 {
     public const uint Length = 1 << 23;     // 8388608 bytes
     public byte* Pointer;
-    public Span<sbyte> Span { get { return new Span<sbyte>(Pointer, (int)Length); } }
+    public Span<byte> SpanU8 { get { return new Span<byte>(Pointer, (int)Length); } }
+    public Span<sbyte> SpanI8 { get { return new Span<sbyte>(Pointer, (int)Length); } }
 
     public ThunderscopeMemory()
     {

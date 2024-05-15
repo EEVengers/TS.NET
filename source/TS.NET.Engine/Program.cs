@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
 using TS.NET;
-using TS.NET.Driver.XMDA;
 using TS.NET.Engine;
 
 // The aim is to have a thread-safe lock-free dataflow architecture (to prevent various classes of bugs).
@@ -53,18 +52,40 @@ BlockingChannel<ProcessingResponseDto> processingResponseChannel = new();
 
 Thread.Sleep(1000);
 
-// Find thunderscope
-var devices = Thunderscope.IterateDevices();
-if (devices.Count == 0)
-    throw new Exception("No thunderscopes found");
+IThunderscope thunderscope;
+switch (thunderscopeConfiguration.Driver.ToLower())
+{
+    case "simulator":
+        {
+            var ts = new TS.NET.Driver.Simulator.Thunderscope();
+            thunderscope = ts;
+            break;
+        }
+    case "xdma":
+        {
+            // Find thunderscope
+            var devices = TS.NET.Driver.XMDA.Thunderscope.IterateDevices();
+            if (devices.Count == 0)
+                throw new Exception("No thunderscopes found");
+            var ts = new TS.NET.Driver.XMDA.Thunderscope();
+            ts.Open(devices[0], thunderscopeConfiguration.Calibration);
+            thunderscope = ts;
+            break;
+        }
+    default:
+        throw new ArgumentException($"{thunderscopeConfiguration.Driver} driver not supported");
+}
 
 // Start threads
 ProcessingTask processingTask = new(loggerFactory, thunderscopeConfiguration, processingChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
 processingTask.Start();
-InputTask inputTask = new(loggerFactory, thunderscopeConfiguration, devices[0], inputChannel.Reader, processingChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
+
+InputTask inputTask = new(loggerFactory, thunderscope, inputChannel.Reader, processingChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
 inputTask.Start();
+
 WaveformServer waveformServer = new(loggerFactory, thunderscopeConfiguration, IPAddress.Any, 5026, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
 waveformServer.Start();
+
 ScpiServer scpiServer = new(loggerFactory, IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
 scpiServer.Start();
 

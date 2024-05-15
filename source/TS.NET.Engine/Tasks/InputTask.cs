@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using TS.NET.Driver.XMDA;
 
 namespace TS.NET.Engine
 {
@@ -8,8 +7,7 @@ namespace TS.NET.Engine
     internal class InputTask
     {
         private readonly ILogger logger;
-        private readonly ThunderscopeSettings settings;
-        private readonly ThunderscopeDevice thunderscopeDevice;
+        private readonly IThunderscope thunderscope;
         private readonly BlockingChannelReader<ThunderscopeMemory> inputChannel;
         private readonly BlockingChannelWriter<InputDataDto> processingChannel;
         private readonly BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel;
@@ -19,16 +17,14 @@ namespace TS.NET.Engine
         private Task? taskLoop;
 
         public InputTask(ILoggerFactory loggerFactory,
-            ThunderscopeSettings settings,
-            ThunderscopeDevice thunderscopeDevice,
+            IThunderscope thunderscope,
             BlockingChannelReader<ThunderscopeMemory> inputChannel,
             BlockingChannelWriter<InputDataDto> processingChannel,
             BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
             BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel)
         {
             logger = loggerFactory.CreateLogger(nameof(InputTask));
-            this.settings = settings;
-            this.thunderscopeDevice = thunderscopeDevice;
+            this.thunderscope = thunderscope;
             this.inputChannel = inputChannel;
             this.processingChannel = processingChannel;
             this.hardwareRequestChannel = hardwareRequestChannel;
@@ -38,7 +34,7 @@ namespace TS.NET.Engine
         public void Start()
         {
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, settings, thunderscopeDevice, inputChannel, processingChannel, hardwareRequestChannel, hardwareResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, thunderscope, inputChannel, processingChannel, hardwareRequestChannel, hardwareResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -49,8 +45,7 @@ namespace TS.NET.Engine
 
         private static void Loop(
             ILogger logger,
-            ThunderscopeSettings settings,
-            ThunderscopeDevice thunderscopeDevice,
+            IThunderscope thunderscope,
             BlockingChannelReader<ThunderscopeMemory> inputChannel,
             BlockingChannelWriter<InputDataDto> processingChannel,
             BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
@@ -59,10 +54,8 @@ namespace TS.NET.Engine
         {
             Thread.CurrentThread.Name = "TS.NET Input";
             Thread.CurrentThread.Priority = ThreadPriority.Highest;
-            Thunderscope thunderscope = new();
             try
-            {
-                thunderscope.Open(thunderscopeDevice, settings.Calibration);
+            {               
                 thunderscope.Start();
                 logger.LogDebug("Started");
 
@@ -139,7 +132,9 @@ namespace TS.NET.Engine
                         thunderscope.Start();
                     }
 
+                    //logger.LogDebug($"Requesting memory block {enqueueCounter}");
                     var memory = inputChannel.Read(cancelToken);
+                    //logger.LogDebug($"Memory block {enqueueCounter}");
                     while (true)
                     {
                         try
@@ -147,12 +142,13 @@ namespace TS.NET.Engine
                             thunderscope.Read(memory);
                             if (enqueueCounter == 0)
                                 logger.LogDebug("First block of data received");
+                            //logger.LogDebug($"Acquisition block {enqueueCounter}");
                             break;
                         }
                         catch (ThunderscopeMemoryOutOfMemoryException)
                         {
                             logger.LogWarning("Scope ran out of memory - reset buffer pointers and continue");
-                            thunderscope.ResetBuffer();
+                            ((Driver.XMDA.Thunderscope)thunderscope).ResetBuffer();
                             continue;
                         }
                         catch (ThunderscopeFIFOOverflowException)

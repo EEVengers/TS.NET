@@ -1,6 +1,4 @@
-﻿using System.Reflection.Metadata;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace TS.NET.Native.BridgeReader
 {
@@ -16,7 +14,7 @@ namespace TS.NET.Native.BridgeReader
         [UnmanagedCallersOnly(EntryPoint = "init")]
         public static IntPtr Init()
         {
-            ThunderscopeBridgeReader bridgeReader = new(new ThunderscopeBridgeOptions("ThunderScope.1", 4, 1000000));
+            ThunderscopeBridgeReader bridgeReader = new("ThunderScope.1");
 
             GCHandle handle = GCHandle.Alloc(bridgeReader, GCHandleType.Pinned);
             return handle.AddrOfPinnedObject();

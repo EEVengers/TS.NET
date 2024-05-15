@@ -231,13 +231,13 @@ namespace TS.NET.Engine
                             //if (config.HorizontalSumLength != HorizontalSumLength.None)
                             //    throw new NotImplementedException();
                             // Write to circular buffer
-                            circularBuffer1.Write(inputDataDto.Memory.Span);
+                            circularBuffer1.Write(inputDataDto.Memory.SpanI8);
                             // Trigger
                             if (processingConfig.TriggerChannel != TriggerChannel.None)
                             {
                                 var triggerChannelBuffer = processingConfig.TriggerChannel switch
                                 {
-                                    TriggerChannel.One => inputDataDto.Memory.Span,
+                                    TriggerChannel.One => inputDataDto.Memory.SpanI8,
                                     _ => throw new ArgumentException("Invalid TriggerChannel value")
                                 };
                                 trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out uint triggerCount, holdoffEndIndices: holdoffEndIndices, out uint holdoffEndCount);
@@ -247,7 +247,7 @@ namespace TS.NET.Engine
                             break;
                         case AdcChannelMode.Dual:
                             // Shuffle
-                            Shuffle.TwoChannels(input: inputDataDto.Memory.Span, output: shuffleBuffer);
+                            Shuffle.TwoChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                             // Finished with the memory, return it
                             inputChannel.Write(inputDataDto.Memory);
                             // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
@@ -270,7 +270,7 @@ namespace TS.NET.Engine
                             break;
                         case AdcChannelMode.Quad:
                             // Shuffle
-                            Shuffle.FourChannels(input: inputDataDto.Memory.Span, output: shuffleBuffer);
+                            Shuffle.FourChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                             // Finished with the memory, return it
                             inputChannel.Write(inputDataDto.Memory);
                             // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)

@@ -8,7 +8,7 @@ namespace TS.NET.Driver.XMDA
 {
     public record ThunderscopeDevice(string DevicePath);
 
-    public class Thunderscope
+    public class Thunderscope : IThunderscope
     {
         private ThunderscopeInterop interop;
         private ThunderscopeCalibration calibration;
