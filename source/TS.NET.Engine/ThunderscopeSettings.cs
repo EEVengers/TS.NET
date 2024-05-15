@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace TS.NET.Engine
 {
@@ -23,7 +24,13 @@ namespace TS.NET.Engine
             if (!File.Exists(file))
                 throw new FileNotFoundException(file);
 
-            return JsonSerializer.Deserialize<ThunderscopeSettings>(File.ReadAllText(file));
+            return JsonSerializer.Deserialize(File.ReadAllText(file), SourceGenerationContext.Default.ThunderscopeSettings);
         }
+    }
+
+    [JsonSourceGenerationOptions(WriteIndented = true)]
+    [JsonSerializable(typeof(ThunderscopeSettings))]
+    internal partial class SourceGenerationContext : JsonSerializerContext
+    {
     }
 }

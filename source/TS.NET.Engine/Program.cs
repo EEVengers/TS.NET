@@ -18,12 +18,11 @@ Console.Title = "Engine";
 using (Process p = Process.GetCurrentProcess())
     p.PriorityClass = ProcessPriorityClass.High;
 
-if (true)
-{
-    ThunderscopeSettings settings = ThunderscopeSettings.Default();
-    string json = JsonSerializer.Serialize(settings);
-    File.WriteAllText("new_configuration.json", json);
-}
+#if DEBUG
+ThunderscopeSettings settings = ThunderscopeSettings.Default();
+    string json = JsonSerializer.Serialize(settings, SourceGenerationContext.Default.ThunderscopeSettings);
+    File.WriteAllText("thunderscope (defaults).json", json);
+#endif
 
 IConfigurationBuilder configurationBuilder = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json");
