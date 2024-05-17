@@ -1,17 +1,12 @@
-name: dotnet build linux and windows
-
+name: Build & test
 on: [push]
-
 jobs:
-  build:
-    
+  build:   
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         dotnet-version: [ '8.0.x' ]
         os: [ubuntu-latest, windows-latest]
-
-
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
@@ -27,4 +22,15 @@ jobs:
       - name: Test
         run: dotnet test --no-restore --verbosity normal
         working-directory: ./source
-
+      - name:  Run build scripts
+        working-directory: ./build-scripts
+        run:   |
+               if [ "$RUNNER_OS" == "Linux" ]; then
+                    ./"TS.NET.Engine (linux-x64).bash"
+               elif [ "$RUNNER_OS" == "Windows" ]; then
+                    powershell -ExecutionPolicy Bypass -File "TS.NET.Engine (win-x64).ps1"
+               else
+                    echo "$RUNNER_OS not supported"
+                    exit 1
+               fi
+        shell: bash
