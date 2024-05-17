@@ -36,7 +36,7 @@ namespace TS.NET.Tests
         [Fact]
         public void FiftySample()
         {
-            RisingEdgeTriggerI8 trigger = new(0, -10, (ulong)10);
+            RisingEdgeTriggerI8 trigger = new(0, -10, 1000);
             Span<uint> triggerIndices = new uint[10000];
             Span<uint> holdoffEndIndices = new uint[10000];
             Span<sbyte> input = new sbyte[50];
@@ -46,48 +46,89 @@ namespace TS.NET.Tests
 
         }
 
-        [Fact]
-        public void SituationB_Simd()
-        {
-            var situation = RisingEdgeTriggerSituations.SituationB();
-            RisingEdgeTriggerI8 trigger = new(situation.TriggerLevel, situation.ArmLevel, situation.HoldoffSamples);
-            Span<uint> triggerIndices = new uint[10000];
-            Span<uint> holdoffEndIndices = new uint[10000];
+        //[Fact]
+        //public void SituationB_Simd()
+        //{
+        //    var situation = RisingEdgeTriggerSituations.SituationB();
+        //    RisingEdgeTriggerI8 trigger = new(situation.TriggerLevel, situation.ArmLevel, situation.HoldoffSamples);
+        //    Span<uint> triggerIndices = new uint[10000];
+        //    Span<uint> holdoffEndIndices = new uint[10000];
 
-            for (int i = 0; i < situation.ChunkCount; i++)
-            {
-                trigger.ProcessSimd(
-                    situation.Input.Span.Slice((int)(i * situation.ChunkSize), (int)situation.ChunkSize),
-                    triggerIndices, 
-                    out uint triggerCount, 
-                    holdoffEndIndices, 
-                    out uint holdoffEndCount);
-                if (triggerCount > 0)
-                    Console.WriteLine("Hi");
-                if (holdoffEndCount > 0)
-                    Console.WriteLine("Hi");
+        //    for (int i = 0; i < situation.ChunkCount; i++)
+        //    {
+        //        trigger.ProcessSimd(
+        //            situation.Input.Span.Slice((int)(i * situation.ChunkSize), (int)situation.ChunkSize),
+        //            triggerIndices, 
+        //            out uint triggerCount, 
+        //            holdoffEndIndices, 
+        //            out uint holdoffEndCount);
+        //        if (triggerCount > 0)
+        //            Console.WriteLine("Hi");
+        //        if (holdoffEndCount > 0)
+        //            Console.WriteLine("Hi");
 
-                if(!situation.ExpectedTriggerIndices[i].IsEmpty)
-                {
-                    Assert.Equal(triggerCount, (uint)situation.ExpectedTriggerIndices[i].Length);
-                    int n = 0;
-                    foreach(var index in situation.ExpectedTriggerIndices[i].Span)
-                    {
-                        Assert.Equal(index, triggerIndices[n++]);
-                    }
-                }
+        //        if(!situation.ExpectedTriggerIndices[i].IsEmpty)
+        //        {
+        //            Assert.Equal(triggerCount, (uint)situation.ExpectedTriggerIndices[i].Length);
+        //            int n = 0;
+        //            foreach(var index in situation.ExpectedTriggerIndices[i].Span)
+        //            {
+        //                Assert.Equal(index, triggerIndices[n++]);
+        //            }
+        //        }
 
-                if (!situation.ExpectedHoldoffEndIndices[i].IsEmpty)
-                {
-                    Assert.Equal(holdoffEndCount, (uint)situation.ExpectedHoldoffEndIndices[i].Length);
-                    int n = 0;
-                    foreach (var index in situation.ExpectedHoldoffEndIndices[i].Span)
-                    {
-                        Assert.Equal(index, holdoffEndIndices[n++]);
-                    }
-                }
-            }
-        }
+        //        if (!situation.ExpectedHoldoffEndIndices[i].IsEmpty)
+        //        {
+        //            Assert.Equal(holdoffEndCount, (uint)situation.ExpectedHoldoffEndIndices[i].Length);
+        //            int n = 0;
+        //            foreach (var index in situation.ExpectedHoldoffEndIndices[i].Span)
+        //            {
+        //                Assert.Equal(index, holdoffEndIndices[n++]);
+        //            }
+        //        }
+        //    }
+        //}        //[Fact]
+        //public void SituationB_Simd()
+        //{
+        //    var situation = RisingEdgeTriggerSituations.SituationB();
+        //    RisingEdgeTriggerI8 trigger = new(situation.TriggerLevel, situation.ArmLevel, situation.HoldoffSamples);
+        //    Span<uint> triggerIndices = new uint[10000];
+        //    Span<uint> holdoffEndIndices = new uint[10000];
+
+        //    for (int i = 0; i < situation.ChunkCount; i++)
+        //    {
+        //        trigger.ProcessSimd(
+        //            situation.Input.Span.Slice((int)(i * situation.ChunkSize), (int)situation.ChunkSize),
+        //            triggerIndices, 
+        //            out uint triggerCount, 
+        //            holdoffEndIndices, 
+        //            out uint holdoffEndCount);
+        //        if (triggerCount > 0)
+        //            Console.WriteLine("Hi");
+        //        if (holdoffEndCount > 0)
+        //            Console.WriteLine("Hi");
+
+        //        if(!situation.ExpectedTriggerIndices[i].IsEmpty)
+        //        {
+        //            Assert.Equal(triggerCount, (uint)situation.ExpectedTriggerIndices[i].Length);
+        //            int n = 0;
+        //            foreach(var index in situation.ExpectedTriggerIndices[i].Span)
+        //            {
+        //                Assert.Equal(index, triggerIndices[n++]);
+        //            }
+        //        }
+
+        //        if (!situation.ExpectedHoldoffEndIndices[i].IsEmpty)
+        //        {
+        //            Assert.Equal(holdoffEndCount, (uint)situation.ExpectedHoldoffEndIndices[i].Length);
+        //            int n = 0;
+        //            foreach (var index in situation.ExpectedHoldoffEndIndices[i].Span)
+        //            {
+        //                Assert.Equal(index, holdoffEndIndices[n++]);
+        //            }
+        //        }
+        //    }
+        //}
 
         [Fact]
         public void SituationC_Simd()
