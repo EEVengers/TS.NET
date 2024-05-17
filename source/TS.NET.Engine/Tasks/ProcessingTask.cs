@@ -60,12 +60,12 @@ namespace TS.NET.Engine
                 // Bridge is cross-process shared memory for the UI to read triggered acquisitions
                 // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
                 byte maxChannelDataByteCount = 1;
-                ThunderscopeBridgeWriter bridge = new("ThunderScope.1", settings.MaxChannelCount, settings.MaxChannelDataLength, maxChannelDataByteCount);
+                ThunderscopeDataBridgeWriter bridge = new("ThunderScope.1", settings.MaxChannelCount, settings.MaxChannelDataLength, maxChannelDataByteCount);
 
-                ThunderscopeConfiguration cachedThunderscopeConfiguration = default;
+                ThunderscopeHardwareConfig cachedThunderscopeConfiguration = default;
 
                 // Set some sensible defaults
-                var processingConfig = new ThunderscopeProcessing
+                var processingConfig = new ThunderscopeProcessingConfig
                 {
                     CurrentChannelCount = settings.MaxChannelCount,
                     CurrentChannelDataLength = settings.MaxChannelDataLength,
@@ -218,13 +218,13 @@ namespace TS.NET.Engine
                     }
 
                     InputDataDto inputDataDto = processingInputChannel.Read(cancelToken);
-                    cachedThunderscopeConfiguration = inputDataDto.Configuration;
-                    bridge.Configuration = inputDataDto.Configuration;
+                    cachedThunderscopeConfiguration = inputDataDto.HardwareConfig;
+                    bridge.Hardware = inputDataDto.HardwareConfig;
                     dequeueCounter++;
                     oneSecondDequeueCount++;
 
                     int channelLength = (int)processingConfig.CurrentChannelDataLength;
-                    switch (inputDataDto.Configuration.AdcChannelMode)
+                    switch (inputDataDto.HardwareConfig.AdcChannelMode)
                     {
                         // Processing pipeline:
                         // Shuffle (if needed)
