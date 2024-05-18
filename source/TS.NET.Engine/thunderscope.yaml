@@ -1,0 +1,53 @@
+###################################################################################################
+# General configuration
+#
+# Driver selects the hardware driver to use.
+# Value: String, with possible values of XMDA/Simulator.
+Driver: XDMA
+
+# MaxChannelCount configures the maximum number of channels possible.
+# At runtime, the processing logic could use any number up to this maximum.
+# This has a large correlation with the amount of RAM usage.
+# Value: Integer, typically 4 for a 4-channel thunderscope.
+MaxChannelCount: 4
+
+# MaxChannelDataLength configures the maximum data length of each channel possible.
+# At runtime, the processing logic could use any number up to this maximum.
+# This has a large correlation with the amount of RAM usage.
+# Value: Integer, typically 1000000. Larger values may be used for longer triggered captures, with a large increase in RAM usage.
+MaxChannelDataLength: 1000000
+
+# InputThreadProcessorAffinity configures the thread processor affinity for the input capture thread.
+# Typically should remain as -1 to allow full control by operating system, but user may wish to experiment.
+# Value: Integer, in range of -1 to the number of CPU cores available. -1 = not set, 0 = CPU core 0, 1 = CPU core 1, etc.
+InputThreadProcessorAffinity: -1
+
+# ProcessingThreadProcessorAffinity configures the thread processor affinity for the input capture thread.
+# Typically should remain as -1 to allow full control by operating system, but user may wish to experiment.
+# Value: Integer, in range of -1 to the number of CPU cores available. -1 = not set, 0 = CPU core 0, 1 = CPU core 1, etc.
+ProcessingThreadProcessorAffinity: -1
+
+###################################################################################################
+# Calibration configuration
+#
+# Calibration is a structure containing the DC calibration data for a specific thunderscope.
+#
+# AttenuatorGain sets the multiplier for the frontend relay-switched attenuator.
+# Value: Double, nominally 0.02 with slight variation based on calibration.
+Calibration:
+  Channel1:
+    AttenuatorGain: 0.02
+    TrimOffsetDac: 2048
+    TrimSensitivityDac: 64
+  Channel2:
+    AttenuatorGain: 0.02
+    TrimOffsetDac: 2048
+    TrimSensitivityDac: 64
+  Channel3:
+    AttenuatorGain: 0.02
+    TrimOffsetDac: 2048
+    TrimSensitivityDac: 64
+  Channel4:
+    AttenuatorGain: 0.02
+    TrimOffsetDac: 2048
+    TrimSensitivityDac: 64

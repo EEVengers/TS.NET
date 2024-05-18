@@ -2,6 +2,8 @@
   "Driver": "XDMA",
   "MaxChannelCount": 4,
   "MaxChannelDataLength": 1000000,
+  "InputThreadProcessorAffinity": -1,
+  "ProcessingThreadProcessorAffinity": -1,
   "Calibration": {
     "Channel1": {
       "AttenuatorGain": 0.02,

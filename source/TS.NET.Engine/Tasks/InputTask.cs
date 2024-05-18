@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace TS.NET.Engine
 {
@@ -8,6 +9,7 @@ namespace TS.NET.Engine
     {
         private readonly ILogger logger;
         private readonly IThunderscope thunderscope;
+        private readonly ThunderscopeSettings settings;
         private readonly BlockingChannelReader<ThunderscopeMemory> inputChannel;
         private readonly BlockingChannelWriter<InputDataDto> processingChannel;
         private readonly BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel;
@@ -18,6 +20,7 @@ namespace TS.NET.Engine
 
         public InputTask(ILoggerFactory loggerFactory,
             IThunderscope thunderscope,
+            ThunderscopeSettings settings,
             BlockingChannelReader<ThunderscopeMemory> inputChannel,
             BlockingChannelWriter<InputDataDto> processingChannel,
             BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
@@ -25,6 +28,7 @@ namespace TS.NET.Engine
         {
             logger = loggerFactory.CreateLogger(nameof(InputTask));
             this.thunderscope = thunderscope;
+            this.settings = settings;
             this.inputChannel = inputChannel;
             this.processingChannel = processingChannel;
             this.hardwareRequestChannel = hardwareRequestChannel;
@@ -34,7 +38,7 @@ namespace TS.NET.Engine
         public void Start()
         {
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, thunderscope, inputChannel, processingChannel, hardwareRequestChannel, hardwareResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, thunderscope, settings, inputChannel, processingChannel, hardwareRequestChannel, hardwareResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -46,6 +50,7 @@ namespace TS.NET.Engine
         private static void Loop(
             ILogger logger,
             IThunderscope thunderscope,
+            ThunderscopeSettings settings,
             BlockingChannelReader<ThunderscopeMemory> inputChannel,
             BlockingChannelWriter<InputDataDto> processingChannel,
             BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
@@ -53,7 +58,13 @@ namespace TS.NET.Engine
             CancellationToken cancelToken)
         {
             Thread.CurrentThread.Name = "TS.NET Input";
-            Thread.CurrentThread.Priority = ThreadPriority.Highest;
+            //Thread.CurrentThread.Priority = ThreadPriority.Highest;
+            if (settings.InputThreadProcessorAffinity > -1 && OperatingSystem.IsWindows())
+            {
+                Thread.BeginThreadAffinity();
+                Interop.CurrentThread.ProcessorAffinity = new IntPtr(1 << settings.InputThreadProcessorAffinity);
+            }
+            
             try
             {               
                 thunderscope.Start();

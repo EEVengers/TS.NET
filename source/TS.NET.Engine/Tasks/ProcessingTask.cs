@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace TS.NET.Engine
 {
@@ -56,6 +57,11 @@ namespace TS.NET.Engine
             try
             {
                 Thread.CurrentThread.Name = "TS.NET Processing";
+                if (settings.ProcessingThreadProcessorAffinity > -1 && OperatingSystem.IsWindows())
+                {
+                    Thread.BeginThreadAffinity();
+                    Interop.CurrentThread.ProcessorAffinity = new IntPtr(1 << settings.ProcessingThreadProcessorAffinity);
+                }
 
                 // Bridge is cross-process shared memory for the UI to read triggered acquisitions
                 // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport

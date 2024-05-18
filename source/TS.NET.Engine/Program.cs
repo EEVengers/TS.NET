@@ -5,6 +5,8 @@ using System.Net;
 using System.Text.Json;
 using TS.NET;
 using TS.NET.Engine;
+using YamlDotNet.Serialization.NamingConventions;
+using YamlDotNet.Serialization;
 
 // The aim is to have a thread-safe lock-free dataflow architecture (to prevent various classes of bugs).
 // The use of async/await for processing is avoided as the task thread pool is of little use here.
@@ -20,14 +22,20 @@ using (Process p = Process.GetCurrentProcess())
 
 #if DEBUG
 ThunderscopeSettings settings = ThunderscopeSettings.Default();
-    string json = JsonSerializer.Serialize(settings, SourceGenerationContext.Default.ThunderscopeSettings);
-    File.WriteAllText("thunderscope (defaults).json", json);
+string json = JsonSerializer.Serialize(settings, SourceGenerationContext.Default.ThunderscopeSettings);
+File.WriteAllText("thunderscope (defaults).json", json);
+
+var serializer = new SerializerBuilder()
+    .WithNamingConvention(PascalCaseNamingConvention.Instance)
+    .Build();
+string yaml = serializer.Serialize(settings);
+File.WriteAllText("thunderscope (defaults).yaml", yaml);
 #endif
 
 IConfigurationBuilder configurationBuilder = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json");
 var configuration = configurationBuilder.Build();
-var thunderscopeConfiguration = ThunderscopeSettings.FromFile("thunderscope.json");
+var thunderscopeSettings = ThunderscopeSettings.FromYamlFile("thunderscope.yaml");
 
 var loggerFactory = LoggerFactory.Create(configure =>
 {
@@ -52,7 +60,7 @@ BlockingChannel<ProcessingResponseDto> processingResponseChannel = new();
 Thread.Sleep(1000);
 
 IThunderscope thunderscope;
-switch (thunderscopeConfiguration.Driver.ToLower())
+switch (thunderscopeSettings.Driver.ToLower())
 {
     case "simulator":
         {
@@ -67,22 +75,22 @@ switch (thunderscopeConfiguration.Driver.ToLower())
             if (devices.Count == 0)
                 throw new Exception("No thunderscopes found");
             var ts = new TS.NET.Driver.XMDA.Thunderscope();
-            ts.Open(devices[0], thunderscopeConfiguration.Calibration);
+            ts.Open(devices[0], thunderscopeSettings.Calibration);
             thunderscope = ts;
             break;
         }
     default:
-        throw new ArgumentException($"{thunderscopeConfiguration.Driver} driver not supported");
+        throw new ArgumentException($"{thunderscopeSettings.Driver} driver not supported");
 }
 
 // Start threads
-ProcessingTask processingTask = new(loggerFactory, thunderscopeConfiguration, processingChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
+ProcessingTask processingTask = new(loggerFactory, thunderscopeSettings, processingChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
 processingTask.Start();
 
-InputTask inputTask = new(loggerFactory, thunderscope, inputChannel.Reader, processingChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
+InputTask inputTask = new(loggerFactory, thunderscope, thunderscopeSettings, inputChannel.Reader, processingChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
 inputTask.Start();
 
-WaveformServer waveformServer = new(loggerFactory, thunderscopeConfiguration, IPAddress.Any, 5026, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
+WaveformServer waveformServer = new(loggerFactory, thunderscopeSettings, IPAddress.Any, 5026, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
 waveformServer.Start();
 
 ScpiServer scpiServer = new(loggerFactory, IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
