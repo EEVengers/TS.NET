@@ -7,7 +7,7 @@ namespace TS.NET.Engine
     {
         private readonly ILogger logger;
         private readonly ThunderscopeSettings settings;
-        private readonly BlockingChannelReader<InputDataDto> processingChannel;
+        private readonly BlockingChannelReader<InputDataDto> processChannel;
         private readonly BlockingChannelWriter<ThunderscopeMemory> inputChannel;
         private readonly BlockingChannelReader<ProcessingRequestDto> processingRequestChannel;
         private readonly BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel;
@@ -18,14 +18,14 @@ namespace TS.NET.Engine
         public ProcessingThread(
             ILoggerFactory loggerFactory,
             ThunderscopeSettings settings,
-            BlockingChannelReader<InputDataDto> processingChannel,
+            BlockingChannelReader<InputDataDto> processChannel,
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel)
         {
             logger = loggerFactory.CreateLogger(nameof(ProcessingThread));
             this.settings = settings;
-            this.processingChannel = processingChannel;
+            this.processChannel = processChannel;
             this.inputChannel = inputChannel;
             this.processingRequestChannel = processingRequestChannel;
             this.processingResponseChannel = processingResponseChannel;
@@ -34,7 +34,7 @@ namespace TS.NET.Engine
         public void Start()
         {
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, settings, processingChannel, inputChannel, processingRequestChannel, processingResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, settings, processChannel, inputChannel, processingRequestChannel, processingResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -47,7 +47,7 @@ namespace TS.NET.Engine
         private static void Loop(
             ILogger logger,
             ThunderscopeSettings settings,
-            BlockingChannelReader<InputDataDto> processingInputChannel,
+            BlockingChannelReader<InputDataDto> processChannel,
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel,
@@ -63,8 +63,6 @@ namespace TS.NET.Engine
                     logger.LogDebug($"{nameof(ProcessingThread)} thread processor affinity set to {settings.ProcessingThreadProcessorAffinity}");
                 }
 
-                // Bridge is cross-process shared memory for the UI to read triggered acquisitions
-                // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
                 ThunderscopeDataBridgeConfig bridgeConfig = new()
                 {
                     MaxChannelCount = settings.MaxChannelCount,
@@ -226,7 +224,7 @@ namespace TS.NET.Engine
                         bridge.Processing = processingConfig;
                     }
 
-                    InputDataDto inputDataDto = processingInputChannel.Read(cancelToken);
+                    InputDataDto inputDataDto = processChannel.Read(cancelToken);
                     cachedThunderscopeConfiguration = inputDataDto.HardwareConfig;
                     bridge.Hardware = inputDataDto.HardwareConfig;
                     dequeueCounter++;
@@ -369,7 +367,7 @@ namespace TS.NET.Engine
 
                     if (periodicUpdateTimer.ElapsedMilliseconds >= 10000)
                     {
-                        logger.LogDebug($"Outstanding frames: {processingInputChannel.PeekAvailable()}, dequeues/sec: {oneSecondDequeueCount / (periodicUpdateTimer.Elapsed.TotalSeconds):F2}, dequeue count: {dequeueCounter}");
+                        logger.LogDebug($"Outstanding frames: {processChannel.PeekAvailable()}, dequeues/sec: {oneSecondDequeueCount / (periodicUpdateTimer.Elapsed.TotalSeconds):F2}, dequeue count: {dequeueCounter}");
                         logger.LogDebug($"Triggers/sec: {oneSecondHoldoffCount / (periodicUpdateTimer.Elapsed.TotalSeconds):F2}, trigger count: {bridge.Monitoring.TotalAcquisitions}, UI dropped triggers: {bridge.Monitoring.MissedAcquisitions}");
                         periodicUpdateTimer.Restart();
                         oneSecondHoldoffCount = 0;

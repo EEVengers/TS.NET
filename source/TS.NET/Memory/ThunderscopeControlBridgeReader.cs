@@ -13,10 +13,9 @@ namespace TS.NET
         private readonly MemoryMappedViewAccessor view;
         private unsafe byte* basePointer;
         private ThunderscopeControlBridgeContent content;
-        private readonly IInterprocessSemaphoreWaiter controlUpdatedSemaphore;
-        //private readonly IInterprocessSemaphoreReleaser controlResponseSemaphore;
+        private readonly IInterprocessSemaphoreWaiter controlUpdateSemaphore;
 
-        public unsafe ThunderscopeControlBridgeReader(string memoryName, ushort maxChannelCount, uint maxChannelDataLength, byte maxChannelDataByteCount)
+        public unsafe ThunderscopeControlBridgeReader(string memoryName, ThunderscopeDataBridgeConfig dataBridgeConfig)
         {
             memoryName += ".Control";
             var bridgeCapacityBytes = (ulong)sizeof(ThunderscopeControlBridgeContent);
@@ -31,18 +30,11 @@ namespace TS.NET
                 try
                 {
                     basePointer = GetPointer();
-
-                    // Writer sets initial state of header
+                    // Reader sets initial state of header
                     content.Version = 1;
-
-                    content.MaxChannelCount = maxChannelCount;
-                    content.MaxChannelDataLength = maxChannelDataLength;
-                    content.MaxChannelDataByteCount = maxChannelDataByteCount;
-
+                    content.DataBridge = dataBridgeConfig;
                     SetHeader();
-
-                    controlUpdatedSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + ".ControlUpdated", 0);
-                    //controlResponseSemaphore = InterprocessSemaphore.CreateReleaser(memoryName + ".ControlResponse", 0);
+                    controlUpdateSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + ".ControlUpdate", 0);
                 }
                 catch
                 {
@@ -85,18 +77,21 @@ namespace TS.NET
             }
         }
 
-        //public bool WaitForUpdate(int millisecondsTimeout, out ThunderscopeControlBridgeContent data)
-        //{
-        //    var request = controlUpdatedSemaphore.Wait(millisecondsTimeout);
-        //    if (request) while (controlUpdatedSemaphore.Wait(0)) { }  // Run down the semaphore in certain rare edge cases where programs are restarted
-        //    data = new ThunderscopeControlBridgeContent();
-        //    if (request)
-        //    {
-        //        GetHeader();
-        //        data = content;
-        //    }
-        //    return request;
-        //}
+        public bool WaitForUpdate(int millisecondsTimeout, out ThunderscopeHardwareConfig hardware, out ThunderscopeProcessingConfig processing)
+        {
+            var request = controlUpdateSemaphore.Wait(millisecondsTimeout);
+            if (request) while (controlUpdateSemaphore.Wait(0)) { }  // Run down the semaphore in rare edge cases
+            if (request)
+            {
+                GetHeader();
+                hardware = content.Hardware;
+                processing = content.Processing;
+                return true;
+            }
+            hardware = default;
+            processing = default;
+            return false;
+        }
 
         private void GetHeader()
         {

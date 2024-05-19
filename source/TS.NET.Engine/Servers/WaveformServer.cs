@@ -32,29 +32,17 @@ namespace TS.NET.Engine
         private readonly ILogger logger;
         private readonly ThunderscopeDataBridgeReader bridge;
         private readonly CancellationToken cancellationToken;
-        private readonly BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel;
-        private readonly BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel;
-        private readonly BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel;
-        private readonly BlockingChannelReader<ProcessingResponseDto> processingResponseChannel;
         uint sequenceNumber = 0;
 
         public WaveformSession(
             TcpServer server,
             ILogger logger,
             ThunderscopeDataBridgeReader bridge,
-            CancellationToken cancellationToken,
-            BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel,
-            BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel,
-            BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
-            BlockingChannelReader<ProcessingResponseDto> processingResponseChannel) : base(server)
+            CancellationToken cancellationToken) : base(server)
         {
             this.logger = logger;
             this.bridge = bridge;
             this.cancellationToken = cancellationToken;
-            this.hardwareRequestChannel = hardwareRequestChannel;
-            this.hardwareResponseChannel = hardwareResponseChannel;
-            this.processingRequestChannel = processingRequestChannel;
-            this.processingResponseChannel = processingResponseChannel;
         }
 
         protected override void OnConnected()
@@ -167,27 +155,15 @@ namespace TS.NET.Engine
     class WaveformServer : TcpServer
     {
         private readonly ILogger logger;
-        private readonly BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel;
-        private readonly BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel;
-        private readonly BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel;
-        private readonly BlockingChannelReader<ProcessingResponseDto> processingResponseChannel;
         private readonly CancellationTokenSource cancellationTokenSource;
         private readonly ThunderscopeDataBridgeReader bridge;
 
         public WaveformServer(ILoggerFactory loggerFactory,
             ThunderscopeSettings settings,
             IPAddress address,
-            int port,
-            BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel,
-            BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel,
-            BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
-            BlockingChannelReader<ProcessingResponseDto> processingResponseChannel) : base(address, port)
+            int port) : base(address, port)
         {
             logger = loggerFactory.CreateLogger(nameof(WaveformServer));
-            this.hardwareRequestChannel = hardwareRequestChannel;
-            this.hardwareResponseChannel = hardwareResponseChannel;
-            this.processingRequestChannel = processingRequestChannel;
-            this.processingResponseChannel = processingResponseChannel;
             cancellationTokenSource = new();
             bridge = new("ThunderScope.1");
             logger.LogDebug("Started");
@@ -196,7 +172,7 @@ namespace TS.NET.Engine
         protected override TcpSession CreateSession()
         {
             // ThunderscopeBridgeReader isn't thread safe so here be dragons if multiple clients request a waveform concurrently.
-            return new WaveformSession(this, logger, bridge, cancellationTokenSource.Token, hardwareRequestChannel, hardwareResponseChannel, processingRequestChannel, processingResponseChannel);
+            return new WaveformSession(this, logger, bridge, cancellationTokenSource.Token);
         }
 
         protected override void OnError(SocketError error)

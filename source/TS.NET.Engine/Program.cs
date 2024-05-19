@@ -49,7 +49,7 @@ ThunderscopeMemoryRegion memoryRegion = new(bufferLength);
 BlockingChannel<ThunderscopeMemory> inputChannel = new(bufferLength);
 for (uint i = 0; i < bufferLength; i++)
     inputChannel.Writer.Write(memoryRegion.GetSegment(i));
-BlockingChannel<InputDataDto> processingChannel = new();
+BlockingChannel<InputDataDto> processChannel = new();
 BlockingChannel<HardwareRequestDto> hardwareRequestChannel = new();
 BlockingChannel<HardwareResponseDto> hardwareResponseChannel = new();
 BlockingChannel<ProcessingRequestDto> processingRequestChannel = new();
@@ -85,13 +85,13 @@ switch (thunderscopeSettings.Driver.ToLower())
 ControlThread controlThread = new(loggerFactory, thunderscopeSettings, hardwareRequestChannel.Writer, processingRequestChannel.Writer);
 controlThread.Start();
 
-ProcessingThread processingThread = new(loggerFactory, thunderscopeSettings, processingChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
+ProcessingThread processingThread = new(loggerFactory, thunderscopeSettings, processChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
 processingThread.Start();
 
-HardwareThread hardwareThread = new(loggerFactory, thunderscopeSettings, thunderscope, inputChannel.Reader, processingChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
+HardwareThread hardwareThread = new(loggerFactory, thunderscopeSettings, thunderscope, inputChannel.Reader, processChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
 hardwareThread.Start();
 
-WaveformServer waveformServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5026, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
+WaveformServer waveformServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5026);
 waveformServer.Start();
 
 ScpiServer scpiServer = new(loggerFactory, System.Net.IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);

@@ -50,8 +50,13 @@ namespace TS.NET.Engine
                 logger.LogDebug($"{nameof(ControlThread)} thread processor affinity set to {settings.ControlThreadProcessorAffinity}");
             }
 
-            byte maxChannelDataByteCount = 1;
-            //ThunderscopeControlBridgeReader controlBridge = new("ThunderScope.1", settings.MaxChannelCount, settings.MaxChannelDataLength, maxChannelDataByteCount);
+            ThunderscopeDataBridgeConfig dataBridgeConfig = new()
+            {
+                MaxChannelCount = settings.MaxChannelCount,
+                MaxChannelDataLength = settings.MaxChannelDataLength,
+                ChannelDataType = ThunderscopeChannelDataType.I8
+            };
+            ThunderscopeControlBridgeReader controlBridge = new("ThunderScope.1", dataBridgeConfig);
 
             try
             {

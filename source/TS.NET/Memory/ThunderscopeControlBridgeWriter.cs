@@ -5,17 +5,16 @@ using TS.NET.Memory.Windows;
 
 namespace TS.NET
 {
-    // This is a shared memory-mapped file between processes, with only a single writer and a single reader with a header struct
+    // This is a shared memory-mapped file between processes, with only a single writer and a single reader
     // Not thread safe
     public class ThunderscopeControlBridgeWriter : IDisposable
     {
         private readonly IMemoryFile file;
         private readonly MemoryMappedViewAccessor view;
         private unsafe byte* basePointer;
-        private ThunderscopeControlBridgeContent header;
-        private bool IsHeaderSet { get { GetHeader(); return header.Version != 0; } }
-        private readonly IInterprocessSemaphoreReleaser controlRequestSemaphore;
-        private readonly IInterprocessSemaphoreWaiter controlResponseSemaphore;
+        private ThunderscopeControlBridgeContent content;
+        private bool IsContentSet { get { GetContent(); return content.Version != 0; } }
+        private readonly IInterprocessSemaphoreReleaser controlUpdateSemaphore;
 
         public unsafe ThunderscopeControlBridgeWriter(string memoryName)
         {
@@ -48,15 +47,13 @@ namespace TS.NET
                 try
                 {
                     basePointer = GetPointer();
-
-                    while (!IsHeaderSet)
+                    while (!IsContentSet)
                     {
-                        Console.WriteLine("Waiting for Thunderscope control bridge reader to set header...");
+                        Console.WriteLine("Waiting for Thunderscope control bridge reader to set content...");
                         Thread.Sleep(1000);
                     }
-                    GetHeader();
-                    controlRequestSemaphore = InterprocessSemaphore.CreateReleaser(memoryName + ".ControlRequest", 0);
-                    controlResponseSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + ".ControlResponse", 0);
+                    GetContent();
+                    controlUpdateSemaphore = InterprocessSemaphore.CreateReleaser(memoryName + ".ControlUpdate", 0);
                 }
                 catch
                 {
@@ -84,8 +81,8 @@ namespace TS.NET
             set
             {
                 // This is a shallow copy, but considering the struct should be 100% blitable (i.e. no reference types), this is effectively a full copy
-                header.Hardware = value;
-                SetHeader();
+                content.Hardware = value;
+                SetContent();
             }
         }
 
@@ -94,25 +91,20 @@ namespace TS.NET
             set
             {
                 // This is a shallow copy, but considering the struct should be 100% blitable (i.e. no reference types), this is effectively a full copy
-                header.Processing = value;
-                SetHeader();
+                content.Processing = value;
+                SetContent();
             }
         }
 
-        public bool SignalToReaderAndWaitForResponseAck(int millisecondsTimeout)
+        private void GetContent()
         {
-            controlRequestSemaphore.Release();
-            return controlResponseSemaphore.Wait(millisecondsTimeout);
+            unsafe { Unsafe.Copy(ref content, basePointer); }
         }
 
-        private void GetHeader()
+        private void SetContent()
         {
-            unsafe { Unsafe.Copy(ref header, basePointer); }
-        }
-
-        private void SetHeader()
-        {
-            unsafe { Unsafe.Copy(basePointer, ref header); }
+            unsafe { Unsafe.Copy(basePointer, ref content); }
+            controlUpdateSemaphore.Release();
         }
 
         private unsafe byte* GetPointer()

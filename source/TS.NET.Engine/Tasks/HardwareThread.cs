@@ -10,7 +10,7 @@ namespace TS.NET.Engine
         private readonly IThunderscope thunderscope;
         private readonly ThunderscopeSettings settings;
         private readonly BlockingChannelReader<ThunderscopeMemory> inputChannel;
-        private readonly BlockingChannelWriter<InputDataDto> processingChannel;
+        private readonly BlockingChannelWriter<InputDataDto> processChannel;
         private readonly BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel;
         private readonly BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel;
 
@@ -21,7 +21,7 @@ namespace TS.NET.Engine
             ThunderscopeSettings settings,
             IThunderscope thunderscope,
             BlockingChannelReader<ThunderscopeMemory> inputChannel,
-            BlockingChannelWriter<InputDataDto> processingChannel,
+            BlockingChannelWriter<InputDataDto> processChannel,
             BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
             BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel)
         {
@@ -29,7 +29,7 @@ namespace TS.NET.Engine
             this.settings = settings;
             this.thunderscope = thunderscope;
             this.inputChannel = inputChannel;
-            this.processingChannel = processingChannel;
+            this.processChannel = processChannel;
             this.hardwareRequestChannel = hardwareRequestChannel;
             this.hardwareResponseChannel = hardwareResponseChannel;
         }
@@ -37,7 +37,7 @@ namespace TS.NET.Engine
         public void Start()
         {
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, thunderscope, settings, inputChannel, processingChannel, hardwareRequestChannel, hardwareResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, thunderscope, settings, inputChannel, processChannel, hardwareRequestChannel, hardwareResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -51,7 +51,7 @@ namespace TS.NET.Engine
             IThunderscope thunderscope,
             ThunderscopeSettings settings,
             BlockingChannelReader<ThunderscopeMemory> inputChannel,
-            BlockingChannelWriter<InputDataDto> processingChannel,
+            BlockingChannelWriter<InputDataDto> processChannel,
             BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
             BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel,
             CancellationToken cancelToken)
@@ -186,7 +186,7 @@ namespace TS.NET.Engine
                     periodicEnqueueCount++;
                     enqueueCounter++;
 
-                    processingChannel.Write(new InputDataDto(thunderscope.GetConfiguration(), memory), cancelToken);
+                    processChannel.Write(new InputDataDto(thunderscope.GetConfiguration(), memory), cancelToken);
 
                     if (periodicUpdateTimer.ElapsedMilliseconds >= 10000)
                     {

@@ -9,13 +9,8 @@ namespace TS.NET
     {
         internal byte Version;          // Allows UI to know which ThunderscopeControlBridgeHeader version to use, hence the size of the header.
 
-        // ===== Set once from config file or hard coded =====
-        internal ushort MaxChannelCount;
-        internal uint MaxChannelDataLength;
-        internal byte MaxChannelDataByteCount;
-        // ===================================================
-
-        internal ThunderscopeHardwareConfig Hardware;       // Read only from UI perspective, UI uses SCPI interface to change configuration
-        internal ThunderscopeProcessingConfig Processing;   // Read only from UI perspective, UI uses SCPI interface to change configuration
+        internal ThunderscopeDataBridgeConfig DataBridge;   // Set by Reader so that Writer knows the max values
+        internal ThunderscopeHardwareConfig Hardware;       // Set by Writer, updates are idempotent (so reader needs to resolve changes)
+        internal ThunderscopeProcessingConfig Processing;   // Set by Writer, updates are idempotent (so reader needs to resolve changes)
     }
 }
