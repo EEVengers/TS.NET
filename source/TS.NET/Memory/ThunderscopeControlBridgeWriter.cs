@@ -12,13 +12,14 @@ namespace TS.NET
         private readonly IMemoryFile file;
         private readonly MemoryMappedViewAccessor view;
         private unsafe byte* basePointer;
-        private ThunderscopeControlBridgeHeader header;
+        private ThunderscopeControlBridgeContent header;
         private bool IsHeaderSet { get { GetHeader(); return header.Version != 0; } }
         private readonly IInterprocessSemaphoreReleaser controlRequestSemaphore;
         private readonly IInterprocessSemaphoreWaiter controlResponseSemaphore;
 
         public unsafe ThunderscopeControlBridgeWriter(string memoryName)
         {
+            memoryName += ".Control";
             if (OperatingSystem.IsWindows())
             {
                 while (!MemoryFileWindows.Exists(memoryName))
@@ -37,7 +38,7 @@ namespace TS.NET
                     Thread.Sleep(1000);
                 }
 
-                file = new MemoryFileUnix(memoryName, (ulong)sizeof(ThunderscopeControlBridgeHeader));
+                file = new MemoryFileUnix(memoryName, (ulong)sizeof(ThunderscopeControlBridgeContent));
             }
 
             try
@@ -96,6 +97,12 @@ namespace TS.NET
                 header.Processing = value;
                 SetHeader();
             }
+        }
+
+        public bool SignalToReaderAndWaitForResponseAck(int millisecondsTimeout)
+        {
+            controlRequestSemaphore.Release();
+            return controlResponseSemaphore.Wait(millisecondsTimeout);
         }
 
         private void GetHeader()

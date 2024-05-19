@@ -1,11 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace TS.NET.Engine
 {
     // The job of this task is to read from the thunderscope as fast as possible with minimal jitter
-    internal class InputTask
+    internal class HardwareThread
     {
         private readonly ILogger logger;
         private readonly IThunderscope thunderscope;
@@ -18,17 +17,17 @@ namespace TS.NET.Engine
         private CancellationTokenSource? cancelTokenSource;
         private Task? taskLoop;
 
-        public InputTask(ILoggerFactory loggerFactory,
-            IThunderscope thunderscope,
+        public HardwareThread(ILoggerFactory loggerFactory,
             ThunderscopeSettings settings,
+            IThunderscope thunderscope,
             BlockingChannelReader<ThunderscopeMemory> inputChannel,
             BlockingChannelWriter<InputDataDto> processingChannel,
             BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
             BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel)
         {
-            logger = loggerFactory.CreateLogger(nameof(InputTask));
-            this.thunderscope = thunderscope;
+            logger = loggerFactory.CreateLogger(nameof(HardwareThread));
             this.settings = settings;
+            this.thunderscope = thunderscope;
             this.inputChannel = inputChannel;
             this.processingChannel = processingChannel;
             this.hardwareRequestChannel = hardwareRequestChannel;
@@ -57,18 +56,19 @@ namespace TS.NET.Engine
             BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel,
             CancellationToken cancelToken)
         {
-            Thread.CurrentThread.Name = "TS.NET Input";
+            Thread.CurrentThread.Name = nameof(HardwareThread);
             //Thread.CurrentThread.Priority = ThreadPriority.Highest;
-            if (settings.InputThreadProcessorAffinity > -1 && OperatingSystem.IsWindows())
+            if (settings.HardwareThreadProcessorAffinity > -1 && OperatingSystem.IsWindows())
             {
                 Thread.BeginThreadAffinity();
-                Interop.CurrentThread.ProcessorAffinity = new IntPtr(1 << settings.InputThreadProcessorAffinity);
+                Interop.CurrentThread.ProcessorAffinity = new IntPtr(1 << settings.HardwareThreadProcessorAffinity);
+                logger.LogDebug($"{nameof(HardwareThread)} thread processor affinity set to {settings.HardwareThreadProcessorAffinity}");
             }
             
             try
             {               
                 thunderscope.Start();
-                logger.LogDebug("Started");
+                logger.LogInformation("Started");
 
                 logger.LogDebug("Waiting for first block of data...");
 
@@ -176,7 +176,7 @@ namespace TS.NET.Engine
                         {
                             if (ex.Message == "ReadFile - failed (1359)")
                             {
-                                logger.LogError(ex, $"{nameof(InputTask)} error");
+                                logger.LogError(ex, $"{nameof(HardwareThread)} error");
                                 continue;
                             }
                             throw;

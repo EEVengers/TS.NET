@@ -1,16 +1,21 @@
 ﻿using System.Runtime.InteropServices;
 namespace TS.NET;
 
-public unsafe struct ThunderscopeMemory
+public unsafe struct ThunderscopeMemoryRegion
 {
-    public const uint Length = 1 << 23;     // 8388608 bytes
     public byte* Pointer;
-    public Span<byte> SpanU8 { get { return new Span<byte>(Pointer, (int)Length); } }
-    public Span<sbyte> SpanI8 { get { return new Span<sbyte>(Pointer, (int)Length); } }
 
-    public ThunderscopeMemory()
+    public ThunderscopeMemoryRegion(uint segments)
     {
-        Pointer = (byte*)NativeMemory.AlignedAlloc(Length, 4096);   // Intentionally not sbyte
+        Pointer = (byte*)NativeMemory.AlignedAlloc(ThunderscopeMemory.Length * segments, 4096);   // Intentionally not sbyte
+    }
+
+    public ThunderscopeMemory GetSegment(uint index)
+    {
+        return new ThunderscopeMemory()
+        {
+            Pointer = this.Pointer + (index * ThunderscopeMemory.Length)
+        };
     }
 
     // https://tooslowexception.com/disposable-ref-structs-in-c-8-0/
@@ -18,4 +23,12 @@ public unsafe struct ThunderscopeMemory
     {
         NativeMemory.AlignedFree(Pointer);
     }
+}
+
+public unsafe struct ThunderscopeMemory
+{
+    public const uint Length = 1 << 23;     // 8388608 bytes
+    public byte* Pointer;
+    public Span<byte> SpanU8 { get { return new Span<byte>(Pointer, (int)Length); } }
+    public Span<sbyte> SpanI8 { get { return new Span<sbyte>(Pointer, (int)Length); } }
 }

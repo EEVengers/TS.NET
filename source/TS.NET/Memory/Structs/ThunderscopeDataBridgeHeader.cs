@@ -23,23 +23,29 @@ namespace TS.NET
         internal byte Version;              // Allows UI to know which ThunderscopeMemoryBridgeHeader version to use, hence the size of the header.
         internal ulong DataCapacityBytes;   // Size of data region (following the header)
 
-        // ===== Set once from config file or hard coded =====
-        internal ushort MaxChannelCount;    
-        internal uint MaxChannelDataLength;
-        internal byte MaxChannelDataByteCount;
-        // ===================================================
-
-        internal ThunderscopeMemoryAcquiringRegion AcquiringRegion; // Therefore 'AcquiredRegion' (to be used by UI) is the opposite
-
+        internal ThunderscopeDataBridgeConfig Bridge;       // Read only from UI perspective
         internal ThunderscopeHardwareConfig Hardware;       // Read only from UI perspective, UI uses SCPI interface to change configuration
         internal ThunderscopeProcessingConfig Processing;   // Read only from UI perspective, UI uses SCPI interface to change configuration
         internal ThunderscopeDataMonitoring Monitoring;     // Read only from UI perspective, UI optionally displays these values
+
+        // BridgeConfig is set once from config file or hard coded
+        // HardwareConfig, ProcessingConfig & DataMonitoring is runtime variable
+
+        internal ThunderscopeMemoryAcquiringRegion AcquiringRegion; // Therefore 'AcquiredRegion' (to be used by UI) is the opposite
     }
 
     public enum ThunderscopeMemoryAcquiringRegion : byte
     {
         RegionA = 1,
         RegionB = 2
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct ThunderscopeDataBridgeConfig
+    {        
+        public ushort MaxChannelCount;
+        public uint MaxChannelDataLength;
+        public ThunderscopeChannelDataType ChannelDataType;
     }
 
     // Monitoring variables that reset when configuration variables change

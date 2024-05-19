@@ -1,10 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace TS.NET.Engine
 {
-    public class ProcessingTask
+    public class ProcessingThread
     {
         private readonly ILogger logger;
         private readonly ThunderscopeSettings settings;
@@ -16,7 +15,7 @@ namespace TS.NET.Engine
         private CancellationTokenSource? cancelTokenSource;
         private Task? taskLoop;
 
-        public ProcessingTask(
+        public ProcessingThread(
             ILoggerFactory loggerFactory,
             ThunderscopeSettings settings,
             BlockingChannelReader<InputDataDto> processingChannel,
@@ -24,7 +23,7 @@ namespace TS.NET.Engine
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel)
         {
-            logger = loggerFactory.CreateLogger(nameof(ProcessingTask));
+            logger = loggerFactory.CreateLogger(nameof(ProcessingThread));
             this.settings = settings;
             this.processingChannel = processingChannel;
             this.inputChannel = inputChannel;
@@ -56,17 +55,23 @@ namespace TS.NET.Engine
         {
             try
             {
-                Thread.CurrentThread.Name = "TS.NET Processing";
+                Thread.CurrentThread.Name = nameof(ProcessingThread);
                 if (settings.ProcessingThreadProcessorAffinity > -1 && OperatingSystem.IsWindows())
                 {
                     Thread.BeginThreadAffinity();
                     Interop.CurrentThread.ProcessorAffinity = new IntPtr(1 << settings.ProcessingThreadProcessorAffinity);
+                    logger.LogDebug($"{nameof(ProcessingThread)} thread processor affinity set to {settings.ProcessingThreadProcessorAffinity}");
                 }
 
                 // Bridge is cross-process shared memory for the UI to read triggered acquisitions
                 // The trigger point is _always_ in the middle of the channel block, and when the UI sets positive/negative trigger point, it's just moving the UI viewport
-                byte maxChannelDataByteCount = 1;
-                ThunderscopeDataBridgeWriter bridge = new("ThunderScope.1", settings.MaxChannelCount, settings.MaxChannelDataLength, maxChannelDataByteCount);
+                ThunderscopeDataBridgeConfig bridgeConfig = new()
+                {
+                    MaxChannelCount = settings.MaxChannelCount,
+                    MaxChannelDataLength = settings.MaxChannelDataLength,
+                    ChannelDataType = ThunderscopeChannelDataType.I8
+                };
+                ThunderscopeDataBridgeWriter bridge = new("ThunderScope.1", bridgeConfig);
 
                 ThunderscopeHardwareConfig cachedThunderscopeConfiguration = default;
 
@@ -75,11 +80,9 @@ namespace TS.NET.Engine
                 {
                     CurrentChannelCount = settings.MaxChannelCount,
                     CurrentChannelDataLength = settings.MaxChannelDataLength,
-                    CurrentChannelDataByteCount = maxChannelDataByteCount,
                     HorizontalSumLength = HorizontalSumLength.None,
                     TriggerChannel = TriggerChannel.One,
-                    TriggerMode = TriggerMode.Auto,
-                    ChannelDataType = ThunderscopeChannelDataType.Byte
+                    TriggerMode = TriggerMode.Auto
                 };
                 bridge.Processing = processingConfig;
 
@@ -311,7 +314,7 @@ namespace TS.NET.Engine
                                     //logger.LogDebug("Trigger fired");
                                     for (int i = 0; i < holdoffEndCount; i++)
                                     {
-                                        var bridgeSpan = bridge.AcquiringRegion;
+                                        var bridgeSpan = bridge.AcquiringRegionI8;
                                         uint holdoffEndIndex = (uint)postShuffleCh1_4.Length - holdoffEndIndices[i];
                                         circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), holdoffEndIndex);
                                         circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), holdoffEndIndex);
@@ -331,7 +334,7 @@ namespace TS.NET.Engine
                                 else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimer.ElapsedMilliseconds > 1000)
                                 {
                                     //logger.LogDebug("Auto trigger fired");
-                                    var bridgeSpan = bridge.AcquiringRegion;
+                                    var bridgeSpan = bridge.AcquiringRegionI8;
                                     circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
                                     circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
                                     circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
@@ -350,7 +353,7 @@ namespace TS.NET.Engine
                             if (forceTriggerLatch)             // If a forceTriggerLatch is still active, send data to the bridge and reset latch.
                             {
                                 //logger.LogDebug("Force trigger fired");
-                                var bridgeSpan = bridge.AcquiringRegion;
+                                var bridgeSpan = bridge.AcquiringRegionI8;
                                 circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
                                 circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
                                 circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);

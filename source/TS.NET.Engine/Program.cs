@@ -1,12 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Net;
-using System.Text.Json;
 using TS.NET;
 using TS.NET.Engine;
-using YamlDotNet.Serialization.NamingConventions;
-using YamlDotNet.Serialization;
 
 // The aim is to have a thread-safe lock-free dataflow architecture (to prevent various classes of bugs).
 // The use of async/await for processing is avoided as the task thread pool is of little use here.
@@ -22,11 +18,11 @@ using (Process p = Process.GetCurrentProcess())
 
 #if DEBUG
 ThunderscopeSettings settings = ThunderscopeSettings.Default();
-string json = JsonSerializer.Serialize(settings, SourceGenerationContext.Default.ThunderscopeSettings);
+string json = System.Text.Json.JsonSerializer.Serialize(settings, SourceGenerationContext.Default.ThunderscopeSettings);
 File.WriteAllText("thunderscope (defaults).json", json);
 
-var serializer = new SerializerBuilder()
-    .WithNamingConvention(PascalCaseNamingConvention.Instance)
+var serializer = new YamlDotNet.Serialization.SerializerBuilder()
+    .WithNamingConvention(YamlDotNet.Serialization.NamingConventions.PascalCaseNamingConvention.Instance)
     .Build();
 string yaml = serializer.Serialize(settings);
 File.WriteAllText("thunderscope (defaults).yaml", yaml);
@@ -48,9 +44,11 @@ var loggerFactory = LoggerFactory.Create(configure =>
 
 // Instantiate dataflow channels
 const int bufferLength = 120;       // 120 = about 1 seconds worth of samples at 1GSPS (each ThunderscopeMemory is 8388608 bytes), 120x = 1006632960
+
+ThunderscopeMemoryRegion memoryRegion = new(bufferLength);
 BlockingChannel<ThunderscopeMemory> inputChannel = new(bufferLength);
-for (int i = 0; i < bufferLength; i++)
-    inputChannel.Writer.Write(new ThunderscopeMemory());
+for (uint i = 0; i < bufferLength; i++)
+    inputChannel.Writer.Write(memoryRegion.GetSegment(i));
 BlockingChannel<InputDataDto> processingChannel = new();
 BlockingChannel<HardwareRequestDto> hardwareRequestChannel = new();
 BlockingChannel<HardwareResponseDto> hardwareResponseChannel = new();
@@ -75,7 +73,7 @@ switch (thunderscopeSettings.Driver.ToLower())
             if (devices.Count == 0)
                 throw new Exception("No thunderscopes found");
             var ts = new TS.NET.Driver.XMDA.Thunderscope();
-            ts.Open(devices[0], thunderscopeSettings.Calibration);
+            ts.Open(devices[0], thunderscopeSettings.Calibration.ToDriver());
             thunderscope = ts;
             break;
         }
@@ -84,16 +82,19 @@ switch (thunderscopeSettings.Driver.ToLower())
 }
 
 // Start threads
-ProcessingTask processingTask = new(loggerFactory, thunderscopeSettings, processingChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
-processingTask.Start();
+ControlThread controlThread = new(loggerFactory, thunderscopeSettings, hardwareRequestChannel.Writer, processingRequestChannel.Writer);
+controlThread.Start();
 
-InputTask inputTask = new(loggerFactory, thunderscope, thunderscopeSettings, inputChannel.Reader, processingChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
-inputTask.Start();
+ProcessingThread processingThread = new(loggerFactory, thunderscopeSettings, processingChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
+processingThread.Start();
 
-WaveformServer waveformServer = new(loggerFactory, thunderscopeSettings, IPAddress.Any, 5026, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
+HardwareThread hardwareThread = new(loggerFactory, thunderscopeSettings, thunderscope, inputChannel.Reader, processingChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
+hardwareThread.Start();
+
+WaveformServer waveformServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5026, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
 waveformServer.Start();
 
-ScpiServer scpiServer = new(loggerFactory, IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
+ScpiServer scpiServer = new(loggerFactory, System.Net.IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
 scpiServer.Start();
 
 bool loop = true;
@@ -110,5 +111,6 @@ while (loop)
 
 scpiServer.Stop();
 waveformServer.Stop();
-inputTask.Stop();
-processingTask.Stop();
+hardwareThread.Stop();
+processingThread.Stop();
+controlThread.Stop();

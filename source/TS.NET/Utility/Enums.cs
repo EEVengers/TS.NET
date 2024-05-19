@@ -60,9 +60,21 @@ public enum TriggerMode : byte
 }
 public enum ThunderscopeChannelDataType : byte
 {
-    Byte = 1,
-    Int16 = 2,
-    Int32 = 3
+    U8 = 1,
+    I8 = 2
+}
+
+public static class ThunderscopeChannelDataTypeExtensions
+{
+    public static uint Width(this ThunderscopeChannelDataType type)
+    {
+        return type switch
+        {
+            ThunderscopeChannelDataType.U8 => 1,
+            ThunderscopeChannelDataType.I8 => 1,
+            _ => throw new NotImplementedException()
+        };
+    }
 }
 
 public static class HorizontalSumUtility

@@ -12,13 +12,14 @@ namespace TS.NET
         private readonly IMemoryFile file;
         private readonly MemoryMappedViewAccessor view;
         private unsafe byte* basePointer;
-        private ThunderscopeControlBridgeHeader header;
-        private readonly IInterprocessSemaphoreWaiter controlRequestSemaphore;
-        private readonly IInterprocessSemaphoreReleaser controlResponseSemaphore;
+        private ThunderscopeControlBridgeContent content;
+        private readonly IInterprocessSemaphoreWaiter controlUpdatedSemaphore;
+        //private readonly IInterprocessSemaphoreReleaser controlResponseSemaphore;
 
         public unsafe ThunderscopeControlBridgeReader(string memoryName, ushort maxChannelCount, uint maxChannelDataLength, byte maxChannelDataByteCount)
         {
-            var bridgeCapacityBytes = (ulong)sizeof(ThunderscopeControlBridgeHeader);
+            memoryName += ".Control";
+            var bridgeCapacityBytes = (ulong)sizeof(ThunderscopeControlBridgeContent);
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? new MemoryFileWindows(memoryName, bridgeCapacityBytes)
                 : new MemoryFileUnix(memoryName, bridgeCapacityBytes);
@@ -32,16 +33,16 @@ namespace TS.NET
                     basePointer = GetPointer();
 
                     // Writer sets initial state of header
-                    header.Version = 1;
+                    content.Version = 1;
 
-                    header.MaxChannelCount = maxChannelCount;
-                    header.MaxChannelDataLength = maxChannelDataLength;
-                    header.MaxChannelDataByteCount = maxChannelDataByteCount;
+                    content.MaxChannelCount = maxChannelCount;
+                    content.MaxChannelDataLength = maxChannelDataLength;
+                    content.MaxChannelDataByteCount = maxChannelDataByteCount;
 
                     SetHeader();
 
-                    controlRequestSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + ".ControlRequest", 0);
-                    controlResponseSemaphore = InterprocessSemaphore.CreateReleaser(memoryName + ".ControlResponse", 0);
+                    controlUpdatedSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + ".ControlUpdated", 0);
+                    //controlResponseSemaphore = InterprocessSemaphore.CreateReleaser(memoryName + ".ControlResponse", 0);
                 }
                 catch
                 {
@@ -71,7 +72,7 @@ namespace TS.NET
             get
             {
                 GetHeader();
-                return header.Hardware;
+                return content.Hardware;
             }
         }
 
@@ -80,18 +81,31 @@ namespace TS.NET
             get
             {
                 GetHeader();
-                return header.Processing;
+                return content.Processing;
             }
         }
 
+        //public bool WaitForUpdate(int millisecondsTimeout, out ThunderscopeControlBridgeContent data)
+        //{
+        //    var request = controlUpdatedSemaphore.Wait(millisecondsTimeout);
+        //    if (request) while (controlUpdatedSemaphore.Wait(0)) { }  // Run down the semaphore in certain rare edge cases where programs are restarted
+        //    data = new ThunderscopeControlBridgeContent();
+        //    if (request)
+        //    {
+        //        GetHeader();
+        //        data = content;
+        //    }
+        //    return request;
+        //}
+
         private void GetHeader()
         {
-            unsafe { Unsafe.Copy(ref header, basePointer); }
+            unsafe { Unsafe.Copy(ref content, basePointer); }
         }
 
         private void SetHeader()
         {
-            unsafe { Unsafe.Copy(basePointer, ref header); }
+            unsafe { Unsafe.Copy(basePointer, ref content); }
         }
 
         private unsafe byte* GetPointer()

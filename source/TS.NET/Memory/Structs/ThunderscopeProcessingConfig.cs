@@ -7,10 +7,8 @@ namespace TS.NET
     {
         public ushort CurrentChannelCount;          // From 1 to ThunderscopeBridgeHeader.MaxChannelCount
         public ulong CurrentChannelDataLength;      // From 1 to ThunderscopeBridgeHeader.MaxChannelDataLength
-        public byte CurrentChannelDataByteCount;    // From 1 to ThunderscopeBridgeHeader.MaxChannelDataByteCount
         public HorizontalSumLength HorizontalSumLength;
         public TriggerChannel TriggerChannel;
-        public TriggerMode TriggerMode;
-        public ThunderscopeChannelDataType ChannelDataType;
+        public TriggerMode TriggerMode;   
     }
 }

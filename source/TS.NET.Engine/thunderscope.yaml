@@ -17,15 +17,20 @@ MaxChannelCount: 4
 # Value: Integer, typically 1000000. Larger values may be used for longer triggered captures, with a large increase in RAM usage.
 MaxChannelDataLength: 1000000
 
-# InputThreadProcessorAffinity configures the thread processor affinity for the input capture thread.
+# HardwareThreadProcessorAffinity configures the thread processor affinity for the hardware capture & control thread.
 # Typically should remain as -1 to allow full control by operating system, but user may wish to experiment.
 # Value: Integer, in range of -1 to the number of CPU cores available. -1 = not set, 0 = CPU core 0, 1 = CPU core 1, etc.
-InputThreadProcessorAffinity: -1
+HardwareThreadProcessorAffinity: -1
 
-# ProcessingThreadProcessorAffinity configures the thread processor affinity for the input capture thread.
+# ProcessingThreadProcessorAffinity configures the thread processor affinity for the processing thread.
 # Typically should remain as -1 to allow full control by operating system, but user may wish to experiment.
 # Value: Integer, in range of -1 to the number of CPU cores available. -1 = not set, 0 = CPU core 0, 1 = CPU core 1, etc.
 ProcessingThreadProcessorAffinity: -1
+
+# ControlThreadProcessorAffinity configures the thread processor affinity for the control thread.
+# Typically should remain as -1 to allow full control by operating system, but user may wish to experiment.
+# Value: Integer, in range of -1 to the number of CPU cores available. -1 = not set, 0 = CPU core 0, 1 = CPU core 1, etc.
+ControlThreadProcessorAffinity: -1
 
 ###################################################################################################
 # Calibration configuration
