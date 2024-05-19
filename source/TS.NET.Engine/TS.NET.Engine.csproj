@@ -15,6 +15,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.0" />
     <PackageReference Include="NetCoreServer" Version="7.0.0" />
     <PackageReference Include="NReco.Logging.File" Version="1.1.6" />
+    <PackageReference Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" Version="15.1.2" />
     <PackageReference Include="YamlDotNet" Version="15.1.4" />
   </ItemGroup>
 

@@ -5,14 +5,16 @@ using YamlDotNet.Serialization;
 
 namespace TS.NET.Engine
 {
+    [YamlSerializable]
     public class ThunderscopeSettings
     {
-        public required string Driver { get; set; }
-        public required ushort MaxChannelCount { get; set; }
-        public required uint MaxChannelDataLength { get; set; }
-        public required int InputThreadProcessorAffinity { get; set; }
-        public required int ProcessingThreadProcessorAffinity { get; set; }
-        public required ThunderscopeCalibration Calibration { get; set; }
+        public string Driver { get; set; }
+        public ushort MaxChannelCount { get; set; }
+        public uint MaxChannelDataLength { get; set; }
+        public int HardwareThreadProcessorAffinity { get; set; }
+        public int ProcessingThreadProcessorAffinity { get; set; }
+        public int ControlThreadProcessorAffinity { get; set; }
+        public ThunderscopeCalibrationSettings Calibration { get; set; }
 
         public static ThunderscopeSettings Default()
         {
@@ -21,9 +23,10 @@ namespace TS.NET.Engine
                 Driver = "XDMA",
                 MaxChannelCount = 4,
                 MaxChannelDataLength = 1000000,
-                InputThreadProcessorAffinity = -1,
+                HardwareThreadProcessorAffinity = -1,
                 ProcessingThreadProcessorAffinity = -1,
-                Calibration = ThunderscopeCalibration.Default()
+                ControlThreadProcessorAffinity = -1,
+                Calibration = ThunderscopeCalibrationSettings.Default()
             };
         }
 
@@ -40,7 +43,8 @@ namespace TS.NET.Engine
             if (!File.Exists(file))
                 throw new FileNotFoundException(file);
 
-            var deserializer = new DeserializerBuilder()
+            var context = new StaticContext();
+            var deserializer = new StaticDeserializerBuilder(context)
                 .WithNamingConvention(PascalCaseNamingConvention.Instance)
                 .Build();
 
@@ -51,4 +55,7 @@ namespace TS.NET.Engine
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(ThunderscopeSettings))]
     internal partial class SourceGenerationContext : JsonSerializerContext { }
+
+    [YamlStaticContext]
+    public partial class StaticContext : YamlDotNet.Serialization.StaticContext { }
 }
