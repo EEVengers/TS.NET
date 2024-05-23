@@ -171,8 +171,12 @@ namespace TS.NET
             // Put data into queue
             for (int i = 0; i < data.Length; i++)
             {
-                // TODO: Replace with write32
-                interop.WriteUser(data.Slice(i, 1), (ulong)BarRegister.SERIAL_FIFO_DATA_WRITE_REG);
+                Span<byte> bytes = new byte[4];
+                bytes[0] = data.Slice(i, 1)[0];
+                bytes[1] = data.Slice(i, 1)[0];
+                bytes[2] = data.Slice(i, 1)[0];
+                bytes[3] = data.Slice(i, 1)[0];
+                interop.WriteUser(bytes, (ulong)BarRegister.SERIAL_FIFO_DATA_WRITE_REG);
             }
             // read TDFV (vacancy byte)
             Read32(BarRegister.SERIAL_FIFO_TDFV_ADDRESS);
