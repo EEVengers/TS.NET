@@ -93,7 +93,7 @@ namespace TS.NET.Engine
 
                 if (bridge.RequestAndWaitForData(500))
                 {
-                    logger.LogDebug("Sending waveform...");
+                    //logger.LogDebug("Sending waveform...");
                     var configuration = bridge.Hardware;
                     var processing = bridge.Processing;
                     var data = bridge.AcquiredRegionU8;
@@ -132,7 +132,7 @@ namespace TS.NET.Engine
                     {
                         Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
                         bytesSent += (ulong)sizeof(WaveformHeader);
-                        logger.LogDebug("WaveformHeader: " + header.ToString());
+                        //logger.LogDebug("WaveformHeader: " + header.ToString());
 
                         for (byte channelIndex = 0; channelIndex < processing.CurrentChannelCount; channelIndex++)
                         {
@@ -149,11 +149,11 @@ namespace TS.NET.Engine
                             // Length of this channel as 'depth'
                             Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
                             bytesSent += (ulong)sizeof(ChannelHeader);
-                            logger.LogDebug("ChannelHeader: " + chHeader.ToString());
+                            //logger.LogDebug("ChannelHeader: " + chHeader.ToString());
                             Send(data.Slice(channelIndex * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength));
                             bytesSent += processing.CurrentChannelDataLength;
                         }
-                        logger.LogDebug($"Sent waveform ({bytesSent} bytes)");
+                        //logger.LogDebug($"Sent waveform ({bytesSent} bytes)");
                     }
                     sequenceNumber++;
                     break;

@@ -13,7 +13,12 @@
 
         public ThunderscopeHardwareConfig GetConfiguration()
         {
-            return new ThunderscopeHardwareConfig() { AdcChannelMode = AdcChannelMode.Quad };
+            var config = new ThunderscopeHardwareConfig() { AdcChannelMode = AdcChannelMode.Quad };
+            config.Channel1.ActualVoltFullScale = 1;
+            config.Channel2.ActualVoltFullScale = 1;
+            config.Channel3.ActualVoltFullScale = 1;
+            config.Channel4.ActualVoltFullScale = 1;
+            return config;
         }
 
         public void Read(ThunderscopeMemory data, CancellationToken cancellationToken)
