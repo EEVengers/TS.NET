@@ -198,7 +198,13 @@ namespace TS.NET.Engine
                         // Set direction
                         logger.LogDebug($"Set [edge] trigger direction to {dir}");
 
-                        processingRequestChannel.Write(new ProcessingSetTriggerEdgeDirectionDto(/*dir*/));
+                        var type = dir.ToUpper() switch {
+                            "RISING" => TriggerType.RisingEdge,
+                            "FALLING" => TriggerType.FallingEdge,
+                            _ => throw new NotImplementedException()
+                        };
+
+                        processingRequestChannel.Write(new ProcessingSetTriggerTypeDto(type));
                         // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
 
                         return null;

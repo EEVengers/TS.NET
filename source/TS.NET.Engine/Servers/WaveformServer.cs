@@ -138,15 +138,10 @@ namespace TS.NET.Engine
                         {
                             ThunderscopeChannel thunderscopeChannel = configuration.GetChannel(channelIndex);
 
-                            //float full_scale = ((float)thunderscopeChannel.VoltFullScale) * 5f; // 5 instead of 10 for signed
                             chHeader.chNum = channelIndex;
                             chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
-                            chHeader.offset = -(float)thunderscopeChannel.VoltOffset; // needs chHeader.scale * 0x80 for signed
+                            chHeader.offset = -(float)thunderscopeChannel.VoltOffset;
 
-                            // if (ch == 0)
-                            //     logger.LogDebug($"ch {ch}: VoltsDiv={tChannel.VoltsDiv} -> .scale={chHeader.scale}, VoltsOffset={tChannel.VoltsOffset} -> .offset = {chHeader.offset}, Coupling={tChannel.Coupling}");
-
-                            // Length of this channel as 'depth'
                             Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
                             bytesSent += (ulong)sizeof(ChannelHeader);
                             //logger.LogDebug("ChannelHeader: " + chHeader.ToString());

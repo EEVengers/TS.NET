@@ -80,7 +80,8 @@ namespace TS.NET.Engine
                     CurrentChannelDataLength = settings.MaxChannelDataLength,
                     HorizontalSumLength = HorizontalSumLength.None,
                     TriggerChannel = TriggerChannel.One,
-                    TriggerMode = TriggerMode.Auto
+                    TriggerMode = TriggerMode.Auto,
+                    TriggerType = TriggerType.RisingEdge
                 };
                 bridge.Processing = processingConfig;
 
@@ -105,7 +106,8 @@ namespace TS.NET.Engine
                 Span<uint> triggerIndices = new uint[ThunderscopeMemory.Length / 1000];     // 1000 samples is the minimum holdoff
                 Span<uint> holdoffEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum holdoff
                 // By setting holdoffSamples to processingConfig.CurrentChannelDataLength, the holdoff is the exact length of the data sent over the bridge which gives near gapless triggering
-                RisingEdgeTriggerI8 trigger = new(0, -10, processingConfig.CurrentChannelDataLength);
+                RisingEdgeTriggerI8 risingEdgeTrigger = new(0, -10, processingConfig.CurrentChannelDataLength);
+                FallingEdgeTriggerI8 fallingEdgeTrigger = new(0, -10, processingConfig.CurrentChannelDataLength);
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;
@@ -211,10 +213,11 @@ namespace TS.NET.Engine
                                     triggerLevel -= 1;      // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms
 
                                 logger.LogDebug($"Setting trigger level to {triggerLevel}");
-                                trigger.Reset(triggerLevel, triggerLevel -= 10, processingConfig.CurrentChannelDataLength);
+                                risingEdgeTrigger.Reset(triggerLevel, triggerLevel -= 10, processingConfig.CurrentChannelDataLength);
+                                fallingEdgeTrigger.Reset(triggerLevel, triggerLevel -= 10, processingConfig.CurrentChannelDataLength);
                                 break;
-                            case ProcessingSetTriggerEdgeDirectionDto processingSetTriggerEdgeDirectionDto:
-                                // var edges = processingSetTriggerEdgeDirectionDto.Edges;
+                            case ProcessingSetTriggerTypeDto processingSetTriggerTypeDto:
+                                processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
                                 break;
                             default:
                                 logger.LogWarning($"Unknown ProcessingRequestDto: {request}");
@@ -240,6 +243,7 @@ namespace TS.NET.Engine
                         // Trigger
                         // Data segment on trigger (if needed)
                         case AdcChannelMode.Single:
+                            throw new NotImplementedException();
                             // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
                             //if (config.HorizontalSumLength != HorizontalSumLength.None)
                             //    throw new NotImplementedException();
@@ -253,12 +257,13 @@ namespace TS.NET.Engine
                                     TriggerChannel.One => inputDataDto.Memory.SpanI8,
                                     _ => throw new ArgumentException("Invalid TriggerChannel value")
                                 };
-                                trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out uint triggerCount, holdoffEndIndices: holdoffEndIndices, out uint holdoffEndCount);
+                                risingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out uint triggerCount, holdoffEndIndices: holdoffEndIndices, out uint holdoffEndCount);
                             }
                             // Finished with the memory, return it
                             inputChannel.Write(inputDataDto.Memory);
                             break;
                         case AdcChannelMode.Dual:
+                            throw new NotImplementedException();
                             // Shuffle
                             Shuffle.TwoChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                             // Finished with the memory, return it
@@ -278,7 +283,7 @@ namespace TS.NET.Engine
                                     TriggerChannel.Two => postShuffleCh2_2,
                                     _ => throw new ArgumentException("Invalid TriggerChannel value")
                                 };
-                                trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out uint triggerCount, holdoffEndIndices: holdoffEndIndices, out uint holdoffEndCount);
+                                risingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out uint triggerCount, holdoffEndIndices: holdoffEndIndices, out uint holdoffEndCount);
                             }
                             break;
                         case AdcChannelMode.Quad:
@@ -305,7 +310,24 @@ namespace TS.NET.Engine
                                     TriggerChannel.Four => postShuffleCh4_4,
                                     _ => throw new ArgumentException("Invalid TriggerChannel value")
                                 };
-                                trigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out uint triggerCount, holdoffEndIndices: holdoffEndIndices, out uint holdoffEndCount);
+
+                                uint triggerCount = 0;
+                                uint holdoffEndCount = 0;
+                                switch(processingConfig.TriggerType)
+                                {
+                                    case TriggerType.RisingEdge:
+                                    {
+                                        risingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out triggerCount, holdoffEndIndices: holdoffEndIndices, out holdoffEndCount);
+                                        break;
+                                    }
+                                        
+                                    case TriggerType.FallingEdge:
+                                    {
+                                        fallingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out triggerCount, holdoffEndIndices: holdoffEndIndices, out holdoffEndCount);  
+                                        break;
+                                    }
+                                }
+                                
                                 oneSecondHoldoffCount += holdoffEndCount;
                                 if (holdoffEndCount > 0)
                                 {

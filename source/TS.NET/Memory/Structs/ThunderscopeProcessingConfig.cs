@@ -10,5 +10,6 @@ namespace TS.NET
         public HorizontalSumLength HorizontalSumLength;
         public TriggerChannel TriggerChannel;
         public TriggerMode TriggerMode;   
+        public TriggerType TriggerType;
     }
 }

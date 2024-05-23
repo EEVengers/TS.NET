@@ -58,6 +58,13 @@ public enum TriggerMode : byte
     //Single_Armed?
     //Single_Unarmed?
 }
+
+public enum TriggerType : byte
+{
+    RisingEdge = 1,
+    FallingEdge = 2
+}
+
 public enum ThunderscopeChannelDataType : byte
 {
     U8 = 1,
