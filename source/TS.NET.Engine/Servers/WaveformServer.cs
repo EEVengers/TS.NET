@@ -12,8 +12,12 @@ namespace TS.NET.Engine
         internal uint seqnum;
         internal ushort numChannels;
         internal ulong fsPerSample;
-        internal ulong triggerFs;
+        internal long triggerFs;
         internal double hwWaveformsPerSec;
+
+        public override string ToString(){
+            return $"seqnum: {seqnum}, numChannels: {numChannels}, fsPerSample: {fsPerSample}, triggerFs: {triggerFs}, hwWaveformsPerSec: {hwWaveformsPerSec}";
+        }
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -25,6 +29,9 @@ namespace TS.NET.Engine
         internal float offset;
         internal float trigphase;
         internal byte clipping;
+        public override string ToString(){
+            return $"chNum: {chNum}, depth: {depth}, scale: {scale}, offset: {offset}, trigphase: {trigphase}, clipping: {clipping}";
+        }
     }
 
     internal class WaveformSession : TcpSession
@@ -86,7 +93,7 @@ namespace TS.NET.Engine
 
                 if (bridge.RequestAndWaitForData(500))
                 {
-                    //logger.LogDebug("Send waveform...");
+                    logger.LogDebug("Sending waveform...");
                     var configuration = bridge.Hardware;
                     var processing = bridge.Processing;
                     var data = bridge.AcquiredRegionU8;
@@ -119,9 +126,13 @@ namespace TS.NET.Engine
                         clipping = 0
                     };
 
+                    ulong bytesSent = 0;
+
                     unsafe
                     {
                         Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
+                        bytesSent += (ulong)sizeof(WaveformHeader);
+                        logger.LogDebug("WaveformHeader: " + header.ToString());
 
                         for (byte channelIndex = 0; channelIndex < processing.CurrentChannelCount; channelIndex++)
                         {
@@ -130,15 +141,19 @@ namespace TS.NET.Engine
                             //float full_scale = ((float)thunderscopeChannel.VoltFullScale) * 5f; // 5 instead of 10 for signed
                             chHeader.chNum = channelIndex;
                             chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
-                            chHeader.offset = -((float)thunderscopeChannel.VoltOffset); // needs chHeader.scale * 0x80 for signed
+                            chHeader.offset = -(float)thunderscopeChannel.VoltOffset; // needs chHeader.scale * 0x80 for signed
 
                             // if (ch == 0)
                             //     logger.LogDebug($"ch {ch}: VoltsDiv={tChannel.VoltsDiv} -> .scale={chHeader.scale}, VoltsOffset={tChannel.VoltsOffset} -> .offset = {chHeader.offset}, Coupling={tChannel.Coupling}");
 
                             // Length of this channel as 'depth'
                             Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
+                            bytesSent += (ulong)sizeof(ChannelHeader);
+                            logger.LogDebug("ChannelHeader: " + chHeader.ToString());
                             Send(data.Slice(channelIndex * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength));
+                            bytesSent += processing.CurrentChannelDataLength;
                         }
+                        logger.LogDebug($"Sent waveform ({bytesSent} bytes)");
                     }
                     sequenceNumber++;
                     break;

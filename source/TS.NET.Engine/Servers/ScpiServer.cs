@@ -213,7 +213,7 @@ namespace TS.NET.Engine
                         // Turn on/off
                         logger.LogDebug($"Set ch {chNum} enabled {command == "ON"}");
 
-                        hardwareRequestChannel.Write(new HardwareSetEnabledRequest(chNum, command == "ON"));
+                        //hardwareRequestChannel.Write(new HardwareSetEnabledRequest(chNum, command == "ON"));
                         // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
 
                         return null;
@@ -224,7 +224,7 @@ namespace TS.NET.Engine
                         // Set coupling
                         logger.LogDebug($"Set ch {chNum} coupling to {coup}");
 
-                        hardwareRequestChannel.Write(new HardwareSetCouplingRequest(chNum, (coup == "DC1M" ? ThunderscopeCoupling.DC : ThunderscopeCoupling.AC)));
+                        //hardwareRequestChannel.Write(new HardwareSetCouplingRequest(chNum, (coup == "DC1M" ? ThunderscopeCoupling.DC : ThunderscopeCoupling.AC)));
                         // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
 
                         return null;
@@ -246,7 +246,7 @@ namespace TS.NET.Engine
                     {
                         double range = Convert.ToDouble(argument);
                         logger.LogDebug($"Set channel {chNum} range to {range}V");
-                        hardwareRequestChannel.Write(new HardwareSetVoltFullScaleRequest(chNum, range));
+                        //hardwareRequestChannel.Write(new HardwareSetVoltFullScaleRequest(chNum, range));
                         // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                         return null;
                     }

@@ -331,6 +331,7 @@ namespace TS.NET.Engine
                                 }
                                 else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimer.ElapsedMilliseconds > 1000)
                                 {
+                                    oneSecondHoldoffCount++;
                                     //logger.LogDebug("Auto trigger fired");
                                     var bridgeSpan = bridge.AcquiringRegionI8;
                                     circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
@@ -350,6 +351,7 @@ namespace TS.NET.Engine
                             }
                             if (forceTriggerLatch)             // If a forceTriggerLatch is still active, send data to the bridge and reset latch.
                             {
+                                oneSecondHoldoffCount++;
                                 //logger.LogDebug("Force trigger fired");
                                 var bridgeSpan = bridge.AcquiringRegionI8;
                                 circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
