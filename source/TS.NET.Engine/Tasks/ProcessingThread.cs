@@ -107,7 +107,7 @@ namespace TS.NET.Engine
                 Span<uint> holdoffEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum holdoff
                 // By setting holdoffSamples to processingConfig.CurrentChannelDataLength, the holdoff is the exact length of the data sent over the bridge which gives near gapless triggering
                 RisingEdgeTriggerI8 risingEdgeTrigger = new(0, -10, processingConfig.CurrentChannelDataLength);
-                FallingEdgeTriggerI8 fallingEdgeTrigger = new(0, -10, processingConfig.CurrentChannelDataLength);
+                FallingEdgeTriggerI8 fallingEdgeTrigger = new(0, 10, processingConfig.CurrentChannelDataLength);
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;
@@ -214,7 +214,7 @@ namespace TS.NET.Engine
 
                                 logger.LogDebug($"Setting trigger level to {triggerLevel}");
                                 risingEdgeTrigger.Reset(triggerLevel, triggerLevel -= 10, processingConfig.CurrentChannelDataLength);
-                                fallingEdgeTrigger.Reset(triggerLevel, triggerLevel -= 10, processingConfig.CurrentChannelDataLength);
+                                fallingEdgeTrigger.Reset(triggerLevel, triggerLevel += 10, processingConfig.CurrentChannelDataLength);
                                 break;
                             case ProcessingSetTriggerTypeDto processingSetTriggerTypeDto:
                                 processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
