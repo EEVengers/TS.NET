@@ -7,7 +7,7 @@ namespace TS.NET.Memory.Unix
     {
         private const FileAccess FileAccessOption = FileAccess.ReadWrite;
         private const FileShare FileShareOption = FileShare.ReadWrite | FileShare.Delete;
-        private const string MapNamePrefix = "TS.NET";
+        private const string MapNamePrefix = "TS.NET.";
         private const int BufferSize = 0x1000;
         private readonly string file;
 
@@ -35,6 +35,7 @@ namespace TS.NET.Memory.Unix
                     FileAccessOption,
                     FileShareOption,
                     BufferSize);
+                //File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite);
             }
 
             try

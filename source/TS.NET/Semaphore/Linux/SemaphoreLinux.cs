@@ -2,7 +2,7 @@
 {
     internal class SemaphoreLinux : IInterprocessSemaphoreWaiter, IInterprocessSemaphoreReleaser
     {
-        private const string HandleNamePrefix = "/TS.NET.";
+        private const string HandleNamePrefix = "TS.NET.";
         private readonly string name;
         private readonly bool deleteOnDispose;
         private readonly IntPtr handle;

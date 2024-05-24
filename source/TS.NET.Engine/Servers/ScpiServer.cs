@@ -147,7 +147,6 @@ namespace TS.NET.Engine
                                 long rate = Convert.ToInt64(argument);
                                 processingRequestChannel.Write(new ProcessingSetRateDto(rate));
                                 logger.LogDebug($"{nameof(ProcessingSetRateDto)} sent with argument: {rate}");
-                                // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                             }
                             return null;
                     }
@@ -261,10 +260,15 @@ namespace TS.NET.Engine
             {
                 if (subject == null)
                 {
-                    if (command == "*IDN")
+                    switch (command)
                     {
-                        logger.LogDebug("Reply to *IDN? query");
-                        return "ThunderScope,(Bridge),NOSERIAL,NOVERSION\n";
+                        case "*IDN":
+                            logger.LogDebug("Reply to *IDN? query");
+                            return "ThunderScope,(Bridge),NOSERIAL,NOVERSION\n";
+                        case "RATES":
+                            return "4000000,\n";        // femtoseconds
+                        case "DEPTHS":
+                            return "2500,25000,250000,2500000,\n";
                     }
                 }
             }

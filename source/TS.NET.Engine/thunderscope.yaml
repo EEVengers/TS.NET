@@ -19,7 +19,7 @@
 
 Driver: XDMA
 MaxChannelCount: 4
-MaxChannelDataLength: 1000000
+MaxChannelDataLength: 2500000
 Twinlan: true
 
 ###################################################################################################
