@@ -118,12 +118,10 @@ namespace TS.NET.Engine
                         case "RUN": 
                             processingRequestChannel.Write(new ProcessingRunDto());
                             logger.LogDebug($"{nameof(ProcessingRunDto)} sent");
-                            // processingResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                             return null;
                         case "STOP":
                             processingRequestChannel.Write(new ProcessingStopDto());
                             logger.LogDebug($"{nameof(ProcessingStopDto)} sent");
-                            // processingResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                             return null;
                         case "SINGLE":
                             processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Single));
@@ -134,7 +132,6 @@ namespace TS.NET.Engine
                         case "FORCE":
                             processingRequestChannel.Write(new ProcessingForceTriggerDto());
                             logger.LogDebug($"{nameof(ProcessingForceTriggerDto)} sent");
-                            // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                             return null;
                         case "DEPTH":
                             if (hasArg)
@@ -142,7 +139,6 @@ namespace TS.NET.Engine
                                 ulong depth = Convert.ToUInt64(argument);
                                 processingRequestChannel.Write(new ProcessingSetDepthDto(depth));
                                 logger.LogDebug($"{nameof(ProcessingSetDepthDto)} sent with argument: {depth}");
-                                // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                             }
                             return null;
                         case "RATE":

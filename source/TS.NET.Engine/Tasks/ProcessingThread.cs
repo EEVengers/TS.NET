@@ -103,11 +103,12 @@ namespace TS.NET.Engine
                 Span<sbyte> postShuffleCh3_4 = shuffleBuffer.Slice(blockLength_4 * 2, blockLength_4);
                 Span<sbyte> postShuffleCh4_4 = shuffleBuffer.Slice(blockLength_4 * 3, blockLength_4);
 
+                uint triggerHysteresis = 10;
                 Span<uint> triggerIndices = new uint[ThunderscopeMemory.Length / 1000];     // 1000 samples is the minimum holdoff
                 Span<uint> holdoffEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum holdoff
                 // By setting holdoffSamples to processingConfig.CurrentChannelDataLength, the holdoff is the exact length of the data sent over the bridge which gives near gapless triggering
-                RisingEdgeTriggerI8 risingEdgeTrigger = new(0, -10, processingConfig.CurrentChannelDataLength);
-                FallingEdgeTriggerI8 fallingEdgeTrigger = new(0, 10, processingConfig.CurrentChannelDataLength);
+                RisingEdgeTriggerI8 risingEdgeTrigger = new(0, (sbyte)-triggerHysteresis, processingConfig.CurrentChannelDataLength);
+                FallingEdgeTriggerI8 fallingEdgeTrigger = new(0, (sbyte)triggerHysteresis, processingConfig.CurrentChannelDataLength);
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;
@@ -150,15 +151,15 @@ namespace TS.NET.Engine
                         {
                             case ProcessingRunDto processingStartTriggerDto:
                                 runTrigger = true;
-                                logger.LogDebug(nameof(ProcessingRunDto));
+                                logger.LogDebug($"Set Run");
                                 break;
                             case ProcessingStopDto processingStopTriggerDto:
                                 runTrigger = false;
-                                logger.LogDebug(nameof(ProcessingStopDto));
+                                logger.LogDebug($"Set Stop");
                                 break;
                             case ProcessingForceTriggerDto processingForceTriggerDto:
                                 forceTriggerLatch = true;
-                                logger.LogDebug(nameof(ProcessingForceTriggerDto));
+                                logger.LogDebug($"Set Force");
                                 break;
                             case ProcessingSetTriggerModeDto processingSetTriggerModeDto:
                                 processingConfig.TriggerMode = processingSetTriggerModeDto.Mode;
@@ -175,20 +176,27 @@ namespace TS.NET.Engine
                                         singleTriggerLatch = false;
                                         break;
                                 }
-                                logger.LogDebug(nameof(ProcessingSetTriggerModeDto));
+                                logger.LogDebug($"Set TriggerMode to {processingConfig.TriggerMode}");
                                 break;
                             case ProcessingSetDepthDto processingSetDepthDto:
                                 var depth = processingSetDepthDto.Samples;
+                                processingConfig.CurrentChannelDataLength = depth;
+                                risingEdgeTrigger.SetHoldoff(depth);
+                                fallingEdgeTrigger.SetHoldoff(depth);
+                                logger.LogDebug($"Set CurrentChannelDataLength to {processingConfig.CurrentChannelDataLength}");
                                 break;
                             case ProcessingSetRateDto processingSetRateDto:
                                 var rate = processingSetRateDto.SamplingHz;
+                                logger.LogWarning($"{nameof(ProcessingSetRateDto)} not implemented");
                                 break;
                             case ProcessingSetTriggerSourceDto processingSetTriggerSourceDto:
                                 var channel = processingSetTriggerSourceDto.Channel;
                                 processingConfig.TriggerChannel = channel;
+                                logger.LogDebug($"Set TriggerChannel to {processingConfig.TriggerChannel}");
                                 break;
                             case ProcessingSetTriggerDelayDto processingSetTriggerDelayDto:
                                 var fs = processingSetTriggerDelayDto.Femtoseconds;
+                                logger.LogWarning($"{nameof(ProcessingSetTriggerDelayDto)} not implemented");
                                 break;
                             case ProcessingSetTriggerLevelDto processingSetTriggerLevelDto:
                                 var requestedTriggerLevel = processingSetTriggerLevelDto.LevelVolts;
@@ -196,32 +204,36 @@ namespace TS.NET.Engine
 
                                 var triggerChannel = cachedThunderscopeConfiguration.GetTriggerChannel(processingConfig.TriggerChannel);
 
-                                if (requestedTriggerLevel > triggerChannel.ActualVoltFullScale / 2)
-                                {
-                                    logger.LogWarning($"Could not set trigger level {requestedTriggerLevel}");
-                                    break;
-                                }
-                                if (requestedTriggerLevel < -triggerChannel.ActualVoltFullScale / 2)
+                                if ((requestedTriggerLevel > triggerChannel.ActualVoltFullScale / 2) || (requestedTriggerLevel < -triggerChannel.ActualVoltFullScale / 2))
                                 {
                                     logger.LogWarning($"Could not set trigger level {requestedTriggerLevel}");
                                     break;
                                 }
 
                                 sbyte triggerLevel = (sbyte)((requestedTriggerLevel / (triggerChannel.ActualVoltFullScale / 2)) * 127f);
-
-                                // This validation is for the rising edge trigger...
-                                // i.e. ArmLevel = LTE, TriggerLevel = GT
-                                if (triggerLevel == sbyte.MinValue)
-                                    triggerLevel += 10;     // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
-                                if (triggerLevel == sbyte.MaxValue)
-                                    triggerLevel -= 1;      // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms
-
-                                logger.LogDebug($"Setting trigger level to {triggerLevel}");
-                                risingEdgeTrigger.Reset(triggerLevel, triggerLevel -= 10, processingConfig.CurrentChannelDataLength);
-                                fallingEdgeTrigger.Reset(triggerLevel, triggerLevel += 10, processingConfig.CurrentChannelDataLength);
+                                switch(processingConfig.TriggerType)
+                                {
+                                    case TriggerType.RisingEdge:
+                                        if (triggerLevel == sbyte.MinValue)
+                                            triggerLevel += (sbyte)triggerHysteresis;   // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
+                                        if (triggerLevel == sbyte.MaxValue)
+                                            triggerLevel -= 1;                          // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms
+                                        break;
+                                    case TriggerType.FallingEdge:
+                                        if (triggerLevel == sbyte.MaxValue)
+                                            triggerLevel -= (sbyte)triggerHysteresis;   // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
+                                        if (triggerLevel == sbyte.MinValue)
+                                            triggerLevel += 1;                          // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
+                                        break;
+                                }
+                               
+                                risingEdgeTrigger.Reset(triggerLevel, triggerLevel -= (sbyte)triggerHysteresis, processingConfig.CurrentChannelDataLength);
+                                fallingEdgeTrigger.Reset(triggerLevel, triggerLevel += (sbyte)triggerHysteresis, processingConfig.CurrentChannelDataLength);
+                                logger.LogDebug($"Set trigger level to {triggerLevel} with hysteresis of {triggerHysteresis}");
                                 break;
                             case ProcessingSetTriggerTypeDto processingSetTriggerTypeDto:
                                 processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
+                                logger.LogDebug($"Set TriggerType to {processingConfig.TriggerType}");
                                 break;
                             default:
                                 logger.LogWarning($"Unknown ProcessingRequestDto: {request}");

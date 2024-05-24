@@ -21,19 +21,23 @@ public class FallingEdgeTriggerI8
 
     public void Reset(sbyte triggerLevel, sbyte armLevel, ulong holdoffSamples)
     {
+        SetHoldoff(holdoffSamples);
+        triggerArmState = TriggerArmState.Unarmed;
+        this.triggerLevel = triggerLevel;
+        this.armLevel = armLevel;
+        holdoffRemaining = 0;
+        triggerLevelVector = Vector256.Create(triggerLevel);
+        armLevelVector = Vector256.Create(armLevel);
+    }
+
+    public void SetHoldoff(ulong holdoffSamples)
+    {
         if (holdoffSamples > 10000000000)
             throw new ArgumentException($"holdoffSamples cannot be greater than 10GS");
         if (holdoffSamples < 1000)
             throw new ArgumentException($"holdoffSamples cannot be less than 1000");
 
-        triggerArmState = TriggerArmState.Unarmed;
-        this.triggerLevel = triggerLevel;
-        this.armLevel = armLevel;
         this.holdoffSamples = holdoffSamples;
-        holdoffRemaining = 0;
-
-        triggerLevelVector = Vector256.Create(triggerLevel);
-        armLevelVector = Vector256.Create(armLevel);
     }
 
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
