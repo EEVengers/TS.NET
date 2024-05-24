@@ -206,13 +206,9 @@ namespace TS.NET.Driver.XMDA
             // Put data into queue
             for (int i = 0; i < data.Length; i++)
             {
-                // TODO: Replace with write32
                 //interop.WriteUser(data.Slice(i, 1), (ulong)BarRegister.SERIAL_FIFO_DATA_WRITE_REG);
                 Span<byte> bytes = new byte[4];
-                bytes[0] = data.Slice(i, 1)[0];
-                bytes[1] = data.Slice(i, 1)[0];
-                bytes[2] = data.Slice(i, 1)[0];
-                bytes[3] = data.Slice(i, 1)[0];
+                bytes.Fill(data[i]);
                 interop.WriteUser(bytes, (ulong)BarRegister.SERIAL_FIFO_DATA_WRITE_REG);
             }
             // read TDFV (vacancy byte)
@@ -427,12 +423,12 @@ namespace TS.NET.Driver.XMDA
             if ((error_code & 2) > 0)
                 throw new Exception("Thunderscope - datamover error");
 
-            //if ((error_code & 1) > 0)
-            //    throw new ThunderscopeFIFOOverflowException("Thunderscope - FIFO overflow");
+            if ((error_code & 1) > 0)
+                throw new ThunderscopeFifoOverflowException("Thunderscope - FIFO overflow");
 
-            //uint overflow_cycles = transfer_counter >> 16 & 0x3FFF;
-            //if (overflow_cycles > 0)
-            //    throw new Exception("Thunderscope - pipeline overflow");
+            uint overflow_cycles = transfer_counter >> 16 & 0x3FFF;
+            if (overflow_cycles > 0)
+                throw new Exception("Thunderscope - pipeline overflow");
 
             uint pages_moved = transfer_counter & 0xFFFF;
             ulong buffer_head = hardwareState.BufferHead & ~0xFFFFUL | pages_moved;
