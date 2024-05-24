@@ -48,17 +48,17 @@ ProcessingThreadProcessorAffinity: -1
 Calibration:
   Channel1:
     AttenuatorGain: 0.02
-    TrimOffsetDac: 2048
+    TrimOffsetDac: 2800
     TrimSensitivityDac: 64
   Channel2:
     AttenuatorGain: 0.02
-    TrimOffsetDac: 2048
+    TrimOffsetDac: 2700
     TrimSensitivityDac: 64
   Channel3:
     AttenuatorGain: 0.02
-    TrimOffsetDac: 2048
+    TrimOffsetDac: 2800
     TrimSensitivityDac: 64
   Channel4:
     AttenuatorGain: 0.02
-    TrimOffsetDac: 2048
+    TrimOffsetDac: 2900
     TrimSensitivityDac: 64
