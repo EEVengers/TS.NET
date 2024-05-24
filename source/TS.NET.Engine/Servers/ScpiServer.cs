@@ -156,55 +156,36 @@ namespace TS.NET.Engine
                     if (command == "LEV" && hasArg)
                     {
                         double level = Convert.ToDouble(argument);
-                        // Set trig level
                         logger.LogDebug($"Set trigger level to {level}V");
-
                         processingRequestChannel.Write(new ProcessingSetTriggerLevelDto(level));
-                        // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-
                         return null;
                     }
                     else if (command == "SOU" && hasArg)
                     {
                         int source = Convert.ToInt32(argument);
-
                         if (source < 0 || source > 3)
                             source = 0;
-
-                        // Set trig channel
                         logger.LogDebug($"Set trigger source to ch {source}");
-
                         processingRequestChannel.Write(new ProcessingSetTriggerSourceDto((TriggerChannel)(source + 1)));
-                        // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-
                         return null;
                     }
                     else if (command == "DELAY" && hasArg)
                     {
                         long delay = Convert.ToInt64(argument);
-                        // Set trig delay
                         logger.LogDebug($"Set trigger delay to {delay}fs");
-
                         processingRequestChannel.Write(new ProcessingSetTriggerDelayDto(delay));
-                        // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-
                         return null;
                     }
                     else if (command == "EDGE:DIR" && hasArg)
                     {
                         string dir = argument ?? throw new NullReferenceException();
-                        // Set direction
                         logger.LogDebug($"Set [edge] trigger direction to {dir}");
-
                         var type = dir.ToUpper() switch {
                             "RISING" => TriggerType.RisingEdge,
                             "FALLING" => TriggerType.FallingEdge,
                             _ => throw new NotImplementedException()
                         };
-
                         processingRequestChannel.Write(new ProcessingSetTriggerTypeDto(type));
-                        // processingResponseChannel.Read(cancelToken);    // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-
                         return null;
                     }
                 }
@@ -214,44 +195,30 @@ namespace TS.NET.Engine
 
                     if (command == "ON" || command == "OFF")
                     {
-                        // Turn on/off
-                        logger.LogDebug($"Set ch {chNum} enabled {command == "ON"}");
-
+                        logger.LogDebug($"Set ch {chNum} enabled {command == "ON"} [Not implemented]");
                         //hardwareRequestChannel.Write(new HardwareSetEnabledRequest(chNum, command == "ON"));
-                        // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-
                         return null;
                     }
                     else if (command == "COUP" && hasArg)
                     {
                         string coup = argument ?? throw new NullReferenceException();
-                        // Set coupling
-                        logger.LogDebug($"Set ch {chNum} coupling to {coup}");
-
+                        logger.LogDebug($"Set ch {chNum} coupling to {coup} [Not implemented]");
                         //hardwareRequestChannel.Write(new HardwareSetCouplingRequest(chNum, (coup == "DC1M" ? ThunderscopeCoupling.DC : ThunderscopeCoupling.AC)));
-                        // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-
                         return null;
                     }
                     else if (command == "OFFS" && hasArg)
                     {
                         double offset = Convert.ToDouble(argument);
-                        // Set offset
-                        logger.LogDebug($"Set ch {chNum} offset to {offset}V");
-
+                        logger.LogDebug($"Set ch {chNum} offset to {offset}V [Not implemented]");
                         offset = Math.Clamp(offset, -0.5, 0.5);
-
                         //hardwareRequestChannel.Write(new HardwareSetVoltOffsetRequest(chNum, offset));
-                        // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
-
                         return null;
                     }
                     else if (command == "RANGE" && hasArg)
                     {
                         double range = Convert.ToDouble(argument);
-                        logger.LogDebug($"Set channel {chNum} range to {range}V");
+                        logger.LogDebug($"Set channel {chNum} range to {range}V [Not implemented]");
                         //hardwareRequestChannel.Write(new HardwareSetVoltFullScaleRequest(chNum, range));
-                        // hardwareResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                         return null;
                     }
                 }

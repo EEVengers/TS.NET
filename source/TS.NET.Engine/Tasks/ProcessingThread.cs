@@ -187,7 +187,7 @@ namespace TS.NET.Engine
                                 break;
                             case ProcessingSetRateDto processingSetRateDto:
                                 var rate = processingSetRateDto.SamplingHz;
-                                logger.LogWarning($"{nameof(ProcessingSetRateDto)} not implemented");
+                                logger.LogWarning($"{nameof(ProcessingSetRateDto)} [Not implemented]");
                                 break;
                             case ProcessingSetTriggerSourceDto processingSetTriggerSourceDto:
                                 var channel = processingSetTriggerSourceDto.Channel;
@@ -196,7 +196,7 @@ namespace TS.NET.Engine
                                 break;
                             case ProcessingSetTriggerDelayDto processingSetTriggerDelayDto:
                                 var fs = processingSetTriggerDelayDto.Femtoseconds;
-                                logger.LogWarning($"{nameof(ProcessingSetTriggerDelayDto)} not implemented");
+                                logger.LogWarning($"{nameof(ProcessingSetTriggerDelayDto)} [Not implemented]");
                                 break;
                             case ProcessingSetTriggerLevelDto processingSetTriggerLevelDto:
                                 var requestedTriggerLevel = processingSetTriggerLevelDto.LevelVolts;
