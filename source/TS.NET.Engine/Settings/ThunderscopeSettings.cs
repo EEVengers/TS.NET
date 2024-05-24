@@ -11,9 +11,11 @@ namespace TS.NET.Engine
         public string Driver { get; set; }
         public ushort MaxChannelCount { get; set; }
         public uint MaxChannelDataLength { get; set; }
+        public bool Twinlan { get; set; }
+
         public int HardwareThreadProcessorAffinity { get; set; }
         public int ProcessingThreadProcessorAffinity { get; set; }
-        public int ControlThreadProcessorAffinity { get; set; }
+
         public ThunderscopeCalibrationSettings Calibration { get; set; }
 
         public static ThunderscopeSettings Default()
@@ -23,9 +25,9 @@ namespace TS.NET.Engine
                 Driver = "XDMA",
                 MaxChannelCount = 4,
                 MaxChannelDataLength = 1000000,
+                Twinlan = true,
                 HardwareThreadProcessorAffinity = -1,
                 ProcessingThreadProcessorAffinity = -1,
-                ControlThreadProcessorAffinity = -1,
                 Calibration = ThunderscopeCalibrationSettings.Default()
             };
         }

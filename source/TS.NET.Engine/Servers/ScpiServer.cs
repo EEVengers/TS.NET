@@ -63,7 +63,7 @@ namespace TS.NET.Engine
 
         protected override void OnError(SocketError error)
         {
-            logger.LogDebug($"Chat TCP session caught an error with code {error}");
+            logger.LogDebug($"SCPI session caught an error with code {error}");
         }
 
         public static string? ProcessSCPICommand(
@@ -114,19 +114,22 @@ namespace TS.NET.Engine
                 {
                     switch (command)
                     {
-                        case "START":
-                            processingRequestChannel.Write(new ProcessingStartTriggerDto());
-                            logger.LogDebug($"{nameof(ProcessingStartTriggerDto)} sent");
+                        case "START":   //Obsolete
+                        case "RUN": 
+                            processingRequestChannel.Write(new ProcessingRunDto());
+                            logger.LogDebug($"{nameof(ProcessingRunDto)} sent");
                             // processingResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                             return null;
                         case "STOP":
-                            processingRequestChannel.Write(new ProcessingStopTriggerDto());
-                            logger.LogDebug($"{nameof(ProcessingStopTriggerDto)} sent");
+                            processingRequestChannel.Write(new ProcessingStopDto());
+                            logger.LogDebug($"{nameof(ProcessingStopDto)} sent");
                             // processingResponseChannel.Read(cancelToken);     // Maybe need some kind of UID to know this is the correct response? Bodge for now.
                             return null;
                         case "SINGLE":
                             processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Single));
+                            processingRequestChannel.Write(new ProcessingRunDto());
                             logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
+                            logger.LogDebug($"{nameof(ProcessingRunDto)} sent");
                             return null;
                         case "FORCE":
                             processingRequestChannel.Write(new ProcessingForceTriggerDto());

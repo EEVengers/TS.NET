@@ -148,13 +148,13 @@ namespace TS.NET.Engine
                     {
                         switch (request)
                         {
-                            case ProcessingStartTriggerDto processingStartTriggerDto:
+                            case ProcessingRunDto processingStartTriggerDto:
                                 runTrigger = true;
-                                logger.LogDebug(nameof(ProcessingStartTriggerDto));
+                                logger.LogDebug(nameof(ProcessingRunDto));
                                 break;
-                            case ProcessingStopTriggerDto processingStopTriggerDto:
+                            case ProcessingStopDto processingStopTriggerDto:
                                 runTrigger = false;
-                                logger.LogDebug(nameof(ProcessingStopTriggerDto));
+                                logger.LogDebug(nameof(ProcessingStopDto));
                                 break;
                             case ProcessingForceTriggerDto processingForceTriggerDto:
                                 forceTriggerLatch = true;
@@ -164,11 +164,15 @@ namespace TS.NET.Engine
                                 processingConfig.TriggerMode = processingSetTriggerModeDto.Mode;
                                 switch (processingSetTriggerModeDto.Mode)
                                 {
+                                    case TriggerMode.Normal:
+                                        singleTriggerLatch = false;
+                                        break;
                                     case TriggerMode.Single:
                                         singleTriggerLatch = true;
                                         break;
                                     case TriggerMode.Auto:
                                         autoTimer.Restart();
+                                        singleTriggerLatch = false;
                                         break;
                                 }
                                 logger.LogDebug(nameof(ProcessingSetTriggerModeDto));

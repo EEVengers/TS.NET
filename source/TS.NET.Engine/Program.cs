@@ -82,17 +82,18 @@ switch (thunderscopeSettings.Driver.ToLower())
 }
 
 // Start threads
-ControlThread controlThread = new(loggerFactory, thunderscopeSettings, hardwareRequestChannel.Writer, processingRequestChannel.Writer);
-controlThread.Start();
-
 ProcessingThread processingThread = new(loggerFactory, thunderscopeSettings, processChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
 processingThread.Start();
 
 HardwareThread hardwareThread = new(loggerFactory, thunderscopeSettings, thunderscope, inputChannel.Reader, processChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
 hardwareThread.Start();
 
-WaveformServer waveformServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5026);
-waveformServer.Start();
+WaveformServer? waveformServer = null;
+if (thunderscopeSettings.Twinlan)
+{
+    waveformServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5026);
+    waveformServer.Start();
+}
 
 ScpiServer scpiServer = new(loggerFactory, System.Net.IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
 scpiServer.Start();
@@ -110,7 +111,6 @@ while (loop)
 }
 
 scpiServer.Stop();
-waveformServer.Stop();
+waveformServer?.Stop();
 hardwareThread.Stop();
 processingThread.Stop();
-controlThread.Stop();

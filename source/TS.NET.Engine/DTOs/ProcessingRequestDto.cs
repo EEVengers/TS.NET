@@ -5,8 +5,8 @@ namespace TS.NET.Engine
     public abstract record ProcessingRequestDto();
 
     // Trigger actions
-    public record ProcessingStartTriggerDto() : ProcessingRequestDto;
-    public record ProcessingStopTriggerDto() : ProcessingRequestDto;
+    public record ProcessingRunDto() : ProcessingRequestDto;
+    public record ProcessingStopDto() : ProcessingRequestDto;
     public record ProcessingForceTriggerDto() : ProcessingRequestDto;
 
     // Trigger configuration
