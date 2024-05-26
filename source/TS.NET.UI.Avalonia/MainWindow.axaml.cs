@@ -35,6 +35,7 @@ namespace TS.NET.UI.Avalonia
         //private IPublisher forwarderInput;
         //private Memory<byte> forwarderInputBuffer = new byte[10000];
         //private ILoggerFactory loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        private SemaphoreSlim renderSemaphore = new SemaphoreSlim(1);
 
         public MainWindow()
         {
@@ -73,6 +74,8 @@ namespace TS.NET.UI.Avalonia
             //avaPlot1.Configuration.Pan = false;
             triggerLine = avaPlot1.Plot.AddHorizontalLine(200, System.Drawing.Color.White, 2, LineStyle.Dash);
 
+            avaPlot1.Configuration.UseRenderQueue = false;      // Blocking RenderRequest?
+
             //using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
             cancellationTokenSource = new();
             displayTask = Task.Factory.StartNew(() => UpdateChart(cancellationTokenSource.Token), TaskCreationOptions.LongRunning);
@@ -103,15 +106,12 @@ namespace TS.NET.UI.Avalonia
                 while (true)
                 {
                     cancelToken.ThrowIfCancellationRequested();
+                    renderSemaphore.Wait();
                     if (bridge.RequestAndWaitForData(500))
                     {
                         ulong channelLength = bridge.Processing.CurrentChannelDataLength;
-                        //uint viewportLength = (uint)bridge.Configuration.ChannelLength;//1000;
-                        uint viewportLength = 1000000;// (uint)upDownIndex.Value;
-                        if (viewportLength < 100)
-                            viewportLength = 100;
-                        if (viewportLength > 10000000)
-                            viewportLength = (uint)channelLength;
+                        uint viewportLength = (uint)bridge.Processing.CurrentChannelDataLength;
+                        //uint viewportLength = 1000000;//
 
                         if (channel1.Length != viewportLength)
                         {
@@ -145,7 +145,7 @@ namespace TS.NET.UI.Avalonia
 
                         //var reading = bridge.Span[(int)upDownIndex.Value];
                         count++;
-                        string textInfo = JsonConvert.SerializeObject(cfg, Formatting.Indented, new Newtonsoft.Json.Converters.StringEnumConverter()); 
+                        string textInfo = JsonConvert.SerializeObject(cfg, Formatting.Indented, new Newtonsoft.Json.Converters.StringEnumConverter());
                         //@$"Channels: {cfg.Channels}
                         //Channel length: {cfg.ChannelLength}
                         //Trigger channel: {cfg.TriggerChannel}
@@ -154,14 +154,21 @@ namespace TS.NET.UI.Avalonia
                         //Channel 1:
                         //DC coupling
                         //20MHz bandwidth";
+                        
                         Dispatcher.UIThread.InvokeAsync(() =>
                         {
-                            avaPlot1.Render();
                             textBlockInfo.Text = textInfo;
                             lblStatus.Content = status;
+                            //avaPlot1.Plot.RenderLock();     // Hang until render is complete
+                            //avaPlot1.Plot.RenderUnlock();   // Allow rendering again
+                            //avaPlot1.Render(true);
+                            avaPlot1.RenderRequest(RenderType.LowQuality);  // With Configuration.UseRenderQueue = false, this should be a blocking call
+                            renderSemaphore.Release();
                         });
+
+
                         stopwatch.Restart();
-                        Thread.Sleep(100);
+                        //Thread.Sleep(1000);
                     }
                 }
             }
