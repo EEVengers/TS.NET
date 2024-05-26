@@ -112,7 +112,7 @@ namespace TS.NET.Engine
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;
-                uint oneSecondHoldoffCount = 0;
+                uint oneSecondBridgeUpdateCount = 0;
                 uint oneSecondDequeueCount = 0;
                 // HorizontalSumUtility.ToDivisor(horizontalSumLength)
                 Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
@@ -136,7 +136,11 @@ namespace TS.NET.Engine
                 bool runTrigger = true;
                 bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false automatically. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
                 bool singleTriggerLatch = false;    // "Latch" because it will reset state back to false automatically. When reset, runTrigger will be set to false.
-                Stopwatch autoTimer = Stopwatch.StartNew();
+
+                // Variables for Auto triggering
+                Stopwatch autoTimeoutTimer = Stopwatch.StartNew();
+                int autoSampleCounter = 0;
+                long autoTimeout = 500;
 
                 logger.LogInformation("Started");
 
@@ -172,7 +176,7 @@ namespace TS.NET.Engine
                                         singleTriggerLatch = true;
                                         break;
                                     case TriggerMode.Auto:
-                                        autoTimer.Restart();
+                                        autoTimeoutTimer.Restart();
                                         singleTriggerLatch = false;
                                         break;
                                 }
@@ -211,7 +215,7 @@ namespace TS.NET.Engine
                                 }
 
                                 sbyte triggerLevel = (sbyte)((requestedTriggerLevel / (triggerChannel.ActualVoltFullScale / 2)) * 127f);
-                                switch(processingConfig.TriggerType)
+                                switch (processingConfig.TriggerType)
                                 {
                                     case TriggerType.RisingEdge:
                                         if (triggerLevel == sbyte.MinValue)
@@ -226,7 +230,7 @@ namespace TS.NET.Engine
                                             triggerLevel += 1;                          // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
                                         break;
                                 }
-                               
+
                                 risingEdgeTrigger.Reset(triggerLevel, triggerLevel -= (sbyte)triggerHysteresis, processingConfig.CurrentChannelDataLength);
                                 fallingEdgeTrigger.Reset(triggerLevel, triggerLevel += (sbyte)triggerHysteresis, processingConfig.CurrentChannelDataLength);
                                 logger.LogDebug($"Set trigger level to {triggerLevel} with hysteresis of {triggerHysteresis}");
@@ -315,6 +319,7 @@ namespace TS.NET.Engine
                             circularBuffer2.Write(postShuffleCh2_4);
                             circularBuffer3.Write(postShuffleCh3_4);
                             circularBuffer4.Write(postShuffleCh4_4);
+                            autoSampleCounter += postShuffleCh1_4.Length;
                             // Trigger
                             if (runTrigger && processingConfig.TriggerChannel != TriggerChannel.None)
                             {
@@ -329,22 +334,22 @@ namespace TS.NET.Engine
 
                                 uint triggerCount = 0;
                                 uint holdoffEndCount = 0;
-                                switch(processingConfig.TriggerType)
+                                switch (processingConfig.TriggerType)
                                 {
                                     case TriggerType.RisingEdge:
-                                    {
-                                        risingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out triggerCount, holdoffEndIndices: holdoffEndIndices, out holdoffEndCount);
-                                        break;
-                                    }
-                                        
+                                        {
+                                            risingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out triggerCount, holdoffEndIndices: holdoffEndIndices, out holdoffEndCount);
+                                            break;
+                                        }
+
                                     case TriggerType.FallingEdge:
-                                    {
-                                        fallingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out triggerCount, holdoffEndIndices: holdoffEndIndices, out holdoffEndCount);  
-                                        break;
-                                    }
+                                        {
+                                            fallingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out triggerCount, holdoffEndIndices: holdoffEndIndices, out holdoffEndCount);
+                                            break;
+                                        }
                                 }
-                                
-                                oneSecondHoldoffCount += holdoffEndCount;
+
+
                                 if (holdoffEndCount > 0)
                                 {
                                     //logger.LogDebug("Trigger fired");
@@ -358,19 +363,39 @@ namespace TS.NET.Engine
                                         circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), holdoffEndIndex);
                                         bridge.DataWritten();
                                         bridge.SwitchRegionIfNeeded();
+                                        oneSecondBridgeUpdateCount++;
                                     }
                                     forceTriggerLatch = false;      // Ignore the force trigger request, if any, as a non-force trigger happened
-                                    autoTimer.Restart();            // Restart the timer so there aren't auto updates if regular triggering is happening.
+
+                                    autoSampleCounter = 0;
+                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
+
                                     if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
                                     {
                                         singleTriggerLatch = false;
                                         runTrigger = false;
                                     }
                                 }
-                                else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimer.ElapsedMilliseconds > 1000)
+                                else if (forceTriggerLatch)
                                 {
-                                    oneSecondHoldoffCount++;
+                                    //logger.LogDebug("Force trigger fired");
+                                    var bridgeSpan = bridge.AcquiringRegionI8;
+                                    circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero? It probably wants to be a read of the oldest data + channelLength instead, to get 100% throughput.
+                                    circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
+                                    circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
+                                    circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
+                                    bridge.DataWritten();
+                                    bridge.SwitchRegionIfNeeded();
+                                    oneSecondBridgeUpdateCount++;
+                                    forceTriggerLatch = false;
+
+                                    autoSampleCounter = 0;
+                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
+                                }
+                                else if (processingConfig.TriggerMode == TriggerMode.Auto && autoSampleCounter > channelLength && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
+                                {
                                     //logger.LogDebug("Auto trigger fired");
+                                    autoSampleCounter -= channelLength;
                                     var bridgeSpan = bridge.AcquiringRegionI8;
                                     circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
                                     circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
@@ -378,27 +403,14 @@ namespace TS.NET.Engine
                                     circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
                                     bridge.DataWritten();
                                     bridge.SwitchRegionIfNeeded();
+                                    oneSecondBridgeUpdateCount++;
                                     forceTriggerLatch = false;      // Ignore the force trigger request, if any, as a non-force trigger happened
-                                    autoTimer.Restart();            // Restart the timer so we get auto updates at a regular interval
                                 }
                                 else
                                 {
                                     bridge.SwitchRegionIfNeeded();  // To do: add a comment here when the reason for this LoC is discovered...!
                                 }
 
-                            }
-                            if (forceTriggerLatch)             // If a forceTriggerLatch is still active, send data to the bridge and reset latch.
-                            {
-                                oneSecondHoldoffCount++;
-                                //logger.LogDebug("Force trigger fired");
-                                var bridgeSpan = bridge.AcquiringRegionI8;
-                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
-                                circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                                circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
-                                circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
-                                bridge.DataWritten();
-                                bridge.SwitchRegionIfNeeded();
-                                forceTriggerLatch = false;
                             }
 
                             //logger.LogInformation($"Dequeue #{dequeueCounter++}, Ch1 triggers: {triggerCount1}, Ch2 triggers: {triggerCount2}, Ch3 triggers: {triggerCount3}, Ch4 triggers: {triggerCount4} ");
@@ -408,9 +420,9 @@ namespace TS.NET.Engine
                     if (periodicUpdateTimer.ElapsedMilliseconds >= 10000)
                     {
                         logger.LogDebug($"Outstanding frames: {processChannel.PeekAvailable()}, dequeues/sec: {oneSecondDequeueCount / (periodicUpdateTimer.Elapsed.TotalSeconds):F2}, dequeue count: {dequeueCounter}");
-                        logger.LogDebug($"Triggers/sec: {oneSecondHoldoffCount / (periodicUpdateTimer.Elapsed.TotalSeconds):F2}, trigger count: {bridge.Monitoring.TotalAcquisitions}, UI dropped triggers: {bridge.Monitoring.MissedAcquisitions}");
+                        logger.LogDebug($"Triggers/sec: {oneSecondBridgeUpdateCount / (periodicUpdateTimer.Elapsed.TotalSeconds):F2}, trigger count: {bridge.Monitoring.TotalAcquisitions}, UI dropped triggers: {bridge.Monitoring.MissedAcquisitions}");
                         periodicUpdateTimer.Restart();
-                        oneSecondHoldoffCount = 0;
+                        oneSecondBridgeUpdateCount = 0;
                         oneSecondDequeueCount = 0;
                     }
                 }
