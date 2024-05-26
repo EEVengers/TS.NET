@@ -22,6 +22,8 @@ namespace TS.NET.UI.Avalonia
     {
         private AvaPlot avaPlot1;
         private Label lblStatus;
+        private Slider sliderVert;
+        private Slider sliderHorz;
         private NumericUpDown upDownIndex;
         private TextBlock textBlockInfo;
         private double[] channel1 = null;
@@ -58,14 +60,16 @@ namespace TS.NET.UI.Avalonia
             channel3 = ArrayPool<double>.Shared.Rent(1);
             channel4 = ArrayPool<double>.Shared.Rent(1);
 
-            avaPlot1 = this.Find<AvaPlot>("AvaPlot1");
-            lblStatus = this.Find<Label>("LblStatus");
+            avaPlot1 = this.Find<AvaPlot>("avaPlot1");
+            lblStatus = this.Find<Label>("lblStatus");
+            sliderVert = this.Find<Slider>("sliderVert");
+            sliderHorz = this.Find<Slider>("sliderHorz");
             upDownIndex = this.Find<NumericUpDown>("UpDownIndex");
             textBlockInfo = this.Find<TextBlock>("TextInfo");
             //avaPlot1.Plot.Style(Style.Gray2);
             avaPlot1.Plot.Legend(true, Alignment.LowerRight);
             ResetSeries();
-            avaPlot1.Plot.XAxis.Label("Time (ns)");
+            avaPlot1.Plot.XAxis.Label("Time (s)");
             avaPlot1.Plot.YAxis.Label("ADC reading");
             avaPlot1.Plot.SetAxisLimitsX(0, 1000);
             avaPlot1.Plot.SetAxisLimitsY(0, 255);
@@ -145,7 +149,7 @@ namespace TS.NET.UI.Avalonia
 
                         //var reading = bridge.Span[(int)upDownIndex.Value];
                         count++;
-                        string textInfo = JsonConvert.SerializeObject(cfg, Formatting.Indented, new Newtonsoft.Json.Converters.StringEnumConverter());
+                        string textInfo = JsonConvert.SerializeObject(bridge.Processing, Formatting.Indented, new Newtonsoft.Json.Converters.StringEnumConverter());
                         //@$"Channels: {cfg.Channels}
                         //Channel length: {cfg.ChannelLength}
                         //Trigger channel: {cfg.TriggerChannel}
@@ -217,34 +221,46 @@ namespace TS.NET.UI.Avalonia
             return v.ToString() + unit;
         }
 
-        public async void BtnStart_Click(object sender, RoutedEventArgs e)
+        public void BtnStart_Click(object sender, RoutedEventArgs e)
         {
             scpiClient.Send(":START");
         }
 
-        public async void BtnStop_Click(object sender, RoutedEventArgs e)
+        public void BtnStop_Click(object sender, RoutedEventArgs e)
         {
             scpiClient.Send(":STOP");
         }
 
-        public async void BtnSingle_Click(object sender, RoutedEventArgs e)
+        public void BtnSingle_Click(object sender, RoutedEventArgs e)
         {
             scpiClient.Send(":SINGLE");
         }
 
-        public async void BtnForce_Click(object sender, RoutedEventArgs e)
+        public void BtnForce_Click(object sender, RoutedEventArgs e)
         {
             scpiClient.Send(":FORCE");
         }
 
-        public async void BtnAuto_Click(object sender, RoutedEventArgs e)
+        public void BtnAuto_Click(object sender, RoutedEventArgs e)
         {
             //scpiClient.Send(":AUTO");
         }
 
-        public async void BtnNormal_Click(object sender, RoutedEventArgs e)
+        public void BtnNormal_Click(object sender, RoutedEventArgs e)
         {
             //scpiClient.Send(":NORMAL");
+        }
+
+        public void SliderVert_DoubleTapped(object sender, RoutedEventArgs e)
+        {
+            double voltage = 0.4 * sliderVert.Value;
+            scpiClient.Send($":TRIG:LEV {voltage:F6}");
+        }
+
+        public void SliderHorz_DoubleTapped(object sender, RoutedEventArgs e)
+        {
+            double fsDelay = 10000000000000 * sliderHorz.Value;
+            scpiClient.Send($":TRIG:DELAY {fsDelay:F0}");
         }
     }
 }
