@@ -56,10 +56,10 @@ namespace TS.NET.Engine
             try
             {
                 Thread.CurrentThread.Name = nameof(ProcessingThread);
-                if (settings.ProcessingThreadProcessorAffinity > -1 && OperatingSystem.IsWindows())
+                if (settings.ProcessingThreadProcessorAffinity > -1)
                 {
                     Thread.BeginThreadAffinity();
-                    Interop.CurrentThread.ProcessorAffinity = new IntPtr(1 << settings.ProcessingThreadProcessorAffinity);
+                    OsThread.SetThreadAffinity(settings.ProcessingThreadProcessorAffinity);
                     logger.LogDebug($"{nameof(ProcessingThread)} thread processor affinity set to {settings.ProcessingThreadProcessorAffinity}");
                 }
 

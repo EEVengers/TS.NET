@@ -61,7 +61,7 @@ namespace TS.NET.Engine
             if (settings.HardwareThreadProcessorAffinity > -1 && OperatingSystem.IsWindows())
             {
                 Thread.BeginThreadAffinity();
-                Interop.CurrentThread.ProcessorAffinity = new IntPtr(1 << settings.HardwareThreadProcessorAffinity);
+                OsThread.SetThreadAffinity(settings.HardwareThreadProcessorAffinity);
                 logger.LogDebug($"{nameof(HardwareThread)} thread processor affinity set to {settings.HardwareThreadProcessorAffinity}");
             }
             
