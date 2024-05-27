@@ -78,10 +78,14 @@ namespace TS.NET.Engine
                 {
                     CurrentChannelCount = settings.MaxChannelCount,
                     CurrentChannelDataLength = settings.MaxChannelDataLength,
-                    HorizontalSumLength = HorizontalSumLength.None,
                     TriggerChannel = TriggerChannel.One,
                     TriggerMode = TriggerMode.Auto,
-                    TriggerType = TriggerType.RisingEdge
+                    TriggerType = TriggerType.RisingEdge,
+                    TriggerDelayFs = 0,
+                    TriggerHysteresis = 5,
+                    TriggerHoldoff = 0,
+                    BoxcarAveragingLength = 0,
+                    
                 };
                 bridge.Processing = processingConfig;
 
@@ -101,13 +105,14 @@ namespace TS.NET.Engine
                 Span<sbyte> postShuffleCh1_4 = shuffleBuffer.Slice(0, blockLength_4);
                 Span<sbyte> postShuffleCh2_4 = shuffleBuffer.Slice(blockLength_4, blockLength_4);
                 Span<sbyte> postShuffleCh3_4 = shuffleBuffer.Slice(blockLength_4 * 2, blockLength_4);
-                Span<sbyte> postShuffleCh4_4 = shuffleBuffer.Slice(blockLength_4 * 3, blockLength_4);
-
-                ushort triggerHysteresis = 5;
+                Span<sbyte> postShuffleCh4_4 = shuffleBuffer.Slice(blockLength_4 * 3, blockLength_4);              
                 Span<uint> captureEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum window width
-                // By setting holdoffSamples to processingConfig.CurrentChannelDataLength, the holdoff is the exact length of the data sent over the bridge which gives near gapless triggering
-                RisingEdgeTriggerI8_v2 risingEdgeTrigger = new(5, triggerHysteresis, processingConfig.CurrentChannelDataLength, processingConfig.CurrentChannelDataLength/2, 0);
-                FallingEdgeTriggerI8_v2 fallingEdgeTrigger = new(5, triggerHysteresis, processingConfig.CurrentChannelDataLength, processingConfig.CurrentChannelDataLength / 2, 0);
+
+                // Trigger variables
+                ulong cachedWindowTriggerPosition = 0;
+                RisingEdgeTriggerI8_v2 risingEdgeTrigger = new(5, processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, cachedWindowTriggerPosition, processingConfig.TriggerHoldoff);
+                FallingEdgeTriggerI8_v2 fallingEdgeTrigger = new(5, processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, cachedWindowTriggerPosition, processingConfig.TriggerHoldoff);
+                
 
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;
@@ -182,10 +187,9 @@ namespace TS.NET.Engine
                                 logger.LogDebug($"Set TriggerMode to {processingConfig.TriggerMode}");
                                 break;
                             case ProcessingSetDepthDto processingSetDepthDto:
-                                var depth = processingSetDepthDto.Samples;
-                                processingConfig.CurrentChannelDataLength = depth;
-                                risingEdgeTrigger.SetHorizontal(depth, depth / 2, 0);
-                                fallingEdgeTrigger.SetHorizontal(depth, depth / 2, 0);
+                                processingConfig.CurrentChannelDataLength = processingSetDepthDto.Samples;
+                                risingEdgeTrigger.SetHorizontal(processingConfig.CurrentChannelDataLength, cachedWindowTriggerPosition, processingConfig.TriggerHoldoff);
+                                fallingEdgeTrigger.SetHorizontal(processingConfig.CurrentChannelDataLength, cachedWindowTriggerPosition, processingConfig.TriggerHoldoff);
                                 logger.LogDebug($"Set CurrentChannelDataLength to {processingConfig.CurrentChannelDataLength}");
                                 break;
                             case ProcessingSetRateDto processingSetRateDto:
@@ -193,15 +197,15 @@ namespace TS.NET.Engine
                                 logger.LogWarning($"{nameof(ProcessingSetRateDto)} [Not implemented]");
                                 break;
                             case ProcessingSetTriggerSourceDto processingSetTriggerSourceDto:
-                                var channel = processingSetTriggerSourceDto.Channel;
-                                processingConfig.TriggerChannel = channel;
+                                processingConfig.TriggerChannel = processingSetTriggerSourceDto.Channel;
                                 logger.LogDebug($"Set TriggerChannel to {processingConfig.TriggerChannel}");
                                 break;
                             case ProcessingSetTriggerDelayDto processingSetTriggerDelayDto:
-                                var fs = processingSetTriggerDelayDto.Femtoseconds;
-                                var samples = (ulong)Math.Floor(fs / (1e15 / 250e6));
-                                risingEdgeTrigger.SetHorizontal(processingConfig.CurrentChannelDataLength, samples, 0);
-                                logger.LogDebug($"Set trigger delay to {samples} samples ({fs} femtoseconds)");
+                                processingConfig.TriggerDelayFs = processingSetTriggerDelayDto.Femtoseconds;
+                                cachedWindowTriggerPosition = (ulong)Math.Floor(processingConfig.TriggerDelayFs / (1e15 / 250e6));
+                                risingEdgeTrigger.SetHorizontal(processingConfig.CurrentChannelDataLength, cachedWindowTriggerPosition, processingConfig.TriggerHoldoff);
+                                fallingEdgeTrigger.SetHorizontal(processingConfig.CurrentChannelDataLength, cachedWindowTriggerPosition, processingConfig.TriggerHoldoff);
+                                logger.LogDebug($"Set trigger delay to {cachedWindowTriggerPosition} samples ({processingConfig.TriggerDelayFs} femtoseconds)");
                                 break;
                             case ProcessingSetTriggerLevelDto processingSetTriggerLevelDto:
                                 var requestedTriggerLevel = processingSetTriggerLevelDto.LevelVolts;
@@ -216,9 +220,9 @@ namespace TS.NET.Engine
                                 }
 
                                 sbyte triggerLevel = (sbyte)((requestedTriggerLevel / (triggerChannel.ActualVoltFullScale / 2)) * 127f);
-                                risingEdgeTrigger.Reset(triggerLevel, triggerHysteresis, processingConfig.CurrentChannelDataLength, processingConfig.CurrentChannelDataLength / 2, 0);
-                                fallingEdgeTrigger.Reset(triggerLevel, triggerHysteresis, processingConfig.CurrentChannelDataLength, processingConfig.CurrentChannelDataLength / 2, 0);
-                                logger.LogDebug($"Set trigger level to {triggerLevel} with hysteresis of {triggerHysteresis}");
+                                risingEdgeTrigger.SetVertical(triggerLevel, processingConfig.TriggerHysteresis);
+                                fallingEdgeTrigger.SetVertical(triggerLevel, processingConfig.TriggerHysteresis);
+                                logger.LogDebug($"Set trigger level to {triggerLevel} with hysteresis of {processingConfig.TriggerHysteresis}");
                                 break;
                             case ProcessingSetTriggerTypeDto processingSetTriggerTypeDto:
                                 processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
@@ -349,8 +353,6 @@ namespace TS.NET.Engine
                                         bridge.SwitchRegionIfNeeded();
                                         oneSecondBridgeUpdateCount++;
                                     }
-                                    forceTriggerLatch = false;      // Ignore the force trigger request, if any, as a non-force trigger happened
-
                                     autoSampleCounter = 0;
                                     autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
 
@@ -359,22 +361,6 @@ namespace TS.NET.Engine
                                         singleTriggerLatch = false;
                                         runTrigger = false;
                                     }
-                                }
-                                else if (forceTriggerLatch)
-                                {
-                                    //logger.LogDebug("Force trigger fired");
-                                    var bridgeSpan = bridge.AcquiringRegionI8;
-                                    circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero? It probably wants to be a read of the oldest data + channelLength instead, to get 100% throughput.
-                                    circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                                    circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
-                                    circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
-                                    bridge.DataWritten();
-                                    bridge.SwitchRegionIfNeeded();
-                                    oneSecondBridgeUpdateCount++;
-                                    forceTriggerLatch = false;
-
-                                    autoSampleCounter = 0;
-                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
                                 }
                                 else if (processingConfig.TriggerMode == TriggerMode.Auto && autoSampleCounter > channelLength && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                 {
@@ -388,13 +374,27 @@ namespace TS.NET.Engine
                                     bridge.DataWritten();
                                     bridge.SwitchRegionIfNeeded();
                                     oneSecondBridgeUpdateCount++;
-                                    forceTriggerLatch = false;      // Ignore the force trigger request, if any, as a non-force trigger happened
                                 }
                                 else
                                 {
                                     bridge.SwitchRegionIfNeeded();  // To do: add a comment here when the reason for this LoC is discovered...!
                                 }
+                            }
+                            if (forceTriggerLatch)  // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
+                            {
+                                //logger.LogDebug("Force trigger fired");
+                                var bridgeSpan = bridge.AcquiringRegionI8;
+                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero? It probably wants to be a read of the oldest data + channelLength instead, to get 100% throughput.
+                                circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
+                                circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
+                                circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
+                                bridge.DataWritten();
+                                bridge.SwitchRegionIfNeeded();
+                                oneSecondBridgeUpdateCount++;
+                                forceTriggerLatch = false;
 
+                                autoSampleCounter = 0;
+                                autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
                             }
 
                             //logger.LogInformation($"Dequeue #{dequeueCounter++}, Ch1 triggers: {triggerCount1}, Ch2 triggers: {triggerCount2}, Ch3 triggers: {triggerCount3}, Ch4 triggers: {triggerCount4} ");

@@ -20,23 +20,20 @@ public class RisingEdgeTriggerI8_v2
 
     public RisingEdgeTriggerI8_v2(sbyte triggerLevel, ushort triggerHysteresis, ulong windowWidth, ulong windowTriggerPosition, ulong additionalHoldoff)
     {
-        Reset(triggerLevel, triggerHysteresis, windowWidth, windowTriggerPosition, additionalHoldoff);
-    }
-
-    public void Reset(sbyte triggerLevel, ushort triggerHysteresis, ulong windowWidth, ulong windowTriggerPosition, ulong additionalHoldoff)
-    {
         triggerState = TriggerState.Unarmed;
 
         SetVertical(triggerLevel, triggerHysteresis);
         SetHorizontal(windowWidth, windowTriggerPosition, additionalHoldoff);
     }
 
-    private void SetVertical(sbyte triggerLevel, ushort triggerHysteresis)
+    public void SetVertical(sbyte triggerLevel, ushort triggerHysteresis)
     {
         if (triggerLevel == sbyte.MinValue)
             triggerLevel += (sbyte)triggerHysteresis;  // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
         if (triggerLevel == sbyte.MaxValue)
             triggerLevel -= 1;                  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms
+
+        triggerState = TriggerState.Unarmed;
 
         this.triggerLevel = triggerLevel;
         armLevel = triggerLevel;
@@ -51,7 +48,9 @@ public class RisingEdgeTriggerI8_v2
         if (windowWidth < 1000)
             throw new ArgumentException($"windowWidth cannot be less than 1000");
         if (windowTriggerPosition > (windowWidth - 1))
-            windowTriggerPosition = (windowWidth - 1);
+            windowTriggerPosition = windowWidth - 1;
+
+         triggerState = TriggerState.Unarmed;
 
         captureSamples = windowWidth - windowTriggerPosition;
         captureRemaining = 0;

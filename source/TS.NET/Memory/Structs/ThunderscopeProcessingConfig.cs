@@ -7,9 +7,14 @@ namespace TS.NET
     {
         public ushort CurrentChannelCount;          // From 1 to ThunderscopeBridgeHeader.MaxChannelCount
         public ulong CurrentChannelDataLength;      // From 1 to ThunderscopeBridgeHeader.MaxChannelDataLength
-        public HorizontalSumLength HorizontalSumLength;
+               
         public TriggerChannel TriggerChannel;
         public TriggerMode TriggerMode;   
         public TriggerType TriggerType;
+        public ulong TriggerDelayFs;
+        public ushort TriggerHysteresis;
+        public ulong TriggerHoldoff;
+        
+        public uint BoxcarAveragingLength;          // 0 & 1 are no-op. 2 and above enables boxcar processing
     }
 }

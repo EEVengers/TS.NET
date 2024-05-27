@@ -173,7 +173,7 @@ namespace TS.NET.Engine
                     {
                         long delay = Convert.ToInt64(argument);
                         logger.LogDebug($"Set trigger delay to {delay}fs");
-                        processingRequestChannel.Write(new ProcessingSetTriggerDelayDto(delay));
+                        processingRequestChannel.Write(new ProcessingSetTriggerDelayDto((ulong)delay));
                         return null;
                     }
                     else if (command == "EDGE:DIR" && hasArg)

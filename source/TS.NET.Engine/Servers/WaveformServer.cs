@@ -112,7 +112,7 @@ namespace TS.NET.Engine
                         seqnum = sequenceNumber,
                         numChannels = processing.CurrentChannelCount,
                         fsPerSample = femtosecondsPerSample,
-                        triggerFs = 0,
+                        triggerFs = (long)processing.TriggerDelayFs,
                         hwWaveformsPerSec = 1
                     };
 
