@@ -63,7 +63,7 @@ public class RisingEdgeTriggerI8_v2
     public void ProcessSimd(ReadOnlySpan<sbyte> input, Span<uint> captureEndIndices, out uint captureEndCount)
     {
         uint inputLength = (uint)input.Length;
-        uint simdLength = (inputLength - 32);
+        uint simdLength = inputLength - 32;
         captureEndCount = 0;
         uint i = 0;
 
@@ -111,7 +111,6 @@ public class RisingEdgeTriggerI8_v2
                             {
                                 if (samplesPtr[(int)i] > triggerLevel)
                                 {
-                                    //triggerIndices[(int)triggerCount++] = i;
                                     triggerState = TriggerState.InCapture;
                                     captureRemaining = captureSamples;
                                     break;
@@ -162,11 +161,7 @@ public class RisingEdgeTriggerI8_v2
                                 }
                                 if (holdoffRemaining == 0)
                                 {
-                                    // Special edge case logic: if the last sample is below the armLevel, immediately rearm
-                                    //if (samplesPtr[(int)i] <= armLevel)
-                                    //    triggerState = TriggerState.Armed;
-                                    //else
-                                        triggerState = TriggerState.Unarmed;
+                                    triggerState = TriggerState.Unarmed;
                                 }
                             }
                             break;
@@ -175,8 +170,4 @@ public class RisingEdgeTriggerI8_v2
             }
         }
     }
-
-    // To do:
-    // public uint ProcessSimd(ReadOnlySpan<short> <- I16 variant using SIMD
-    // public uint Process(ReadOnlySpan<int> input <- I32 variant, probably doesn't need SIMD as it will be small amount of data
 }

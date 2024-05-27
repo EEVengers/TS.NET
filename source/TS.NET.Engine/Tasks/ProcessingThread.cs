@@ -84,7 +84,7 @@ namespace TS.NET.Engine
                     TriggerDelayFs = 0,
                     TriggerHysteresis = 5,
                     TriggerHoldoff = 0,
-                    BoxcarAveragingLength = 0,
+                    BoxcarAveraging = BoxcarAveraging.None
                     
                 };
                 bridge.Processing = processingConfig;
@@ -108,17 +108,10 @@ namespace TS.NET.Engine
                 Span<sbyte> postShuffleCh4_4 = shuffleBuffer.Slice(blockLength_4 * 3, blockLength_4);              
                 Span<uint> captureEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum window width
 
-                // Trigger variables
-                ulong cachedWindowTriggerPosition = 0;
-                RisingEdgeTriggerI8_v2 risingEdgeTrigger = new(5, processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, cachedWindowTriggerPosition, processingConfig.TriggerHoldoff);
-                FallingEdgeTriggerI8_v2 fallingEdgeTrigger = new(5, processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, cachedWindowTriggerPosition, processingConfig.TriggerHoldoff);
-                
-
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 uint dequeueCounter = 0;
                 uint oneSecondBridgeUpdateCount = 0;
                 uint oneSecondDequeueCount = 0;
-                // HorizontalSumUtility.ToDivisor(horizontalSumLength)
                 Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
 
                 var circularBuffer1 = new ChannelCircularAlignedBufferI8((uint)processingConfig.CurrentChannelDataLength + ThunderscopeMemory.Length);
@@ -137,9 +130,12 @@ namespace TS.NET.Engine
                 // forceTriggerLatch: disregards the Trigger Mode, push update immediately and set forceTrigger to false. If a standard trigger happened at the same time as a force, the force is ignored so the bridge only updates once.
                 // singleTriggerLatch: used in Single mode to stop the trigger subsystem after a trigger.
 
+                ulong cachedWindowTriggerPosition = 0;
+                RisingEdgeTriggerI8_v2 risingEdgeTrigger = new(5, processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, cachedWindowTriggerPosition, processingConfig.TriggerHoldoff);
+                FallingEdgeTriggerI8_v2 fallingEdgeTrigger = new(5, processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, cachedWindowTriggerPosition, processingConfig.TriggerHoldoff);
                 bool runTrigger = true;
-                bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false automatically. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
-                bool singleTriggerLatch = false;    // "Latch" because it will reset state back to false automatically. When reset, runTrigger will be set to false.
+                bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
+                bool singleTriggerLatch = false;    // "Latch" because it will reset state back to false. When reset, runTrigger will be set to false.
 
                 // Variables for Auto triggering
                 Stopwatch autoTimeoutTimer = Stopwatch.StartNew();
@@ -252,47 +248,151 @@ namespace TS.NET.Engine
                         // Trigger
                         // Data segment on trigger (if needed)
                         case AdcChannelMode.Single:
-                            throw new NotImplementedException();
-                            // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
-                            //if (config.HorizontalSumLength != HorizontalSumLength.None)
-                            //    throw new NotImplementedException();
-                            // Write to circular buffer
-                            circularBuffer1.Write(inputDataDto.Memory.SpanI8);
-                            // Trigger
-                            if (processingConfig.TriggerChannel != TriggerChannel.None)
-                            {
-                                var triggerChannelBuffer = processingConfig.TriggerChannel switch
-                                {
-                                    TriggerChannel.One => inputDataDto.Memory.SpanI8,
-                                    _ => throw new ArgumentException("Invalid TriggerChannel value")
-                                };
-                                //risingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out uint triggerCount, holdoffEndIndices: holdoffEndIndices, out uint holdoffEndCount);
-                            }
+                            // Copy
+                            inputDataDto.Memory.SpanI8.CopyTo(shuffleBuffer);
                             // Finished with the memory, return it
                             inputChannel.Write(inputDataDto.Memory);
+                            // Write to circular buffer
+                            circularBuffer1.Write(shuffleBuffer);
+                            // Trigger
+                            if (runTrigger && processingConfig.TriggerChannel != TriggerChannel.None)
+                            {
+                                // To do: check the trigger channel matches the enabled channel on the hardware.
+                                var triggerChannelBuffer = shuffleBuffer;
+
+                                uint captureEndCount = 0;
+                                switch (processingConfig.TriggerType)
+                                {
+                                    case TriggerType.RisingEdge:
+                                        risingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
+                                        break;
+                                    case TriggerType.FallingEdge:
+                                        fallingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
+                                        break;
+                                }
+                                
+                                if (captureEndCount > 0)
+                                {
+                                    for (int i = 0; i < captureEndCount; i++)
+                                    {
+                                        var bridgeSpan = bridge.AcquiringRegionI8;
+                                        uint endOffset = (uint)postShuffleCh1_4.Length - captureEndIndices[i];
+                                        circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), endOffset);
+                                        bridge.DataWritten();
+                                        bridge.SwitchRegionIfNeeded();
+                                        oneSecondBridgeUpdateCount++;
+                                    }
+                                    autoSampleCounter = 0;
+                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
+
+                                    if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
+                                    {
+                                        singleTriggerLatch = false;
+                                        runTrigger = false;
+                                    }
+                                }
+                                else if (processingConfig.TriggerMode == TriggerMode.Auto && autoSampleCounter > channelLength && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
+                                {
+                                    //logger.LogDebug("Auto trigger fired");
+                                    autoSampleCounter -= channelLength;
+                                    var bridgeSpan = bridge.AcquiringRegionI8;
+                                    circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
+                                    bridge.DataWritten();
+                                    bridge.SwitchRegionIfNeeded();
+                                    oneSecondBridgeUpdateCount++;
+                                }
+                                else
+                                {
+                                    bridge.SwitchRegionIfNeeded();  // To do: add a comment here when the reason for this LoC is discovered...!
+                                }
+                            }
+                            if (forceTriggerLatch)  // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
+                            {
+                                var bridgeSpan = bridge.AcquiringRegionI8;
+                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero? It probably wants to be a read of the oldest data + channelLength instead, to get 100% throughput.
+                                bridge.DataWritten();
+                                bridge.SwitchRegionIfNeeded();
+                                oneSecondBridgeUpdateCount++;
+                                forceTriggerLatch = false;
+
+                                autoSampleCounter = 0;
+                                autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
+                            }
                             break;
-                        case AdcChannelMode.Dual:
-                            throw new NotImplementedException();
+                        case AdcChannelMode.Dual:                            
                             // Shuffle
                             Shuffle.TwoChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                             // Finished with the memory, return it
                             inputChannel.Write(inputDataDto.Memory);
-                            // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
-                            //if (config.HorizontalSumLength != HorizontalSumLength.None)
-                            //    throw new NotImplementedException();
                             // Write to circular buffer
                             circularBuffer1.Write(postShuffleCh1_2);
-                            circularBuffer2.Write(postShuffleCh2_2);
+                            circularBuffer2.Write(postShuffleCh2_2);                           
                             // Trigger
-                            if (processingConfig.TriggerChannel != TriggerChannel.None)
+                            if (runTrigger && processingConfig.TriggerChannel != TriggerChannel.None)
                             {
-                                var triggerChannelBuffer = processingConfig.TriggerChannel switch
+                                // To do: check the trigger channel matches one of the two enabled channels on the hardware, then get the right shuffle buffer
+                                var triggerChannelBuffer = postShuffleCh1_2;
+                                
+                                uint captureEndCount = 0;
+                                switch (processingConfig.TriggerType)
                                 {
-                                    TriggerChannel.One => postShuffleCh1_2,
-                                    TriggerChannel.Two => postShuffleCh2_2,
-                                    _ => throw new ArgumentException("Invalid TriggerChannel value")
-                                };
-                                //risingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, triggerIndices: triggerIndices, out uint triggerCount, holdoffEndIndices: holdoffEndIndices, out uint holdoffEndCount);
+                                    case TriggerType.RisingEdge:
+                                        risingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
+                                        break;
+                                    case TriggerType.FallingEdge:
+                                        fallingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
+                                        break;
+                                }
+                                
+                                if (captureEndCount > 0)
+                                {
+                                    for (int i = 0; i < captureEndCount; i++)
+                                    {
+                                        var bridgeSpan = bridge.AcquiringRegionI8;
+                                        uint endOffset = (uint)postShuffleCh1_4.Length - captureEndIndices[i];
+                                        circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), endOffset);
+                                        circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), endOffset);
+                                        bridge.DataWritten();
+                                        bridge.SwitchRegionIfNeeded();
+                                        oneSecondBridgeUpdateCount++;
+                                    }
+                                    autoSampleCounter = 0;
+                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
+
+                                    if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
+                                    {
+                                        singleTriggerLatch = false;
+                                        runTrigger = false;
+                                    }
+                                }
+                                else if (processingConfig.TriggerMode == TriggerMode.Auto && autoSampleCounter > channelLength && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
+                                {
+                                    //logger.LogDebug("Auto trigger fired");
+                                    autoSampleCounter -= channelLength;
+                                    var bridgeSpan = bridge.AcquiringRegionI8;
+                                    circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
+                                    circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
+                                    bridge.DataWritten();
+                                    bridge.SwitchRegionIfNeeded();
+                                    oneSecondBridgeUpdateCount++;
+                                }
+                                else
+                                {
+                                    bridge.SwitchRegionIfNeeded();  // To do: add a comment here when the reason for this LoC is discovered...!
+                                }
+                            }
+                            if (forceTriggerLatch)  // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
+                            {
+                                var bridgeSpan = bridge.AcquiringRegionI8;
+                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero? It probably wants to be a read of the oldest data + channelLength instead, to get 100% throughput.
+                                circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
+                                bridge.DataWritten();
+                                bridge.SwitchRegionIfNeeded();
+                                oneSecondBridgeUpdateCount++;
+                                forceTriggerLatch = false;
+
+                                autoSampleCounter = 0;
+                                autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
                             }
                             break;
                         case AdcChannelMode.Quad:
@@ -300,9 +400,6 @@ namespace TS.NET.Engine
                             Shuffle.FourChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                             // Finished with the memory, return it
                             inputChannel.Write(inputDataDto.Memory);
-                            // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
-                            //if (config.HorizontalSumLength != HorizontalSumLength.None)
-                            //    throw new NotImplementedException();
                             // Write to circular buffer
                             circularBuffer1.Write(postShuffleCh1_4);
                             circularBuffer2.Write(postShuffleCh2_4);
@@ -325,18 +422,12 @@ namespace TS.NET.Engine
                                 switch (processingConfig.TriggerType)
                                 {
                                     case TriggerType.RisingEdge:
-                                        {
-                                            risingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
-                                            break;
-                                        }
-
+                                        risingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
+                                        break;
                                     case TriggerType.FallingEdge:
-                                        {
-                                            fallingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
-                                            break;
-                                        }
+                                        fallingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
+                                        break;
                                 }
-
 
                                 if (captureEndCount > 0)
                                 {
