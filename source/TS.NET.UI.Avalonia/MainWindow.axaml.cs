@@ -139,7 +139,7 @@ namespace TS.NET.UI.Avalonia
                         }
 
                         var cfg = bridge.Hardware;
-                        var status = $"[Horizontal] Displaying {AddPrefix(viewportLength)} samples of {AddPrefix(channelLength)} [Acquisitions] displayed: {bridge.Monitoring.TotalAcquisitions - bridge.Monitoring.MissedAcquisitions}, missed: {bridge.Monitoring.MissedAcquisitions}, total: {bridge.Monitoring.TotalAcquisitions}";
+                        var status = $"[Horizontal] Displaying {AddPrefix(viewportLength)} samples of {AddPrefix(channelLength)} [Acquisitions] displayed: {bridge.Monitoring.TotalAcquisitions - bridge.Monitoring.DroppedAcquisitions}, missed: {bridge.Monitoring.DroppedAcquisitions}, total: {bridge.Monitoring.TotalAcquisitions}";
                         var data = bridge.AcquiredRegionI8;
                         int offset = (int)((channelLength / 2) - (viewportLength / 2));
                         data.Slice(offset, (int)viewportLength).ToDoubleArray(channel1); offset += (int)channelLength;

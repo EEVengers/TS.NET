@@ -102,7 +102,7 @@ namespace TS.NET
         public void MonitoringReset()
         {
             header.Monitoring.TotalAcquisitions = 0;
-            header.Monitoring.MissedAcquisitions = 0;
+            header.Monitoring.DroppedAcquisitions = 0;
             SetHeader();
         }
 
@@ -130,7 +130,7 @@ namespace TS.NET
         {
             header.Monitoring.TotalAcquisitions++;
             if (acquiringRegionFilledAndWaitingForReader)
-                header.Monitoring.MissedAcquisitions++;
+                header.Monitoring.DroppedAcquisitions++;
             acquiringRegionFilledAndWaitingForReader = true;
             SetHeader();
         }

@@ -108,10 +108,12 @@ namespace TS.NET.Engine
                 Span<sbyte> postShuffleCh4_4 = shuffleBuffer.Slice(blockLength_4 * 3, blockLength_4);              
                 Span<uint> captureEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum window width
 
+                // Periodic debug display variables
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
-                uint dequeueCounter = 0;
-                uint oneSecondBridgeUpdateCount = 0;
-                uint oneSecondDequeueCount = 0;
+                ulong totalDequeueCount = 0;
+                ulong cachedTotalDequeueCount = 0;
+                ulong cachedTotalAcquisitions = 0;
+                ulong cachedMissedAcquisitions = 0;
                 Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
 
                 var circularBuffer1 = new ChannelCircularAlignedBufferI8((uint)processingConfig.CurrentChannelDataLength + ThunderscopeMemory.Length);
@@ -235,8 +237,7 @@ namespace TS.NET.Engine
                     InputDataDto inputDataDto = processChannel.Read(cancelToken);
                     cachedThunderscopeConfiguration = inputDataDto.HardwareConfig;
                     bridge.Hardware = inputDataDto.HardwareConfig;
-                    dequeueCounter++;
-                    oneSecondDequeueCount++;
+                    totalDequeueCount++;
 
                     int channelLength = (int)processingConfig.CurrentChannelDataLength;
                     switch (inputDataDto.HardwareConfig.AdcChannelMode)
@@ -280,7 +281,6 @@ namespace TS.NET.Engine
                                         circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), endOffset);
                                         bridge.DataWritten();
                                         bridge.SwitchRegionIfNeeded();
-                                        oneSecondBridgeUpdateCount++;
                                     }
                                     autoSampleCounter = 0;
                                     autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
@@ -299,7 +299,6 @@ namespace TS.NET.Engine
                                     circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
                                     bridge.DataWritten();
                                     bridge.SwitchRegionIfNeeded();
-                                    oneSecondBridgeUpdateCount++;
                                 }
                                 else
                                 {
@@ -312,7 +311,6 @@ namespace TS.NET.Engine
                                 circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero? It probably wants to be a read of the oldest data + channelLength instead, to get 100% throughput.
                                 bridge.DataWritten();
                                 bridge.SwitchRegionIfNeeded();
-                                oneSecondBridgeUpdateCount++;
                                 forceTriggerLatch = false;
 
                                 autoSampleCounter = 0;
@@ -354,7 +352,6 @@ namespace TS.NET.Engine
                                         circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), endOffset);
                                         bridge.DataWritten();
                                         bridge.SwitchRegionIfNeeded();
-                                        oneSecondBridgeUpdateCount++;
                                     }
                                     autoSampleCounter = 0;
                                     autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
@@ -374,7 +371,6 @@ namespace TS.NET.Engine
                                     circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
                                     bridge.DataWritten();
                                     bridge.SwitchRegionIfNeeded();
-                                    oneSecondBridgeUpdateCount++;
                                 }
                                 else
                                 {
@@ -388,7 +384,6 @@ namespace TS.NET.Engine
                                 circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
                                 bridge.DataWritten();
                                 bridge.SwitchRegionIfNeeded();
-                                oneSecondBridgeUpdateCount++;
                                 forceTriggerLatch = false;
 
                                 autoSampleCounter = 0;
@@ -442,7 +437,6 @@ namespace TS.NET.Engine
                                         circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), endOffset);
                                         bridge.DataWritten();
                                         bridge.SwitchRegionIfNeeded();
-                                        oneSecondBridgeUpdateCount++;
                                     }
                                     autoSampleCounter = 0;
                                     autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
@@ -464,7 +458,6 @@ namespace TS.NET.Engine
                                     circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
                                     bridge.DataWritten();
                                     bridge.SwitchRegionIfNeeded();
-                                    oneSecondBridgeUpdateCount++;
                                 }
                                 else
                                 {
@@ -481,7 +474,6 @@ namespace TS.NET.Engine
                                 circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
                                 bridge.DataWritten();
                                 bridge.SwitchRegionIfNeeded();
-                                oneSecondBridgeUpdateCount++;
                                 forceTriggerLatch = false;
 
                                 autoSampleCounter = 0;
@@ -494,11 +486,18 @@ namespace TS.NET.Engine
 
                     if (periodicUpdateTimer.ElapsedMilliseconds >= 10000)
                     {
-                        logger.LogDebug($"Outstanding frames: {processChannel.PeekAvailable()}, dequeues/sec: {oneSecondDequeueCount / (periodicUpdateTimer.Elapsed.TotalSeconds):F2}, dequeue count: {dequeueCounter}");
-                        logger.LogDebug($"Triggers/sec: {oneSecondBridgeUpdateCount / (periodicUpdateTimer.Elapsed.TotalSeconds):F2}, trigger count: {bridge.Monitoring.TotalAcquisitions}, UI dropped triggers: {bridge.Monitoring.MissedAcquisitions}");
+                        var dequeueCount = totalDequeueCount - cachedTotalDequeueCount;
+                        var totalAcquisitions = bridge.Monitoring.TotalAcquisitions - cachedTotalAcquisitions;
+                        var missedAcquisitions = bridge.Monitoring.DroppedAcquisitions - cachedMissedAcquisitions;
+                        var uiUpdates = totalAcquisitions - missedAcquisitions;
+                        
+                        //logger.LogDebug($"Outstanding frames: {processChannel.PeekAvailable()}, dequeues/sec: {dequeueCount / periodicUpdateTimer.Elapsed.TotalSeconds:F2}, dequeue count: {totalDequeueCount}");
+                        logger.LogDebug($"Triggers/sec: {totalAcquisitions / periodicUpdateTimer.Elapsed.TotalSeconds:F2}, UI updates/sec: {uiUpdates / periodicUpdateTimer.Elapsed.TotalSeconds:F2}, acquisitions: {bridge.Monitoring.TotalAcquisitions}");
                         periodicUpdateTimer.Restart();
-                        oneSecondBridgeUpdateCount = 0;
-                        oneSecondDequeueCount = 0;
+
+                        cachedTotalDequeueCount = totalDequeueCount;
+                        cachedTotalAcquisitions = bridge.Monitoring.TotalAcquisitions;
+                        cachedMissedAcquisitions = bridge.Monitoring.DroppedAcquisitions;
                     }
                 }
             }

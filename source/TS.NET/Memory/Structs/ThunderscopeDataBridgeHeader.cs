@@ -52,7 +52,7 @@ namespace TS.NET
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct ThunderscopeDataMonitoring
     {
-        public ulong TotalAcquisitions;         // All triggers
-        public ulong MissedAcquisitions;        // Triggers that weren't displayed
+        public ulong TotalAcquisitions;
+        public ulong DroppedAcquisitions;   // Acquisitions that weren't consumed by bridge reader
     }
 }
