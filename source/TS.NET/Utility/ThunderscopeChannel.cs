@@ -7,6 +7,7 @@ namespace TS.NET
     {
         public bool Enabled;
         public ThunderscopeCoupling Coupling;
+        public ThunderscopeTermination Termination;
         public double VoltFullScale;
         public double VoltOffset;
         public int Bandwidth;
@@ -33,5 +34,11 @@ namespace TS.NET
     {
         DC = 1,
         AC = 2
+    }
+
+    public enum ThunderscopeTermination
+    {
+        OneMegaohm = 1,
+        FiftyOhm = 2
     }
 }

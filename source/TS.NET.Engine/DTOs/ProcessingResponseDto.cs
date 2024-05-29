@@ -2,5 +2,7 @@
 
 namespace TS.NET.Engine
 {
-    public record ProcessingResponseDto(ProcessingRequestDto Command);
+    public record ProcessingResponseDto();
+
+    public record ProcessingGetRateResponseDto(uint SampleRate) : ProcessingResponseDto();
 }

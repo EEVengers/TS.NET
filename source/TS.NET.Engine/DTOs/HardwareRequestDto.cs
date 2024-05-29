@@ -12,4 +12,5 @@ namespace TS.NET.Engine
     public record HardwareSetVoltFullScaleRequest(int Channel, double VoltFullScale) : HardwareConfigureChannelDto(Channel);
     public record HardwareSetBandwidthRequest(int Channel, int Bandwidth) : HardwareConfigureChannelDto(Channel);
     public record HardwareSetCouplingRequest(int Channel, ThunderscopeCoupling Coupling) : HardwareConfigureChannelDto(Channel);
+    public record HardwareSetTerminationRequest(int Channel, ThunderscopeTermination Termination) : HardwareConfigureChannelDto(Channel);
 }

@@ -157,15 +157,15 @@ namespace TS.NET.Engine
                         {
                             case ProcessingRunDto processingStartTriggerDto:
                                 runTrigger = true;
-                                logger.LogDebug($"Set Run");
+                                logger.LogDebug($"{nameof(ProcessingRunDto)}");
                                 break;
                             case ProcessingStopDto processingStopTriggerDto:
                                 runTrigger = false;
-                                logger.LogDebug($"Set Stop");
+                                logger.LogDebug($"{nameof(ProcessingStopDto)}");
                                 break;
                             case ProcessingForceTriggerDto processingForceTriggerDto:
                                 forceTriggerLatch = true;
-                                logger.LogDebug($"Set Force");
+                                logger.LogDebug($"{nameof(ProcessingForceTriggerDto)}");
                                 break;
                             case ProcessingSetTriggerModeDto processingSetTriggerModeDto:
                                 processingConfig.TriggerMode = processingSetTriggerModeDto.Mode;
@@ -182,13 +182,13 @@ namespace TS.NET.Engine
                                         singleTriggerLatch = false;
                                         break;
                                 }
-                                logger.LogDebug($"Set TriggerMode to {processingConfig.TriggerMode}");
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} (mode: {processingConfig.TriggerMode})");
                                 break;
                             case ProcessingSetDepthDto processingSetDepthDto:
                                 processingConfig.CurrentChannelDataLength = processingSetDepthDto.Samples;
                                 risingEdgeTrigger.SetHorizontal(processingConfig.CurrentChannelDataLength, cachedWindowTriggerPosition, processingConfig.TriggerHoldoff);
                                 fallingEdgeTrigger.SetHorizontal(processingConfig.CurrentChannelDataLength, cachedWindowTriggerPosition, processingConfig.TriggerHoldoff);
-                                logger.LogDebug($"Set CurrentChannelDataLength to {processingConfig.CurrentChannelDataLength}");
+                                logger.LogDebug($"{nameof(ProcessingSetDepthDto)} ({processingConfig.CurrentChannelDataLength})");
                                 break;
                             case ProcessingSetRateDto processingSetRateDto:
                                 var rate = processingSetRateDto.SamplingHz;
@@ -196,14 +196,14 @@ namespace TS.NET.Engine
                                 break;
                             case ProcessingSetTriggerSourceDto processingSetTriggerSourceDto:
                                 processingConfig.TriggerChannel = processingSetTriggerSourceDto.Channel;
-                                logger.LogDebug($"Set TriggerChannel to {processingConfig.TriggerChannel}");
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerSourceDto)} (channel: {processingConfig.TriggerChannel})");
                                 break;
                             case ProcessingSetTriggerDelayDto processingSetTriggerDelayDto:
                                 processingConfig.TriggerDelayFs = processingSetTriggerDelayDto.Femtoseconds;
                                 cachedWindowTriggerPosition = (ulong)Math.Floor(processingConfig.TriggerDelayFs / (1e15 / 250e6));
                                 risingEdgeTrigger.SetHorizontal(processingConfig.CurrentChannelDataLength, cachedWindowTriggerPosition, processingConfig.TriggerHoldoff);
                                 fallingEdgeTrigger.SetHorizontal(processingConfig.CurrentChannelDataLength, cachedWindowTriggerPosition, processingConfig.TriggerHoldoff);
-                                logger.LogDebug($"Set trigger delay to {cachedWindowTriggerPosition} samples ({processingConfig.TriggerDelayFs} femtoseconds)");
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (samples: {cachedWindowTriggerPosition}, femtoseconds: {processingConfig.TriggerDelayFs})");
                                 break;
                             case ProcessingSetTriggerLevelDto processingSetTriggerLevelDto:
                                 var requestedTriggerLevel = processingSetTriggerLevelDto.LevelVolts;
@@ -220,12 +220,28 @@ namespace TS.NET.Engine
                                 sbyte triggerLevel = (sbyte)((requestedTriggerLevel / (triggerChannel.ActualVoltFullScale / 2)) * 127f);
                                 risingEdgeTrigger.SetVertical(triggerLevel, processingConfig.TriggerHysteresis);
                                 fallingEdgeTrigger.SetVertical(triggerLevel, processingConfig.TriggerHysteresis);
-                                logger.LogDebug($"Set trigger level to {triggerLevel} with hysteresis of {processingConfig.TriggerHysteresis}");
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (level: {triggerLevel}, hysteresis: {processingConfig.TriggerHysteresis})");
                                 break;
                             case ProcessingSetTriggerTypeDto processingSetTriggerTypeDto:
                                 processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
-                                logger.LogDebug($"Set TriggerType to {processingConfig.TriggerType}");
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (type: {processingConfig.TriggerType})");
                                 break;
+                            case ProcessingGetRateRequestDto processingGetRateRequestDto:
+                                    logger.LogDebug($"{nameof(ProcessingGetRateRequestDto)}");
+                                    switch(cachedThunderscopeConfiguration.AdcChannelMode)
+                                    {
+                                        case AdcChannelMode.Single:
+                                            processingResponseChannel.Write(new ProcessingGetRateResponseDto(1000000000));
+                                            break;
+                                        case AdcChannelMode.Dual:
+                                            processingResponseChannel.Write(new ProcessingGetRateResponseDto(500000000));
+                                            break;
+                                        case AdcChannelMode.Quad:
+                                            processingResponseChannel.Write(new ProcessingGetRateResponseDto(250000000));
+                                            break;   
+                                    }
+                                    logger.LogDebug($"{nameof(ProcessingGetRateResponseDto)}");
+                                    break;
                             default:
                                 logger.LogWarning($"Unknown ProcessingRequestDto: {request}");
                                 break;

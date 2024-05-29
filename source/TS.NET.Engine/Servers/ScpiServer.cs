@@ -195,15 +195,19 @@ namespace TS.NET.Engine
 
                     if (command == "ON" || command == "OFF")
                     {
-                        logger.LogDebug($"Set ch {chNum} enabled {command == "ON"} [Not implemented]");
-                        //hardwareRequestChannel.Write(new HardwareSetEnabledRequest(chNum, command == "ON"));
+                        logger.LogDebug($"Set ch {chNum} enabled {command == "ON"}");
+                        hardwareRequestChannel.Write(new HardwareSetEnabledRequest(chNum, command == "ON"));
                         return null;
                     }
                     else if (command == "COUP" && hasArg)
                     {
                         string coup = argument ?? throw new NullReferenceException();
-                        logger.LogDebug($"Set ch {chNum} coupling to {coup} [Not implemented]");
-                        //hardwareRequestChannel.Write(new HardwareSetCouplingRequest(chNum, (coup == "DC1M" ? ThunderscopeCoupling.DC : ThunderscopeCoupling.AC)));
+                        logger.LogDebug($"Set ch {chNum} coupling to {coup}");
+                        hardwareRequestChannel.Write(new HardwareSetCouplingRequest(chNum, coup == "DC1M" ? ThunderscopeCoupling.DC : ThunderscopeCoupling.AC));
+                        if(coup.EndsWith("1M"))
+                            hardwareRequestChannel.Write(new HardwareSetTerminationRequest(chNum, ThunderscopeTermination.OneMegaohm));
+                        else
+                            hardwareRequestChannel.Write(new HardwareSetTerminationRequest(chNum, ThunderscopeTermination.FiftyOhm));
                         return null;
                     }
                     else if (command == "OFFS" && hasArg)
@@ -233,9 +237,25 @@ namespace TS.NET.Engine
                             logger.LogDebug("Reply to *IDN? query");
                             return "ThunderScope,(Bridge),NOSERIAL,NOVERSION\n";
                         case "RATES":
-                            return "4000000,\n";        // femtoseconds
+                            processingRequestChannel.Write(new ProcessingGetRateRequestDto());
+                            if(processingResponseChannel.TryRead(out var response, 100))
+                            {
+                                switch(response){
+                                    case ProcessingGetRateResponseDto hardwareGetRateResponse:
+                                        return $"{1000000000000000/hardwareGetRateResponse.SampleRate:F0},\n";
+                                    default:
+                                        logger.LogWarning($"Did not get correct response to {nameof(ProcessingGetRateRequestDto)}");
+                                        return "";
+                                }                              
+                            }
+                            else
+                            {
+                                logger.LogWarning($"Did not get any response to {nameof(ProcessingGetRateRequestDto)}");
+                                return "";
+                            }
                         case "DEPTHS":
-                            return "2500,25000,250000,2500000,\n";
+                            //To do: get maximum channel length from configuration, and generate every 1/2/5 value up to maximum. Perhaps take into account the sample rate to get 1ms/2ms/5ms/10ms/etc windows instead?
+                            return "1000,2000,5000,10000,20000,50000,100000,200000,500000,1000000,\n";
                     }
                 }
             }

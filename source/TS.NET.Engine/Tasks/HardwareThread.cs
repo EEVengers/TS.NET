@@ -103,38 +103,39 @@ namespace TS.NET.Engine
                                     switch (request)
                                     {
                                         case HardwareSetVoltOffsetRequest hardwareSetOffsetRequest:
-                                            logger.LogDebug($"Set offset request: channel {channelIndex} volt offset {hardwareSetOffsetRequest.VoltOffset}");
+                                            logger.LogDebug($"{nameof(HardwareSetVoltOffsetRequest)} (channel: {channelIndex}, offset: {hardwareSetOffsetRequest.VoltOffset})");
                                             channel.VoltOffset = hardwareSetOffsetRequest.VoltOffset;
                                             break;
                                         case HardwareSetVoltFullScaleRequest hardwareSetVdivRequest:
-                                            logger.LogDebug($"Set vdiv request: channel {channelIndex} volt full scale {hardwareSetVdivRequest.VoltFullScale}");
+                                            logger.LogDebug($"{nameof(HardwareSetVoltFullScaleRequest)} ({channel: channelIndex}, scale: {hardwareSetVdivRequest.VoltFullScale})");
                                             channel.VoltFullScale = hardwareSetVdivRequest.VoltFullScale;
                                             break;
                                         case HardwareSetBandwidthRequest hardwareSetBandwidthRequest:
-                                            logger.LogDebug($"Set bw request: channel {channelIndex} bandwidth {hardwareSetBandwidthRequest.Bandwidth}");
+                                            logger.LogDebug($"{nameof(HardwareSetBandwidthRequest)} ({channel: channelIndex}, bandwidth: {hardwareSetBandwidthRequest.Bandwidth})");
                                             channel.Bandwidth = hardwareSetBandwidthRequest.Bandwidth;
                                             break;
                                         case HardwareSetCouplingRequest hardwareSetCouplingRequest:
-                                            logger.LogDebug($"Set coup request: channel {channelIndex} coupling {hardwareSetCouplingRequest.Coupling}");
+                                            logger.LogDebug($"{nameof(HardwareSetCouplingRequest)} ({channel: channelIndex}, coupling: {hardwareSetCouplingRequest.Coupling})");
                                             channel.Coupling = hardwareSetCouplingRequest.Coupling;
                                             break;
                                         case HardwareSetEnabledRequest hardwareSetEnabledRequest:
-                                            logger.LogDebug($"Set enabled request: channel {channelIndex} enabled {hardwareSetEnabledRequest.Enabled}");
+                                            logger.LogDebug($"{nameof(HardwareSetEnabledRequest)} ({channel: channelIndex}, enabled: {hardwareSetEnabledRequest.Enabled})");
                                             channel.Enabled = hardwareSetEnabledRequest.Enabled;
                                             break;
+                                        case HardwareSetTerminationRequest hardwareSetTerminationRequest:
+                                            logger.LogDebug($"{nameof(HardwareSetTerminationRequest)} ({channel: channelIndex}, termination: {hardwareSetTerminationRequest.Termination})");
+                                            channel.Termination = hardwareSetTerminationRequest.Termination;
+                                            break;
                                         default:
-                                            logger.LogWarning($"Unknown HardwareConfigureChannelDto: {request}");
+                                            logger.LogWarning($"Unknown {nameof(HardwareConfigureChannelDto)}: {request}");
                                             break;
                                     }
                                     thunderscope.SetChannel(channel, channelIndex);
                                     break;
                                 default:
-                                    logger.LogWarning($"Unknown HardwareRequestDto: {request}");
+                                    logger.LogWarning($"Unknown {nameof(HardwareRequestDto)}: {request}");
                                     break;
                             }
-                            // Signal back to the sender that config update happened.
-                            // hardwareResponseChannel.TryWrite(new HardwareResponseDto(request));
-
                             if (hardwareRequestChannel.PeekAvailable() == 0)
                                 Thread.Sleep(150);
                         }

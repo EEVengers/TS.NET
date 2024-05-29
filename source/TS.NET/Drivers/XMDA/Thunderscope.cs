@@ -242,6 +242,10 @@ namespace TS.NET.Driver.XMDA
                 {
                     numChannelsEnabled++;
                 }
+                if (configuration.GetChannel(channel).Termination == ThunderscopeTermination.FiftyOhm)
+                {
+                    datamoverRegister |= (uint)1 << (12 + channel);
+                }
                 if (!configuration.GetChannel(channel).Attenuator)
                 {
                     datamoverRegister |= (uint)1 << 16 + channel;
@@ -336,11 +340,13 @@ namespace TS.NET.Driver.XMDA
                 case 1:
                     on_channels[0] = on_channels[1] = on_channels[2] = on_channels[3];
                     clkdiv = 0;
+                    configuration.AdcChannelMode = AdcChannelMode.Single;
                     break;
                 case 2:
                     on_channels[0] = on_channels[1];
                     on_channels[2] = on_channels[3];
                     clkdiv = 1;
+                    configuration.AdcChannelMode = AdcChannelMode.Dual;
                     break;
                 default:
                     on_channels[0] = 3;
@@ -349,6 +355,7 @@ namespace TS.NET.Driver.XMDA
                     on_channels[3] = 0;
                     num_channels_on = 4;
                     clkdiv = 2;
+                    configuration.AdcChannelMode = AdcChannelMode.Quad;
                     break;
             }
 
