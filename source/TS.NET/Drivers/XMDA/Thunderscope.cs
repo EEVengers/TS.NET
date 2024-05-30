@@ -136,9 +136,9 @@ namespace TS.NET.Driver.XMDA
             CalculateAfeConfiguration(ref channel);
             configuration.SetChannel(ref channel, channelIndex);
             UpdateAdc();
-            Thread.Sleep(100);      // This delay is essential for ensuring channel 1 value gets set (the assumption is that the FIFO isn't ready immediately)
+            Thread.Sleep(10);      // This delay is essential for ensuring channel 1 value gets set (the assumption is that the FIFO isn't ready immediately)
             SetDAC(channelIndex);
-            Thread.Sleep(100);      // Don't know if this delay is needed, added for belt'n'braces
+            Thread.Sleep(10);      // Don't know if this delay is needed, added for belt'n'braces
             SetPGA(channelIndex);
         }
 
@@ -179,9 +179,9 @@ namespace TS.NET.Driver.XMDA
 
             for(int i = 0; i < 4; i++)
             {
-                Thread.Sleep(100);      // This delay is essential for ensuring channel 1 value gets set (the assumption is that the FIFO isn't ready immediately)
+                Thread.Sleep(10);      // This delay is essential for ensuring channel 1 value gets set (the assumption is that the FIFO isn't ready immediately)
                 SetDAC(i);
-                Thread.Sleep(100);      // Don't know if this delay is needed, added for belt'n'braces
+                Thread.Sleep(10);      // Don't know if this delay is needed, added for belt'n'braces
                 SetPGA(i);
             }
         }

@@ -274,7 +274,7 @@ namespace TS.NET.Engine
                                 // Write to circular buffer
                                 circularBuffer1.Write(shuffleBuffer);
                                 // Trigger
-                                throw new NotImplementedException();
+                                //throw new NotImplementedException();
                                 break;
                             case AdcChannelMode.Dual:                            
                                 // Shuffle
@@ -285,7 +285,7 @@ namespace TS.NET.Engine
                                 circularBuffer1.Write(postShuffleCh1_2);
                                 circularBuffer2.Write(postShuffleCh2_2);                           
                                 // Trigger
-                                throw new NotImplementedException();
+                                //throw new NotImplementedException();
                                 break;
                             case AdcChannelMode.Quad:
                                 // Shuffle
