@@ -123,15 +123,25 @@ namespace TS.NET.Engine
                             processingRequestChannel.Write(new ProcessingStopDto());
                             logger.LogDebug($"{nameof(ProcessingStopDto)} sent");
                             return null;
-                        case "SINGLE":
-                            processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Single));
-                            processingRequestChannel.Write(new ProcessingRunDto());
-                            logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
-                            logger.LogDebug($"{nameof(ProcessingRunDto)} sent");
-                            return null;
                         case "FORCE":
                             processingRequestChannel.Write(new ProcessingForceTriggerDto());
                             logger.LogDebug($"{nameof(ProcessingForceTriggerDto)} sent");
+                            return null;
+                        case "SINGLE":
+                            processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Single));
+                            logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
+                            return null;
+                        case "NORMAL":
+                            processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Normal));
+                            logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
+                            return null;
+                        case "AUTO":
+                            processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Auto));
+                            logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
+                            return null;
+                        case "STREAM":
+                            processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Stream));
+                            logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
                             return null;
                         case "DEPTH":
                             if (hasArg)

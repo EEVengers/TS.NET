@@ -27,6 +27,7 @@ public enum TriggerMode : byte
     Auto = 1,
     Normal = 2,
     Single = 3,
+    Stream = 4
     //Single_Armed?
     //Single_Unarmed?
 }
