@@ -135,7 +135,11 @@ namespace TS.NET.Driver.XMDA
         {
             CalculateAfeConfiguration(ref channel);
             configuration.SetChannel(ref channel, channelIndex);
-            ConfigureChannels();
+            UpdateAdc();
+            Thread.Sleep(100);      // This delay is essential for ensuring channel 1 value gets set (the assumption is that the FIFO isn't ready immediately)
+            SetDAC(channelIndex);
+            Thread.Sleep(100);      // Don't know if this delay is needed, added for belt'n'braces
+            SetPGA(channelIndex);
         }
 
         // Returns a by-value copy
@@ -169,13 +173,17 @@ namespace TS.NET.Driver.XMDA
             hardwareState.BoardEnabled = true;
             ConfigureDatamover(hardwareState);
             ConfigurePLL();
-            ConfigureADC();
+            ConfigureAdc();
 
-            ConfigureChannels();
-            //ConfigureChannel(0);
-            //ConfigureChannel(1);
-            //ConfigureChannel(2);
-            //ConfigureChannel(3);
+            UpdateAdc();
+
+            for(int i = 0; i < 4; i++)
+            {
+                Thread.Sleep(100);      // This delay is essential for ensuring channel 1 value gets set (the assumption is that the FIFO isn't ready immediately)
+                SetDAC(i);
+                Thread.Sleep(100);      // Don't know if this delay is needed, added for belt'n'braces
+                SetPGA(i);
+            }
         }
 
         private uint Read32(BarRegister register)
@@ -265,7 +273,7 @@ namespace TS.NET.Driver.XMDA
             Write32(BarRegister.DATAMOVER_REG_OUT, datamoverRegister);
         }
 
-        private void ConfigureADC()
+        private void ConfigureAdc()
         {
             // Reset ADC
             SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_RESET, 0x0001);
@@ -317,7 +325,7 @@ namespace TS.NET.Driver.XMDA
             SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_POWER, (ushort)(on ? 0x0000 : 0x0200));
         }
 
-        private void ConfigureChannels()
+        private void UpdateAdc()
         {
             byte[] on_channels = new byte[4];
             int num_channels_on = 0;
@@ -327,10 +335,6 @@ namespace TS.NET.Driver.XMDA
                 {
                     on_channels[num_channels_on++] = (byte)(3-i);
                 }
-                Thread.Sleep(100);      // This delay is essential for ensuring channel 1 value gets set (the assumption is that the FIFO isn't ready immediately)
-                SetDAC(i);
-                Thread.Sleep(100);      // Don't know if this delay is needed, added for belt'n'braces
-                SetPGA(i);
             }
 
             byte clkdiv;

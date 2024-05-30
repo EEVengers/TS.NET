@@ -107,23 +107,23 @@ namespace TS.NET.Engine
                                             channel.VoltOffset = hardwareSetOffsetRequest.VoltOffset;
                                             break;
                                         case HardwareSetVoltFullScaleRequest hardwareSetVdivRequest:
-                                            logger.LogDebug($"{nameof(HardwareSetVoltFullScaleRequest)} ({channel: channelIndex}, scale: {hardwareSetVdivRequest.VoltFullScale})");
+                                            logger.LogDebug($"{nameof(HardwareSetVoltFullScaleRequest)} (channel: {channelIndex}, scale: {hardwareSetVdivRequest.VoltFullScale})");
                                             channel.VoltFullScale = hardwareSetVdivRequest.VoltFullScale;
                                             break;
                                         case HardwareSetBandwidthRequest hardwareSetBandwidthRequest:
-                                            logger.LogDebug($"{nameof(HardwareSetBandwidthRequest)} ({channel: channelIndex}, bandwidth: {hardwareSetBandwidthRequest.Bandwidth})");
+                                            logger.LogDebug($"{nameof(HardwareSetBandwidthRequest)} (channel: {channelIndex}, bandwidth: {hardwareSetBandwidthRequest.Bandwidth})");
                                             channel.Bandwidth = hardwareSetBandwidthRequest.Bandwidth;
                                             break;
                                         case HardwareSetCouplingRequest hardwareSetCouplingRequest:
-                                            logger.LogDebug($"{nameof(HardwareSetCouplingRequest)} ({channel: channelIndex}, coupling: {hardwareSetCouplingRequest.Coupling})");
+                                            logger.LogDebug($"{nameof(HardwareSetCouplingRequest)} (channel: {channelIndex}, coupling: {hardwareSetCouplingRequest.Coupling})");
                                             channel.Coupling = hardwareSetCouplingRequest.Coupling;
                                             break;
                                         case HardwareSetEnabledRequest hardwareSetEnabledRequest:
-                                            logger.LogDebug($"{nameof(HardwareSetEnabledRequest)} ({channel: channelIndex}, enabled: {hardwareSetEnabledRequest.Enabled})");
+                                            logger.LogDebug($"{nameof(HardwareSetEnabledRequest)} (channel: {channelIndex}, enabled: {hardwareSetEnabledRequest.Enabled})");
                                             channel.Enabled = hardwareSetEnabledRequest.Enabled;
                                             break;
                                         case HardwareSetTerminationRequest hardwareSetTerminationRequest:
-                                            logger.LogDebug($"{nameof(HardwareSetTerminationRequest)} ({channel: channelIndex}, termination: {hardwareSetTerminationRequest.Termination})");
+                                            logger.LogDebug($"{nameof(HardwareSetTerminationRequest)} (channel: {channelIndex}, termination: {hardwareSetTerminationRequest.Termination})");
                                             channel.Termination = hardwareSetTerminationRequest.Termination;
                                             break;
                                         default:
