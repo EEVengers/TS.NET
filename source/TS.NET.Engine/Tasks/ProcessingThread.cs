@@ -407,7 +407,7 @@ namespace TS.NET.Engine
                         var uiUpdates = totalAcquisitions - missedAcquisitions;
                         
                         //logger.LogDebug($"Outstanding frames: {processChannel.PeekAvailable()}, dequeues/sec: {dequeueCount / periodicUpdateTimer.Elapsed.TotalSeconds:F2}, dequeue count: {totalDequeueCount}");
-                        logger.LogDebug($"Acquisitions/sec: {totalAcquisitions / periodicUpdateTimer.Elapsed.TotalSeconds:F2}, UI updates/sec: {uiUpdates / periodicUpdateTimer.Elapsed.TotalSeconds:F2}, acquisitions: {bridge.Monitoring.TotalAcquisitions}");
+                        logger.LogDebug($"Bridge writes/sec: {totalAcquisitions / periodicUpdateTimer.Elapsed.TotalSeconds:F2}, Bridge reads/sec: {uiUpdates / periodicUpdateTimer.Elapsed.TotalSeconds:F2}, total: {bridge.Monitoring.TotalAcquisitions}, dropped: {bridge.Monitoring.DroppedAcquisitions}");
                         periodicUpdateTimer.Restart();
 
                         cachedTotalDequeueCount = totalDequeueCount;
