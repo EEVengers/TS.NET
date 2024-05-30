@@ -342,13 +342,13 @@ namespace TS.NET.Driver.XMDA
             {
                 case 0:
                 case 1:
-                    on_channels[0] = on_channels[1] = on_channels[2] = on_channels[3];
+                    on_channels[3] = on_channels[2] = on_channels[1] = on_channels[0];
                     clkdiv = 0;
                     configuration.AdcChannelMode = AdcChannelMode.Single;
                     break;
                 case 2:
-                    on_channels[0] = on_channels[1];
-                    on_channels[2] = on_channels[3];
+                    on_channels[2] = on_channels[3] = on_channels[1];
+                    on_channels[1] = on_channels[0];
                     clkdiv = 1;
                     configuration.AdcChannelMode = AdcChannelMode.Dual;
                     break;
