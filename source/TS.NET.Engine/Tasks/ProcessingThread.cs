@@ -218,6 +218,7 @@ namespace TS.NET.Engine
                                 }
 
                                 sbyte triggerLevel = (sbyte)((requestedTriggerLevel / (triggerChannel.ActualVoltFullScale / 2)) * 127f);
+                                processingConfig.TriggerLevel = triggerLevel;
                                 risingEdgeTrigger.SetVertical(triggerLevel, processingConfig.TriggerHysteresis);
                                 fallingEdgeTrigger.SetVertical(triggerLevel, processingConfig.TriggerHysteresis);
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (level: {triggerLevel}, hysteresis: {processingConfig.TriggerHysteresis})");
