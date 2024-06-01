@@ -54,6 +54,7 @@ public partial class MainView : UserControl
         textScpiInput.KeyDown += TextScpiInput_KeyDown;
         sliderVert.ValueChanged += SliderVert_ValueChanged;
         sliderHorz.ValueChanged += SliderHorz_ValueChanged;
+        textScpiConsole.SizeChanged += TextScpiConsole_SizeChanged;
     }
 
     private void TextScpiInput_KeyDown(object? sender, Avalonia.Input.KeyEventArgs e)
@@ -77,6 +78,11 @@ public partial class MainView : UserControl
         ulong fsDelay = (ulong)(10000000000000 * sliderHorz.Value);
         var mainViewModel = DataContext as MainViewModel;
         mainViewModel?.TriggerDelayChange(fsDelay);
+    }
+
+    private void TextScpiConsole_SizeChanged(object? sender, SizeChangedEventArgs e)
+    {
+        scrollScpiConsole.ScrollToEnd();
     }
 
     private void ResetSeries()

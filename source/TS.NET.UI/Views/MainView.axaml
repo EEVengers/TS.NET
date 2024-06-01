@@ -32,11 +32,11 @@
 				<Button Content="Force" Command="{Binding ForceCommand}"></Button>
 			</StackPanel>
 			<Label>SCPI console:</Label>
-			<SelectableTextBlock Text="{Binding ScpiConsole}" Height="300" MaxHeight="300" Background="LightGray">
-
-			</SelectableTextBlock>
+			<ScrollViewer Name="scrollScpiConsole" Height="300">
+				<SelectableTextBlock Name="textScpiConsole" Text="{Binding ScpiConsole}" MinHeight="300" Background="LightGray"></SelectableTextBlock>
+			</ScrollViewer>
 			<TextBox Name="textScpiInput" Text="{Binding ScpiInput}"></TextBox>
-			<TextBlock Name="TextInfo" TextWrapping="Wrap">Waiting for first capture...</TextBlock>
+			<!--<TextBlock Name="textInfo" TextWrapping="Wrap">Waiting for first capture...</TextBlock>-->
 			<!--<TabControl >
 				<TabItem Header="Horizontal">
 					<controls:Timebase Grid.Row="0" Margin="3"></controls:Timebase>
