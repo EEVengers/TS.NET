@@ -8,7 +8,8 @@
 
         internal SemaphoreWindows(string name, int initialCount)
         {
-            handle = new System.Threading.Semaphore(initialCount, int.MaxValue, HandleNamePrefix + name);
+            if(!System.Threading.Semaphore.TryOpenExisting(HandleNamePrefix + name, out handle))
+                handle = new System.Threading.Semaphore(initialCount, int.MaxValue, HandleNamePrefix + name);
         }
 
         public void Dispose()
