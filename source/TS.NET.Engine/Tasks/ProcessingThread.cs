@@ -31,10 +31,10 @@ namespace TS.NET.Engine
             this.processingResponseChannel = processingResponseChannel;
         }
 
-        public void Start()
+        public void Start(SemaphoreSlim startSemaphore)
         {
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, settings, processChannel, inputChannel, processingRequestChannel, processingResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, settings, processChannel, inputChannel, processingRequestChannel, processingResponseChannel, startSemaphore, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -51,6 +51,7 @@ namespace TS.NET.Engine
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel,
+            SemaphoreSlim startSemaphore,
             CancellationToken cancelToken)
         {
             try
@@ -146,6 +147,7 @@ namespace TS.NET.Engine
                 long autoTimeout = 500;
 
                 logger.LogInformation("Started");
+                startSemaphore.Release();
 
                 while (true)
                 {

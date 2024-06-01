@@ -79,12 +79,17 @@ switch (thunderscopeSettings.Driver.ToLower())
 }
 
 // Start threads
+SemaphoreSlim startSemaphore = new(1);
+
+startSemaphore.Wait();
 ProcessingThread processingThread = new(loggerFactory, thunderscopeSettings, processChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer);
-processingThread.Start();
+processingThread.Start(startSemaphore);
 
+startSemaphore.Wait();
 HardwareThread hardwareThread = new(loggerFactory, thunderscopeSettings, thunderscope, inputChannel.Reader, processChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
-hardwareThread.Start();
+hardwareThread.Start(startSemaphore);
 
+startSemaphore.Wait();
 WaveformServer? waveformServer = null;
 if (thunderscopeSettings.Twinlan)
 {

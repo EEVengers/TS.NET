@@ -34,10 +34,10 @@ namespace TS.NET.Engine
             this.hardwareResponseChannel = hardwareResponseChannel;
         }
 
-        public void Start()
+        public void Start(SemaphoreSlim startSemaphore)
         {
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, thunderscope, settings, inputChannel, processChannel, hardwareRequestChannel, hardwareResponseChannel, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, thunderscope, settings, inputChannel, processChannel, hardwareRequestChannel, hardwareResponseChannel, startSemaphore, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -54,6 +54,7 @@ namespace TS.NET.Engine
             BlockingChannelWriter<InputDataDto> processChannel,
             BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
             BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel,
+            SemaphoreSlim startSemaphore,
             CancellationToken cancelToken)
         {
             Thread.CurrentThread.Name = nameof(HardwareThread);
@@ -69,6 +70,7 @@ namespace TS.NET.Engine
             {               
                 thunderscope.Start();
                 logger.LogInformation("Started");
+                startSemaphore.Release();
 
                 logger.LogDebug("Waiting for first block of data...");
 
