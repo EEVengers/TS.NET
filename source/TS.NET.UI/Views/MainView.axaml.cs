@@ -171,6 +171,8 @@ public partial class MainView : UserControl
                     stopwatch.Restart();
                     //Thread.Sleep(1000);
                 }
+                else
+                    renderSemaphore.Release();
             }
         }
         catch (OperationCanceledException)
