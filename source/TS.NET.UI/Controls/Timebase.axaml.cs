@@ -1,8 +1,7 @@
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 
-namespace TS.NET.UI.Avalonia.Controls
+namespace TS.NET.UI.Controls
 {
     public partial class Timebase : UserControl
     {

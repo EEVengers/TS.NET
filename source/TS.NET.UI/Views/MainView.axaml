@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:TS.NET.UI.ViewModels"
+			 xmlns:ScottPlot="clr-namespace:ScottPlot.Avalonia;assembly=ScottPlot.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="TS.NET.UI.Views.MainView"
+             x:DataType="vm:MainViewModel">
+	<Design.DataContext>
+		<!-- This only sets the DataContext for the previewer in an IDE,
+         to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+		<vm:MainViewModel />
+	</Design.DataContext>
+
+	<Grid RowDefinitions="*, Auto" ColumnDefinitions="*, 300" Background="White" Margin="10">
+		<Grid Grid.Row="0" RowDefinitions="*, Auto" ColumnDefinitions="*, Auto">
+			<ScottPlot:AvaPlot Name="avaPlot1" Grid.Row="0" Grid.Column="0"/>
+			<Slider Name="sliderHorz" Grid.Row="1" Grid.Column="0" Minimum="0" Maximum="1"/>
+			<Slider Name="sliderVert" Grid.Row="0" Grid.Column="1" Orientation="Vertical" Minimum="-1" Maximum="1"/>
+		</Grid>
+		<Label Name="lblStatus" Grid.Row="1" Content ="Test" />
+		<StackPanel Grid.Row="0" Grid.Column="1">
+			<StackPanel Orientation="Horizontal">
+				<Button Content="Run" Command="{Binding RunCommand}"></Button>
+				<Button Content="Stop" Command="{Binding StopCommand}"></Button>
+			</StackPanel>
+			<StackPanel Orientation="Horizontal">
+				<Button Content="Single" Command="{Binding SingleCommand}"></Button>
+				<Button Content="Normal" Command="{Binding NormalCommand}"></Button>
+				<Button Content="Auto" Command="{Binding AutoCommand}"></Button>
+				<Button Content="Force" Command="{Binding ForceCommand}"></Button>
+			</StackPanel>
+			<Label>SCPI console:</Label>
+			<SelectableTextBlock Text="{Binding ScpiConsole}" Height="300" MaxHeight="300" Background="LightGray">
+
+			</SelectableTextBlock>
+			<TextBox Name="textScpiInput" Text="{Binding ScpiInput}"></TextBox>
+			<TextBlock Name="TextInfo" TextWrapping="Wrap">Waiting for first capture...</TextBlock>
+			<!--<TabControl >
+				<TabItem Header="Horizontal">
+					<controls:Timebase Grid.Row="0" Margin="3"></controls:Timebase>
+				</TabItem>
+				<TabItem Header="Channel 1">
+					<controls:Channel Grid.Row="1" Grid.Column="0" MinWidth="100" Margin="3" DataContext="{Binding Channel1}"></controls:Channel>
+				</TabItem>
+			</TabControl>-->
+		</StackPanel>
+	</Grid>
+</UserControl>

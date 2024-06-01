@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace TS.NET.UI.Avalonia.Controls
+﻿namespace TS.NET.UI.Controls
 {
     internal class ChannelViewModel
     {

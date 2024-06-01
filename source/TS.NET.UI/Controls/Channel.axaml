@@ -3,9 +3,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="150" d:DesignHeight="250"
-             x:Class="TS.NET.UI.Avalonia.Controls.Channel">
-
-
+             x:Class="TS.NET.UI.Controls.Channel"
+			 xmlns:vm="clr-namespace:TS.NET.UI.Controls"
+			 x:DataType="vm:ChannelViewModel">
 	<Border
         BorderBrush="LightGray"
         BorderThickness="2"

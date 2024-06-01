@@ -4,7 +4,7 @@ using System.Text;
 using System.Threading;
 using TcpClient = NetCoreServer.TcpClient;
 
-namespace TS.NET.UI.Avalonia
+namespace TS.NET.UI
 {
     public class ThunderscopeScpiClient : TcpClient
     {
