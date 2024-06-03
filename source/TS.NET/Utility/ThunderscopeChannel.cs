@@ -5,7 +5,6 @@ namespace TS.NET
     [StructLayout(LayoutKind.Sequential, Pack = 1)]     // Struct packing allows the use of this datatype in ThunderscopeBridge header as it's consistent with the other datatypes
     public struct ThunderscopeChannel
     {
-        public bool Enabled;
         public ThunderscopeCoupling Coupling;
         public ThunderscopeTermination Termination;
         public double VoltFullScale;
@@ -21,7 +20,6 @@ namespace TS.NET
         {
             return new ThunderscopeChannel()
             {
-                Enabled = true,
                 Coupling = ThunderscopeCoupling.DC,
                 VoltFullScale = 0.5,
                 VoltOffset = 0,
@@ -30,13 +28,13 @@ namespace TS.NET
         }
     }
 
-    public enum ThunderscopeCoupling
+    public enum ThunderscopeCoupling : byte
     {
         DC = 1,
         AC = 2
     }
 
-    public enum ThunderscopeTermination
+    public enum ThunderscopeTermination : byte
     {
         OneMegaohm = 1,
         FiftyOhm = 2

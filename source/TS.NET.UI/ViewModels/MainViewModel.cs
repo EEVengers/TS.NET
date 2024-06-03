@@ -25,6 +25,13 @@ public partial class MainViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref scpiInput, value);
     }
 
+    private string info = string.Empty;
+    public string Info
+    {
+        get => info;
+        set => this.RaiseAndSetIfChanged(ref info, value);
+    }
+
     public void RunCommand()
     {
         scpiClient.Send("RUN");

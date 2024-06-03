@@ -72,14 +72,14 @@ namespace TS.NET.Engine
                 };
                 ThunderscopeDataBridgeWriter bridge = new("ThunderScope.1", bridgeConfig);
 
-                ThunderscopeHardwareConfig cachedThunderscopeConfiguration = default;
+                ThunderscopeHardwareConfig cachedHardwareConfig = default;
 
                 // Set some sensible defaults
                 var processingConfig = new ThunderscopeProcessingConfig
                 {
                     CurrentChannelCount = settings.MaxChannelCount,
                     CurrentChannelDataLength = settings.MaxChannelDataLength,
-                    TriggerChannel = TriggerChannel.One,
+                    TriggerChannel = TriggerChannel.Channel0,
                     TriggerMode = TriggerMode.Auto,
                     TriggerType = TriggerType.RisingEdge,
                     TriggerDelayFs = 0,
@@ -217,7 +217,7 @@ namespace TS.NET.Engine
                                 var requestedTriggerLevel = processingSetTriggerLevelDto.LevelVolts;
                                 // Convert the voltage to Int8
 
-                                var triggerChannel = cachedThunderscopeConfiguration.GetTriggerChannel(processingConfig.TriggerChannel);
+                                var triggerChannel = cachedHardwareConfig.GetTriggerChannel(processingConfig.TriggerChannel);
 
                                 if ((requestedTriggerLevel > triggerChannel.ActualVoltFullScale / 2) || (requestedTriggerLevel < -triggerChannel.ActualVoltFullScale / 2))
                                 {
@@ -241,7 +241,7 @@ namespace TS.NET.Engine
                                 break;
                             case ProcessingGetRateRequestDto processingGetRateRequestDto:
                                 logger.LogDebug($"{nameof(ProcessingGetRateRequestDto)}");
-                                switch (cachedThunderscopeConfiguration.AdcChannelMode)
+                                switch (cachedHardwareConfig.AdcChannelMode)
                                 {
                                     case AdcChannelMode.Single:
                                         processingResponseChannel.Write(new ProcessingGetRateResponseDto(1000000000));
@@ -265,7 +265,7 @@ namespace TS.NET.Engine
 
                     if (processChannel.TryRead(out InputDataDto inputDataDto, 10, cancelToken))
                     {
-                        cachedThunderscopeConfiguration = inputDataDto.HardwareConfig;
+                        cachedHardwareConfig = inputDataDto.HardwareConfig;
                         bridge.Hardware = inputDataDto.HardwareConfig;
                         totalDequeueCount++;
 
@@ -301,9 +301,8 @@ namespace TS.NET.Engine
                                         case TriggerMode.Normal:
                                         case TriggerMode.Single:
                                         case TriggerMode.Auto:
-                                            if (processingConfig.TriggerChannel != TriggerChannel.None)
+                                            if (cachedHardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
                                             {
-                                                // Hard code the trigger channel for now - need some mapping logic
                                                 var triggerChannelBuffer = shuffleBuffer;
 
                                                 uint captureEndCount = 0;
@@ -326,7 +325,7 @@ namespace TS.NET.Engine
                                                         circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), endOffset);
                                                         bridge.DataWritten();
                                                         bridge.SwitchRegionIfNeeded();
-                                                        
+
                                                         if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
                                                         {
                                                             singleTriggerLatch = false;
@@ -341,7 +340,7 @@ namespace TS.NET.Engine
                                             if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
                                             {
                                                 var bridgeSpan = bridge.AcquiringRegionI8;
-                                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero? It probably wants to be a read of the oldest data + channelLength instead, to get 100% throughput.
+                                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
                                                 bridge.DataWritten();
                                                 bridge.SwitchRegionIfNeeded();
                                                 forceTriggerLatch = false;
@@ -351,25 +350,11 @@ namespace TS.NET.Engine
                                             }
                                             if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                             {
-                                                while (streamSampleCounter > channelLength)
-                                                {
-                                                    streamSampleCounter -= channelLength;
-                                                    var bridgeSpan = bridge.AcquiringRegionI8;
-                                                    circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
-                                                    bridge.DataWritten();
-                                                    bridge.SwitchRegionIfNeeded();
-                                                }
+                                                SingleChannelStream(channelLength);
                                             }
                                             break;
                                         case TriggerMode.Stream:
-                                            while (streamSampleCounter > channelLength)
-                                            {
-                                                streamSampleCounter -= channelLength;
-                                                var bridgeSpan = bridge.AcquiringRegionI8;
-                                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
-                                                bridge.DataWritten();
-                                                bridge.SwitchRegionIfNeeded();
-                                            }
+                                            SingleChannelStream(channelLength);
                                             break;
                                     }
                                 }
@@ -391,10 +376,11 @@ namespace TS.NET.Engine
                                         case TriggerMode.Normal:
                                         case TriggerMode.Single:
                                         case TriggerMode.Auto:
-                                            if (processingConfig.TriggerChannel != TriggerChannel.None)
+                                            if (cachedHardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
                                             {
-                                                // Hard code the trigger channel for now - need some mapping logic
-                                                var triggerChannelBuffer = postShuffleCh1_2;
+                                                var triggerChannelBuffer = postShuffleCh2_2;
+                                                if (cachedHardwareConfig.DualChannelModeIsTriggerChannelInFirstPosition(processingConfig.TriggerChannel))
+                                                    triggerChannelBuffer = postShuffleCh1_2;
 
                                                 uint captureEndCount = 0;
                                                 switch (processingConfig.TriggerType)
@@ -432,7 +418,7 @@ namespace TS.NET.Engine
                                             if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
                                             {
                                                 var bridgeSpan = bridge.AcquiringRegionI8;
-                                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero? It probably wants to be a read of the oldest data + channelLength instead, to get 100% throughput.
+                                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
                                                 circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
                                                 bridge.DataWritten();
                                                 bridge.SwitchRegionIfNeeded();
@@ -443,27 +429,11 @@ namespace TS.NET.Engine
                                             }
                                             if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                             {
-                                                while (streamSampleCounter > channelLength)
-                                                {
-                                                    streamSampleCounter -= channelLength;
-                                                    var bridgeSpan = bridge.AcquiringRegionI8;
-                                                    circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
-                                                    circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                                                    bridge.DataWritten();
-                                                    bridge.SwitchRegionIfNeeded();
-                                                }
+                                                DualChannelStream(channelLength);
                                             }
                                             break;
                                         case TriggerMode.Stream:
-                                            while (streamSampleCounter > channelLength)
-                                            {
-                                                streamSampleCounter -= channelLength;
-                                                var bridgeSpan = bridge.AcquiringRegionI8;
-                                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
-                                                circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                                                bridge.DataWritten();
-                                                bridge.SwitchRegionIfNeeded();
-                                            }
+                                            DualChannelStream(channelLength);
                                             break;
                                     }
                                 }
@@ -487,14 +457,14 @@ namespace TS.NET.Engine
                                         case TriggerMode.Normal:
                                         case TriggerMode.Single:
                                         case TriggerMode.Auto:
-                                            if (processingConfig.TriggerChannel != TriggerChannel.None)
+                                            if (processingConfig.TriggerChannel != TriggerChannel.NotSet)
                                             {
                                                 var triggerChannelBuffer = processingConfig.TriggerChannel switch
                                                 {
-                                                    TriggerChannel.One => postShuffleCh1_4,
-                                                    TriggerChannel.Two => postShuffleCh2_4,
-                                                    TriggerChannel.Three => postShuffleCh3_4,
-                                                    TriggerChannel.Four => postShuffleCh4_4,
+                                                    TriggerChannel.Channel0 => postShuffleCh1_4,
+                                                    TriggerChannel.Channel1 => postShuffleCh2_4,
+                                                    TriggerChannel.Channel2 => postShuffleCh3_4,
+                                                    TriggerChannel.Channel3 => postShuffleCh4_4,
                                                     _ => throw new ArgumentException("Invalid TriggerChannel value")
                                                 };
 
@@ -536,7 +506,7 @@ namespace TS.NET.Engine
                                             if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
                                             {
                                                 var bridgeSpan = bridge.AcquiringRegionI8;
-                                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero? It probably wants to be a read of the oldest data + channelLength instead, to get 100% throughput.
+                                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
                                                 circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
                                                 circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
                                                 circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
@@ -549,31 +519,11 @@ namespace TS.NET.Engine
                                             }
                                             if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                             {
-                                                while (streamSampleCounter > channelLength)
-                                                {
-                                                    streamSampleCounter -= channelLength;
-                                                    var bridgeSpan = bridge.AcquiringRegionI8;
-                                                    circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
-                                                    circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                                                    circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
-                                                    circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
-                                                    bridge.DataWritten();
-                                                    bridge.SwitchRegionIfNeeded();
-                                                }
+                                                QuadChannelStream(channelLength);
                                             }
                                             break;
                                         case TriggerMode.Stream:
-                                            while (streamSampleCounter > channelLength)
-                                            {
-                                                streamSampleCounter -= channelLength;
-                                                var bridgeSpan = bridge.AcquiringRegionI8;
-                                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
-                                                circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                                                circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
-                                                circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
-                                                bridge.DataWritten();
-                                                bridge.SwitchRegionIfNeeded();
-                                            }
+                                            QuadChannelStream(channelLength);
                                             break;
                                     }
                                 }
@@ -601,7 +551,7 @@ namespace TS.NET.Engine
                 // Locally scoped methods for deduplication
                 void UpdateTriggerHorizontalPosition()
                 {
-                    ulong femtosecondsPerSample = cachedThunderscopeConfiguration.AdcChannelMode switch
+                    ulong femtosecondsPerSample = cachedHardwareConfig.AdcChannelMode switch
                     {
                         AdcChannelMode.Single => 1000000,         // 1 GSPS
                         AdcChannelMode.Dual => 1000000 * 2,     // 500 MSPS
@@ -612,6 +562,46 @@ namespace TS.NET.Engine
                     var windowTriggerPosition = processingConfig.TriggerDelayFs / femtosecondsPerSample;
                     risingEdgeTrigger.SetHorizontal(processingConfig.CurrentChannelDataLength, windowTriggerPosition, processingConfig.TriggerHoldoff);
                     fallingEdgeTrigger.SetHorizontal(processingConfig.CurrentChannelDataLength, windowTriggerPosition, processingConfig.TriggerHoldoff);
+                }
+
+                void SingleChannelStream(int channelLength)
+                {
+                    while (streamSampleCounter > channelLength)
+                    {
+                        streamSampleCounter -= channelLength;
+                        var bridgeSpan = bridge.AcquiringRegionI8;
+                        circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
+                        bridge.DataWritten();
+                        bridge.SwitchRegionIfNeeded();
+                    }
+                }
+
+                void DualChannelStream(int channelLength)
+                {
+                    while (streamSampleCounter > channelLength)
+                    {
+                        streamSampleCounter -= channelLength;
+                        var bridgeSpan = bridge.AcquiringRegionI8;
+                        circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
+                        circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
+                        bridge.DataWritten();
+                        bridge.SwitchRegionIfNeeded();
+                    }
+                }
+
+                void QuadChannelStream(int channelLength)
+                {
+                    while (streamSampleCounter > channelLength)
+                    {
+                        streamSampleCounter -= channelLength;
+                        var bridgeSpan = bridge.AcquiringRegionI8;
+                        circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
+                        circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
+                        circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
+                        circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
+                        bridge.DataWritten();
+                        bridge.SwitchRegionIfNeeded();
+                    }
                 }
             }
             catch (OperationCanceledException)

@@ -13,15 +13,22 @@ namespace TS.NET.Driver.XMDA
         private ThunderscopeInterop interop;
         private ThunderscopeCalibration calibration;
         private bool open = false;
-        private ThunderscopeHardwareState hardwareState = new();
-        private ThunderscopeHardwareConfig configuration = new()
+        private ThunderscopeHardwareState hardwareState;
+        private ThunderscopeHardwareConfig configuration;
+
+        public Thunderscope()
         {
-            AdcChannelMode = AdcChannelMode.Quad,
-            Channel1 = ThunderscopeChannel.Default(),
-            Channel2 = ThunderscopeChannel.Default(),
-            Channel3 = ThunderscopeChannel.Default(),
-            Channel4 = ThunderscopeChannel.Default()
-        };
+            hardwareState = new();
+            configuration = new()
+            {
+                AdcChannelMode = AdcChannelMode.Quad,
+                EnabledChannels = 0b00001111
+            };
+            configuration.Channels[0] = ThunderscopeChannel.Default();
+            configuration.Channels[1] = ThunderscopeChannel.Default();
+            configuration.Channels[2] = ThunderscopeChannel.Default();
+            configuration.Channels[3] = ThunderscopeChannel.Default();
+        }
 
         public static List<ThunderscopeDevice> IterateDevices()
         {
@@ -128,18 +135,30 @@ namespace TS.NET.Driver.XMDA
         // Returns a by-value copy
         public ThunderscopeChannel GetChannel(int channelIndex)
         {
-            return configuration.GetChannel(channelIndex);
+            return configuration.Channels[channelIndex];
         }
 
-        public void SetChannel(ThunderscopeChannel channel, int channelIndex)
+        public void SetChannel(int channelIndex, ThunderscopeChannel channel)
         {
             CalculateAfeConfiguration(ref channel);
-            configuration.SetChannel(ref channel, channelIndex);
+            configuration.Channels[channelIndex] = channel;
             UpdateAdc();
             Thread.Sleep(10);      // This delay is essential for ensuring channel 1 value gets set (the assumption is that the FIFO isn't ready immediately)
             SetDAC(channelIndex);
             Thread.Sleep(10);      // Don't know if this delay is needed, added for belt'n'braces
             SetPGA(channelIndex);
+        }
+
+        public void SetChannelEnable(int channelIndex, bool enabled)
+        {
+            if (enabled)
+            {
+                configuration.EnabledChannels |= (byte)(0x01 << channelIndex);
+            }
+            else
+            {
+                configuration.EnabledChannels &= (byte)~(0x01 << channelIndex);
+            }
         }
 
         // Returns a by-value copy
@@ -157,10 +176,10 @@ namespace TS.NET.Driver.XMDA
 
         private void Initialise()
         {
-            CalculateAfeConfiguration(ref configuration.Channel1);
-            CalculateAfeConfiguration(ref configuration.Channel2);
-            CalculateAfeConfiguration(ref configuration.Channel3);
-            CalculateAfeConfiguration(ref configuration.Channel4);
+            CalculateAfeConfiguration(ref configuration.Channels[0]);
+            CalculateAfeConfiguration(ref configuration.Channels[1]);
+            CalculateAfeConfiguration(ref configuration.Channels[2]);
+            CalculateAfeConfiguration(ref configuration.Channels[3]);
 
             Write32(BarRegister.DATAMOVER_REG_OUT, 0);
 
@@ -177,7 +196,7 @@ namespace TS.NET.Driver.XMDA
 
             UpdateAdc();
 
-            for(int i = 0; i < 4; i++)
+            for (int i = 0; i < 4; i++)
             {
                 Thread.Sleep(10);      // This delay is essential for ensuring channel 1 value gets set (the assumption is that the FIFO isn't ready immediately)
                 SetDAC(i);
@@ -246,19 +265,19 @@ namespace TS.NET.Driver.XMDA
             int numChannelsEnabled = 0;
             for (int channel = 0; channel < 4; channel++)
             {
-                if (configuration.GetChannel(channel).Enabled == true)
+                if (((configuration.EnabledChannels >> channel) & 0x01) > 0)
                 {
                     numChannelsEnabled++;
                 }
-                if (configuration.GetChannel(channel).Termination == ThunderscopeTermination.FiftyOhm)
+                if (configuration.Channels[channel].Termination == ThunderscopeTermination.FiftyOhm)
                 {
                     datamoverRegister |= (uint)1 << (12 + channel);
                 }
-                if (!configuration.GetChannel(channel).Attenuator)
+                if (!configuration.Channels[channel].Attenuator)
                 {
                     datamoverRegister |= (uint)1 << 16 + channel;
                 }
-                if (configuration.GetChannel(channel).Coupling == ThunderscopeCoupling.DC)
+                if (configuration.Channels[channel].Coupling == ThunderscopeCoupling.DC)
                 {
                     datamoverRegister |= (uint)1 << 20 + channel;
                 }
@@ -331,9 +350,9 @@ namespace TS.NET.Driver.XMDA
             int num_channels_on = 0;
             for (int i = 0; i < 4; i++)
             {
-                if (configuration.GetChannel(i).Enabled)
+                if (((configuration.EnabledChannels >> i) & 0x01) > 0)
                 {
-                    on_channels[num_channels_on++] = (byte)(3-i);
+                    on_channels[num_channels_on++] = (byte)(3 - i);
                 }
             }
 
@@ -414,8 +433,8 @@ namespace TS.NET.Driver.XMDA
             fifo[0] = (byte)(0xFB - channel);  // SPI chip enable
             fifo[1] = 0;
             fifo[2] = 0x04;  // ??
-            fifo[3] = configuration.GetChannel(channel).PgaConfigurationByte;
-            switch (configuration.GetChannel(channel).Bandwidth)
+            fifo[3] = configuration.Channels[channel].PgaConfigurationByte;
+            switch (configuration.Channels[channel].Bandwidth)
             {
                 case 20: fifo[3] |= 0x40; break;
                 case 100: fifo[3] |= 0x80; break;

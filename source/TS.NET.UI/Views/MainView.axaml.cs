@@ -8,6 +8,8 @@ using System.Diagnostics;
 using System;
 using System.Buffers;
 using Avalonia.Interactivity;
+using System.Text.Json;
+using Newtonsoft.Json;
 
 namespace TS.NET.UI.Views;
 
@@ -155,7 +157,11 @@ public partial class MainView : UserControl
 
                     //var reading = bridge.Span[(int)upDownIndex.Value];
                     count++;
-                    //string textInfo = JsonConvert.SerializeObject(bridge.Processing, Formatting.Indented, new Newtonsoft.Json.Converters.StringEnumConverter());
+                    string textInfo = JsonConvert.SerializeObject(bridge.Processing, Formatting.Indented, new Newtonsoft.Json.Converters.StringEnumConverter());
+                    textInfo += JsonConvert.SerializeObject(bridge.Hardware, Formatting.Indented, new Newtonsoft.Json.Converters.StringEnumConverter());
+                    //var options = new JsonSerializerOptions { WriteIndented = true };
+                    //string textInfo = JsonSerializer.Serialize(bridge.Hardware, options); 
+                    //textInfo += JsonSerializer.Serialize(bridge.Processing, options);
                     //@$"Channels: {cfg.Channels}
                     //Channel length: {cfg.ChannelLength}
                     //Trigger channel: {cfg.TriggerChannel}
@@ -168,6 +174,8 @@ public partial class MainView : UserControl
                     Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         //textBlockInfo.Text = textInfo;
+                        var mainViewModel = DataContext as MainViewModel;
+                        mainViewModel.Info = textInfo;
                         lblStatus.Content = status;
                         avaPlot1.RenderRequest(RenderType.LowQuality);  // With Configuration.UseRenderQueue = false, this should be a blocking call
                         renderSemaphore.Release();

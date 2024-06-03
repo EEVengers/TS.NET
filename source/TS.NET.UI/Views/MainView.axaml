@@ -36,7 +36,7 @@
 				<SelectableTextBlock Name="textScpiConsole" Text="{Binding ScpiConsole}" MinHeight="300" Background="LightGray"></SelectableTextBlock>
 			</ScrollViewer>
 			<TextBox Name="textScpiInput" Text="{Binding ScpiInput}"></TextBox>
-			<!--<TextBlock Name="textInfo" TextWrapping="Wrap">Waiting for first capture...</TextBlock>-->
+			<TextBlock Name="textInfo" Text="{Binding Info}" TextWrapping="Wrap"></TextBlock>
 			<!--<TabControl >
 				<TabItem Header="Horizontal">
 					<controls:Timebase Grid.Row="0" Margin="3"></controls:Timebase>

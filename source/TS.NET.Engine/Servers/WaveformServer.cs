@@ -136,7 +136,7 @@ namespace TS.NET.Engine
 
                         for (byte channelIndex = 0; channelIndex < processing.CurrentChannelCount; channelIndex++)
                         {
-                            ThunderscopeChannel thunderscopeChannel = configuration.GetChannel(channelIndex);
+                            ThunderscopeChannel thunderscopeChannel = configuration.Channels[channelIndex];
 
                             chHeader.chNum = channelIndex;
                             chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);

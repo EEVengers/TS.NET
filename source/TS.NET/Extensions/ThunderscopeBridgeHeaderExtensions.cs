@@ -2,53 +2,42 @@
 {
     public static class ThunderscopeBridgeHeaderExtensions
     {
-        // By-value return
-        public unsafe static ThunderscopeChannel GetTriggerChannel(this ThunderscopeHardwareConfig configuration, TriggerChannel triggerChannel)
+        public static ThunderscopeChannel GetTriggerChannel(this ThunderscopeHardwareConfig config, TriggerChannel triggerChannel)
         {
             return triggerChannel switch
             {
-                TriggerChannel.One => configuration.Channel1,
-                TriggerChannel.Two => configuration.Channel2,
-                TriggerChannel.Three => configuration.Channel3,
-                TriggerChannel.Four => configuration.Channel4,
+                TriggerChannel.Channel0 => config.Channels[0],
+                TriggerChannel.Channel1 => config.Channels[1],
+                TriggerChannel.Channel2 => config.Channels[2],
+                TriggerChannel.Channel3 => config.Channels[3],
                 _ => throw new NotImplementedException()
             };
         }
 
-        // By-value return
-        public static ThunderscopeChannel GetChannel(this ref ThunderscopeHardwareConfig configuration, int channelIndex)
+        public static bool IsTriggerChannelAnEnabledChannel(this ThunderscopeHardwareConfig config, TriggerChannel triggerChannel)
         {
-            // channelIndex is zero-indexed
-            return channelIndex switch
+            return triggerChannel switch
             {
-                0 => configuration.Channel1,
-                1 => configuration.Channel2,
-                2 => configuration.Channel3,
-                3 => configuration.Channel4,
-                _ => throw new ArgumentException("channel out of range")
+                TriggerChannel.NotSet => false,
+                TriggerChannel.Channel0 => (config.EnabledChannels & 0x01) > 0,
+                TriggerChannel.Channel1 => ((config.EnabledChannels >> 1) & 0x01) > 0,
+                TriggerChannel.Channel2 => ((config.EnabledChannels >> 2) & 0x01) > 0,
+                TriggerChannel.Channel3 => ((config.EnabledChannels >> 3) & 0x01) > 0,
+                _ => throw new NotImplementedException(),
             };
-    }
+        }
 
-        public static void SetChannel(this ref ThunderscopeHardwareConfig configuration, ref ThunderscopeChannel channel, int channelIndex)
+        public static bool DualChannelModeIsTriggerChannelInFirstPosition(this ThunderscopeHardwareConfig config, TriggerChannel triggerChannel)
         {
-            // channelIndex is zero-indexed
-            switch (channelIndex)
+            // There will be 2 bits enabled in config.EnabledChannels. If the trigger channel is the rightmost bit, return true.
+            return triggerChannel switch
             {
-                case 0:
-                    configuration.Channel1 = channel;
-                    break;
-                case 1:
-                    configuration.Channel2 = channel;
-                    break;
-                case 2:
-                    configuration.Channel3 = channel;
-                    break;
-                case 3:
-                    configuration.Channel4 = channel;
-                    break;
-                default:
-                    throw new ArgumentException("channelIndex out of range");
-            }
+                TriggerChannel.Channel0 => true,
+                TriggerChannel.Channel1 => (config.EnabledChannels | 0b00001100) > 0,
+                TriggerChannel.Channel2 => (config.EnabledChannels | 0b00001000) > 0,
+                TriggerChannel.Channel3 => false,
+                _ => throw new NotImplementedException(),
+            };
         }
     }
 }

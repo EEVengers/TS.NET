@@ -23,10 +23,10 @@ namespace TS.NET
         internal byte Version;              // Allows UI to know which ThunderscopeMemoryBridgeHeader version to use, hence the size of the header.
         internal ulong DataCapacityBytes;   // Size of data region (following the header)
 
-        internal ThunderscopeDataBridgeConfig Bridge;       // Read only from UI perspective
-        internal ThunderscopeHardwareConfig Hardware;       // Read only from UI perspective, UI uses SCPI interface to change configuration
-        internal ThunderscopeProcessingConfig Processing;   // Read only from UI perspective, UI uses SCPI interface to change configuration
-        internal ThunderscopeDataMonitoring Monitoring;     // Read only from UI perspective, UI optionally displays these values
+        internal ThunderscopeDataBridgeConfig Bridge;       // 7 bytes, read only from UI perspective
+        internal ThunderscopeHardwareConfig Hardware;       // 2 + 4*32, read only from UI perspective, UI uses SCPI interface to change configuration
+        internal ThunderscopeProcessingConfig Processing;   // 37 bytes, read only from UI perspective, UI uses SCPI interface to change configuration
+        internal ThunderscopeDataMonitoring Monitoring;     // 16 bytes, Read only from UI perspective, UI optionally displays these values
 
         // BridgeConfig is set once from config file or hard coded
         // HardwareConfig, ProcessingConfig & DataMonitoring is runtime variable

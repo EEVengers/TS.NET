@@ -122,7 +122,7 @@ namespace TS.NET.Engine
                                             break;
                                         case HardwareSetEnabledRequest hardwareSetEnabledRequest:
                                             logger.LogDebug($"{nameof(HardwareSetEnabledRequest)} (channel: {channelIndex}, enabled: {hardwareSetEnabledRequest.Enabled})");
-                                            channel.Enabled = hardwareSetEnabledRequest.Enabled;
+                                            thunderscope.SetChannelEnable(channelIndex, hardwareSetEnabledRequest.Enabled);
                                             break;
                                         case HardwareSetTerminationRequest hardwareSetTerminationRequest:
                                             logger.LogDebug($"{nameof(HardwareSetTerminationRequest)} (channel: {channelIndex}, termination: {hardwareSetTerminationRequest.Termination})");
@@ -132,7 +132,7 @@ namespace TS.NET.Engine
                                             logger.LogWarning($"Unknown {nameof(HardwareConfigureChannelDto)}: {request}");
                                             break;
                                     }
-                                    thunderscope.SetChannel(channel, channelIndex);
+                                    thunderscope.SetChannel(channelIndex, channel);
                                     break;
                                 default:
                                     logger.LogWarning($"Unknown {nameof(HardwareRequestDto)}: {request}");

@@ -1,12 +1,5 @@
 ﻿namespace TS.NET;
 
-public enum AdcChannelMode : byte
-{
-    Single = 1,
-    Dual = 2,
-    Quad = 4
-}
-
 public enum ChannelLength : ulong
 {
     OneK = 1000,
@@ -15,11 +8,11 @@ public enum ChannelLength : ulong
 
 public enum TriggerChannel : byte
 {
-    None = 0,
-    One = 1,
-    Two = 2,
-    Three = 3,
-    Four = 4
+    NotSet = 0,
+    Channel0 = 1,
+    Channel1 = 2,
+    Channel2 = 3,
+    Channel3 = 4
 }
 
 public enum TriggerMode : byte

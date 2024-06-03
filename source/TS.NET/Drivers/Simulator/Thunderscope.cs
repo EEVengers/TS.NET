@@ -14,10 +14,10 @@
         public ThunderscopeHardwareConfig GetConfiguration()
         {
             var config = new ThunderscopeHardwareConfig() { AdcChannelMode = AdcChannelMode.Quad };
-            config.Channel1.ActualVoltFullScale = 1;
-            config.Channel2.ActualVoltFullScale = 1;
-            config.Channel3.ActualVoltFullScale = 1;
-            config.Channel4.ActualVoltFullScale = 1;
+            config.Channels[0].ActualVoltFullScale = 1;
+            config.Channels[1].ActualVoltFullScale = 1;
+            config.Channels[2].ActualVoltFullScale = 1;
+            config.Channels[3].ActualVoltFullScale = 1;
             return config;
         }
 
@@ -35,8 +35,14 @@
             Thread.Sleep((int)sleepTime);
         }
 
-        public void SetChannel(ThunderscopeChannel channel, int channelIndex)
+        public void SetChannel(int channelIndex, ThunderscopeChannel channel)
         {
+            throw new NotImplementedException();
+        }
+
+        public void SetChannelEnable(int channelIndex, bool enabled)
+        {
+            throw new NotImplementedException();
         }
 
         public void Start()
