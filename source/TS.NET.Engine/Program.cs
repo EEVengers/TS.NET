@@ -3,18 +3,68 @@ using System.Diagnostics;
 using TS.NET;
 using TS.NET.Engine;
 
-// The aim is to have a thread-safe lock-free dataflow architecture (to prevent various classes of bugs).
-// The use of async/await for processing is avoided as the task thread pool is of little use here.
-//   Fire up threads to handle specific loops with extremely high utilisation. These threads are created once only, so the overhead of thread creation isn't important (one of the design goals of async/await).
-//   Optionally pin CPU cores to exclusively process a particular thread, perhaps with high/rt priority.
-//   Task.Factory.StartNew(() => Loop(...TaskCreationOptions.LongRunning) is just a shorthand for creating a new Thread to process a loop, the task thread pool isn't used. 
-// The use of hardwareRequestChannel is to prevent 2 classes of bug: locking and thread safety.
-//   By serialising the config-update/data-read it also allows for specific behaviours (like pausing acquisition on certain config updates) and ensuring a perfect match between sample-block & hardware configuration that created it.
+class Program
+{
+	static async Task<int> Main(string[] args)
+	{
+		// The aim is to have a thread-safe lock-free dataflow architecture (to prevent various classes of bugs).
+		// The use of async/await for processing is avoided as the task thread pool is of little use here.
+		//   Fire up threads to handle specific loops with extremely high utilisation. These threads are created once only, so the overhead of thread creation isn't important (one of the design goals of async/await).
+		//   Optionally pin CPU cores to exclusively process a particular thread, perhaps with high/rt priority.
+		//   Task.Factory.StartNew(() => Loop(...TaskCreationOptions.LongRunning) is just a shorthand for creating a new Thread to process a loop, the task thread pool isn't used.
+		// The use of hardwareRequestChannel is to prevent 2 classes of bug: locking and thread safety.
+		//   By serialising the config-update/data-read it also allows for specific behaviours (like pausing acquisition on certain config updates) and ensuring a perfect match between sample-block & hardware configuration that created it.
 
-Console.Title = "Engine";
-using (Process p = Process.GetCurrentProcess())
-    p.PriorityClass = ProcessPriorityClass.High;
+		Console.Title = "Engine";
+		using (Process p = Process.GetCurrentProcess())
+			p.PriorityClass = ProcessPriorityClass.High;
 
+		var indexOption = new Option<Int32?>(
+			name: "-i",
+			description: "The ThunderScope to use if there are multiple connected to the host.",
+			getDefaultValue: () => { return 0; }
+		);
+		
+		var controlPortOption = new Option<Int32?>(
+			name: "-cport",
+			description: "The port to use for the control plane.",
+			getDefaultValue: () => { return 5025; }
+		);
+
+		var dataPortOption = new Option<Int32?>(
+			name: "-dport",
+			description: "The port to use for the data plane.",
+			getDefaultValue: () => { return 5026; }
+		);
+		
+		var hwRevisionOption = new Option<Int32?>(
+			name: "-rev",
+			description: "The hardware revision.",
+			getDefaultValue: () => { return 4; }
+		);
+		
+		var rootCommand = new RootCommand("TS.Net.Engine"){
+			indexOption,
+			controlPortOption,
+			dataPortOption,
+			hwRevisionOption
+		};
+		
+		rootCommand.SetHandler(
+			(controlPort, dataPort, indexThunderscope, hwRevision) =>
+			{
+				Start((Int32)controlPort, (Int32)dataPort, (Int32)indexThunderscope, (Int32)hwRevision);
+			},
+			controlPortOption, dataPortOption, indexOption, hwRevisionOption
+		);
+
+		return await rootCommand.InvokeAsync(args);
+	}
+
+	static void Start(Int32 controlPort, Int32 dataPort, Int32 indexThunderscope = 0, Int32 hwRevision = 4)
+	{
+		Console.WriteLine("Going to start thunderscope " + indexThunderscope + " revision " + hwRevision + " and SCPI server @ " + controlPort + ":" + dataPort);
+		
 #if DEBUG
 		ThunderscopeSettings settings = ThunderscopeSettings.Default();
 		var serializer = new YamlDotNet.Serialization.SerializerBuilder()
