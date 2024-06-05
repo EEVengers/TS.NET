@@ -1,5 +1,9 @@
 ﻿using System.CommandLine;
 using System.Diagnostics;
+using System.Reflection.Metadata.Ecma335;
+using System.Text;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using TS.NET;
 using TS.NET.Engine;
 
@@ -117,6 +121,7 @@ class Program
 			{
 				var ts = new TS.NET.Driver.Simulator.Thunderscope();
 				thunderscope = ts;
+				
 				break;
 			}
 			case "xdma":
@@ -147,7 +152,8 @@ class Program
 				processChannel.Reader,
 				inputChannel.Writer,
 				processingRequestChannel.Reader,
-				processingResponseChannel.Writer
+				processingResponseChannel.Writer,
+				indexThunderscope
 			);
 		processingThread.Start(startSemaphore);
 
@@ -172,7 +178,8 @@ class Program
 				loggerFactory,
 				thunderscopeSettings,
 				System.Net.IPAddress.Any,
-				dataPort
+				dataPort,
+				indexThunderscope
 			);
 			waveformServer.Start();
 		}

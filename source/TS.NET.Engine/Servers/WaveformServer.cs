@@ -6,193 +6,194 @@ using System.Runtime.InteropServices;
 
 namespace TS.NET.Engine
 {
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal struct WaveformHeader
-    {
-        internal uint seqnum;
-        internal ushort numChannels;
-        internal ulong fsPerSample;
-        internal long triggerFs;
-        internal double hwWaveformsPerSec;
+	[StructLayout(LayoutKind.Sequential, Pack = 1)]
+	internal struct WaveformHeader
+	{
+		internal uint seqnum;
+		internal ushort numChannels;
+		internal ulong fsPerSample;
+		internal long triggerFs;
+		internal double hwWaveformsPerSec;
 
-        public override string ToString(){
-            return $"seqnum: {seqnum}, numChannels: {numChannels}, fsPerSample: {fsPerSample}, triggerFs: {triggerFs}, hwWaveformsPerSec: {hwWaveformsPerSec}";
-        }
-    }
+		public override string ToString(){
+			return $"seqnum: {seqnum}, numChannels: {numChannels}, fsPerSample: {fsPerSample}, triggerFs: {triggerFs}, hwWaveformsPerSec: {hwWaveformsPerSec}";
+		}
+	}
 
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    internal struct ChannelHeader
-    {
-        internal byte chNum;
-        internal ulong depth;
-        internal float scale;
-        internal float offset;
-        internal float trigphase;
-        internal byte clipping;
-        public override string ToString(){
-            return $"chNum: {chNum}, depth: {depth}, scale: {scale}, offset: {offset}, trigphase: {trigphase}, clipping: {clipping}";
-        }
-    }
+	[StructLayout(LayoutKind.Sequential, Pack = 1)]
+	internal struct ChannelHeader
+	{
+		internal byte chNum;
+		internal ulong depth;
+		internal float scale;
+		internal float offset;
+		internal float trigphase;
+		internal byte clipping;
+		public override string ToString(){
+			return $"chNum: {chNum}, depth: {depth}, scale: {scale}, offset: {offset}, trigphase: {trigphase}, clipping: {clipping}";
+		}
+	}
 
-    internal class WaveformSession : TcpSession
-    {
-        private readonly ILogger logger;
-        private readonly ThunderscopeDataBridgeReader bridge;
-        private readonly CancellationToken cancellationToken;
-        uint sequenceNumber = 0;
+	internal class WaveformSession : TcpSession
+	{
+		private readonly ILogger logger;
+		private readonly ThunderscopeDataBridgeReader bridge;
+		private readonly CancellationToken cancellationToken;
+		uint sequenceNumber = 0;
 
-        public WaveformSession(
-            TcpServer server,
-            ILogger logger,
-            ThunderscopeDataBridgeReader bridge,
-            CancellationToken cancellationToken) : base(server)
-        {
-            this.logger = logger;
-            this.bridge = bridge;
-            this.cancellationToken = cancellationToken;
-        }
+		public WaveformSession(
+			TcpServer server,
+			ILogger logger,
+			ThunderscopeDataBridgeReader bridge,
+			CancellationToken cancellationToken) : base(server)
+		{
+			this.logger = logger;
+			this.bridge = bridge;
+			this.cancellationToken = cancellationToken;
+		}
 
-        protected override void OnConnected()
-        {
-            logger.LogDebug($"Waveform session with Id {Id} connected!");
-            //string message = "Hello from TCP chat! Please send a message or '!' to disconnect the client!";
-            //SendAsync(message);
-        }
+		protected override void OnConnected()
+		{
+			logger.LogDebug($"Waveform session with Id {Id} connected!");
+			//string message = "Hello from TCP chat! Please send a message or '!' to disconnect the client!";
+			//SendAsync(message);
+		}
 
-        protected override void OnDisconnected()
-        {
-            logger.LogDebug($"Waveform session with Id {Id} disconnected!");
-        }
+		protected override void OnDisconnected()
+		{
+			logger.LogDebug($"Waveform session with Id {Id} disconnected!");
+		}
 
-        protected override void OnReceived(byte[] buffer, long offset, long size)
-        {
-            //string messageStream = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
-            //var messages = messageStream.Split('\n');
-            //foreach (var message in messages)
-            //{
-            //    if (string.IsNullOrWhiteSpace(message)) { continue; }
+		protected override void OnReceived(byte[] buffer, long offset, long size)
+		{
+			//string messageStream = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
+			//var messages = messageStream.Split('\n');
+			//foreach (var message in messages)
+			//{
+			//    if (string.IsNullOrWhiteSpace(message)) { continue; }
 
-            //    //string? response = ProcessWaveformCommand(logger, hardwareRequestChannel, hardwareResponseChannel, processingRequestChannel, processingResponseChannel, message.Trim());
+			//    //string? response = ProcessWaveformCommand(logger, hardwareRequestChannel, hardwareResponseChannel, processingRequestChannel, processingResponseChannel, message.Trim());
 
-            //    if (response != null)
-            //    {
-            //        logger.LogDebug(" -> Waveform reply: '{String}'", response);
-            //        Send(response);
-            //    }
-            //}
-            //Server.Multicast(message);
-            //if (message == "!")
-            //    Disconnect();
+			//    if (response != null)
+			//    {
+			//        logger.LogDebug(" -> Waveform reply: '{String}'", response);
+			//        Send(response);
+			//    }
+			//}
+			//Server.Multicast(message);
+			//if (message == "!")
+			//    Disconnect();
 
-            if (size == 0)
-                return;
+			if (size == 0)
+				return;
 
-            while (true)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
+			while (true)
+			{
+				cancellationToken.ThrowIfCancellationRequested();
 
-                if (bridge.RequestAndWaitForData(500))
-                {
-                    //logger.LogDebug("Sending waveform...");
-                    var configuration = bridge.Hardware;
-                    var processing = bridge.Processing;
-                    var data = bridge.AcquiredRegionU8;
+				if (bridge.RequestAndWaitForData(500))
+				{
+					//logger.LogDebug("Sending waveform...");
+					var configuration = bridge.Hardware;
+					var processing = bridge.Processing;
+					var data = bridge.AcquiredRegionU8;
 
-                    // Remember AdcChannelMode reflects the hardware reality - user may only have 3 channels enabled but hardware has to capture 4.
-                    ulong femtosecondsPerSample = configuration.AdcChannelMode switch
-                    {
-                        AdcChannelMode.Single => 1000000,         // 1 GSPS
-                        AdcChannelMode.Dual => 1000000 * 2,     // 500 MSPS
-                        AdcChannelMode.Quad => 1000000 * 4,    // 250 MSPS
-                        _ => throw new NotImplementedException(),
-                    };
+					// Remember AdcChannelMode reflects the hardware reality - user may only have 3 channels enabled but hardware has to capture 4.
+					ulong femtosecondsPerSample = configuration.AdcChannelMode switch
+					{
+						AdcChannelMode.Single => 1000000,         // 1 GSPS
+						AdcChannelMode.Dual => 1000000 * 2,     // 500 MSPS
+						AdcChannelMode.Quad => 1000000 * 4,    // 250 MSPS
+						_ => throw new NotImplementedException(),
+					};
 
-                    WaveformHeader header = new()
-                    {
-                        seqnum = sequenceNumber,
-                        numChannels = processing.CurrentChannelCount,
-                        fsPerSample = femtosecondsPerSample,
-                        triggerFs = (long)processing.TriggerDelayFs,
-                        hwWaveformsPerSec = 1
-                    };
+					WaveformHeader header = new()
+					{
+						seqnum = sequenceNumber,
+						numChannels = processing.CurrentChannelCount,
+						fsPerSample = femtosecondsPerSample,
+						triggerFs = (long)processing.TriggerDelayFs,
+						hwWaveformsPerSec = 1
+					};
 
-                    ChannelHeader chHeader = new()
-                    {
-                        chNum = 0,
-                        depth = processing.CurrentChannelDataLength,
-                        scale = 1,
-                        offset = 0,
-                        trigphase = 0,
-                        clipping = 0
-                    };
+					ChannelHeader chHeader = new()
+					{
+						chNum = 0,
+						depth = processing.CurrentChannelDataLength,
+						scale = 1,
+						offset = 0,
+						trigphase = 0,
+						clipping = 0
+					};
 
-                    ulong bytesSent = 0;
+					ulong bytesSent = 0;
 
-                    unsafe
-                    {
-                        Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
-                        bytesSent += (ulong)sizeof(WaveformHeader);
-                        //logger.LogDebug("WaveformHeader: " + header.ToString());
+					unsafe
+					{
+						Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
+						bytesSent += (ulong)sizeof(WaveformHeader);
+						//logger.LogDebug("WaveformHeader: " + header.ToString());
 
-                        for (byte channelIndex = 0; channelIndex < processing.CurrentChannelCount; channelIndex++)
-                        {
-                            ThunderscopeChannel thunderscopeChannel = configuration.Channels[channelIndex];
+						for (byte channelIndex = 0; channelIndex < processing.CurrentChannelCount; channelIndex++)
+						{
+							ThunderscopeChannel thunderscopeChannel = configuration.Channels[channelIndex];
 
-                            chHeader.chNum = channelIndex;
-                            chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
-                            chHeader.offset = -(float)thunderscopeChannel.VoltOffset;
+							chHeader.chNum = channelIndex;
+							chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
+							chHeader.offset = -(float)thunderscopeChannel.VoltOffset;
 
-                            Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
-                            bytesSent += (ulong)sizeof(ChannelHeader);
-                            //logger.LogDebug("ChannelHeader: " + chHeader.ToString());
-                            Send(data.Slice(channelIndex * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength));
-                            bytesSent += processing.CurrentChannelDataLength;
-                        }
-                        //logger.LogDebug($"Sent waveform ({bytesSent} bytes)");
-                    }
-                    sequenceNumber++;
-                    break;
-                }
-            }
-        }
+							Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
+							bytesSent += (ulong)sizeof(ChannelHeader);
+							//logger.LogDebug("ChannelHeader: " + chHeader.ToString());
+							Send(data.Slice(channelIndex * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength));
+							bytesSent += processing.CurrentChannelDataLength;
+						}
+						//logger.LogDebug($"Sent waveform ({bytesSent} bytes)");
+					}
+					sequenceNumber++;
+					break;
+				}
+			}
+		}
 
-        protected override void OnError(SocketError error)
-        {
-            logger.LogDebug($"Chat TCP session caught an error with code {error}");
-        }
-    }
+		protected override void OnError(SocketError error)
+		{
+			logger.LogDebug($"Chat TCP session caught an error with code {error}");
+		}
+	}
 
-    class WaveformServer : TcpServer
-    {
-        private readonly ILogger logger;
-        private readonly CancellationTokenSource cancellationTokenSource;
-        private readonly ThunderscopeDataBridgeReader bridge;
+	class WaveformServer : TcpServer
+	{
+		private readonly ILogger logger;
+		private readonly CancellationTokenSource cancellationTokenSource;
+		private readonly ThunderscopeDataBridgeReader bridge;
 
-        public WaveformServer(ILoggerFactory loggerFactory,
-            ThunderscopeSettings settings,
-            IPAddress address,
-            int port) : base(address, port)
-        {
-            logger = loggerFactory.CreateLogger(nameof(WaveformServer));
-            cancellationTokenSource = new();
-            bridge = new("ThunderScope.1");
-            logger.LogDebug("Started");
-        }
+		public WaveformServer(ILoggerFactory loggerFactory,
+			ThunderscopeSettings settings,
+			IPAddress address,
+			int port,
+			int indexThunderscope) : base(address, port)
+		{
+			logger = loggerFactory.CreateLogger(nameof(WaveformServer));
+			cancellationTokenSource = new();
+			bridge = new("ThunderScope."+indexThunderscope);
+			logger.LogDebug("Started");
+		}
 
-        protected override TcpSession CreateSession()
-        {
-            // ThunderscopeBridgeReader isn't thread safe so here be dragons if multiple clients request a waveform concurrently.
-            return new WaveformSession(this, logger, bridge, cancellationTokenSource.Token);
-        }
+		protected override TcpSession CreateSession()
+		{
+			// ThunderscopeBridgeReader isn't thread safe so here be dragons if multiple clients request a waveform concurrently.
+			return new WaveformSession(this, logger, bridge, cancellationTokenSource.Token);
+		}
 
-        protected override void OnError(SocketError error)
-        {
-            logger.LogDebug($"Waveform server caught an error with code {error}");
-        }
+		protected override void OnError(SocketError error)
+		{
+			logger.LogDebug($"Waveform server caught an error with code {error}");
+		}
 
-        protected override void OnStopping()
-        {
-            base.OnStopping();
-        }
-    }
+		protected override void OnStopping()
+		{
+			base.OnStopping();
+		}
+	}
 }
