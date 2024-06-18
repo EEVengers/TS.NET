@@ -25,16 +25,16 @@ namespace TS.NET
         public Span<sbyte> AcquiringRegionI8 { get { return GetAcquiringRegionI8(); } }
         public ThunderscopeDataMonitoring Monitoring { get { return header.Monitoring; } }
 
-        public unsafe ThunderscopeDataBridgeWriter(string memoryName, ThunderscopeDataBridgeConfig bridgeConfig)
+        public unsafe ThunderscopeDataBridgeWriter(string bridgeNamespace, ThunderscopeDataBridgeConfig bridgeConfig)
         {
-            memoryName += ".Data";
+            string mmfName = bridgeNamespace + ".Data";
             cachedDataWidth = bridgeConfig.ChannelDataType.Width();
             var dataCapacityBytes = bridgeConfig.MaxChannelCount * bridgeConfig.MaxChannelDataLength * cachedDataWidth * 2;   // * 2 as there are 2 regions used in tick-tock fashion
             var bridgeCapacityBytes = (ulong)sizeof(ThunderscopeDataBridgeHeader) + dataCapacityBytes;
             //Console.WriteLine($"Bridge capacity: {bridgeCapacityBytes} bytes");
             file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? new MemoryFileWindows(memoryName, bridgeCapacityBytes)
-                : new MemoryFileUnix(memoryName, bridgeCapacityBytes);
+                ? new MemoryFileWindows(mmfName, bridgeCapacityBytes)
+                : new MemoryFileUnix(mmfName, bridgeCapacityBytes);
 
             try
             {
@@ -55,8 +55,8 @@ namespace TS.NET
 
                     SetHeader();
 
-                    dataRequestSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + ".DataRequest", 0);
-                    dataResponseSemaphore = InterprocessSemaphore.CreateReleaser(memoryName + ".DataResponse", 0);
+                    dataRequestSemaphore = InterprocessSemaphore.CreateWaiter(bridgeNamespace + ".DataRequest", 0);
+                    dataResponseSemaphore = InterprocessSemaphore.CreateReleaser(bridgeNamespace + ".DataResponse", 0);
                 }
                 catch
                 {

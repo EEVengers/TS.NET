@@ -1,7 +1,4 @@
-﻿#define TsRev4
-// Define options: TsRev1, TsRev3, TsRev4
-
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using TS.NET.Driver.XMDA.Interop;
 
 namespace TS.NET.Driver.XMDA
@@ -15,6 +12,7 @@ namespace TS.NET.Driver.XMDA
         private bool open = false;
         private ThunderscopeHardwareState hardwareState;
         private ThunderscopeHardwareConfig configuration;
+        private string revision;
 
         public Thunderscope()
         {
@@ -35,13 +33,14 @@ namespace TS.NET.Driver.XMDA
             return ThunderscopeInterop.IterateDevices();
         }
 
-        public void Open(ThunderscopeDevice device, ThunderscopeCalibration calibration)
+        public void Open(ThunderscopeDevice device, ThunderscopeCalibration calibration, string revision)
         {
             if (open)
                 Close();
 
             interop = ThunderscopeInterop.CreateInterop(device);
             this.calibration = calibration;
+            this.revision = revision;
 
             Initialise();
             open = true;
@@ -553,8 +552,7 @@ namespace TS.NET.Driver.XMDA
             // case 200: fifo[3] |= 0xC0; break;
             // case 350: /* 0 */ break;
         }
-#if TsRev1
-        private void ConfigurePLL()
+        private void ConfigurePLLRev1()
         {
             // These were provided by the chip configuration tool.
             ushort[] config_clk_gen = {
@@ -571,28 +569,26 @@ namespace TS.NET.Driver.XMDA
             // write to the clock generator
             for (int i = 0; i < config_clk_gen.Length / 2; i++)
             {
-                SetPllRegister((byte)(config_clk_gen[i] >> 8), (byte)(config_clk_gen[i] & 0xff));
+                SetPllRegisterRev1((byte)(config_clk_gen[i] >> 8), (byte)(config_clk_gen[i] & 0xff));
             }
 
             hardwareState.PllEnabled = true;
             ConfigureDatamover(hardwareState);
         }
 
-        const byte I2C_BYTE_PLL = 0xFF;
-        const byte CLOCK_GEN_I2C_ADDRESS_WRITE = 0b10110000;
-        private void SetPllRegister(byte register, byte value)
+        const byte I2C_BYTE_PLL_Rev1 = 0xFF;
+        const byte CLOCK_GEN_I2C_ADDRESS_WRITE_Rev1 = 0b10110000;
+        private void SetPllRegisterRev1(byte register, byte value)
         {
             Span<byte> fifo = new byte[4];
-            fifo[0] = I2C_BYTE_PLL;
-            fifo[1] = CLOCK_GEN_I2C_ADDRESS_WRITE;
+            fifo[0] = I2C_BYTE_PLL_Rev1;
+            fifo[1] = CLOCK_GEN_I2C_ADDRESS_WRITE_Rev1;
             fifo[2] = register;
             fifo[3] = value;
             WriteFifo(fifo);
         }
-#endif
 
-#if TsRev3
-        private void ConfigurePLL()
+        private void ConfigurePLLRev3()
         {
             //Strobe RST line on power on
             Thread.Sleep(1);
@@ -616,34 +612,32 @@ namespace TS.NET.Driver.XMDA
             // write to the clock generator
             for (int i = 0; i < config_clk_gen.Length; i++)
             {
-                SetPllRegister((byte)(config_clk_gen[i] >> 16), (byte)(config_clk_gen[i] >> 8), (byte)(config_clk_gen[i] & 0xff));
+                SetPllRegisterRev3((byte)(config_clk_gen[i] >> 16), (byte)(config_clk_gen[i] >> 8), (byte)(config_clk_gen[i] & 0xff));
             }
 
             Thread.Sleep(10);
 
-            SetPllRegister(0x00, 0x0D, 0x05);
+            SetPllRegisterRev3(0x00, 0x0D, 0x05);
 
             Thread.Sleep(10);
         }
 
-        const byte I2C_BYTE_PLL = 0xFF;
-        const byte CLOCK_GEN_I2C_ADDRESS_WRITE = 0b11011000;
-        const byte CLOCK_GEN_WRITE_COMMAND = 0x02;
-        private void SetPllRegister(byte reg_high, byte reg_low, byte value)
+        const byte I2C_BYTE_PLL_Rev3 = 0xFF;
+        const byte CLOCK_GEN_I2C_ADDRESS_WRITE_Rev3 = 0b11011000;
+        const byte CLOCK_GEN_WRITE_COMMAND_Rev3 = 0x02;
+        private void SetPllRegisterRev3(byte reg_high, byte reg_low, byte value)
         {
             Span<byte> fifo = new byte[6];
-            fifo[0] = I2C_BYTE_PLL;
-            fifo[1] = CLOCK_GEN_I2C_ADDRESS_WRITE;
-            fifo[2] = CLOCK_GEN_WRITE_COMMAND;
+            fifo[0] = I2C_BYTE_PLL_Rev3;
+            fifo[1] = CLOCK_GEN_I2C_ADDRESS_WRITE_Rev3;
+            fifo[2] = CLOCK_GEN_WRITE_COMMAND_Rev3;
             fifo[3] = reg_high;
             fifo[4] = reg_low;
             fifo[5] = value;
             WriteFifo(fifo);
         }
-#endif
 
-#if TsRev4
-        private void ConfigurePLL()
+        private void ConfigurePLLRev4()
         {
             //Strobe RST line on power on
             Thread.Sleep(10);
@@ -668,31 +662,49 @@ namespace TS.NET.Driver.XMDA
             // write to the clock generator
             for (int i = 0; i < config_clk_gen.Length; i++)
             {
-                SetPllRegister((byte)(config_clk_gen[i] >> 16), (byte)(config_clk_gen[i] >> 8), (byte)(config_clk_gen[i] & 0xff));
+                SetPllRegisterRev4((byte)(config_clk_gen[i] >> 16), (byte)(config_clk_gen[i] >> 8), (byte)(config_clk_gen[i] & 0xff));
             }
 
             Thread.Sleep(10);
 
-            SetPllRegister((byte)(0x01), (byte)(0x00), (byte)(0x02)); //0x010002
-            SetPllRegister((byte)(0x01), (byte)(0x00), (byte)(0x42)); //0x010042
+            SetPllRegisterRev4((byte)(0x01), (byte)(0x00), (byte)(0x02)); //0x010002
+            SetPllRegisterRev4((byte)(0x01), (byte)(0x00), (byte)(0x42)); //0x010042
 
             Thread.Sleep(10);
         }
 
-        const byte I2C_BYTE_PLL = 0xFF;
-        const byte CLOCK_GEN_I2C_ADDRESS_WRITE = 0b11101000;
-        const byte CLOCK_GEN_WRITE_COMMAND = 0x02;
-        private void SetPllRegister(byte reg_high, byte reg_low, byte value)
+        const byte I2C_BYTE_PLL_Rev4 = 0xFF;
+        const byte CLOCK_GEN_I2C_ADDRESS_WRITE_Rev4 = 0b11101000;
+        const byte CLOCK_GEN_WRITE_COMMAND_Rev4 = 0x02;
+        private void SetPllRegisterRev4(byte reg_high, byte reg_low, byte value)
         {
             Span<byte> fifo = new byte[6];
-            fifo[0] = I2C_BYTE_PLL;
-            fifo[1] = CLOCK_GEN_I2C_ADDRESS_WRITE;
-            fifo[2] = CLOCK_GEN_WRITE_COMMAND;
+            fifo[0] = I2C_BYTE_PLL_Rev4;
+            fifo[1] = CLOCK_GEN_I2C_ADDRESS_WRITE_Rev4;
+            fifo[2] = CLOCK_GEN_WRITE_COMMAND_Rev4;
             fifo[3] = reg_high;
             fifo[4] = reg_low;
             fifo[5] = value;
             WriteFifo(fifo);
         }
-#endif
+
+        private void ConfigurePLL()
+        {
+            switch (revision.ToLower())
+            {
+                case "rev1":
+                    ConfigurePLLRev1();
+                    break;
+                case "rev3":
+                    ConfigurePLLRev3();
+                    break;
+                case "rev4":
+                    ConfigurePLLRev4();
+                    break;
+                default:
+                    throw new ArgumentNullException("No revision set for ThunderScope");
+
+            }
+        }
     }
 }

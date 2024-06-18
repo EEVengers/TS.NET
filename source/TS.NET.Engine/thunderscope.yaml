@@ -1,9 +1,13 @@
 ###################################################################################################
 # General configuration
 #
-# Key: Driver
+# Key: HardwareDriver
 # Value: String, with possible values of XMDA/Simulator.
 # Selects the hardware driver to use.
+#
+# Key: HardwareRevision
+# Value: String, with appropriate value for the Driver used.
+# Selects the hardware revision.
 #
 # Key: MaxChannelCount 
 # Value: Integer, typically 4 for a 4-channel thunderscope.
@@ -13,14 +17,25 @@
 # Value: Integer, typically 1000000. Larger values may be used for longer triggered captures.
 # Configures the maximum data length of each channel possible. At runtime, the processing logic could use any number up to this maximum. This has a large correlation with the amount of RAM usage.
 #
-# Key: Twinlan
+# Key: ScpiPort
+# Value: Integer, typically 5025.
+# Configures the port number for the SCPI service.
+#
+# Key: DataPort
+# Value: Integer, typically 5026
+# Configures the port number for the Data service.
+#
+# Key: DataPortEnabled
 # Value: Boolean, true/false.
 # A SCPI interface is always available at port 5025. This key enables a binary data socket at port 5026. This is the "twinlan" interface in ngscopeclient, with path of "localhost:5025:5026".
 
-Driver: XDMA
+HardwareDriver: Simulator
+HardwareRevision: Rev4
 MaxChannelCount: 4
 MaxChannelDataLength: 2500000
-Twinlan: true
+ScpiPort: 5025
+DataPort: 5026
+DataPortEnabled: true
 
 ###################################################################################################
 # Threading configuration

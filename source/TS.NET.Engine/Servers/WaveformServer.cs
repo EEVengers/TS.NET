@@ -15,7 +15,8 @@ namespace TS.NET.Engine
         internal long triggerFs;
         internal double hwWaveformsPerSec;
 
-        public override string ToString(){
+        public override string ToString()
+        {
             return $"seqnum: {seqnum}, numChannels: {numChannels}, fsPerSample: {fsPerSample}, triggerFs: {triggerFs}, hwWaveformsPerSec: {hwWaveformsPerSec}";
         }
     }
@@ -29,7 +30,8 @@ namespace TS.NET.Engine
         internal float offset;
         internal float trigphase;
         internal byte clipping;
-        public override string ToString(){
+        public override string ToString()
+        {
             return $"chNum: {chNum}, depth: {depth}, scale: {scale}, offset: {offset}, trigphase: {trigphase}, clipping: {clipping}";
         }
     }
@@ -168,14 +170,11 @@ namespace TS.NET.Engine
         private readonly CancellationTokenSource cancellationTokenSource;
         private readonly ThunderscopeDataBridgeReader bridge;
 
-        public WaveformServer(ILoggerFactory loggerFactory,
-            ThunderscopeSettings settings,
-            IPAddress address,
-            int port) : base(address, port)
+        public WaveformServer(ILoggerFactory loggerFactory, ThunderscopeSettings settings, IPAddress address, int port, string bridgeNamespace) : base(address, port)
         {
             logger = loggerFactory.CreateLogger(nameof(WaveformServer));
             cancellationTokenSource = new();
-            bridge = new("ThunderScope.1");
+            bridge = new(bridgeNamespace);
             logger.LogDebug("Started");
         }
 

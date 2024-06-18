@@ -14,7 +14,7 @@ namespace TS.NET.Native.BridgeReader
         [UnmanagedCallersOnly(EntryPoint = "init")]
         public static IntPtr Init()
         {
-            ThunderscopeDataBridgeReader bridgeReader = new("ThunderScope.1");
+            ThunderscopeDataBridgeReader bridgeReader = new("ThunderScope.0");
 
             GCHandle handle = GCHandle.Alloc(bridgeReader, GCHandleType.Pinned);
             return handle.AddrOfPinnedObject();

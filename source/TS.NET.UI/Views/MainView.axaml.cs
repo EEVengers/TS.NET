@@ -105,7 +105,7 @@ public partial class MainView : UserControl
         try
         {
             uint bufferLength = 4 * 100 * 1000 * 1000;      //Maximum record length = 100M samples per channel
-            ThunderscopeDataBridgeReader bridge = new("ThunderScope.1");
+            ThunderscopeDataBridgeReader bridge = new("ThunderScope.0");
             Dispatcher.UIThread.InvokeAsync(() =>
             {
                 lblStatus.Content = "Bridge connection established";

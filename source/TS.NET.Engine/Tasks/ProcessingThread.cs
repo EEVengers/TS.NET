@@ -11,6 +11,7 @@ namespace TS.NET.Engine
         private readonly BlockingChannelWriter<ThunderscopeMemory> inputChannel;
         private readonly BlockingChannelReader<ProcessingRequestDto> processingRequestChannel;
         private readonly BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel;
+        private readonly string bridgeNamespace;
 
         private CancellationTokenSource? cancelTokenSource;
         private Task? taskLoop;
@@ -21,7 +22,8 @@ namespace TS.NET.Engine
             BlockingChannelReader<InputDataDto> processChannel,
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
-            BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel)
+            BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel,
+            string bridgeNamespace)
         {
             logger = loggerFactory.CreateLogger(nameof(ProcessingThread));
             this.settings = settings;
@@ -29,12 +31,13 @@ namespace TS.NET.Engine
             this.inputChannel = inputChannel;
             this.processingRequestChannel = processingRequestChannel;
             this.processingResponseChannel = processingResponseChannel;
+            this.bridgeNamespace = bridgeNamespace;
         }
 
         public void Start(SemaphoreSlim startSemaphore)
         {
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, settings, processChannel, inputChannel, processingRequestChannel, processingResponseChannel, startSemaphore, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, settings, processChannel, inputChannel, processingRequestChannel, processingResponseChannel, startSemaphore, bridgeNamespace, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -52,6 +55,7 @@ namespace TS.NET.Engine
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel,
             SemaphoreSlim startSemaphore,
+            string bridgeNamespace,
             CancellationToken cancelToken)
         {
             try
@@ -70,7 +74,7 @@ namespace TS.NET.Engine
                     MaxChannelDataLength = settings.MaxChannelDataLength,
                     ChannelDataType = ThunderscopeChannelDataType.I8
                 };
-                ThunderscopeDataBridgeWriter bridge = new("ThunderScope.1", bridgeConfig);
+                ThunderscopeDataBridgeWriter bridge = new(bridgeNamespace, bridgeConfig);
 
                 ThunderscopeHardwareConfig cachedHardwareConfig = default;
 

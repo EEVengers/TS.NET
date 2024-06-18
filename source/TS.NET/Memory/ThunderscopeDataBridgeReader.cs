@@ -22,28 +22,28 @@ namespace TS.NET
         public ReadOnlySpan<sbyte> AcquiredRegionI8 { get { return GetAcquiredRegionI8(); } }
         public ReadOnlySpan<byte> AcquiredRegionU8 { get { return GetAcquiredRegionU8(); } }        // Useful for the Socket API which only accepts byte
 
-        public unsafe ThunderscopeDataBridgeReader(string memoryName)
+        public unsafe ThunderscopeDataBridgeReader(string bridgeNamespace)
         {
-            memoryName += ".Data";
+            string mmfName = bridgeNamespace + ".Data";
             if (OperatingSystem.IsWindows())
             {
-                while (!MemoryFileWindows.Exists(memoryName))
+                while (!MemoryFileWindows.Exists(mmfName))
                 {
                     Console.WriteLine("Waiting for Thunderscope data bridge writer to create MMF...");
                     Thread.Sleep(1000);
                 }
 
-                file = new MemoryFileWindows(memoryName);
+                file = new MemoryFileWindows(mmfName);
             }
             else
             {
-                while (!MemoryFileUnix.Exists(memoryName))
+                while (!MemoryFileUnix.Exists(mmfName))
                 {
                     Console.WriteLine("Waiting for Thunderscope data bridge writer to create MMF...");
                     Thread.Sleep(1000);
                 }
 
-                file = new MemoryFileUnix(memoryName, MemoryFileUnix.Size(memoryName));
+                file = new MemoryFileUnix(mmfName, MemoryFileUnix.Size(mmfName));
             }
 
             try
@@ -62,8 +62,8 @@ namespace TS.NET
                     }
                     GetHeader();
                     //Console.WriteLine($"Bridge capacity: {(ulong)sizeof(ThunderscopeDataBridgeHeader) + header.DataCapacityBytes} bytes");
-                    dataRequestSemaphore = InterprocessSemaphore.CreateReleaser(memoryName + ".DataRequest", 0);
-                    dataResponseSemaphore = InterprocessSemaphore.CreateWaiter(memoryName + ".DataResponse", 0);
+                    dataRequestSemaphore = InterprocessSemaphore.CreateReleaser(bridgeNamespace + ".DataRequest", 0);
+                    dataResponseSemaphore = InterprocessSemaphore.CreateWaiter(bridgeNamespace + ".DataResponse", 0);
 
                     cachedDataWidth = header.Bridge.ChannelDataType.Width();
                 }

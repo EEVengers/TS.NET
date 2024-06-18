@@ -8,10 +8,13 @@ namespace TS.NET.Engine
     [YamlSerializable]
     public class ThunderscopeSettings
     {
-        public string Driver { get; set; }
+        public string HardwareDriver { get; set; }
+        public string HardwareRevision { get; set; }
         public ushort MaxChannelCount { get; set; }
         public uint MaxChannelDataLength { get; set; }
-        public bool Twinlan { get; set; }
+        public int ScpiPort { get; set; }
+        public int DataPort { get; set; }
+        public bool DataPortEnabled { get; set; }
 
         public int HardwareThreadProcessorAffinity { get; set; }
         public int ProcessingThreadProcessorAffinity { get; set; }
@@ -22,12 +25,17 @@ namespace TS.NET.Engine
         {
             return new ThunderscopeSettings()
             {
-                Driver = "XDMA",
+                HardwareDriver = "XDMA",
+                HardwareRevision = "Rev4",
                 MaxChannelCount = 4,
                 MaxChannelDataLength = 1000000,
-                Twinlan = true,
+                ScpiPort = 5025,
+                DataPort = 5026,
+                DataPortEnabled = true,
+
                 HardwareThreadProcessorAffinity = -1,
                 ProcessingThreadProcessorAffinity = -1,
+
                 Calibration = ThunderscopeCalibrationSettings.Default()
             };
         }
