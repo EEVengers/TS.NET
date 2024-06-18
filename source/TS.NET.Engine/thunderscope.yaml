@@ -29,7 +29,7 @@
 # Value: Boolean, true/false.
 # A SCPI interface is always available at port 5025. This key enables a binary data socket at port 5026. This is the "twinlan" interface in ngscopeclient, with path of "localhost:5025:5026".
 
-HardwareDriver: Simulator
+HardwareDriver: XDMA
 HardwareRevision: Rev4
 MaxChannelCount: 4
 MaxChannelDataLength: 2500000
