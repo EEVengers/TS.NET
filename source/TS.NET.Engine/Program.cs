@@ -130,7 +130,7 @@ class Program
             waveformServer.Start();
         }
 
-        ScpiServer scpiServer = new(loggerFactory, System.Net.IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
+        ScpiServer scpiServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
         scpiServer.Start();
 
         bool loop = true;

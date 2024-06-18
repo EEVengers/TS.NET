@@ -13,16 +13,19 @@ namespace TS.NET.Engine
         private readonly BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel;
         private readonly BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel;
         private readonly BlockingChannelReader<ProcessingResponseDto> processingResponseChannel;
+        private readonly ThunderscopeSettings settings;
 
         public ScpiSession(
             TcpServer server,
             ILogger logger,
+            ThunderscopeSettings settings,
             BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel,
             BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel,
             BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelReader<ProcessingResponseDto> processingResponseChannel) : base(server)
         {
             this.logger = logger;
+            this.settings = settings;
             this.hardwareRequestChannel = hardwareRequestChannel;
             this.hardwareResponseChannel = hardwareResponseChannel;
             this.processingRequestChannel = processingRequestChannel;
@@ -48,7 +51,7 @@ namespace TS.NET.Engine
             {
                 if (string.IsNullOrWhiteSpace(message)) { continue; }
 
-                string? response = ProcessSCPICommand(logger, hardwareRequestChannel, hardwareResponseChannel, processingRequestChannel, processingResponseChannel, message.Trim());
+                string? response = ProcessSCPICommand(logger, settings, hardwareRequestChannel, hardwareResponseChannel, processingRequestChannel, processingResponseChannel, message.Trim());
 
                 if (response != null)
                 {
@@ -68,6 +71,7 @@ namespace TS.NET.Engine
 
         public static string? ProcessSCPICommand(
             ILogger logger,
+            ThunderscopeSettings settings,
             BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel,
             BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel,
             BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
@@ -264,8 +268,22 @@ namespace TS.NET.Engine
                                 return "";
                             }
                         case "DEPTHS":
-                            //To do: get maximum channel length from configuration, and generate every 1/2/5 value up to maximum. Perhaps take into account the sample rate to get 1ms/2ms/5ms/10ms/etc windows instead?
-                            return "1000,2000,5000,10000,20000,50000,100000,200000,500000,1000000,\n";
+                            List<string> depths = new();
+                            int baseCount = 1000;
+                            while(true)
+                            {
+                                if(baseCount <= settings.MaxChannelDataLength)
+                                    depths.Add($"{baseCount}");
+                                if(baseCount * 2 <= settings.MaxChannelDataLength)
+                                    depths.Add($"{baseCount * 2}");
+                                if(baseCount * 5 <= settings.MaxChannelDataLength)
+                                    depths.Add($"{baseCount * 5}");
+                                baseCount *= 10;
+                                if(baseCount > settings.MaxChannelDataLength)
+                                    break;
+                            }
+                            // Perhaps take into account the sample rate to get 1ms/2ms/5ms/10ms/etc windows instead?
+                            return $"{string.Join(",", depths)},\n";
                     }
                 }
             }
@@ -278,12 +296,14 @@ namespace TS.NET.Engine
     class ScpiServer : TcpServer
     {
         private readonly ILogger logger;
+        private readonly ThunderscopeSettings settings;
         private readonly BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel;
         private readonly BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel;
         private readonly BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel;
         private readonly BlockingChannelReader<ProcessingResponseDto> processingResponseChannel;
 
         public ScpiServer(ILoggerFactory loggerFactory,
+            ThunderscopeSettings settings,
             IPAddress address,
             int port,
             BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel,
@@ -292,6 +312,7 @@ namespace TS.NET.Engine
             BlockingChannelReader<ProcessingResponseDto> processingResponseChannel) : base(address, port)
         {
             logger = loggerFactory.CreateLogger(nameof(ScpiServer));
+            this.settings = settings;
             this.hardwareRequestChannel = hardwareRequestChannel;
             this.hardwareResponseChannel = hardwareResponseChannel;
             this.processingRequestChannel = processingRequestChannel;
@@ -301,7 +322,7 @@ namespace TS.NET.Engine
 
         protected override TcpSession CreateSession()
         {
-            return new ScpiSession(this, logger, hardwareRequestChannel, hardwareResponseChannel, processingRequestChannel, processingResponseChannel);
+            return new ScpiSession(this, logger, settings, hardwareRequestChannel, hardwareResponseChannel, processingRequestChannel, processingResponseChannel);
         }
 
         protected override void OnError(SocketError error)

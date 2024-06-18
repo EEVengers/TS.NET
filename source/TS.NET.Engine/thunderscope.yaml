@@ -32,7 +32,7 @@
 HardwareDriver: XDMA
 HardwareRevision: Rev4
 MaxChannelCount: 4
-MaxChannelDataLength: 25000000
+MaxChannelDataLength: 50000000
 ScpiPort: 5025
 DataPort: 5026
 DataPortEnabled: true
