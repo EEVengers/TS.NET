@@ -235,8 +235,8 @@ namespace TS.NET.Engine
                     else if (command == "RANGE" && hasArg)
                     {
                         double range = Convert.ToDouble(argument);
-                        logger.LogDebug($"Set channel {chNum} range to {range}V [Not implemented]");
-                        //hardwareRequestChannel.Write(new HardwareSetVoltFullScaleRequest(chNum, range));
+                        logger.LogDebug($"Set channel {chNum} range to {range}V");
+                        hardwareRequestChannel.Write(new HardwareSetVoltFullScaleRequest(chNum, range));
                         return null;
                     }
                 }
