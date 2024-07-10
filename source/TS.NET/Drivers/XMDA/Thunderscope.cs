@@ -345,13 +345,13 @@ namespace TS.NET.Driver.XMDA
 
         private void UpdateAdc()
         {
-            byte[] on_channels = new byte[4];
+            byte[] insel = new byte[4];
             int num_channels_on = 0;
             for (int i = 0; i < 4; i++)
             {
                 if (((configuration.EnabledChannels >> i) & 0x01) > 0)
                 {
-                    on_channels[num_channels_on++] = (byte)(3 - i);
+                    num_channels_on++;
                 }
             }
 
@@ -360,21 +360,33 @@ namespace TS.NET.Driver.XMDA
             {
                 case 0:
                 case 1:
-                    on_channels[3] = on_channels[2] = on_channels[1] = on_channels[0];
+                    for (byte i = 3; i >= 0; i--)
+                    {
+                        if (((configuration.EnabledChannels >> i) & 0x01) > 0)
+                        {
+                            insel[3] = insel[2] = insel[1] = insel[0] = i;
+                        }
+                    }
                     clkdiv = 0;
                     configuration.AdcChannelMode = AdcChannelMode.Single;
                     break;
                 case 2:
-                    on_channels[2] = on_channels[3] = on_channels[1];
-                    on_channels[1] = on_channels[0];
+                    for (byte i = 3, j = 3; i >= 0; i--)
+                    {
+                        if (((configuration.EnabledChannels >> i) & 0x01) > 0)
+                        {
+                            insel[j] = insel[j-1] = i;
+                            j = (byte)(j - 2);
+                        }
+                    }
                     clkdiv = 1;
                     configuration.AdcChannelMode = AdcChannelMode.Dual;
                     break;
                 default:
-                    on_channels[0] = 3;
-                    on_channels[1] = 2;
-                    on_channels[2] = 1;
-                    on_channels[3] = 0;
+                    insel[0] = 3;
+                    insel[1] = 2;
+                    insel[2] = 1;
+                    insel[3] = 0;
                     num_channels_on = 4;
                     clkdiv = 2;
                     configuration.AdcChannelMode = AdcChannelMode.Quad;
@@ -384,8 +396,8 @@ namespace TS.NET.Driver.XMDA
             AdcPower(false);
             SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_CHNUM_CLKDIV, (ushort)(clkdiv << 8 | num_channels_on));
             AdcPower(true);
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL12, (ushort)(2 << on_channels[0] | 512 << on_channels[1]));
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL34, (ushort)(2 << on_channels[2] | 512 << on_channels[3]));
+            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL12, (ushort)(2 << insel[0] | 512 << insel[1]));
+            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL34, (ushort)(2 << insel[2] | 512 << insel[3]));
 
             ThunderscopeHardwareState temporaryState = hardwareState;
             temporaryState.DatamoverEnabled = false;
