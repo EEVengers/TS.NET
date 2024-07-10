@@ -137,15 +137,11 @@ namespace TS.NET.Driver.XMDA
             return configuration.Channels[channelIndex];
         }
 
-        public void SetChannel(int channelIndex, ThunderscopeChannel channel)
+        public void SetChannel(int channel, ThunderscopeChannel thunderscopeChannel)
         {
-            CalculateAfeConfiguration(ref channel);
-            configuration.Channels[channelIndex] = channel;
             UpdateAdc();
-            Thread.Sleep(10);      // This delay is essential for ensuring channel 1 value gets set (the assumption is that the FIFO isn't ready immediately)
-            SetDAC(channelIndex);
-            Thread.Sleep(10);      // Don't know if this delay is needed, added for belt'n'braces
-            SetPGA(channelIndex);
+            UpdateAfe(channel, ref thunderscopeChannel);
+            configuration.Channels[channel] = thunderscopeChannel;
         }
 
         public void SetChannelEnable(int channelIndex, bool enabled)
@@ -175,11 +171,6 @@ namespace TS.NET.Driver.XMDA
 
         private void Initialise()
         {
-            CalculateAfeConfiguration(ref configuration.Channels[0]);
-            CalculateAfeConfiguration(ref configuration.Channels[1]);
-            CalculateAfeConfiguration(ref configuration.Channels[2]);
-            CalculateAfeConfiguration(ref configuration.Channels[3]);
-
             Write32(BarRegister.DATAMOVER_REG_OUT, 0);
 
             //Comment out below for Rev.1
@@ -195,13 +186,12 @@ namespace TS.NET.Driver.XMDA
 
             UpdateAdc();
 
-            for (int i = 0; i < 4; i++)
+            for (int channel = 0; channel < 4; channel++)
             {
-                Thread.Sleep(10);      // This delay is essential for ensuring channel 1 value gets set (the assumption is that the FIFO isn't ready immediately)
-                SetDAC(i);
-                Thread.Sleep(10);      // Don't know if this delay is needed, added for belt'n'braces
-                SetPGA(i);
+                UpdateAfe(channel, ref configuration.Channels[channel]);
             }
+
+            ConfigureDatamover(hardwareState);      // Needed to set Attenuator after UpdateAfe
         }
 
         private uint Read32(BarRegister register)
@@ -345,13 +335,13 @@ namespace TS.NET.Driver.XMDA
 
         private void UpdateAdc()
         {
-            byte[] on_channels = new byte[4];
+            byte[] insel = new byte[4];
             int num_channels_on = 0;
             for (int i = 0; i < 4; i++)
             {
                 if (((configuration.EnabledChannels >> i) & 0x01) > 0)
                 {
-                    on_channels[num_channels_on++] = (byte)(3 - i);
+                    num_channels_on++;
                 }
             }
 
@@ -360,21 +350,33 @@ namespace TS.NET.Driver.XMDA
             {
                 case 0:
                 case 1:
-                    on_channels[3] = on_channels[2] = on_channels[1] = on_channels[0];
+                    for (byte i = 3; i >= 0; i--)
+                    {
+                        if (((configuration.EnabledChannels >> i) & 0x01) > 0)
+                        {
+                            insel[3] = insel[2] = insel[1] = insel[0] = i;
+                        }
+                    }
                     clkdiv = 0;
                     configuration.AdcChannelMode = AdcChannelMode.Single;
                     break;
                 case 2:
-                    on_channels[2] = on_channels[3] = on_channels[1];
-                    on_channels[1] = on_channels[0];
+                    for (byte i = 3, j = 3; i >= 0; i--)
+                    {
+                        if (((configuration.EnabledChannels >> i) & 0x01) > 0)
+                        {
+                            insel[j] = insel[j - 1] = i;
+                            j = (byte)(j - 2);
+                        }
+                    }
                     clkdiv = 1;
                     configuration.AdcChannelMode = AdcChannelMode.Dual;
                     break;
                 default:
-                    on_channels[0] = 3;
-                    on_channels[1] = 2;
-                    on_channels[2] = 1;
-                    on_channels[3] = 0;
+                    insel[0] = 3;
+                    insel[1] = 2;
+                    insel[2] = 1;
+                    insel[3] = 0;
                     num_channels_on = 4;
                     clkdiv = 2;
                     configuration.AdcChannelMode = AdcChannelMode.Quad;
@@ -384,8 +386,8 @@ namespace TS.NET.Driver.XMDA
             AdcPower(false);
             SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_CHNUM_CLKDIV, (ushort)(clkdiv << 8 | num_channels_on));
             AdcPower(true);
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL12, (ushort)(2 << on_channels[0] | 512 << on_channels[1]));
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL34, (ushort)(2 << on_channels[2] | 512 << on_channels[3]));
+            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL12, (ushort)(2 << insel[0] | 512 << insel[1]));
+            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL34, (ushort)(2 << insel[2] | 512 << insel[3]));
 
             ThunderscopeHardwareState temporaryState = hardwareState;
             temporaryState.DatamoverEnabled = false;
@@ -398,12 +400,13 @@ namespace TS.NET.Driver.XMDA
                 ConfigureDatamover(hardwareState);
         }
 
-        private void SetDAC(int channel)
+        private void UpdateAfe(int channel, ref ThunderscopeChannel channelConfiguration)
         {
-            // value is 12-bit
-            // Is this right?? Or is it rounding wrong?
-            //uint dac_value = (uint)Math.Round((configuration.GetChannel(channel).VoltOffset + 0.5) * 4095);
+            CalculatePgaConfigurationWord(ref channelConfiguration);
+            SetPGA(channel, channelConfiguration.PgaConfigurationWord);
+            Thread.Sleep(10);
 
+            // To do: use the calibration to calculate actual value
             ushort dacValue = channel switch
             {
                 0 => calibration.Channel1.TrimOffsetDac,
@@ -411,36 +414,69 @@ namespace TS.NET.Driver.XMDA
                 2 => calibration.Channel3.TrimOffsetDac,
                 3 => calibration.Channel4.TrimOffsetDac,
             };
+            SetTrimOffsetDAC(channel, dacValue);
+            Thread.Sleep(10);
+
+            // To do: use the calibration to calculate actual value
+            dacValue = channel switch
+            {
+                0 => calibration.Channel1.TrimSensitivityDac,
+                1 => calibration.Channel2.TrimSensitivityDac,
+                2 => calibration.Channel3.TrimSensitivityDac,
+                3 => calibration.Channel4.TrimSensitivityDac,
+            };
+            SetTrimSensitivityDAC(channel, dacValue);
+            Thread.Sleep(10);
+        }
+
+        private void SetTrimOffsetDAC(int channel, ushort dacValue)
+        {
+            // MCP4728 - 12-bit quad DAC with EEPROM
             if (dacValue < 0)
-                throw new Exception("DAC offset too low");
+                throw new Exception("DAC value too low");
             if (dacValue > 0xFFF)
-                throw new Exception("DAC offset too high");
+                throw new Exception("DAC value too high");
 
             Span<byte> fifo = new byte[5];
-            fifo[0] = 0xFF;  // I2C
-            fifo[1] = 0xC0;  // DAC? New address is C0 since part is A0 variant
-            //fifo[2] = (byte)(0x40 + (channelIndex << 1));
-            fifo[2] = (byte)(0x58 + (channel << 1));       // p41 of MCP4728 datasheet
-            fifo[3] = (byte)(dacValue >> 8 & 0xF);     // Vref = VDD. Power down = normal mode. Gain = 1
+            fifo[0] = 0xFF;                             // I2C
+            fifo[1] = 0xC0;                             // MCP4728 8-bit address
+            fifo[2] = (byte)(0x40 + (channel << 1));    // p34 of MCP4728 datasheet
+            fifo[3] = (byte)(dacValue >> 8 & 0xF);      // Vref = VDD. Power down = normal mode. Gain = 1
             fifo[4] = (byte)(dacValue & 0xFF);
             WriteFifo(fifo);
         }
 
-        private void SetPGA(int channel)
+        private void SetTrimSensitivityDAC(int channel, ushort dacValue)
+        {
+            // MCP4432 - 7-bit quad Digital POT
+            if (dacValue < 0)
+                throw new Exception("DAC value too low");
+            if (dacValue > 0x80)
+                throw new Exception("DAC value too high");
+
+            byte command = channel switch
+            {
+                0 => 0x06 << 4,
+                1 => 0x00 << 4,
+                2 => 0x01 << 4,
+                3 => 0x07 << 4
+            };
+
+            Span<byte> fifo = new byte[5];
+            fifo[0] = 0xFF;             // I2C
+            fifo[1] = 0x58;             // MCP4432 8-bit address
+            fifo[2] = command;          // p41 of MCP4432 datasheet
+            fifo[3] = (byte)dacValue;   // 8-bit value (0x00 to 0x80 for 7-bit DAC)
+            WriteFifo(fifo);
+        }
+
+        private void SetPGA(int channel, ushort configurationWord)
         {
             Span<byte> fifo = new byte[4];
-            fifo[0] = (byte)(0xFB - channel);  // SPI chip enable
+            fifo[0] = (byte)(0xFB - channel);           // SPI chip enable
             fifo[1] = 0;
-            fifo[2] = 0x04;  // ??
-            fifo[3] = configuration.Channels[channel].PgaConfigurationByte;
-            switch (configuration.Channels[channel].Bandwidth)
-            {
-                case 20: fifo[3] |= 0x40; break;
-                case 100: fifo[3] |= 0x80; break;
-                case 200: fifo[3] |= 0xC0; break;
-                case 350: /* 0 */ break;
-                default: throw new Exception("Invalid bandwidth");
-            }
+            fifo[2] = (byte)(configurationWord << 8);
+            fifo[3] = (byte)(configurationWord & 0xFF);
             WriteFifo(fifo);
         }
 
@@ -471,10 +507,9 @@ namespace TS.NET.Driver.XMDA
                 throw new ThunderscopeMemoryOutOfMemoryException("Thunderscope - memory full");
         }
 
-        // Channel passed by ref to do in-place updating
-        // Returns PGA configuration byte
-        public static void CalculateAfeConfiguration(ref ThunderscopeChannel channel)
+        private void CalculatePgaConfigurationWord(ref ThunderscopeChannel channel)
         {
+            // LMH6518 p22
             double requestedVoltFullScale = channel.VoltFullScale;
             double attenuatorFactor = 1.0 / 50.0;
             double headroomFactor = 1.0;        // Buf802 has 0.961 so can get away with setting this to 1.0 instead of something like 0.95
@@ -497,26 +532,29 @@ namespace TS.NET.Driver.XMDA
 
             // Now check all the PGA gain options, starting from highest gain setting
             bool gainFound = false;
-            bool lnaHighGain = true;
-            int n;
-            double pgaGainCalculation() { return (lnaHighGain ? 30 : 10) - 2 * n + 8.86; }
-            for (n = 0; n < 10; n++)
+            bool preamp = true;
+            int ladderAttenuation;
+            double pgaGainCalculation() { return (preamp ? 30 : 10) - 2 * ladderAttenuation + 8.86; }
+
+            for (ladderAttenuation = 0; ladderAttenuation < 10; ladderAttenuation++)
             {
                 var potentialPgaGainDb = pgaGainCalculation();
                 if (potentialPgaGainDb < requestedPgaGainDb)
                 {
+                    Console.Write($"PGA gain: {potentialPgaGainDb:F3}dB ");
                     gainFound = true;
                     break;
                 }
             }
             if (!gainFound)
             {
-                lnaHighGain = false;
-                for (n = 0; n <= 10; n++)
+                preamp = false;
+                for (ladderAttenuation = 0; ladderAttenuation <= 10; ladderAttenuation++)
                 {
                     var potentialPgaGainDb = pgaGainCalculation();
                     if (potentialPgaGainDb < requestedPgaGainDb)
                     {
+                        Console.Write($"PGA gain: {potentialPgaGainDb:F3}dB ");
                         gainFound = true;
                         break;
                     }
@@ -531,27 +569,39 @@ namespace TS.NET.Driver.XMDA
                 channel.ActualVoltFullScale /= attenuatorFactor;
 
             // Decode N into PGA LNA gain and PGA attentuator step
-            channel.PgaConfigurationByte = (byte)n;
-            if (lnaHighGain)
-                channel.PgaConfigurationByte |= 0x10;
+            channel.PgaConfigurationWord = (byte)ladderAttenuation;
+            if (preamp)
+                channel.PgaConfigurationWord |= 0x10;
 
-            // fifo[3] register
-            // [PGA LPF][PGA LPF][PGA LPF][PGA LNA gain][PGA attenuator][PGA attenuator][PGA attenuator][PGA attenuator]
+            channel.PgaConfigurationWord |= 0x400;  // Aux Hi-Z
 
-            // case 100: fifo[3] = 0x0A; break;
-            // case 50: fifo[3] = 0x07; break;
-            // case 20: fifo[3] = 0x03; break;
-            // case 10: fifo[3] = 0x1A; break;
-            // case 5: fifo[3] = 0x17; break;
-            // case 2: fifo[3] = 0x13; break;
-            // case 1: fifo[3] = 0x10; break;
-
-            // https://www.ti.com/lit/ds/symlink/lmh6518.pdf page 22
-            // case 20: fifo[3] |= 0x40; break;
-            // case 100: fifo[3] |= 0x80; break;
-            // case 200: fifo[3] |= 0xC0; break;
-            // case 350: /* 0 */ break;
+            switch (channel.Bandwidth)
+            {
+                case ThunderscopeBandwidth.BwFull: 
+                    break;
+                case ThunderscopeBandwidth.Bw20M:
+                    channel.PgaConfigurationWord |= 1 << 6; 
+                    break;
+                case ThunderscopeBandwidth.Bw100M:
+                    channel.PgaConfigurationWord |= 2 << 6; 
+                    break;
+                case ThunderscopeBandwidth.Bw200M:
+                    channel.PgaConfigurationWord |= 3 << 6; 
+                    break;
+                case ThunderscopeBandwidth.Bw350M:
+                    channel.PgaConfigurationWord |= 4 << 6;
+                    break;
+                case ThunderscopeBandwidth.Bw650M:
+                    channel.PgaConfigurationWord |= 5 << 6;
+                    break;
+                case ThunderscopeBandwidth.Bw750M:
+                    channel.PgaConfigurationWord |= 6 << 6;
+                    break;
+                default: 
+                    throw new Exception("ThunderscopeBandwidth enum value not handled");
+            }
         }
+
         private void ConfigurePLLRev1()
         {
             // These were provided by the chip configuration tool.

@@ -9,12 +9,12 @@ namespace TS.NET
         public ThunderscopeTermination Termination;
         public double VoltFullScale;
         public double VoltOffset;
-        public int Bandwidth;
+        public ThunderscopeBandwidth Bandwidth;
 
         // Calculated data
         public bool Attenuator;
         public double ActualVoltFullScale;
-        public byte PgaConfigurationByte;
+        public ushort PgaConfigurationWord;
 
         public static ThunderscopeChannel Default()
         {
@@ -23,7 +23,7 @@ namespace TS.NET
                 Coupling = ThunderscopeCoupling.DC,
                 VoltFullScale = 0.5,
                 VoltOffset = 0,
-                Bandwidth = 20,               
+                Bandwidth = ThunderscopeBandwidth.Bw20M               
             };
         }
     }
@@ -38,5 +38,16 @@ namespace TS.NET
     {
         OneMegaohm = 1,
         FiftyOhm = 2
+    }
+
+    public enum ThunderscopeBandwidth : byte
+    {
+        BwFull = 0,
+        Bw20M = 1,
+        Bw100M = 2,
+        Bw200M = 3,
+        Bw350M = 4,
+        Bw650M = 5,
+        Bw750M = 6
     }
 }
