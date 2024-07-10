@@ -105,6 +105,13 @@ class Program
                     thunderscope = ts;
                     break;
                 }
+            case "litex":
+                {
+                    var ts = new TS.NET.Driver.LiteX.Thunderscope();
+                    ts.Open(0, thunderscopeSettings.Calibration.ToDriver(), thunderscopeSettings.HardwareRevision);
+                    thunderscope = ts;
+                    break;
+                }
             default:
                 throw new ArgumentException($"{thunderscopeSettings.HardwareDriver} driver not supported");
         }
