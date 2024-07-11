@@ -212,10 +212,6 @@ namespace TS.NET.Driver.XMDA
         {
             // reset ISR
             Write32(BarRegister.SERIAL_FIFO_ISR_ADDRESS, 0xFFFFFFFFU);
-            // enable IER
-            Write32(BarRegister.SERIAL_FIFO_IER_ADDRESS, 0x0C000000U);
-            // Set false TDR
-            Write32(BarRegister.SERIAL_FIFO_TDR_ADDRESS, 0x2U);
             // Put data into queue
             for (int i = 0; i < data.Length; i++)
             {
@@ -224,8 +220,6 @@ namespace TS.NET.Driver.XMDA
                 bytes.Fill(data[i]);
                 interop.WriteUser(bytes, (ulong)BarRegister.SERIAL_FIFO_DATA_WRITE_REG);
             }
-            // read TDFV (vacancy byte)
-            Read32(BarRegister.SERIAL_FIFO_TDFV_ADDRESS);
             // write to TLR (the size of the packet)
             Write32(BarRegister.SERIAL_FIFO_TLR_ADDRESS, (uint)(data.Length * 4));
             // read ISR for a done value
@@ -233,8 +227,6 @@ namespace TS.NET.Driver.XMDA
             {
                 Thread.Sleep(1);
             }
-            // reset ISR
-            Write32(BarRegister.SERIAL_FIFO_ISR_ADDRESS, 0xFFFFFFFFU);
         }
 
         private void ConfigureDatamover(ThunderscopeHardwareState state)
