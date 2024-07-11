@@ -290,7 +290,7 @@ namespace TS.NET.Driver.XMDA
             // Invert channels
             SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INVERT, 0x007F);
             // Adjust full scale value
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_FS_CNTRL, 0x0010);
+            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_FS_CNTRL, 0x0020);
             // Course Gain On
             SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_GAIN_CFG, 0x0000);
             // Course Gain 4-CH set
@@ -354,19 +354,22 @@ namespace TS.NET.Driver.XMDA
                     {
                         if (((configuration.EnabledChannels >> i) & 0x01) > 0)
                         {
-                            insel[3] = insel[2] = insel[1] = insel[0] = i;
+                            insel[3] = insel[2] = insel[1] = insel[0] = (byte)(3-i);
+                            break;
                         }
                     }
                     clkdiv = 0;
                     configuration.AdcChannelMode = AdcChannelMode.Single;
                     break;
                 case 2:
-                    for (byte i = 3, j = 3; i >= 0; i--)
-                    {
-                        if (((configuration.EnabledChannels >> i) & 0x01) > 0)
+                    for (int j = 3; j >= 0; j -= 2){
+                        for (byte i = 3; i >= 0; i--)
                         {
-                            insel[j] = insel[j - 1] = i;
-                            j = (byte)(j - 2);
+                            if (((configuration.EnabledChannels >> i) & 0x01) > 0)
+                            {
+                                insel[j] = insel[j - 1] = i;
+                                break;
+                            }
                         }
                     }
                     clkdiv = 1;
