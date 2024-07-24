@@ -15,6 +15,9 @@ namespace TS.NET
         public bool Attenuator;
         public double ActualVoltFullScale;
         public ushort PgaConfigurationWord;
+        public ushort TrimOffsetDac;
+        public ushort TrimSensitivityDac;
+
 
         public static ThunderscopeChannel Default()
         {

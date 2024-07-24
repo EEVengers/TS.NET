@@ -1,4 +1,5 @@
 ﻿using System.Buffers.Binary;
+using System.Runtime.InteropServices;
 using TS.NET.Driver.XMDA.Interop;
 
 namespace TS.NET.Driver.XMDA
@@ -396,25 +397,15 @@ namespace TS.NET.Driver.XMDA
             SetPGA(channel, channelConfiguration.PgaConfigurationWord);
             Thread.Sleep(10);
 
+            CalculateTrimConfiguration(channel, ref channelConfiguration);
+
             // To do: use the calibration to calculate actual value
-            ushort dacValue = channel switch
-            {
-                0 => calibration.Channel1.TrimOffsetDac,
-                1 => calibration.Channel2.TrimOffsetDac,
-                2 => calibration.Channel3.TrimOffsetDac,
-                3 => calibration.Channel4.TrimOffsetDac,
-            };
+            ushort dacValue = channelConfiguration.TrimOffsetDac;
             SetTrimOffsetDAC(channel, dacValue);
             Thread.Sleep(10);
 
             // To do: use the calibration to calculate actual value
-            dacValue = channel switch
-            {
-                0 => calibration.Channel1.TrimSensitivityDac,
-                1 => calibration.Channel2.TrimSensitivityDac,
-                2 => calibration.Channel3.TrimSensitivityDac,
-                3 => calibration.Channel4.TrimSensitivityDac,
-            };
+            dacValue = channelConfiguration.TrimSensitivityDac;
             SetTrimSensitivityDAC(channel, dacValue);
             Thread.Sleep(10);
         }
@@ -590,6 +581,89 @@ namespace TS.NET.Driver.XMDA
                 default: 
                     throw new Exception("ThunderscopeBandwidth enum value not handled");
             }
+        }
+
+        private void CalculateTrimConfiguration(int channelNum, ref ThunderscopeChannel channel)
+        {
+            //Calulate the reguested offset at the PGA_N terminal
+            double requestedOffsetVoltageAtPgaNeg = channel.VoltOffset;
+            if (channel.Attenuator)
+                requestedOffsetVoltageAtPgaNeg /= 50;
+            
+            Console.WriteLine($"Requested Offset: {requestedOffsetVoltageAtPgaNeg:F3}");
+
+            //Decode cal vals from codes to voltage at the PGA_N terminal
+            ushort dacCode = channelNum switch
+            {
+                0 => calibration.Channel1.TrimOffsetDac,
+                1 => calibration.Channel2.TrimOffsetDac,
+                2 => calibration.Channel3.TrimOffsetDac,
+                3 => calibration.Channel4.TrimOffsetDac,
+            };
+            ushort digipotCode = channelNum switch
+            {
+                0 => calibration.Channel1.TrimSensitivityDac,
+                1 => calibration.Channel2.TrimSensitivityDac,
+                2 => calibration.Channel3.TrimSensitivityDac,
+                3 => calibration.Channel4.TrimSensitivityDac,
+            };
+
+            double VDAC = dacCode * (5/4096);
+            double RTRIM = digipotCode * (50000/128);
+            double calibratedVoltageAtPgaNeg = (500*VDAC + 2.5*RTRIM)/(500 + RTRIM);
+
+            Console.WriteLine($"Calibrated Voltage: {calibratedVoltageAtPgaNeg:F3}");
+            
+            //Add requested offset to our hardware offset calibrated "zero"
+            double requestedVoltageAtPgaNeg = calibratedVoltageAtPgaNeg + requestedOffsetVoltageAtPgaNeg;
+            Console.WriteLine($"Requested Voltage: {requestedVoltageAtPgaNeg:F3}");
+            
+            double requestedRTRIM;
+
+            //Figure out what RTRIM to use, start by keeping VDAC at maximum or minimum
+            if (requestedVoltageAtPgaNeg > 2.5){
+                VDAC = 4095 * (5/4096);
+                requestedRTRIM = -(1000*(requestedVoltageAtPgaNeg-5))/(2*requestedVoltageAtPgaNeg-5);
+            }
+            else{
+                VDAC = 0;
+                requestedRTRIM = (1000*requestedVoltageAtPgaNeg)/(5-2*requestedVoltageAtPgaNeg);
+            }
+            
+            //Set digipot code based on above
+            if (requestedRTRIM > 50000){
+                digipotCode = 128; //Can't go higher, recalc VDAC with max RTRIM
+            }
+            else if (requestedRTRIM < 75){
+                Console.WriteLine($"OFFSET OUT OF BOUNDS - RTRIM"); //We won't be able to do this offset
+                digipotCode = 0;
+            }
+            else{
+                digipotCode = (ushort)(requestedRTRIM / 50000 * 128); //rounding down is intentional
+            }
+
+            Console.WriteLine($"Calculated Digipot Code: {digipotCode:F3}");
+            RTRIM = digipotCode * (50000/128);
+            Console.WriteLine($"Calculated RTRIM: {RTRIM:F3}");
+
+            VDAC = (RTRIM*(2*requestedVoltageAtPgaNeg-5)/1000) + requestedVoltageAtPgaNeg;
+            Console.WriteLine($"Calculated VDAC: {VDAC:F3}");
+
+            if (VDAC > 4.998778286875){
+                Console.WriteLine($"OFFSET OUT OF BOUNDS - VDAC HIGH"); //We won't be able to do this offset
+                dacCode = 4095;
+            }
+            else if (VDAC < 0){
+                Console.WriteLine($"OFFSET OUT OF BOUNDS - VDAC LOW"); //We won't be able to do this offset
+                dacCode = 0;
+            }
+            else{
+                dacCode = (ushort)(VDAC / 5 * 4096);
+            }
+
+            channel.TrimSensitivityDac = digipotCode;
+            channel.TrimOffsetDac = dacCode;
+            
         }
 
         private void ConfigurePLLRev1()
