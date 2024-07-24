@@ -582,15 +582,18 @@ namespace TS.NET.Driver.XMDA
                     throw new Exception("ThunderscopeBandwidth enum value not handled");
             }
         }
-
+        //Works on really low voltage ranges now
         private void CalculateTrimConfiguration(int channelNum, ref ThunderscopeChannel channel)
-        {
-            //Calulate the reguested offset at the PGA_N terminal
-            double requestedOffsetVoltageAtPgaNeg = channel.VoltOffset;
-            if (channel.Attenuator)
-                requestedOffsetVoltageAtPgaNeg /= 50;
+        {         
+            //Calulate the requested offset at the PGA_N terminal
+            double systemGain = 0.7/channel.ActualVoltFullScale;
+
+            Console.WriteLine($"ActualVoltFullScale: {channel.ActualVoltFullScale:F3}");
+            Console.WriteLine($"systemGain: {systemGain:F3}");
             
-            Console.WriteLine($"Requested Offset: {requestedOffsetVoltageAtPgaNeg:F3}");
+            double requestedOffsetVoltageAtADC = channel.VoltOffset/systemGain;
+            
+            Console.WriteLine($"Requested Offset: {requestedOffsetVoltageAtADC:F3}");
 
             //Decode cal vals from codes to voltage at the PGA_N terminal
             ushort dacCode = channelNum switch
@@ -609,14 +612,16 @@ namespace TS.NET.Driver.XMDA
             };
 
             double VDAC = dacCode * (5/4096);
-            double RTRIM = digipotCode * (50000/128);
-            double calibratedVoltageAtPgaNeg = (500*VDAC + 2.5*RTRIM)/(500 + RTRIM);
+            double RTRIM = digipotCode * (50000/128) + 75;
+            double calibratedVoltageAtPgaNeg = 2.525; //TODO, change cal value from codes to volts
 
             Console.WriteLine($"Calibrated Voltage: {calibratedVoltageAtPgaNeg:F3}");
             
             //Add requested offset to our hardware offset calibrated "zero"
-            double requestedVoltageAtPgaNeg = calibratedVoltageAtPgaNeg + requestedOffsetVoltageAtPgaNeg;
+            double requestedVoltageAtPgaNeg = calibratedVoltageAtPgaNeg + requestedOffsetVoltageAtADC;
             Console.WriteLine($"Requested Voltage: {requestedVoltageAtPgaNeg:F3}");
+            
+            //Figure out what VDAC to use, start by keeping VDAC at maximum or minimum
             
             double requestedRTRIM;
 
@@ -643,7 +648,7 @@ namespace TS.NET.Driver.XMDA
             }
 
             Console.WriteLine($"Calculated Digipot Code: {digipotCode:F3}");
-            RTRIM = digipotCode * (50000/128);
+            RTRIM = digipotCode * (50000/128) + 75;
             Console.WriteLine($"Calculated RTRIM: {RTRIM:F3}");
 
             VDAC = (RTRIM*(2*requestedVoltageAtPgaNeg-5)/1000) + requestedVoltageAtPgaNeg;
