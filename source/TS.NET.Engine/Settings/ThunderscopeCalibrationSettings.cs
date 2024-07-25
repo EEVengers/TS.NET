@@ -41,9 +41,24 @@ namespace TS.NET
         {
             return new ThunderscopeChannelCalibration()
             {
-                AttenuatorGain = this.AttenuatorGain,
-                TrimOffsetDac = this.TrimOffsetDac,
-                TrimSensitivityDac = this.TrimSensitivityDac
+                AttenuatorGainHighZ = this.AttenuatorGainHighZ,
+                AttenuatorGainFiftyOhm = this.AttenuatorGainFiftyOhm,
+                BufferGain = this.BufferGain,
+                PgaPreampLowGain = this.PgaPreampLowGain,
+                PgaPreampHighGain = this.PgaPreampHighGain,
+                PgaAttenuatorGain0 = this.PgaAttenuatorGain0,
+                PgaAttenuatorGain1 = this.PgaAttenuatorGain1,
+                PgaAttenuatorGain2 = this.PgaAttenuatorGain2,
+                PgaAttenuatorGain3 = this.PgaAttenuatorGain3,
+                PgaAttenuatorGain4 = this.PgaAttenuatorGain4,
+                PgaAttenuatorGain5 = this.PgaAttenuatorGain5,
+                PgaAttenuatorGain6 = this.PgaAttenuatorGain6,
+                PgaAttenuatorGain7 = this.PgaAttenuatorGain7,
+                PgaAttenuatorGain8 = this.PgaAttenuatorGain8,
+                PgaAttenuatorGain9 = this.PgaAttenuatorGain9,
+                PgaAttenuatorGain10 = this.PgaAttenuatorGain10,
+                PgaOutputAmpGain = this.PgaOutputAmpGain,
+                HardwareOffsetVoltage = this.HardwareOffsetVoltage
             };
         }
 
@@ -51,9 +66,24 @@ namespace TS.NET
         {
             return new ThunderscopeChannelCalibrationSettings()
             {
-                AttenuatorGain = 0.02,
-                TrimOffsetDac = 2048,
-                TrimSensitivityDac = 64
+                AttenuatorGainHighZ = -33.9794,
+                AttenuatorGainFiftyOhm = -13.9794,
+                BufferGain = 0,
+                PgaPreampLowGain = 10,
+                PgaPreampHighGain = 30,
+                PgaAttenuatorGain0 = 0,
+                PgaAttenuatorGain1 = -2,
+                PgaAttenuatorGain2 = -4,
+                PgaAttenuatorGain3 = -6,
+                PgaAttenuatorGain4 = -8,
+                PgaAttenuatorGain5 = -10,
+                PgaAttenuatorGain6 = -12,
+                PgaAttenuatorGain7 = -14,
+                PgaAttenuatorGain8 = -16,
+                PgaAttenuatorGain9 = -18,
+                PgaAttenuatorGain10 = -20,
+                PgaOutputAmpGain = 8.86,
+                HardwareOffsetVoltage = 2.525
             };
         }
     }
