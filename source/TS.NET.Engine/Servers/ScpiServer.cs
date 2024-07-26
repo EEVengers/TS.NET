@@ -227,9 +227,9 @@ namespace TS.NET.Engine
                     else if (command == "OFFS" && hasArg)
                     {
                         double offset = Convert.ToDouble(argument);
-                        logger.LogDebug($"Set ch {chNum} offset to {offset}V [Not implemented]");
+                        logger.LogDebug($"Set ch {chNum} offset to {offset}V");
                         offset = Math.Clamp(offset, -0.5, 0.5);
-                        //hardwareRequestChannel.Write(new HardwareSetVoltOffsetRequest(chNum, offset));
+                        hardwareRequestChannel.Write(new HardwareSetVoltOffsetRequest(chNum, offset));
                         return null;
                     }
                     else if (command == "RANGE" && hasArg)
