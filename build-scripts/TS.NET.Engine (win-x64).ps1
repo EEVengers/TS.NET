@@ -4,10 +4,24 @@ New-Variable -Name "projectFolder" -Value (Join-Path (Resolve-Path ..) 'source/T
 $xml = [Xml] (Get-Content $projectFolder\TS.NET.Engine.csproj)
 $version = [Version] $xml.Project.PropertyGroup.Version
 New-Variable -Name "publishFolder" -Value (Join-Path (Resolve-Path ..) -ChildPath 'builds/win-x64/TS.NET.Engine' | Join-Path -ChildPath $version)
+$tsYamlFileExists = Test-Path -Path $publishFolder\thunderscope.yaml
+$appSettingsFileExists = Test-Path -Path $publishFolder\appsettings.json
 
 Write-Host "Project folder:" $projectFolder -ForegroundColor green
 Write-Host "Project version:" $version -ForegroundColor green
 Write-Host "Publish folder:" $publishFolder -ForegroundColor green
+
+# If any of the config files already exist, preserve them. If developer needs a fresh copy, they need to delete them before build.
+if($tsYamlFileExists)
+{
+    Write-Host "Found existing thunderscope.yaml, preserving it." -ForegroundColor green
+    Copy-Item -Path $publishFolder\thunderscope.yaml -Destination $publishFolder\..\thunderscope.yaml
+}
+if($appSettingsFileExists)
+{
+    Write-Host "Found existing appsettings.json, preserving it." -ForegroundColor green
+    Copy-Item -Path $publishFolder\appsettings.json -Destination $publishFolder\..\appsettings.json
+}
 
 # Remove destination folder if exists
 if(Test-Path $publishFolder -PathType Container) { 
@@ -22,6 +36,17 @@ Write-Host ""
 
 # Remove debug files
 rm $publishFolder/*.pdb
+
+if($tsYamlFileExists)
+{
+    Copy-Item -Path $publishFolder\..\thunderscope.yaml -Destination $publishFolder\thunderscope.yaml
+    Remove-Item -Path $publishFolder\..\thunderscope.yaml
+}
+if($appSettingsFileExists)
+{
+    Copy-Item -Path $publishFolder\..\appsettings.json -Destination $publishFolder\appsettings.json
+    Remove-Item -Path $publishFolder\..\appsettings.json
+}
 
 # Compress-Archive -Force -Path $publishFolder\* -DestinationPath $publishFolder/../TS.NET.Engine_win-x64_v$version.zip
 
