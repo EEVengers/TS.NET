@@ -15,6 +15,7 @@ namespace TS.NET
         public bool Attenuator;
         public double ActualVoltFullScale;
         public ushort PgaConfigurationWord;
+        public bool PgaIsHighGain;
         public ushort TrimOffsetDac;
         public ushort TrimSensitivityDac;
 
@@ -26,7 +27,7 @@ namespace TS.NET
                 Coupling = ThunderscopeCoupling.DC,
                 VoltFullScale = 0.5,
                 VoltOffset = 0,
-                Bandwidth = ThunderscopeBandwidth.Bw20M               
+                Bandwidth = ThunderscopeBandwidth.BwFull               
             };
         }
     }

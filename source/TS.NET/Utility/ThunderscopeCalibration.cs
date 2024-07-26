@@ -28,6 +28,7 @@
         public double PgaAttenuatorGain9 { get; set; }
         public double PgaAttenuatorGain10 { get; set; }
         public double PgaOutputAmpGain { get; set; }
-        public double HardwareOffsetVoltage { get; set; }
+        public double HardwareOffsetVoltageLowGain { get; set; }
+        public double HardwareOffsetVoltageHighGain { get; set; }
     }
 }

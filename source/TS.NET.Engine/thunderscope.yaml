@@ -79,7 +79,8 @@ Calibration:
     PgaAttenuatorGain9: -18
     PgaAttenuatorGain10: -20
     PgaOutputAmpGain: 8.86
-    HardwareOffsetVoltage: 2.525
+    HardwareOffsetVoltageLowGain: 2.515
+    HardwareOffsetVoltageHighGain: 2.525
   Channel2:
     AttenuatorGainHighZ: -33.9794
     AttenuatorGainFiftyOhm: -13.9794
@@ -98,7 +99,8 @@ Calibration:
     PgaAttenuatorGain9: -18
     PgaAttenuatorGain10: -20
     PgaOutputAmpGain: 8.86
-    HardwareOffsetVoltage: 2.525
+    HardwareOffsetVoltageLowGain: 2.525
+    HardwareOffsetVoltageHighGain: 2.525
   Channel3:
     AttenuatorGainHighZ: -33.9794
     AttenuatorGainFiftyOhm: -13.9794
@@ -117,7 +119,8 @@ Calibration:
     PgaAttenuatorGain9: -18
     PgaAttenuatorGain10: -20
     PgaOutputAmpGain: 8.86
-    HardwareOffsetVoltage: 2.525
+    HardwareOffsetVoltageLowGain: 2.525
+    HardwareOffsetVoltageHighGain: 2.525
   Channel4:
     AttenuatorGainHighZ: -33.9794
     AttenuatorGainFiftyOhm: -13.9794
@@ -136,4 +139,5 @@ Calibration:
     PgaAttenuatorGain9: -18
     PgaAttenuatorGain10: -20
     PgaOutputAmpGain: 8.86
-    HardwareOffsetVoltage: 2.525
+    HardwareOffsetVoltageLowGain: 2.525
+    HardwareOffsetVoltageHighGain: 2.525

@@ -58,7 +58,8 @@ namespace TS.NET
                 PgaAttenuatorGain9 = this.PgaAttenuatorGain9,
                 PgaAttenuatorGain10 = this.PgaAttenuatorGain10,
                 PgaOutputAmpGain = this.PgaOutputAmpGain,
-                HardwareOffsetVoltage = this.HardwareOffsetVoltage
+                HardwareOffsetVoltageLowGain = this.HardwareOffsetVoltageLowGain,
+                HardwareOffsetVoltageHighGain = this.HardwareOffsetVoltageHighGain
             };
         }
 
@@ -83,7 +84,8 @@ namespace TS.NET
                 PgaAttenuatorGain9 = -18,
                 PgaAttenuatorGain10 = -20,
                 PgaOutputAmpGain = 8.86,
-                HardwareOffsetVoltage = 2.525
+                HardwareOffsetVoltageLowGain = 2.525,
+                HardwareOffsetVoltageHighGain = 2.525
             };
         }
     }
