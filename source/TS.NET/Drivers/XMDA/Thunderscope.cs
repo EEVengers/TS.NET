@@ -405,19 +405,16 @@ namespace TS.NET.Driver.XMDA
 
             CalculatePgaConfigurationWord(ref channelCal, ref channelConfiguration);
             SetPGA(channel, channelConfiguration.PgaConfigurationWord);
-            Thread.Sleep(1);
 
             CalculateTrimConfiguration(ref channelCal, ref channelConfiguration);
 
             // To do: use the calibration to calculate actual value
             ushort dacValue = channelConfiguration.TrimOffsetDac;
             SetTrimOffsetDAC(channel, dacValue);
-            Thread.Sleep(1);
 
             // To do: use the calibration to calculate actual value
             dacValue = channelConfiguration.TrimSensitivityDac;
             SetTrimSensitivityDAC(channel, dacValue);
-            Thread.Sleep(1);
         }
 
         private void SetTrimOffsetDAC(int channel, ushort dacValue)
@@ -435,6 +432,7 @@ namespace TS.NET.Driver.XMDA
             fifo[3] = (byte)(dacValue >> 8 & 0xF);      // Vref = VDD. Power down = normal mode. Gain = 1
             fifo[4] = (byte)(dacValue & 0xFF);
             WriteFifo(fifo);
+            Thread.Sleep(1);
         }
 
         private void SetTrimSensitivityDAC(int channel, ushort dacValue)
@@ -459,6 +457,7 @@ namespace TS.NET.Driver.XMDA
             fifo[2] = command;          // p41 of MCP4432 datasheet
             fifo[3] = (byte)dacValue;   // 8-bit value (0x00 to 0x80 for 7-bit DAC)
             WriteFifo(fifo);
+            Thread.Sleep(1);
         }
 
         private void SetPGA(int channel, ushort configurationWord)
@@ -757,6 +756,7 @@ namespace TS.NET.Driver.XMDA
             fifo[2] = register;
             fifo[3] = value;
             WriteFifo(fifo);
+            Thread.Sleep(1);
         }
 
         private void ConfigurePLLRev3()
@@ -806,6 +806,7 @@ namespace TS.NET.Driver.XMDA
             fifo[4] = reg_low;
             fifo[5] = value;
             WriteFifo(fifo);
+            Thread.Sleep(1);
         }
 
         private void ConfigurePLLRev4()
@@ -857,6 +858,7 @@ namespace TS.NET.Driver.XMDA
             fifo[4] = reg_low;
             fifo[5] = value;
             WriteFifo(fifo);
+            Thread.Sleep(1);
         }
 
         private void ConfigurePLL()
