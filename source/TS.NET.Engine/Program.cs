@@ -100,7 +100,7 @@ class Program
                         throw new Exception("No thunderscopes found");
                     if (deviceIndex > devices.Count - 1)
                         throw new Exception($"Invalid thunderscope index ({deviceIndex}). Only {devices.Count} Thunderscopes connected.");
-                    var ts = new TS.NET.Driver.XMDA.Thunderscope();
+                    var ts = new TS.NET.Driver.XMDA.Thunderscope(loggerFactory);
                     ts.Open(devices[deviceIndex], thunderscopeSettings.Calibration.ToDriver(), thunderscopeSettings.HardwareRevision);
                     thunderscope = ts;
                     break;

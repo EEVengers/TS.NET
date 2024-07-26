@@ -1,5 +1,5 @@
-﻿using System.Buffers.Binary;
-using System.Runtime.InteropServices;
+﻿using Microsoft.Extensions.Logging;
+using System.Buffers.Binary;
 using TS.NET.Driver.XMDA.Interop;
 
 namespace TS.NET.Driver.XMDA
@@ -8,6 +8,7 @@ namespace TS.NET.Driver.XMDA
 
     public class Thunderscope : IThunderscope
     {
+        private readonly ILogger logger;
         private ThunderscopeInterop interop;
         private ThunderscopeCalibration calibration;
         private bool open = false;
@@ -15,8 +16,9 @@ namespace TS.NET.Driver.XMDA
         private ThunderscopeHardwareConfig configuration;
         private string revision;
 
-        public Thunderscope()
+        public Thunderscope(ILoggerFactory loggerFactory)
         {
+            logger = loggerFactory.CreateLogger(nameof(ThunderscopeDevice));
             hardwareState = new();
             configuration = new()
             {
@@ -507,8 +509,8 @@ namespace TS.NET.Driver.XMDA
             // Calculate System Gain that would bring the user requested full scale voltage to the adc equivalent full scale voltage
             double requestedSystemGain = 20 * Math.Log10(adcFullScaleRange / channel.VoltFullScale);
 
-            //Console.WriteLine($"Requested FS Voltage: {channel.VoltFullScale:F3}");
-            //Console.WriteLine($"Requested System Gain dB: {requestedSystemGain:F3}");
+            //logger.LogTrace($"Requested FS Voltage: {channel.VoltFullScale:F3}");
+            //logger.LogTrace($"Requested System Gain dB: {requestedSystemGain:F3}");
             
             // We can't avoid adding these gains
             double fixedGain = channelCal.BufferGain + channelCal.PgaOutputAmpGain + adcGain; //Putting ADC Gain as fixed for now
@@ -604,10 +606,10 @@ namespace TS.NET.Driver.XMDA
 
             // Calculate actual full scale voltage from actual gain
             channel.ActualVoltFullScale = adcFullScaleRange / Math.Pow(10, actualSystemGainDb / 20);
-            
-            //Console.WriteLine($"System gain: {actualSystemGainDb:F3}dB ");
-            Console.WriteLine($"System gain to PGA: {Math.Pow(10, (actualSystemGainDb) / 20):F3} V/V ");
-            Console.WriteLine($"ActualVoltFullScale: {channel.ActualVoltFullScale:F3}V ");
+
+            //logger.LogTrace($"System gain: {actualSystemGainDb:F3}dB ");
+            logger.LogTrace($"System gain to PGA: {Math.Pow(10, (actualSystemGainDb) / 20):F3} V/V ");
+            logger.LogTrace($"ActualVoltFullScale: {channel.ActualVoltFullScale:F3}V ");
 
             // Decode N into PGA LNA gain and PGA attentuator step
             channel.PgaConfigurationWord = (byte)ladderSetting;
@@ -655,8 +657,8 @@ namespace TS.NET.Driver.XMDA
                 systemGainToPga += channelCal.AttenuatorGainHighZ;
 
             double requestedOffsetVoltageAtPGA = channel.VoltOffset/Math.Pow(10, systemGainToPga / 20);
-            
-            Console.WriteLine($"Requested Offset: {requestedOffsetVoltageAtPGA:F3}");
+
+            logger.LogTrace($"Requested Offset: {requestedOffsetVoltageAtPGA:F3}");
 
             //Decode cal vals from codes to voltage at the PGA_N terminal
             double calibratedVoltageAtPgaNeg = channelCal.HardwareOffsetVoltageLowGain;
@@ -665,8 +667,8 @@ namespace TS.NET.Driver.XMDA
             
             //Add requested offset to our hardware offset calibrated "zero"
             double requestedVoltageAtPgaNeg = calibratedVoltageAtPgaNeg + requestedOffsetVoltageAtPGA;
-            
-            Console.WriteLine($"Requested Voltage: {requestedVoltageAtPgaNeg:F3}");
+
+            logger.LogTrace($"Requested Voltage: {requestedVoltageAtPgaNeg:F3}");
 
             //Figure out what VDAC to use, start by keeping VDAC at maximum or minimum
             ushort digipotCode;
@@ -690,26 +692,26 @@ namespace TS.NET.Driver.XMDA
                 digipotCode = 128; //Can't go higher, recalc VDAC with max RTRIM
             }
             else if (requestedRTRIM < 75){
-                Console.WriteLine($"OFFSET OUT OF BOUNDS - RTRIM"); //We won't be able to do this offset
+                logger.LogTrace($"OFFSET OUT OF BOUNDS - RTRIM"); //We won't be able to do this offset
                 digipotCode = 0;
             }
             else{
                 digipotCode = (ushort)(requestedRTRIM / 50000 * 128); //rounding down is intentional
             }
 
-            //Console.WriteLine($"Calculated Digipot Code: {digipotCode:F3}");
+            //logger.LogTrace($"Calculated Digipot Code: {digipotCode:F3}");
             RTRIM = digipotCode * (50000/128) + 75;
-            //Console.WriteLine($"Calculated RTRIM: {RTRIM:F3}");
+            //logger.LogTrace($"Calculated RTRIM: {RTRIM:F3}");
 
             VDAC = (RTRIM*(2*requestedVoltageAtPgaNeg-5)/1000) + requestedVoltageAtPgaNeg;
-            //Console.WriteLine($"Calculated VDAC: {VDAC:F3}");
+            //logger.LogTrace($"Calculated VDAC: {VDAC:F3}");
 
             if (VDAC > 4.998778286875){
-                Console.WriteLine($"OFFSET OUT OF BOUNDS - VDAC HIGH"); //We won't be able to do this offset
+                logger.LogTrace($"OFFSET OUT OF BOUNDS - VDAC HIGH"); //We won't be able to do this offset
                 dacCode = 4095;
             }
             else if (VDAC < 0){
-                Console.WriteLine($"OFFSET OUT OF BOUNDS - VDAC LOW"); //We won't be able to do this offset
+                logger.LogTrace($"OFFSET OUT OF BOUNDS - VDAC LOW"); //We won't be able to do this offset
                 dacCode = 0;
             }
             else{
