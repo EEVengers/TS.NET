@@ -142,7 +142,7 @@ namespace TS.NET.Engine
 
                             chHeader.chNum = channelIndex;
                             chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
-                            chHeader.offset = -(float)thunderscopeChannel.VoltOffset;
+                            chHeader.offset = (float)thunderscopeChannel.VoltOffset;
 
                             Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
                             bytesSent += (ulong)sizeof(ChannelHeader);
