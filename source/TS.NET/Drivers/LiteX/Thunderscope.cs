@@ -1,15 +1,20 @@
 ﻿using TS.NET.Driver.LiteX;
 
-using Microsoft.Win32.SafeHandles;
-
 namespace TS.NET.Driver.LiteX
 {
     public class Thunderscope : IThunderscope
     {
         private ThunderscopeCalibration calibration;
-        private string revision;
         private bool open = false;
         private nint tsHandle;
+
+        private double[] channel_volt_scale;
+
+        public Thunderscope()
+        {
+            channel_volt_scale = new double[4];
+            calibration = new ThunderscopeCalibration();
+        }
 
         public void Open(uint devIndex, ThunderscopeCalibration calibration, string revision)
         {
@@ -17,7 +22,6 @@ namespace TS.NET.Driver.LiteX
                 Close();
 
             this.calibration = calibration;
-            this.revision = revision;
 
             //Initialise();
             tsHandle = Interop.Open(devIndex);
@@ -63,10 +67,22 @@ namespace TS.NET.Driver.LiteX
 
             unsafe
             {
-                int readLen = Interop.Read(tsHandle, data.Pointer, ThunderscopeMemory.Length);
+                ulong length = ThunderscopeMemory.Length;
+                ulong dataRead = 0;
+                const uint readSegment = 2048*128;
+                while(length > 0)
+                {
+                    int readLen = Interop.Read(tsHandle, data.Pointer + dataRead, readSegment);
+                    
+                    if (readLen < 0)
+                        throw new Exception($"Thunderscope failed to read samples ({readLen})");
+                    else if (readLen != readSegment)
+                        throw new Exception($"Thunderscope read incorrect sample length ({readLen})");
                 
-                if (readLen < 0)
-                    throw new Exception($"Thunderscope failed to read samples ({readLen})");
+                    dataRead += (ulong)readSegment;
+                    length -= (ulong)readSegment;
+                
+                }
             }
         }
 
@@ -82,7 +98,8 @@ namespace TS.NET.Driver.LiteX
             if ( retVal != 0)
                 throw new Exception($"Thunderscope failed to get channel {channelIndex} config ({retVal})");
             
-            channel.VoltFullScale = channel.ActualVoltFullScale = (double)tsChannel.volt_scale_mV / 1000.0;
+            channel.VoltFullScale = this.channel_volt_scale[channelIndex];
+            channel.ActualVoltFullScale = (double)tsChannel.volt_scale_mV / 1000.0;
             channel.VoltOffset = (double)tsChannel.volt_offset_mV / 1000.0;
             channel.Coupling = (tsChannel.coupling == 1) ? ThunderscopeCoupling.AC : ThunderscopeCoupling.DC;
             channel.Termination = (tsChannel.term == 1) ? ThunderscopeTermination.FiftyOhm : ThunderscopeTermination.OneMegaohm;
@@ -114,7 +131,8 @@ namespace TS.NET.Driver.LiteX
                 if ( retVal != 0)
                     throw new Exception($"Thunderscope failed to get channel {ch} config ({retVal})");
                 
-                config.Channels[ch].VoltFullScale = config.Channels[ch].ActualVoltFullScale = (double)tsChannel.volt_scale_mV / 1000.0;
+                config.Channels[ch].VoltFullScale = this.channel_volt_scale[ch];
+                config.Channels[ch].ActualVoltFullScale = (double)tsChannel.volt_scale_mV / 1000.0;
                 config.Channels[ch].VoltOffset = (double)tsChannel.volt_offset_mV / 1000.0;
                 config.Channels[ch].Coupling = (tsChannel.coupling == 1) ? ThunderscopeCoupling.AC : ThunderscopeCoupling.DC;
                 config.Channels[ch].Termination = (tsChannel.term == 1) ? ThunderscopeTermination.FiftyOhm : ThunderscopeTermination.OneMegaohm;
@@ -165,6 +183,8 @@ namespace TS.NET.Driver.LiteX
 
             if ( retVal != 0)
                 throw new Exception($"Thunderscope failed to set channel {channelIndex} config ({retVal})");
+            
+            this.channel_volt_scale[channelIndex] = channel.VoltFullScale;
         }
 
         public void SetChannelEnable(int channelIndex, bool enabled)
