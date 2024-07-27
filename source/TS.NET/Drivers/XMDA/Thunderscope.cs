@@ -212,13 +212,6 @@ namespace TS.NET.Driver.XMDA
         {
             // reset ISR
             Write32(BarRegister.SERIAL_FIFO_ISR_ADDRESS, 0xFFFFFFFFU);
-            // read ISR and IER
-            Read32(BarRegister.SERIAL_FIFO_ISR_ADDRESS);
-            Read32(BarRegister.SERIAL_FIFO_IER_ADDRESS);
-            // enable IER
-            Write32(BarRegister.SERIAL_FIFO_IER_ADDRESS, 0x0C000000U);
-            // Set false TDR
-            Write32(BarRegister.SERIAL_FIFO_TDR_ADDRESS, 0x2U);
             // Put data into queue
             for (int i = 0; i < data.Length; i++)
             {
@@ -227,8 +220,6 @@ namespace TS.NET.Driver.XMDA
                 bytes.Fill(data[i]);
                 interop.WriteUser(bytes, (ulong)BarRegister.SERIAL_FIFO_DATA_WRITE_REG);
             }
-            // read TDFV (vacancy byte)
-            Read32(BarRegister.SERIAL_FIFO_TDFV_ADDRESS);
             // write to TLR (the size of the packet)
             Write32(BarRegister.SERIAL_FIFO_TLR_ADDRESS, (uint)(data.Length * 4));
             // read ISR for a done value
@@ -236,10 +227,6 @@ namespace TS.NET.Driver.XMDA
             {
                 Thread.Sleep(1);
             }
-            // reset ISR
-            Write32(BarRegister.SERIAL_FIFO_ISR_ADDRESS, 0xFFFFFFFFU);
-            // read TDFV
-            Read32(BarRegister.SERIAL_FIFO_TDFV_ADDRESS);
         }
 
         private void ConfigureDatamover(ThunderscopeHardwareState state)
@@ -350,10 +337,8 @@ namespace TS.NET.Driver.XMDA
             {
                 case 0:
                 case 1:
-                    for (byte i = 3; i >= 0; i--)
-                    {
-                        if (((configuration.EnabledChannels >> i) & 0x01) > 0)
-                        {
+                    for (byte i = 3; i >= 0; i--){
+                        if (((configuration.EnabledChannels >> i) & 0x01) > 0){
                             insel[3] = insel[2] = insel[1] = insel[0] = (byte)(3-i);
                             break;
                         }
@@ -362,14 +347,16 @@ namespace TS.NET.Driver.XMDA
                     configuration.AdcChannelMode = AdcChannelMode.Single;
                     break;
                 case 2:
-                    for (int j = 3; j >= 0; j -= 2){
-                        for (byte i = 3; i >= 0; i--)
-                        {
-                            if (((configuration.EnabledChannels >> i) & 0x01) > 0)
-                            {
-                                insel[j] = insel[j - 1] = i;
-                                break;
-                            }
+                    for (byte i = 3; i >= 0; i--){
+                        if (((configuration.EnabledChannels >> i) & 0x01) > 0){
+                            insel[3] = insel[2] = (byte)(3-i);
+                            break;
+                        }
+                    }                
+                    for (byte i = 0; i < 4; i++){
+                        if (((configuration.EnabledChannels >> i) & 0x01) > 0){
+                            insel[1] = insel[0] = (byte)(3-i);
+                            break;
                         }
                     }
                     clkdiv = 1;
@@ -544,7 +531,7 @@ namespace TS.NET.Driver.XMDA
                 var potentialPgaGainDb = pgaGainCalculation();
                 if (potentialPgaGainDb < requestedPgaGainDb)
                 {
-                    Console.Write($"PGA gain: {potentialPgaGainDb:F3}dB ");
+                    Console.WriteLine($"PGA gain: {potentialPgaGainDb:F3}dB ");
                     gainFound = true;
                     break;
                 }
@@ -557,7 +544,7 @@ namespace TS.NET.Driver.XMDA
                     var potentialPgaGainDb = pgaGainCalculation();
                     if (potentialPgaGainDb < requestedPgaGainDb)
                     {
-                        Console.Write($"PGA gain: {potentialPgaGainDb:F3}dB ");
+                        Console.WriteLine($"PGA gain: {potentialPgaGainDb:F3}dB ");
                         gainFound = true;
                         break;
                     }
