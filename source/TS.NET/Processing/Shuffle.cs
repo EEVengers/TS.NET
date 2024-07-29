@@ -74,4 +74,78 @@ public class Shuffle
             }
         }
     }
+
+    public static void FourChannelsRunLength8(ReadOnlySpan<sbyte> input, Span<sbyte> output)
+    {
+        if (input.Length % 32 != 0)
+            throw new ArgumentException($"Input length must be multiple of 32");
+
+        int loopIterations = input.Length / 32;
+        Vector256<ulong> storeCh1Mask = Vector256.Create(ulong.MaxValue, 0, 0, 0);
+        Vector256<ulong> storeCh2Mask = Vector256.Create(0, ulong.MaxValue, 0, 0);
+        Vector256<ulong> storeCh3Mask = Vector256.Create(0, 0, ulong.MaxValue, 0);
+        Vector256<ulong> storeCh4Mask = Vector256.Create(0, 0, 0, ulong.MaxValue);
+        Span<ulong> outputU64 = MemoryMarshal.Cast<sbyte, ulong>(output);
+        int channelBlockSize = outputU64.Length / 4;
+        int ch2Offset = channelBlockSize - 1;
+        int ch3Offset = (channelBlockSize * 2) - 2;
+        int ch4Offset = (channelBlockSize * 3) - 3;
+        unsafe
+        {
+            fixed (sbyte* inputP = input)
+            fixed (ulong* outputP = outputU64)
+            {
+                sbyte* inputPtr = inputP;
+                ulong* outputPtr = outputP;
+                for (int i = 0; i < loopIterations; i++)
+                {
+                    Vector256<ulong> shuffledVector = Avx.LoadVector256(inputPtr).AsUInt64();
+                    Avx2.MaskStore(outputPtr, storeCh1Mask, shuffledVector);
+                    Avx2.MaskStore(outputPtr + ch2Offset, storeCh2Mask, shuffledVector);
+                    Avx2.MaskStore(outputPtr + ch3Offset, storeCh3Mask, shuffledVector);
+                    Avx2.MaskStore(outputPtr + ch4Offset, storeCh4Mask, shuffledVector);
+                    inputPtr += 32;
+                    outputPtr++;
+                }
+            }
+        }
+    }
+
+    public static void FourChannelsRunLength32(ReadOnlySpan<sbyte> input, Span<sbyte> output)
+    {
+        if (input.Length % 128 != 0)
+            throw new ArgumentException($"Input length must be multiple of 128");
+
+        int loopIterations = input.Length / 128;
+        int channelBlockSize = output.Length / 4;
+        int ch2Offset = channelBlockSize;
+        int ch3Offset = (channelBlockSize * 2);
+        int ch4Offset = (channelBlockSize * 3);
+        unsafe
+        {
+            fixed (sbyte* inputP = input)
+            fixed (sbyte* outputP = output)
+            {
+                sbyte* inputPtr = inputP;
+                sbyte* outputPtr = outputP;
+                for (int i = 0; i < loopIterations; i++)
+                {
+                    Vector256<sbyte> inputVector = Avx.LoadVector256(inputPtr);
+                    Avx.Store(outputPtr, inputVector);
+
+                    inputVector = Avx.LoadVector256(inputPtr + 32);
+                    Avx.Store(outputPtr + ch2Offset, inputVector);
+
+                    inputVector = Avx.LoadVector256(inputPtr + 64);
+                    Avx.Store(outputPtr + ch3Offset, inputVector);
+
+                    inputVector = Avx.LoadVector256(inputPtr + 96);
+                    Avx.Store(outputPtr + ch4Offset, inputVector);
+
+                    inputPtr += 128;
+                    outputPtr += 32;
+                }
+            }
+        }
+    }
 }
