@@ -19,28 +19,42 @@ namespace TS.NET.Benchmark
             Waveforms.FourChannelCountSignedByte(input.Span);
         }
 
-        [Benchmark(Description = "Four channel shuffle [run length 1] (125 x 8MS)")]   // 0.40 CPU cycles per sample
+        [Benchmark(Description = "Four channel shuffle [run length 1] (125 x 8MS)")]
         public void FourChannels()
         {
             for (int i = 0; i < 125; i++)
                 Shuffle.FourChannels(input.Span, output.Span);
         }
 
-        [Benchmark(Description = "Four channel shuffle [run length 8] (125 x 8MS)")]   // 
+        [Benchmark(Description = "Four channel shuffle [no SIMD] (125 x 8MS)")]
+        public void FourChannelsNoSimd()
+        {
+            for (int i = 0; i < 125; i++)
+                Shuffle.FourChannelsNoSimd(input.Span, output.Span);
+        }
+
+        [Benchmark(Description = "Four channel shuffle [run length 4] (125 x 8MS)")]
+        public void FourChannelsRunLength4()
+        {
+            for (int i = 0; i < 125; i++)
+                Shuffle.FourChannelsRunLength4(input.Span, output.Span);
+        }
+
+        [Benchmark(Description = "Four channel shuffle [run length 8] (125 x 8MS)")]
         public void FourChannelsRunLength8()
         {
             for (int i = 0; i < 125; i++)
                 Shuffle.FourChannelsRunLength8(input.Span, output.Span);
         }
 
-        [Benchmark(Description = "Four channel shuffle [run length 32] (125 x 8MS)")]   // 
+        [Benchmark(Description = "Four channel shuffle [run length 32] (125 x 8MS)")]
         public void FourChannelsRunLength32()
         {
             for (int i = 0; i < 125; i++)
                 Shuffle.FourChannelsRunLength32(input.Span, output.Span);
         }
 
-        [Benchmark(Description = "Two channel shuffle (125 x 8MS)")]    // 0.32 CPU cycles per sample
+        [Benchmark(Description = "Two channel shuffle (125 x 8MS)")]
         public void TwoChannels()
         {
             for (int i = 0; i < 125; i++)
