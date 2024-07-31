@@ -340,9 +340,11 @@ namespace TS.NET.Driver.XMDA
             {
                 case 0:
                 case 1:
-                    for (byte i = 3; i >= 0; i--){
-                        if (((configuration.EnabledChannels >> i) & 0x01) > 0){
-                            insel[3] = insel[2] = insel[1] = insel[0] = (byte)(3-i);
+                    for (byte i = 3; i >= 0; i--)
+                    {
+                        if (((configuration.EnabledChannels >> i) & 0x01) > 0)
+                        {
+                            insel[3] = insel[2] = insel[1] = insel[0] = (byte)(3 - i);
                             break;
                         }
                     }
@@ -350,15 +352,19 @@ namespace TS.NET.Driver.XMDA
                     configuration.AdcChannelMode = AdcChannelMode.Single;
                     break;
                 case 2:
-                    for (byte i = 3; i >= 0; i--){
-                        if (((configuration.EnabledChannels >> i) & 0x01) > 0){
-                            insel[3] = insel[2] = (byte)(3-i);
+                    for (byte i = 3; i >= 0; i--)
+                    {
+                        if (((configuration.EnabledChannels >> i) & 0x01) > 0)
+                        {
+                            insel[3] = insel[2] = (byte)(3 - i);
                             break;
                         }
-                    }                
-                    for (byte i = 0; i < 4; i++){
-                        if (((configuration.EnabledChannels >> i) & 0x01) > 0){
-                            insel[1] = insel[0] = (byte)(3-i);
+                    }
+                    for (byte i = 0; i < 4; i++)
+                    {
+                        if (((configuration.EnabledChannels >> i) & 0x01) > 0)
+                        {
+                            insel[1] = insel[0] = (byte)(3 - i);
                             break;
                         }
                     }
@@ -499,7 +505,7 @@ namespace TS.NET.Driver.XMDA
 
         private void CalculatePgaConfigurationWord(ref ThunderscopeChannelCalibration channelCal, ref ThunderscopeChannel channel)
         {
-            // ALL GAINS NOW IN dB
+            // LMH6518
 
             // This encapsulates ADC gain, TODO: break it out into true full scale range and gain later (both controllable via ADC SPI)
             double adcFullScaleRange = 2;
@@ -510,7 +516,7 @@ namespace TS.NET.Driver.XMDA
 
             //logger.LogTrace($"Requested FS Voltage: {channel.VoltFullScale:F3}");
             //logger.LogTrace($"Requested System Gain dB: {requestedSystemGain:F3}");
-            
+
             // We can't avoid adding these gains
             double fixedGain = channelCal.BufferGain + channelCal.PgaOutputAmpGain + adcGain; //Putting ADC Gain as fixed for now
             // If we are in 50 Ohm mode we have to add the attenuator gain of the 50 ohm terminator (40 Ohm - 10 Ohm divider)
@@ -518,16 +524,17 @@ namespace TS.NET.Driver.XMDA
                 fixedGain += channelCal.AttenuatorGainFiftyOhm;
             // What's left are the gains we can control - PGA and 1M Attenuator (and we can't use the 1M Attenuator in 50 Ohm mode)
             double requestedVariableGain = requestedSystemGain - fixedGain;
-            
+
             // This is the lowest variable gain we can do without the 1M Attenuator
             double pgaMinVariableGain = channelCal.PgaPreampLowGain + channelCal.PgaAttenuatorGain10;
             // Keep the 1M Attenuator off unless we need it, or if we can't use it (50 Ohm mode)
             channel.Attenuator = false;
-            if ((requestedVariableGain < pgaMinVariableGain) && (channel.Termination == ThunderscopeTermination.OneMegaohm)){
+            if ((requestedVariableGain < pgaMinVariableGain) && (channel.Termination == ThunderscopeTermination.OneMegaohm))
+            {
                 channel.Attenuator = true;
                 requestedVariableGain -= channelCal.AttenuatorGainHighZ;
             }
-            
+
             // Now check all the PGA gain options, starting from highest gain setting
             bool gainFound = false;
             bool preamp = true;
@@ -606,9 +613,7 @@ namespace TS.NET.Driver.XMDA
             // Calculate actual full scale voltage from actual gain
             channel.ActualVoltFullScale = adcFullScaleRange / Math.Pow(10, actualSystemGainDb / 20);
 
-            //logger.LogTrace($"System gain: {actualSystemGainDb:F3}dB ");
-            logger.LogTrace($"System gain to PGA: {Math.Pow(10, (actualSystemGainDb) / 20):F3} V/V ");
-            logger.LogTrace($"ActualVoltFullScale: {channel.ActualVoltFullScale:F3}V ");
+            logger.LogTrace($"Gain: system {Math.Pow(10, (actualSystemGainDb) / 20):F3}V/V, Vpp {channel.ActualVoltFullScale:F3}V, PGA attenuator {ladderSetting}, PGA preamp {(channel.PgaIsHighGain ? "high gain" : "low gain")}");
 
             // Decode N into PGA LNA gain and PGA attentuator step
             channel.PgaConfigurationWord = (byte)ladderSetting;
@@ -619,16 +624,16 @@ namespace TS.NET.Driver.XMDA
 
             switch (channel.Bandwidth)
             {
-                case ThunderscopeBandwidth.BwFull: 
+                case ThunderscopeBandwidth.BwFull:
                     break;
                 case ThunderscopeBandwidth.Bw20M:
-                    channel.PgaConfigurationWord |= 1 << 6; 
+                    channel.PgaConfigurationWord |= 1 << 6;
                     break;
                 case ThunderscopeBandwidth.Bw100M:
-                    channel.PgaConfigurationWord |= 2 << 6; 
+                    channel.PgaConfigurationWord |= 2 << 6;
                     break;
                 case ThunderscopeBandwidth.Bw200M:
-                    channel.PgaConfigurationWord |= 3 << 6; 
+                    channel.PgaConfigurationWord |= 3 << 6;
                     break;
                 case ThunderscopeBandwidth.Bw350M:
                     channel.PgaConfigurationWord |= 4 << 6;
@@ -639,13 +644,13 @@ namespace TS.NET.Driver.XMDA
                 case ThunderscopeBandwidth.Bw750M:
                     channel.PgaConfigurationWord |= 6 << 6;
                     break;
-                default: 
+                default:
                     throw new Exception("ThunderscopeBandwidth enum value not handled");
             }
         }
         //Works on really low voltage ranges now
         private void CalculateTrimConfiguration(ref ThunderscopeChannelCalibration channelCal, ref ThunderscopeChannel channel)
-        {         
+        {
             // This encapsulates ADC gain, TODO: break it out into true full scale range and gain later (both controllable via ADC SPI)
             //double adcEquivFullScaleRange = 0.7;             
             //Calulate the requested offset at the PGA_N terminal
@@ -655,19 +660,17 @@ namespace TS.NET.Driver.XMDA
             else if (channel.Attenuator)
                 systemGainToPga += channelCal.AttenuatorGainHighZ;
 
-            double requestedOffsetVoltageAtPGA = channel.VoltOffset/Math.Pow(10, systemGainToPga / 20);
-
-            logger.LogTrace($"Requested Offset: {requestedOffsetVoltageAtPGA:F3}");
+            double requestedOffsetVoltageAtPga = channel.VoltOffset / Math.Pow(10, systemGainToPga / 20);
 
             //Decode cal vals from codes to voltage at the PGA_N terminal
             double calibratedVoltageAtPgaNeg = channelCal.HardwareOffsetVoltageLowGain;
             if (channel.PgaIsHighGain)
-                 calibratedVoltageAtPgaNeg = channelCal.HardwareOffsetVoltageHighGain;
-            
-            //Add requested offset to our hardware offset calibrated "zero"
-            double requestedVoltageAtPgaNeg = calibratedVoltageAtPgaNeg + requestedOffsetVoltageAtPGA;
+                calibratedVoltageAtPgaNeg = channelCal.HardwareOffsetVoltageHighGain;
 
-            logger.LogTrace($"Requested Voltage: {requestedVoltageAtPgaNeg:F3}");
+            //Add requested offset to our hardware offset calibrated "zero"
+            double requestedVoltageAtPgaNeg = calibratedVoltageAtPgaNeg + requestedOffsetVoltageAtPga;
+
+            logger.LogTrace($"Offset: channel {requestedOffsetVoltageAtPga:F3}V, PGA {requestedVoltageAtPgaNeg:F3}V");
 
             //Figure out what VDAC to use, start by keeping VDAC at maximum or minimum
             ushort digipotCode;
@@ -677,49 +680,57 @@ namespace TS.NET.Driver.XMDA
             double requestedRTRIM;
 
             //Figure out what RTRIM to use, start by keeping VDAC at maximum or minimum
-            if (requestedVoltageAtPgaNeg > 2.5){
-                VDAC = 4095 * (5/4096);
-                requestedRTRIM = -(1000*(requestedVoltageAtPgaNeg-5))/(2*requestedVoltageAtPgaNeg-5);
+            if (requestedVoltageAtPgaNeg > 2.5)
+            {
+                VDAC = 4095 * (5 / 4096);
+                requestedRTRIM = -(1000 * (requestedVoltageAtPgaNeg - 5)) / (2 * requestedVoltageAtPgaNeg - 5);
             }
-            else{
+            else
+            {
                 VDAC = 0;
-                requestedRTRIM = (1000*requestedVoltageAtPgaNeg)/(5-2*requestedVoltageAtPgaNeg);
+                requestedRTRIM = (1000 * requestedVoltageAtPgaNeg) / (5 - 2 * requestedVoltageAtPgaNeg);
             }
-            
+
             //Set digipot code based on above
-            if (requestedRTRIM > 50000){
+            if (requestedRTRIM > 50000)
+            {
                 digipotCode = 128; //Can't go higher, recalc VDAC with max RTRIM
             }
-            else if (requestedRTRIM < 75){
+            else if (requestedRTRIM < 75)
+            {
                 logger.LogTrace($"OFFSET OUT OF BOUNDS - RTRIM"); //We won't be able to do this offset
                 digipotCode = 0;
             }
-            else{
+            else
+            {
                 digipotCode = (ushort)(requestedRTRIM / 50000 * 128); //rounding down is intentional
             }
 
             //logger.LogTrace($"Calculated Digipot Code: {digipotCode:F3}");
-            RTRIM = digipotCode * (50000/128) + 75;
+            RTRIM = digipotCode * (50000 / 128) + 75;
             //logger.LogTrace($"Calculated RTRIM: {RTRIM:F3}");
 
-            VDAC = (RTRIM*(2*requestedVoltageAtPgaNeg-5)/1000) + requestedVoltageAtPgaNeg;
+            VDAC = (RTRIM * (2 * requestedVoltageAtPgaNeg - 5) / 1000) + requestedVoltageAtPgaNeg;
             //logger.LogTrace($"Calculated VDAC: {VDAC:F3}");
 
-            if (VDAC > 4.998778286875){
+            if (VDAC > 4.998778286875)
+            {
                 logger.LogTrace($"OFFSET OUT OF BOUNDS - VDAC HIGH"); //We won't be able to do this offset
                 dacCode = 4095;
             }
-            else if (VDAC < 0){
+            else if (VDAC < 0)
+            {
                 logger.LogTrace($"OFFSET OUT OF BOUNDS - VDAC LOW"); //We won't be able to do this offset
                 dacCode = 0;
             }
-            else{
+            else
+            {
                 dacCode = (ushort)(VDAC / 5 * 4096);
             }
 
             channel.TrimSensitivityDac = digipotCode;
             channel.TrimOffsetDac = dacCode;
-            
+
         }
 
         private void ConfigurePLLRev1()

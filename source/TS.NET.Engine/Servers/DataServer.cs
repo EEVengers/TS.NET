@@ -164,15 +164,15 @@ namespace TS.NET.Engine
         }
     }
 
-    class WaveformServer : TcpServer
+    class DataServer : TcpServer
     {
         private readonly ILogger logger;
         private readonly CancellationTokenSource cancellationTokenSource;
         private readonly ThunderscopeDataBridgeReader bridge;
 
-        public WaveformServer(ILoggerFactory loggerFactory, ThunderscopeSettings settings, IPAddress address, int port, string bridgeNamespace) : base(address, port)
+        public DataServer(ILoggerFactory loggerFactory, ThunderscopeSettings settings, IPAddress address, int port, string bridgeNamespace) : base(address, port)
         {
-            logger = loggerFactory.CreateLogger(nameof(WaveformServer));
+            logger = loggerFactory.CreateLogger(nameof(DataServer));
             cancellationTokenSource = new();
             bridge = new(bridgeNamespace);
             logger.LogDebug("Started");

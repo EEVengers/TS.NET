@@ -130,11 +130,11 @@ class Program
         hardwareThread.Start(startSemaphore);
 
         startSemaphore.Wait();
-        WaveformServer? waveformServer = null;
+        DataServer? dataServer = null;
         if (thunderscopeSettings.DataPortEnabled)
         {
-            waveformServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5026, bridgeNamespace);
-            waveformServer.Start();
+            dataServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5026, bridgeNamespace);
+            dataServer.Start();
         }
 
         ScpiServer scpiServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
@@ -153,7 +153,7 @@ class Program
         }
 
         scpiServer.Stop();
-        waveformServer?.Stop();
+        dataServer?.Stop();
         hardwareThread.Stop();
         processingThread.Stop();
     }
