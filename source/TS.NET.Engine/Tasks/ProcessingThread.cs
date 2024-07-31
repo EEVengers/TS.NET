@@ -327,7 +327,7 @@ namespace TS.NET.Engine
                                                         var bridgeSpan = bridge.AcquiringRegionI8;
                                                         uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
                                                         circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), endOffset);
-                                                        bridge.DataWritten();
+                                                        bridge.DataWritten(triggered: true);
                                                         bridge.SwitchRegionIfNeeded();
 
                                                         if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
@@ -345,7 +345,7 @@ namespace TS.NET.Engine
                                             {
                                                 var bridgeSpan = bridge.AcquiringRegionI8;
                                                 circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
-                                                bridge.DataWritten();
+                                                bridge.DataWritten(triggered: false);
                                                 bridge.SwitchRegionIfNeeded();
                                                 forceTriggerLatch = false;
 
@@ -405,7 +405,7 @@ namespace TS.NET.Engine
                                                         uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
                                                         circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), endOffset);
                                                         circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), endOffset);
-                                                        bridge.DataWritten();
+                                                        bridge.DataWritten(triggered: true);
                                                         bridge.SwitchRegionIfNeeded();
 
                                                         if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
@@ -424,7 +424,7 @@ namespace TS.NET.Engine
                                                 var bridgeSpan = bridge.AcquiringRegionI8;
                                                 circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
                                                 circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                                                bridge.DataWritten();
+                                                bridge.DataWritten(triggered: false);
                                                 bridge.SwitchRegionIfNeeded();
                                                 forceTriggerLatch = false;
 
@@ -493,7 +493,7 @@ namespace TS.NET.Engine
                                                         circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), endOffset);
                                                         circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), endOffset);
                                                         circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), endOffset);
-                                                        bridge.DataWritten();
+                                                        bridge.DataWritten(triggered: true);
                                                         bridge.SwitchRegionIfNeeded();
 
                                                         if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
@@ -514,7 +514,7 @@ namespace TS.NET.Engine
                                                 circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
                                                 circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
                                                 circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
-                                                bridge.DataWritten();
+                                                bridge.DataWritten(triggered: false);
                                                 bridge.SwitchRegionIfNeeded();
                                                 forceTriggerLatch = false;
 
@@ -575,7 +575,7 @@ namespace TS.NET.Engine
                         streamSampleCounter -= channelLength;
                         var bridgeSpan = bridge.AcquiringRegionI8;
                         circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
-                        bridge.DataWritten();
+                        bridge.DataWritten(triggered: false);
                         bridge.SwitchRegionIfNeeded();
                     }
                 }
@@ -588,7 +588,7 @@ namespace TS.NET.Engine
                         var bridgeSpan = bridge.AcquiringRegionI8;
                         circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
                         circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                        bridge.DataWritten();
+                        bridge.DataWritten(triggered: false);
                         bridge.SwitchRegionIfNeeded();
                     }
                 }
@@ -603,7 +603,7 @@ namespace TS.NET.Engine
                         circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
                         circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
                         circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
-                        bridge.DataWritten();
+                        bridge.DataWritten(triggered: false);
                         bridge.SwitchRegionIfNeeded();
                     }
                 }

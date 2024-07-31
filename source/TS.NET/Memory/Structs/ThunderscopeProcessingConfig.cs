@@ -16,7 +16,6 @@ namespace TS.NET
         public short TriggerLevel;              // Uint: count (typically raw ADC value)
         public ushort TriggerHysteresis;        // Unit: count (typically raw ADC value)
 
-
         public BoxcarAveraging BoxcarAveraging; // U32
     }
 }

@@ -139,10 +139,27 @@ namespace TS.NET.Engine
                         for (byte channelIndex = 0; channelIndex < processing.CurrentChannelCount; channelIndex++)
                         {
                             ThunderscopeChannel thunderscopeChannel = configuration.Channels[channelIndex];
-
                             chHeader.chNum = channelIndex;
                             chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
                             chHeader.offset = (float)thunderscopeChannel.VoltOffset;
+                            // If this is the trigger channel and the data is triggered, then run trigger interpolation and set trigphase value
+                            if ((((int)bridge.Processing.TriggerChannel) - 1) == channelIndex && bridge.Triggered)
+                            {
+                                var signedData = bridge.AcquiredRegionI8;
+                                // Get the trigger index. If it's greater than 0, then do trigger interpolation.
+                                int index = (int)(bridge.Processing.TriggerDelayFs / femtosecondsPerSample);
+                                if (index > 0)
+                                {
+                                    float fa = (chHeader.scale * signedData[index - 1]) - chHeader.offset;
+                                    float fb = (chHeader.scale * signedData[index]) - chHeader.offset;
+                                    float triggerLevel = (chHeader.scale * bridge.Processing.TriggerLevel) + chHeader.offset;
+                                    float slope = fb - fa;
+                                    float delta = triggerLevel - fa;
+                                    float trigphase = delta / slope;
+                                    chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
+                                    //logger.LogTrace("Trigger phase: {0:F6}, first {1}, second {2}", chHeader.trigphase, fa, fb);
+                                }
+                            }
 
                             Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
                             bytesSent += (ulong)sizeof(ChannelHeader);
