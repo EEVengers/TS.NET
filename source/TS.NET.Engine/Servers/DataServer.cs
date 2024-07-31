@@ -130,6 +130,32 @@ namespace TS.NET.Engine
 
                     ulong bytesSent = 0;
 
+                    // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
+                    if (bridge.Triggered)
+                    {
+                        var signedData = bridge.AcquiredRegionI8;
+                        var channelData = bridge.Processing.TriggerChannel switch
+                        {
+                            TriggerChannel.Channel0 => signedData.Slice(0 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
+                            TriggerChannel.Channel1 => signedData.Slice(1 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
+                            TriggerChannel.Channel2 => signedData.Slice(2 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
+                            TriggerChannel.Channel3 => signedData.Slice(3 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
+                            _ => throw new NotImplementedException()
+                        };
+                        // Get the trigger index. If it's greater than 0, then do trigger interpolation.
+                        int triggerIndex = (int)(bridge.Processing.TriggerDelayFs / femtosecondsPerSample);
+                        if (triggerIndex > 0)
+                        {
+                            float fa = (chHeader.scale * channelData[triggerIndex - 1]) - chHeader.offset;
+                            float fb = (chHeader.scale * channelData[triggerIndex]) - chHeader.offset;
+                            float triggerLevel = (chHeader.scale * bridge.Processing.TriggerLevel) + chHeader.offset;
+                            float slope = fb - fa;
+                            float delta = triggerLevel - fa;
+                            float trigphase = delta / slope;
+                            chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
+                            //logger.LogTrace("Trigger phase: {0:F6}, first {1}, second {2}", chHeader.trigphase, fa, fb);
+                        }
+                    }
                     unsafe
                     {
                         Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
@@ -142,25 +168,7 @@ namespace TS.NET.Engine
                             chHeader.chNum = channelIndex;
                             chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
                             chHeader.offset = (float)thunderscopeChannel.VoltOffset;
-                            // If this is the trigger channel and the data is triggered, then run trigger interpolation and set trigphase value
-                            if ((((int)bridge.Processing.TriggerChannel) - 1) == channelIndex && bridge.Triggered)
-                            {
-                                var signedData = bridge.AcquiredRegionI8;
-                                // Get the trigger index. If it's greater than 0, then do trigger interpolation.
-                                int index = (int)(bridge.Processing.TriggerDelayFs / femtosecondsPerSample);
-                                if (index > 0)
-                                {
-                                    float fa = (chHeader.scale * signedData[index - 1]) - chHeader.offset;
-                                    float fb = (chHeader.scale * signedData[index]) - chHeader.offset;
-                                    float triggerLevel = (chHeader.scale * bridge.Processing.TriggerLevel) + chHeader.offset;
-                                    float slope = fb - fa;
-                                    float delta = triggerLevel - fa;
-                                    float trigphase = delta / slope;
-                                    chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
-                                    //logger.LogTrace("Trigger phase: {0:F6}, first {1}, second {2}", chHeader.trigphase, fa, fb);
-                                }
-                            }
-
+                            
                             Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
                             bytesSent += (ulong)sizeof(ChannelHeader);
                             //logger.LogDebug("ChannelHeader: " + chHeader.ToString());
