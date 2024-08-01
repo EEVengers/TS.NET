@@ -27,6 +27,7 @@ namespace TS.NET
         internal ThunderscopeHardwareConfig Hardware;       // 2 + 4*32, read only from UI perspective, UI uses SCPI interface to change configuration
         internal ThunderscopeProcessingConfig Processing;   // 37 bytes, read only from UI perspective, UI uses SCPI interface to change configuration
         internal ThunderscopeDataMonitoring Monitoring;     // 16 bytes, Read only from UI perspective, UI optionally displays these values
+        internal bool Triggered;                            // Indicate if acquired data was triggered (i.e. to run trigger interpolation or not)
 
         // BridgeConfig is set once from config file or hard coded
         // HardwareConfig, ProcessingConfig & DataMonitoring is runtime variable

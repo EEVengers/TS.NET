@@ -115,6 +115,15 @@ namespace TS.NET
             }
         }
 
+        public bool Triggered
+        {
+            get
+            {
+                GetHeader();
+                return header.Triggered;
+            }
+        }
+
         public bool RequestAndWaitForData(int millisecondsTimeout)
         {
             // Firstly check if any data has already been loaded

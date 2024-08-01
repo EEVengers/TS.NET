@@ -130,6 +130,32 @@ namespace TS.NET.Engine
 
                     ulong bytesSent = 0;
 
+                    // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
+                    if (bridge.Triggered)
+                    {
+                        var signedData = bridge.AcquiredRegionI8;
+                        var channelData = bridge.Processing.TriggerChannel switch
+                        {
+                            TriggerChannel.Channel0 => signedData.Slice(0 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
+                            TriggerChannel.Channel1 => signedData.Slice(1 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
+                            TriggerChannel.Channel2 => signedData.Slice(2 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
+                            TriggerChannel.Channel3 => signedData.Slice(3 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
+                            _ => throw new NotImplementedException()
+                        };
+                        // Get the trigger index. If it's greater than 0, then do trigger interpolation.
+                        int triggerIndex = (int)(bridge.Processing.TriggerDelayFs / femtosecondsPerSample);
+                        if (triggerIndex > 0)
+                        {
+                            float fa = (chHeader.scale * channelData[triggerIndex - 1]) - chHeader.offset;
+                            float fb = (chHeader.scale * channelData[triggerIndex]) - chHeader.offset;
+                            float triggerLevel = (chHeader.scale * bridge.Processing.TriggerLevel) + chHeader.offset;
+                            float slope = fb - fa;
+                            float delta = triggerLevel - fa;
+                            float trigphase = delta / slope;
+                            chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
+                            //logger.LogTrace("Trigger phase: {0:F6}, first {1}, second {2}", chHeader.trigphase, fa, fb);
+                        }
+                    }
                     unsafe
                     {
                         Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
@@ -139,11 +165,10 @@ namespace TS.NET.Engine
                         for (byte channelIndex = 0; channelIndex < processing.CurrentChannelCount; channelIndex++)
                         {
                             ThunderscopeChannel thunderscopeChannel = configuration.Channels[channelIndex];
-
                             chHeader.chNum = channelIndex;
                             chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
                             chHeader.offset = (float)thunderscopeChannel.VoltOffset;
-
+                            
                             Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
                             bytesSent += (ulong)sizeof(ChannelHeader);
                             //logger.LogDebug("ChannelHeader: " + chHeader.ToString());
@@ -164,15 +189,15 @@ namespace TS.NET.Engine
         }
     }
 
-    class WaveformServer : TcpServer
+    class DataServer : TcpServer
     {
         private readonly ILogger logger;
         private readonly CancellationTokenSource cancellationTokenSource;
         private readonly ThunderscopeDataBridgeReader bridge;
 
-        public WaveformServer(ILoggerFactory loggerFactory, ThunderscopeSettings settings, IPAddress address, int port, string bridgeNamespace) : base(address, port)
+        public DataServer(ILoggerFactory loggerFactory, ThunderscopeSettings settings, IPAddress address, int port, string bridgeNamespace) : base(address, port)
         {
-            logger = loggerFactory.CreateLogger(nameof(WaveformServer));
+            logger = loggerFactory.CreateLogger(nameof(DataServer));
             cancellationTokenSource = new();
             bridge = new(bridgeNamespace);
             logger.LogDebug("Started");

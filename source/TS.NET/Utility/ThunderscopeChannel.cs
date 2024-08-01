@@ -19,7 +19,6 @@ namespace TS.NET
         public ushort TrimOffsetDac;
         public ushort TrimSensitivityDac;
 
-
         public static ThunderscopeChannel Default()
         {
             return new ThunderscopeChannel()

@@ -21,6 +21,7 @@ namespace TS.NET
         private bool dataRequested = false;
         private bool acquiringRegionFilledAndWaitingForReader = false;
         private readonly uint cachedDataWidth;
+        private bool triggered = false;
 
         public Span<sbyte> AcquiringRegionI8 { get { return GetAcquiringRegionI8(); } }
         public ThunderscopeDataMonitoring Monitoring { get { return header.Monitoring; } }
@@ -121,17 +122,19 @@ namespace TS.NET
                     ThunderscopeMemoryAcquiringRegion.RegionB => ThunderscopeMemoryAcquiringRegion.RegionA,
                     _ => throw new InvalidDataException("Enum value not handled, add enum value to switch")
                 };
+                header.Triggered = triggered;
                 SetHeader();
                 dataResponseSemaphore.Release();        // Allow UI to use the acquired region
             }
         }
 
-        public void DataWritten()
+        public void DataWritten(bool triggered)
         {
             header.Monitoring.TotalAcquisitions++;
             if (acquiringRegionFilledAndWaitingForReader)
                 header.Monitoring.DroppedAcquisitions++;
             acquiringRegionFilledAndWaitingForReader = true;
+            this.triggered = triggered;
             SetHeader();
         }
 
