@@ -16,7 +16,13 @@ namespace TS.NET.Driver.LiteX
             calibration = new ThunderscopeCalibration();
         }
 
-        public void Open(uint devIndex, ThunderscopeCalibration calibration, string revision)
+        ~Thunderscope()
+        {
+            if(open)
+                Close();
+        }
+
+        public void Open(uint devIndex, ThunderscopeCalibration calibration)
         {
             if (open)
                 Close();
@@ -36,6 +42,9 @@ namespace TS.NET.Driver.LiteX
             if (!open)
                 throw new Exception("Thunderscope not open");
             open = false;
+            
+            Interop.DataEnable(tsHandle, 0);
+
             int returnValue = Interop.Close(tsHandle);
             if(returnValue != 0)
                 throw new Exception($"Thunderscope failed closing device ({returnValue})");
@@ -56,7 +65,7 @@ namespace TS.NET.Driver.LiteX
             if (!open)
                 throw new Exception("Thunderscope not open");
 
-            if(Interop.DataEnable(tsHandle, 1) != 0)
+            if(Interop.DataEnable(tsHandle, 0) != 0)
                 throw new Exception("");
         }
 
