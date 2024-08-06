@@ -656,7 +656,7 @@ namespace TS.NET.Driver.XMDA
             else if (channel.Attenuator)
                 systemGainToPga += channelCal.AttenuatorGainHighZ;
 
-            double requestedOffsetVoltageAtPga = channel.VoltOffset / Math.Pow(10, systemGainToPga / 20);
+            double requestedOffsetVoltageAtPga = channel.VoltOffset * Math.Pow(10, systemGainToPga / 20);
 
             //Decode cal vals from codes to voltage at the PGA_N terminal
             double calibratedVoltageAtPgaNeg = channelCal.HardwareOffsetVoltageLowGain;
