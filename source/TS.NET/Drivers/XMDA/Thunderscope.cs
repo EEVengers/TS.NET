@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using System.Buffers.Binary;
 using TS.NET.Driver.XMDA.Interop;
 
@@ -655,7 +655,7 @@ namespace TS.NET.Driver.XMDA
             else if (channel.Attenuator)
                 systemGainToPga += channelCal.AttenuatorGainHighZ;
 
-            double requestedOffsetVoltageAtPGA = channel.VoltOffset/Math.Pow(10, systemGainToPga / 20);
+            double requestedOffsetVoltageAtPGA = channel.VoltOffset * Math.Pow(10, systemGainToPga / 20);
 
             logger.LogTrace($"Requested Offset: {requestedOffsetVoltageAtPGA:F3}");
 
