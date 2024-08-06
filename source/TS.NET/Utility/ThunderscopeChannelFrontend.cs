@@ -11,11 +11,13 @@ namespace TS.NET
         public double VoltOffset;
         public ThunderscopeBandwidth Bandwidth;
 
+        // Used by calibration for fixed setting of PGA gain & attenuator
+        public bool PgaConfigWordOverride;
+
         // Calculated data
+        public ushort PgaConfigWord;
         public bool Attenuator;
         public double ActualVoltFullScale;
-        public ushort PgaConfigurationWord;
-        public bool PgaIsHighGain;
         public ushort TrimOffsetDac;
         public ushort TrimSensitivityDac;
 
@@ -29,6 +31,9 @@ namespace TS.NET
                 Bandwidth = ThunderscopeBandwidth.BwFull               
             };
         }
+
+        public bool PgaHighGain() => (PgaConfigWord & 0x10) > 0;
+        public int PgaAttenuator() => (PgaConfigWord & 0x0F);
     }
 
     public enum ThunderscopeCoupling : byte

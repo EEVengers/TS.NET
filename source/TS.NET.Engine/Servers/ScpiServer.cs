@@ -330,15 +330,76 @@ namespace TS.NET.Engine
                                         hardwareRequestChannel.Write(new HardwareSetVoltFullScaleRequest(channelIndex, range));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("CAL:OFFSET:GAIN:LOW") && hasArg:
+                                default:
+                                    break;  // Will log a warning at the end of the handler
+                            }
+                            break;
+                        }
+                    case var _ when subject.StartsWith("CAL"):
+                        {
+                            // :CALibration
+                            // :CAL
+                            switch (command)
+                            {
+                                case var _ when command.StartsWith("OFFSET:GAIN:LOW") && hasArg:
                                     {
-                                        double voltage = Convert.ToDouble(argument);
+                                        var args = argument.Split(' ');
+                                        if (!char.IsDigit(args[0][^1]))
+                                        {
+                                            logger.LogWarning("Parameter not valid");
+                                            break;
+                                        }
+                                        int channelNumber = args[0][^1] - '0';
+                                        if ((channelNumber < 1) || (channelNumber > 4))
+                                        {
+                                            logger.LogWarning("Channel index out of range, allowable values are 1 - 4");
+                                            return null;
+                                        }
+                                        int channelIndex = channelNumber - 1;
+                                        double voltage = Convert.ToDouble(args[1]);
                                         voltage = Math.Clamp(voltage, 0, 5);
                                         hardwareRequestChannel.Write(new HardwareSetOffsetVoltageLowGainRequest(channelIndex, voltage));
                                         return null;
                                     }
-                                default:
-                                    break;  // Will log a warning at the end of the handler
+                                case var _ when command.StartsWith("OFFSET:GAIN:HIGH") && hasArg:
+                                    {
+                                        var args = argument.Split(' ');
+                                        if (!char.IsDigit(args[0][^1]))
+                                        {
+                                            logger.LogWarning("Parameter not valid");
+                                            break;
+                                        }
+                                        int channelNumber = args[0][^1] - '0';
+                                        if ((channelNumber < 1) || (channelNumber > 4))
+                                        {
+                                            logger.LogWarning("Channel index out of range, allowable values are 1 - 4");
+                                            return null;
+                                        }
+                                        int channelIndex = channelNumber - 1;
+                                        double voltage = Convert.ToDouble(args[1]);
+                                        voltage = Math.Clamp(voltage, 0, 5);
+                                        hardwareRequestChannel.Write(new HardwareSetOffsetVoltageHighGainRequest(channelIndex, voltage));
+                                        return null;
+                                    }
+                                case var _ when command.StartsWith("OVERRIDE:PGA:CONFIG") && hasArg:
+                                    {
+                                        var args = argument.Split(' ');
+                                        if (!char.IsDigit(args[0][^1]))
+                                        {
+                                            logger.LogWarning("Parameter not valid");
+                                            break;
+                                        }
+                                        int channelNumber = args[0][^1] - '0';
+                                        if ((channelNumber < 1) || (channelNumber > 4))
+                                        {
+                                            logger.LogWarning("Channel index out of range, allowable values are 1 - 4");
+                                            return null;
+                                        }
+                                        int channelIndex = channelNumber - 1;
+                                        ushort pgaConfigWord = ushort.Parse(args[1]);
+                                        hardwareRequestChannel.Write(new HardwareSetPgaConfigWordOverrideRequest(channelIndex, pgaConfigWord));
+                                        return null;
+                                    }
                             }
                             break;
                         }

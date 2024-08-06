@@ -103,7 +103,7 @@ class Program
                     var ts = new TS.NET.Driver.XMDA.Thunderscope(loggerFactory);
                     ThunderscopeHardwareConfig initialHardwareConfiguration = new();
                     initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Quad;
-                    initialHardwareConfiguration.EnabledChannels = 4;
+                    initialHardwareConfiguration.EnabledChannels = 0x0F;
                     initialHardwareConfiguration.Frontend[0] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Frontend[1] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Frontend[2] = ThunderscopeChannelFrontend.Default();

@@ -134,6 +134,7 @@ namespace TS.NET.Engine
                     if (bridge.Triggered)
                     {
                         var signedData = bridge.AcquiredRegionI8;
+                        // To fix - trigger interpolation only works on 4 channel mode
                         var channelData = bridge.Processing.TriggerChannel switch
                         {
                             TriggerChannel.Channel1 => signedData.Slice(0 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
@@ -144,7 +145,7 @@ namespace TS.NET.Engine
                         };
                         // Get the trigger index. If it's greater than 0, then do trigger interpolation.
                         int triggerIndex = (int)(bridge.Processing.TriggerDelayFs / femtosecondsPerSample);
-                        if (triggerIndex > 0)
+                        if (triggerIndex > 0 && triggerIndex < channelData.Length)
                         {
                             float fa = (chHeader.scale * channelData[triggerIndex - 1]) - chHeader.offset;
                             float fb = (chHeader.scale * channelData[triggerIndex]) - chHeader.offset;
