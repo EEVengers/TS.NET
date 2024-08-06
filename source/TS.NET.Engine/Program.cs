@@ -109,9 +109,9 @@ class Program
                     initialHardwareConfiguration.Frontend[2] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Frontend[3] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Calibration[0] = thunderscopeSettings.Calibration.Channel1.ToDriver();
-                    initialHardwareConfiguration.Calibration[1] = thunderscopeSettings.Calibration.Channel1.ToDriver();
-                    initialHardwareConfiguration.Calibration[2] = thunderscopeSettings.Calibration.Channel1.ToDriver();
-                    initialHardwareConfiguration.Calibration[3] = thunderscopeSettings.Calibration.Channel1.ToDriver();
+                    initialHardwareConfiguration.Calibration[1] = thunderscopeSettings.Calibration.Channel2.ToDriver();
+                    initialHardwareConfiguration.Calibration[2] = thunderscopeSettings.Calibration.Channel3.ToDriver();
+                    initialHardwareConfiguration.Calibration[3] = thunderscopeSettings.Calibration.Channel4.ToDriver();
                     ts.Open(devices[deviceIndex], initialHardwareConfiguration, thunderscopeSettings.HardwareRevision);
                     thunderscope = ts;
                     break;
