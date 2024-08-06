@@ -9,26 +9,16 @@ namespace TS.NET.Driver.XMDA
     public class Thunderscope : IThunderscope
     {
         private readonly ILogger logger;
-        private ThunderscopeInterop interop;
-        private ThunderscopeCalibration calibration;
+
+        private ThunderscopeHardwareState hardwareState = new();
         private bool open = false;
-        private ThunderscopeHardwareState hardwareState;
+        private ThunderscopeInterop interop;
         private ThunderscopeHardwareConfig configuration;
         private string revision;
 
         public Thunderscope(ILoggerFactory loggerFactory)
         {
             logger = loggerFactory.CreateLogger(nameof(ThunderscopeDevice));
-            hardwareState = new();
-            configuration = new()
-            {
-                AdcChannelMode = AdcChannelMode.Quad,
-                EnabledChannels = 0b00001111
-            };
-            configuration.Channels[0] = ThunderscopeChannel.Default();
-            configuration.Channels[1] = ThunderscopeChannel.Default();
-            configuration.Channels[2] = ThunderscopeChannel.Default();
-            configuration.Channels[3] = ThunderscopeChannel.Default();
         }
 
         public static List<ThunderscopeDevice> IterateDevices()
@@ -36,13 +26,13 @@ namespace TS.NET.Driver.XMDA
             return ThunderscopeInterop.IterateDevices();
         }
 
-        public void Open(ThunderscopeDevice device, ThunderscopeCalibration calibration, string revision)
+        public void Open(ThunderscopeDevice device, ThunderscopeHardwareConfig initialHardwareConfig, string revision)
         {
             if (open)
                 Close();
 
             interop = ThunderscopeInterop.CreateInterop(device);
-            this.calibration = calibration;
+            this.configuration = initialHardwareConfig;
             this.revision = revision;
 
             Initialise();
@@ -135,16 +125,30 @@ namespace TS.NET.Driver.XMDA
         }
 
         // Returns a by-value copy
-        public ThunderscopeChannel GetChannel(int channelIndex)
+        public ThunderscopeChannelFrontend GetChannelFrontend(int channelIndex)
         {
-            return configuration.Channels[channelIndex];
+            return configuration.Frontend[channelIndex];
         }
 
-        public void SetChannel(int channel, ThunderscopeChannel thunderscopeChannel)
+        public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)
         {
             UpdateAdc();
-            UpdateAfe(channel, ref thunderscopeChannel);
-            configuration.Channels[channel] = thunderscopeChannel;
+            UpdateAfe(channelIndex, ref channel);
+            configuration.Frontend[channelIndex] = channel;
+        }
+
+
+        // Returns a by-value copy
+        public ThunderscopeChannelCalibration GetChannelCalibration(int channelIndex)
+        {
+            return configuration.Calibration[channelIndex];
+        }
+
+        public void SetChannelCalibration(int channelIndex, ThunderscopeChannelCalibration channelCalibration)
+        {
+            configuration.Calibration[channelIndex] = channelCalibration;
+            //UpdateAdc();
+            UpdateAfe(channelIndex, ref configuration.Frontend[channelIndex]);
         }
 
         public void SetChannelEnable(int channelIndex, bool enabled)
@@ -191,7 +195,7 @@ namespace TS.NET.Driver.XMDA
 
             for (int channel = 0; channel < 4; channel++)
             {
-                UpdateAfe(channel, ref configuration.Channels[channel]);
+                UpdateAfe(channel, ref configuration.Frontend[channel]);
             }
 
             ConfigureDatamover(hardwareState);      // Needed to set Attenuator after UpdateAfe
@@ -248,15 +252,15 @@ namespace TS.NET.Driver.XMDA
                 {
                     numChannelsEnabled++;
                 }
-                if (configuration.Channels[channel].Termination == ThunderscopeTermination.FiftyOhm)
+                if (configuration.Frontend[channel].Termination == ThunderscopeTermination.FiftyOhm)
                 {
                     datamoverRegister |= (uint)1 << (12 + channel);
                 }
-                if (!configuration.Channels[channel].Attenuator)
+                if (!configuration.Frontend[channel].Attenuator)
                 {
                     datamoverRegister |= (uint)1 << 16 + channel;
                 }
-                if (configuration.Channels[channel].Coupling == ThunderscopeCoupling.DC)
+                if (configuration.Frontend[channel].Coupling == ThunderscopeCoupling.DC)
                 {
                     datamoverRegister |= (uint)1 << 20 + channel;
                 }
@@ -399,28 +403,20 @@ namespace TS.NET.Driver.XMDA
                 ConfigureDatamover(hardwareState);
         }
 
-        private void UpdateAfe(int channel, ref ThunderscopeChannel channelConfiguration)
+        private void UpdateAfe(int channelIndex, ref ThunderscopeChannelFrontend channelFrontend)
         {
-            ThunderscopeChannelCalibration channelCal = channel switch
-            {
-                0 => calibration.Channel1,
-                1 => calibration.Channel2,
-                2 => calibration.Channel3,
-                3 => calibration.Channel4,
-            };
+            CalculatePgaConfigurationWord(ref configuration.Calibration[channelIndex], ref channelFrontend);
+            SetPGA(channelIndex, channelFrontend.PgaConfigurationWord);
 
-            CalculatePgaConfigurationWord(ref channelCal, ref channelConfiguration);
-            SetPGA(channel, channelConfiguration.PgaConfigurationWord);
-
-            CalculateTrimConfiguration(ref channelCal, ref channelConfiguration);
+            CalculateTrimConfiguration(ref configuration.Calibration[channelIndex], ref channelFrontend);
 
             // To do: use the calibration to calculate actual value
-            ushort dacValue = channelConfiguration.TrimOffsetDac;
-            SetTrimOffsetDAC(channel, dacValue);
+            ushort dacValue = channelFrontend.TrimOffsetDac;
+            SetTrimOffsetDAC(channelIndex, dacValue);
 
             // To do: use the calibration to calculate actual value
-            dacValue = channelConfiguration.TrimSensitivityDac;
-            SetTrimSensitivityDAC(channel, dacValue);
+            dacValue = channelFrontend.TrimSensitivityDac;
+            SetTrimSensitivityDAC(channelIndex, dacValue);
         }
 
         private void SetTrimOffsetDAC(int channel, ushort dacValue)
@@ -503,7 +499,7 @@ namespace TS.NET.Driver.XMDA
                 throw new ThunderscopeMemoryOutOfMemoryException("Thunderscope - memory full");
         }
 
-        private void CalculatePgaConfigurationWord(ref ThunderscopeChannelCalibration channelCal, ref ThunderscopeChannel channel)
+        private void CalculatePgaConfigurationWord(ref ThunderscopeChannelCalibration channelCal, ref ThunderscopeChannelFrontend channel)
         {
             // LMH6518
 
@@ -649,7 +645,7 @@ namespace TS.NET.Driver.XMDA
             }
         }
         //Works on really low voltage ranges now
-        private void CalculateTrimConfiguration(ref ThunderscopeChannelCalibration channelCal, ref ThunderscopeChannel channel)
+        private void CalculateTrimConfiguration(ref ThunderscopeChannelCalibration channelCal, ref ThunderscopeChannelFrontend channel)
         {
             // This encapsulates ADC gain, TODO: break it out into true full scale range and gain later (both controllable via ADC SPI)
             //double adcEquivFullScaleRange = 0.7;             

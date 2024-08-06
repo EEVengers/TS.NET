@@ -1,15 +1,10 @@
-﻿namespace TS.NET
-{
-    public class ThunderscopeCalibration
-    {
-        public ThunderscopeChannelCalibration Channel1 { get; set; }
-        public ThunderscopeChannelCalibration Channel2 { get; set; }
-        public ThunderscopeChannelCalibration Channel3 { get; set; }
-        public ThunderscopeChannelCalibration Channel4 { get; set; }
-    }
+﻿using System.Runtime.InteropServices;
 
+namespace TS.NET
+{
     // This has the potential to be a complex structure with per-PGA-gain-setting gain & offset, etc. Bodge for now.
-    public class ThunderscopeChannelCalibration
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct ThunderscopeChannelCalibration
     {
         public double AttenuatorGainHighZ { get; set; }
         public double AttenuatorGainFiftyOhm { get; set; }

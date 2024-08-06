@@ -101,17 +101,28 @@ class Program
                     if (deviceIndex > devices.Count - 1)
                         throw new Exception($"Invalid thunderscope index ({deviceIndex}). Only {devices.Count} Thunderscopes connected.");
                     var ts = new TS.NET.Driver.XMDA.Thunderscope(loggerFactory);
-                    ts.Open(devices[deviceIndex], thunderscopeSettings.Calibration.ToDriver(), thunderscopeSettings.HardwareRevision);
+                    ThunderscopeHardwareConfig initialHardwareConfiguration = new();
+                    initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Quad;
+                    initialHardwareConfiguration.EnabledChannels = 4;
+                    initialHardwareConfiguration.Frontend[0] = ThunderscopeChannelFrontend.Default();
+                    initialHardwareConfiguration.Frontend[1] = ThunderscopeChannelFrontend.Default();
+                    initialHardwareConfiguration.Frontend[2] = ThunderscopeChannelFrontend.Default();
+                    initialHardwareConfiguration.Frontend[3] = ThunderscopeChannelFrontend.Default();
+                    initialHardwareConfiguration.Calibration[0] = thunderscopeSettings.Calibration.Channel1.ToDriver();
+                    initialHardwareConfiguration.Calibration[1] = thunderscopeSettings.Calibration.Channel1.ToDriver();
+                    initialHardwareConfiguration.Calibration[2] = thunderscopeSettings.Calibration.Channel1.ToDriver();
+                    initialHardwareConfiguration.Calibration[3] = thunderscopeSettings.Calibration.Channel1.ToDriver();
+                    ts.Open(devices[deviceIndex], initialHardwareConfiguration, thunderscopeSettings.HardwareRevision);
                     thunderscope = ts;
                     break;
                 }
-            case "litex":
-                {
-                    var ts = new TS.NET.Driver.LiteX.Thunderscope();
-                    ts.Open(0, thunderscopeSettings.Calibration.ToDriver(), thunderscopeSettings.HardwareRevision);
-                    thunderscope = ts;
-                    break;
-                }
+            //case "litex":
+            //    {
+            //        var ts = new TS.NET.Driver.LiteX.Thunderscope();
+            //        ts.Open(0, thunderscopeSettings.Calibration.ToDriver(), thunderscopeSettings.HardwareRevision);
+            //        thunderscope = ts;
+            //        break;
+            //    }
             default:
                 throw new ArgumentException($"{thunderscopeSettings.HardwareDriver} driver not supported");
         }

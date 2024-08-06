@@ -8,14 +8,21 @@ namespace TS.NET
         public AdcChannelMode AdcChannelMode;           // The number of channels enabled on ADC. ADC has input mux, e.g. Channel1.Enabled and Channel4.Enabled could have AdcChannels of Two. Useful for UI to know this, in order to clamp maximum sample rate.
         public byte EnabledChannels;                    // LSB = Ch0, LSB+1 = Ch1, etc
 
-        public ThunderscopeChannelArray Channels;
+        public ThunderscopeChannelFrontendArray Frontend;
+        public ThunderscopeChannelCalibrationArray Calibration;
     }
 
     // https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-12#inline-arrays
     [System.Runtime.CompilerServices.InlineArray(4)]
-    public struct ThunderscopeChannelArray
+    public struct ThunderscopeChannelFrontendArray
     {
-        ThunderscopeChannel Channel;
+        ThunderscopeChannelFrontend Frontend;
+    }
+
+    [System.Runtime.CompilerServices.InlineArray(4)]
+    public struct ThunderscopeChannelCalibrationArray
+    {
+        ThunderscopeChannelCalibration Calibration;
     }
 
     public enum AdcChannelMode : byte

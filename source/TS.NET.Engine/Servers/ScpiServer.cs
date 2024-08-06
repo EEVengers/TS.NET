@@ -175,8 +175,8 @@ namespace TS.NET.Engine
                     //    }
                     case var _ when subject.StartsWith("TRIG"):
                         {
-                            // TRIG:
                             // TRIGger:
+                            // TRIG:
                             switch (command)
                             {
                                 case var _ when command.StartsWith("LEV") && hasArg:
@@ -188,15 +188,20 @@ namespace TS.NET.Engine
                                         processingRequestChannel.Write(new ProcessingSetTriggerLevelDto(level));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("SOUR") && hasArg:
+                                case var _ when command.StartsWith("SOU") && hasArg:
                                     {
                                         // TRIGger:SOUrce <arg>
                                         // TRIG:SOU <arg>
-                                        int source = Convert.ToInt32(argument);
-                                        if (source < 0 || source > 3)
-                                            source = 0;
+                                        if (!char.IsDigit(argument[^1]))
+                                        {
+                                            logger.LogWarning($"Trigger source argument not valid");
+                                            break;
+                                        }
+                                        int source = Convert.ToInt32(argument.ToArray()[^1]);
+                                        if (source < 1 || source > 4)
+                                            source = 1;
                                         logger.LogDebug($"Set trigger source to ch {source}");
-                                        processingRequestChannel.Write(new ProcessingSetTriggerSourceDto((TriggerChannel)(source + 1)));
+                                        processingRequestChannel.Write(new ProcessingSetTriggerSourceDto((TriggerChannel)source));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("DEL") && hasArg:
@@ -223,37 +228,37 @@ namespace TS.NET.Engine
                                         processingRequestChannel.Write(new ProcessingSetTriggerTypeDto(type));
                                         return null;
                                     }
-                                //case var _ when command.StartsWith("HOLD") && hasArg:
-                                //    {
-                                //        // TRIGger:HOLDoff:MODE <OFF|TIME>
-                                //        // TRIGger:HOLDoff:TIME <arg>
-                                //    }
+                                    //case var _ when command.StartsWith("HOLD") && hasArg:
+                                    //    {
+                                    //        // TRIGger:HOLDoff:MODE <OFF|TIME>
+                                    //        // TRIGger:HOLDoff:TIME <arg>
+                                    //    }
                             }
                             break;
                         }
                     case var _ when char.IsDigit(subject[0]):    // Maintain backwards compatibility, remove later
                     case var _ when subject.StartsWith("CHAN") && char.IsDigit(subject[^1]):
                         {
-                            // CHANnel0:
-                            // CHAN0:
-                            int chNum = subject[^1] - '0';
-                            if ((chNum < 0) || (chNum > 3))
+                            // CHANnel1:
+                            // CHAN1:
+                            int channelNumber = subject[^1] - '0';
+                            if ((channelNumber < 1) || (channelNumber > 4))
                             {
-                                logger.LogWarning("Channel index out of range, allowable values are 0 - 3");
+                                logger.LogWarning("Channel index out of range, allowable values are 1 - 4");
                                 return null;
                             }
+                            int channelIndex = channelNumber - 1;
                             switch (command)
                             {
                                 case "ON" or "OFF":
                                     {
-                                        logger.LogDebug($"Set ch {chNum} enabled {command == "ON"}");
-                                        hardwareRequestChannel.Write(new HardwareSetEnabledRequest(chNum, command == "ON"));
+                                        hardwareRequestChannel.Write(new HardwareSetEnabledRequest(channelIndex, command == "ON"));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("BAND") & hasArg:
+                                case var _ when command.StartsWith("BAND") && hasArg:
                                     {
-                                        // CHANnel0:BANDwidth <arg>
-                                        // CHAN0:BAND <arg>
+                                        // CHANnel1:BANDwidth <arg>
+                                        // CHAN1:BAND <arg>
                                         ThunderscopeBandwidth? thunderscopeBandwidth = argument switch
                                         {
                                             "FULL" => ThunderscopeBandwidth.BwFull,
@@ -270,13 +275,13 @@ namespace TS.NET.Engine
                                             logger.LogWarning("Bandwidth argument not recognised");
                                             break;
                                         }
-                                        hardwareRequestChannel.Write(new HardwareSetBandwidthRequest(chNum, (ThunderscopeBandwidth)thunderscopeBandwidth));
+                                        hardwareRequestChannel.Write(new HardwareSetBandwidthRequest(channelIndex, (ThunderscopeBandwidth)thunderscopeBandwidth));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("COUP") && hasArg:
                                     {
-                                        // CHANnel0:COUPling <arg>
-                                        // CHAN0:COUP <arg>
+                                        // CHANnel1:COUPling <arg>
+                                        // CHAN1:COUP <arg>
                                         ThunderscopeCoupling? thunderscopeCoupling = argument switch
                                         {
                                             "DC" => ThunderscopeCoupling.DC,
@@ -288,13 +293,13 @@ namespace TS.NET.Engine
                                             logger.LogWarning("Coupling argument not recognised");
                                             break;
                                         }
-                                        hardwareRequestChannel.Write(new HardwareSetCouplingRequest(chNum, (ThunderscopeCoupling)thunderscopeCoupling));
+                                        hardwareRequestChannel.Write(new HardwareSetCouplingRequest(channelIndex, (ThunderscopeCoupling)thunderscopeCoupling));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("TERM") && hasArg:
                                     {
-                                        // CHANnel0:TERMination <arg>
-                                        // CHAN0:TERM <arg>
+                                        // CHANnel1:TERMination <arg>
+                                        // CHAN1:TERM <arg>
                                         ThunderscopeTermination? thunderscopeTermination = argument switch
                                         {
                                             "1M" => ThunderscopeTermination.OneMegaohm,
@@ -306,23 +311,30 @@ namespace TS.NET.Engine
                                             logger.LogWarning("Termination argument not recognised");
                                             break;
                                         }
-                                        hardwareRequestChannel.Write(new HardwareSetTerminationRequest(chNum, (ThunderscopeTermination)thunderscopeTermination));
+                                        hardwareRequestChannel.Write(new HardwareSetTerminationRequest(channelIndex, (ThunderscopeTermination)thunderscopeTermination));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("OFFS") && hasArg:
                                     {
-                                        // CHANnel0:OFFSet <arg>
-                                        // CHAN0:OFFS <arg>
+                                        // CHANnel1:OFFSet <arg>
+                                        // CHAN1:OFFS <arg>
                                         double offset = Convert.ToDouble(argument);
                                         offset = Math.Clamp(offset, -50, 50);     // Change to final values later
-                                        hardwareRequestChannel.Write(new HardwareSetVoltOffsetRequest(chNum, offset));
+                                        hardwareRequestChannel.Write(new HardwareSetVoltOffsetRequest(channelIndex, offset));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("RANG") && hasArg:
                                     {
                                         double range = Convert.ToDouble(argument);
                                         range = Math.Clamp(range, -50, 50);       // Change to final values later
-                                        hardwareRequestChannel.Write(new HardwareSetVoltFullScaleRequest(chNum, range));
+                                        hardwareRequestChannel.Write(new HardwareSetVoltFullScaleRequest(channelIndex, range));
+                                        return null;
+                                    }
+                                case var _ when command.StartsWith("CAL:OFFSET:GAIN:LOW") && hasArg:
+                                    {
+                                        double voltage = Convert.ToDouble(argument);
+                                        voltage = Math.Clamp(voltage, 0, 5);
+                                        hardwareRequestChannel.Write(new HardwareSetOffsetVoltageLowGainRequest(channelIndex, voltage));
                                         return null;
                                     }
                                 default:

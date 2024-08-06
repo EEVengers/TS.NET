@@ -3,7 +3,7 @@
 namespace TS.NET
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]     // Struct packing allows the use of this datatype in ThunderscopeBridge header as it's consistent with the other datatypes
-    public struct ThunderscopeChannel
+    public struct ThunderscopeChannelFrontend
     {
         public ThunderscopeCoupling Coupling;
         public ThunderscopeTermination Termination;
@@ -19,9 +19,9 @@ namespace TS.NET
         public ushort TrimOffsetDac;
         public ushort TrimSensitivityDac;
 
-        public static ThunderscopeChannel Default()
+        public static ThunderscopeChannelFrontend Default()
         {
-            return new ThunderscopeChannel()
+            return new ThunderscopeChannelFrontend()
             {
                 Coupling = ThunderscopeCoupling.DC,
                 VoltFullScale = 0.5,
