@@ -2,6 +2,7 @@
 using NetCoreServer;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.AccessControl;
 using System.Text;
 
 namespace TS.NET.Engine
@@ -114,131 +115,221 @@ namespace TS.NET.Engine
 
             if (!isQuery)
             {
-                if (subject == null)
+                switch (subject)
                 {
-                    switch (command)
-                    {
-                        case "START":   //Obsolete
-                        case "RUN": 
-                            processingRequestChannel.Write(new ProcessingRunDto());
-                            logger.LogDebug($"{nameof(ProcessingRunDto)} sent");
-                            return null;
-                        case "STOP":
-                            processingRequestChannel.Write(new ProcessingStopDto());
-                            logger.LogDebug($"{nameof(ProcessingStopDto)} sent");
-                            return null;
-                        case "FORCE":
-                            processingRequestChannel.Write(new ProcessingForceTriggerDto());
-                            logger.LogDebug($"{nameof(ProcessingForceTriggerDto)} sent");
-                            return null;
-                        case "SINGLE":
-                            processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Single));
-                            logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
-                            return null;
-                        case "NORMAL":
-                            processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Normal));
-                            logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
-                            return null;
-                        case "AUTO":
-                            processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Auto));
-                            logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
-                            return null;
-                        case "STREAM":
-                            processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Stream));
-                            logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
-                            return null;
-                        case "DEPTH":
-                            if (hasArg)
+                    case null:
+                        {
+                            switch (command)
                             {
-                                ulong depth = Convert.ToUInt64(argument);
-                                processingRequestChannel.Write(new ProcessingSetDepthDto(depth));
-                                logger.LogDebug($"{nameof(ProcessingSetDepthDto)} sent with argument: {depth}");
+                                case "START":   //Obsolete
+                                case "RUN":
+                                    processingRequestChannel.Write(new ProcessingRunDto());
+                                    logger.LogDebug($"{nameof(ProcessingRunDto)} sent");
+                                    return null;
+                                case "STOP":
+                                    processingRequestChannel.Write(new ProcessingStopDto());
+                                    logger.LogDebug($"{nameof(ProcessingStopDto)} sent");
+                                    return null;
+                                case "FORCE":
+                                    processingRequestChannel.Write(new ProcessingForceTriggerDto());
+                                    logger.LogDebug($"{nameof(ProcessingForceTriggerDto)} sent");
+                                    return null;
+                                case "SINGLE":
+                                    processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Single));
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
+                                    return null;
+                                case "NORMAL":
+                                    processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Normal));
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
+                                    return null;
+                                case "AUTO":
+                                    processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Auto));
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
+                                    return null;
+                                case "STREAM":
+                                    processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Stream));
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
+                                    return null;
+                                case "DEPTH":
+                                    if (hasArg)
+                                    {
+                                        ulong depth = Convert.ToUInt64(argument);
+                                        processingRequestChannel.Write(new ProcessingSetDepthDto(depth));
+                                        logger.LogDebug($"{nameof(ProcessingSetDepthDto)} sent with argument: {depth}");
+                                    }
+                                    return null;
+                                case "RATE":
+                                    if (hasArg)
+                                    {
+                                        long rate = Convert.ToInt64(argument);
+                                        processingRequestChannel.Write(new ProcessingSetRateDto(rate));
+                                        logger.LogDebug($"{nameof(ProcessingSetRateDto)} sent with argument: {rate}");
+                                    }
+                                    return null;
                             }
-                            return null;
-                        case "RATE":
-                            if (hasArg)
+                            break;
+                        }
+                    //case var _ when subject.StartsWith("TIM"):
+                    //    {
+                    //        // TIMebase:POSition <arg> instead of TRIGger:DELay <arg>?
+                    //    }
+                    case var _ when subject.StartsWith("TRIG"):
+                        {
+                            // TRIG:
+                            // TRIGger:
+                            switch (command)
                             {
-                                long rate = Convert.ToInt64(argument);
-                                processingRequestChannel.Write(new ProcessingSetRateDto(rate));
-                                logger.LogDebug($"{nameof(ProcessingSetRateDto)} sent with argument: {rate}");
+                                case var _ when command.StartsWith("LEV") && hasArg:
+                                    {
+                                        // TRIGger:LEVel <arg>
+                                        // TRIG:LEV <arg>
+                                        double level = Convert.ToDouble(argument);
+                                        logger.LogDebug($"Set trigger level to {level}V");
+                                        processingRequestChannel.Write(new ProcessingSetTriggerLevelDto(level));
+                                        return null;
+                                    }
+                                case var _ when command.StartsWith("SOUR") && hasArg:
+                                    {
+                                        // TRIGger:SOUrce <arg>
+                                        // TRIG:SOU <arg>
+                                        int source = Convert.ToInt32(argument);
+                                        if (source < 0 || source > 3)
+                                            source = 0;
+                                        logger.LogDebug($"Set trigger source to ch {source}");
+                                        processingRequestChannel.Write(new ProcessingSetTriggerSourceDto((TriggerChannel)(source + 1)));
+                                        return null;
+                                    }
+                                case var _ when command.StartsWith("DEL") && hasArg:
+                                    {
+                                        // TRIGger:DELay <arg>
+                                        // TRIG:DEL <arg>
+                                        long delay = Convert.ToInt64(argument);
+                                        logger.LogDebug($"Set trigger delay to {delay}fs");
+                                        processingRequestChannel.Write(new ProcessingSetTriggerDelayDto((ulong)delay));
+                                        return null;
+                                    }
+                                case var _ when command.StartsWith("EDGE") && hasArg:
+                                    {
+                                        // TRIGger:EDGE:SLOPe <arg>
+                                        // TRIG:EDGE:SLOP <arg>
+                                        string dir = argument ?? throw new NullReferenceException();
+                                        logger.LogDebug($"Set [edge] trigger direction to {dir}");
+                                        var type = dir.ToUpper() switch
+                                        {
+                                            "RISING" => TriggerType.RisingEdge,
+                                            "FALLING" => TriggerType.FallingEdge,
+                                            _ => throw new NotImplementedException()
+                                        };
+                                        processingRequestChannel.Write(new ProcessingSetTriggerTypeDto(type));
+                                        return null;
+                                    }
+                                //case var _ when command.StartsWith("HOLD") && hasArg:
+                                //    {
+                                //        // TRIGger:HOLDoff:MODE <OFF|TIME>
+                                //        // TRIGger:HOLDoff:TIME <arg>
+                                //    }
                             }
-                            return null;
-                    }
-                }
-                else if (subject == "TRIG")
-                {
-                    if (command == "LEV" && hasArg)
-                    {
-                        double level = Convert.ToDouble(argument);
-                        logger.LogDebug($"Set trigger level to {level}V");
-                        processingRequestChannel.Write(new ProcessingSetTriggerLevelDto(level));
-                        return null;
-                    }
-                    else if (command == "SOU" && hasArg)
-                    {
-                        int source = Convert.ToInt32(argument);
-                        if (source < 0 || source > 3)
-                            source = 0;
-                        logger.LogDebug($"Set trigger source to ch {source}");
-                        processingRequestChannel.Write(new ProcessingSetTriggerSourceDto((TriggerChannel)(source + 1)));
-                        return null;
-                    }
-                    else if (command == "DELAY" && hasArg)
-                    {
-                        long delay = Convert.ToInt64(argument);
-                        logger.LogDebug($"Set trigger delay to {delay}fs");
-                        processingRequestChannel.Write(new ProcessingSetTriggerDelayDto((ulong)delay));
-                        return null;
-                    }
-                    else if (command == "EDGE:DIR" && hasArg)
-                    {
-                        string dir = argument ?? throw new NullReferenceException();
-                        logger.LogDebug($"Set [edge] trigger direction to {dir}");
-                        var type = dir.ToUpper() switch {
-                            "RISING" => TriggerType.RisingEdge,
-                            "FALLING" => TriggerType.FallingEdge,
-                            _ => throw new NotImplementedException()
-                        };
-                        processingRequestChannel.Write(new ProcessingSetTriggerTypeDto(type));
-                        return null;
-                    }
-                }
-                else if (subject.Length == 1 && char.IsDigit(subject[0]))
-                {
-                    int chNum = subject[0] - '0';
-
-                    if (command == "ON" || command == "OFF")
-                    {
-                        logger.LogDebug($"Set ch {chNum} enabled {command == "ON"}");
-                        hardwareRequestChannel.Write(new HardwareSetEnabledRequest(chNum, command == "ON"));
-                        return null;
-                    }
-                    else if (command == "COUP" && hasArg)
-                    {
-                        string coup = argument ?? throw new NullReferenceException();
-                        logger.LogDebug($"Set ch {chNum} coupling to {coup}");
-                        hardwareRequestChannel.Write(new HardwareSetCouplingRequest(chNum, coup == "DC1M" ? ThunderscopeCoupling.DC : ThunderscopeCoupling.AC));
-                        if(coup.EndsWith("1M"))
-                            hardwareRequestChannel.Write(new HardwareSetTerminationRequest(chNum, ThunderscopeTermination.OneMegaohm));
-                        else
-                            hardwareRequestChannel.Write(new HardwareSetTerminationRequest(chNum, ThunderscopeTermination.FiftyOhm));
-                        return null;
-                    }
-                    else if (command == "OFFS" && hasArg)
-                    {
-                        double offset = Convert.ToDouble(argument);
-                        logger.LogDebug($"Set ch {chNum} offset to {offset}V");
-                        offset = Math.Clamp(offset, -0.5, 0.5);
-                        hardwareRequestChannel.Write(new HardwareSetVoltOffsetRequest(chNum, offset));
-                        return null;
-                    }
-                    else if (command == "RANGE" && hasArg)
-                    {
-                        double range = Convert.ToDouble(argument);
-                        logger.LogDebug($"Set channel {chNum} range to {range}V");
-                        hardwareRequestChannel.Write(new HardwareSetVoltFullScaleRequest(chNum, range));
-                        return null;
-                    }
+                            break;
+                        }
+                    case var _ when char.IsDigit(subject[0]):    // Maintain backwards compatibility, remove later
+                    case var _ when subject.StartsWith("CHAN") && char.IsDigit(subject[^1]):
+                        {
+                            // CHANnel0:
+                            // CHAN0:
+                            int chNum = subject[^1] - '0';
+                            if ((chNum < 0) || (chNum > 3))
+                            {
+                                logger.LogWarning("Channel index out of range, allowable values are 0 - 3");
+                                return null;
+                            }
+                            switch (command)
+                            {
+                                case "ON" or "OFF":
+                                    {
+                                        logger.LogDebug($"Set ch {chNum} enabled {command == "ON"}");
+                                        hardwareRequestChannel.Write(new HardwareSetEnabledRequest(chNum, command == "ON"));
+                                        return null;
+                                    }
+                                case var _ when command.StartsWith("BAND") & hasArg:
+                                    {
+                                        // CHANnel0:BANDwidth <arg>
+                                        // CHAN0:BAND <arg>
+                                        ThunderscopeBandwidth? thunderscopeBandwidth = argument switch
+                                        {
+                                            "FULL" => ThunderscopeBandwidth.BwFull,
+                                            "750M" => ThunderscopeBandwidth.Bw750M,
+                                            "650M" => ThunderscopeBandwidth.Bw650M,
+                                            "350M" => ThunderscopeBandwidth.Bw350M,
+                                            "200M" => ThunderscopeBandwidth.Bw200M,
+                                            "100M" => ThunderscopeBandwidth.Bw100M,
+                                            "20M" => ThunderscopeBandwidth.Bw20M,
+                                            _ => null
+                                        };
+                                        if (thunderscopeBandwidth == null)
+                                        {
+                                            logger.LogWarning("Bandwidth argument not recognised");
+                                            break;
+                                        }
+                                        hardwareRequestChannel.Write(new HardwareSetBandwidthRequest(chNum, (ThunderscopeBandwidth)thunderscopeBandwidth));
+                                        return null;
+                                    }
+                                case var _ when command.StartsWith("COUP") && hasArg:
+                                    {
+                                        // CHANnel0:COUPling <arg>
+                                        // CHAN0:COUP <arg>
+                                        ThunderscopeCoupling? thunderscopeCoupling = argument switch
+                                        {
+                                            "DC" => ThunderscopeCoupling.DC,
+                                            "AC" => ThunderscopeCoupling.AC,
+                                            _ => null
+                                        };
+                                        if (thunderscopeCoupling == null)
+                                        {
+                                            logger.LogWarning("Coupling argument not recognised");
+                                            break;
+                                        }
+                                        hardwareRequestChannel.Write(new HardwareSetCouplingRequest(chNum, (ThunderscopeCoupling)thunderscopeCoupling));
+                                        return null;
+                                    }
+                                case var _ when command.StartsWith("TERM") && hasArg:
+                                    {
+                                        // CHANnel0:TERMination <arg>
+                                        // CHAN0:TERM <arg>
+                                        ThunderscopeTermination? thunderscopeTermination = argument switch
+                                        {
+                                            "1M" => ThunderscopeTermination.OneMegaohm,
+                                            "50" => ThunderscopeTermination.FiftyOhm,
+                                            _ => null
+                                        };
+                                        if (thunderscopeTermination == null)
+                                        {
+                                            logger.LogWarning("Termination argument not recognised");
+                                            break;
+                                        }
+                                        hardwareRequestChannel.Write(new HardwareSetTerminationRequest(chNum, (ThunderscopeTermination)thunderscopeTermination));
+                                        return null;
+                                    }
+                                case var _ when command.StartsWith("OFFS") && hasArg:
+                                    {
+                                        // CHANnel0:OFFSet <arg>
+                                        // CHAN0:OFFS <arg>
+                                        double offset = Convert.ToDouble(argument);
+                                        offset = Math.Clamp(offset, -50, 50);     // Change to final values later
+                                        hardwareRequestChannel.Write(new HardwareSetVoltOffsetRequest(chNum, offset));
+                                        return null;
+                                    }
+                                case var _ when command.StartsWith("RANG") && hasArg:
+                                    {
+                                        double range = Convert.ToDouble(argument);
+                                        range = Math.Clamp(range, -50, 50);       // Change to final values later
+                                        hardwareRequestChannel.Write(new HardwareSetVoltFullScaleRequest(chNum, range));
+                                        return null;
+                                    }
+                                default:
+                                    break;  // Will log a warning at the end of the handler
+                            }
+                            break;
+                        }
                 }
             }
             else
@@ -252,15 +343,16 @@ namespace TS.NET.Engine
                             return "ThunderScope,(Bridge),NOSERIAL,NOVERSION\n";
                         case "RATES":
                             processingRequestChannel.Write(new ProcessingGetRateRequestDto());
-                            if(processingResponseChannel.TryRead(out var response, 100))
+                            if (processingResponseChannel.TryRead(out var response, 100))
                             {
-                                switch(response){
+                                switch (response)
+                                {
                                     case ProcessingGetRateResponseDto hardwareGetRateResponse:
-                                        return $"{1000000000000000/hardwareGetRateResponse.SampleRate:F0},\n";
+                                        return $"{1000000000000000 / hardwareGetRateResponse.SampleRate:F0},\n";
                                     default:
                                         logger.LogWarning($"Did not get correct response to {nameof(ProcessingGetRateRequestDto)}");
                                         return "";
-                                }                              
+                                }
                             }
                             else
                             {
@@ -270,16 +362,16 @@ namespace TS.NET.Engine
                         case "DEPTHS":
                             List<string> depths = new();
                             int baseCount = 1000;
-                            while(true)
+                            while (true)
                             {
-                                if(baseCount <= settings.MaxChannelDataLength)
+                                if (baseCount <= settings.MaxChannelDataLength)
                                     depths.Add($"{baseCount}");
-                                if(baseCount * 2 <= settings.MaxChannelDataLength)
+                                if (baseCount * 2 <= settings.MaxChannelDataLength)
                                     depths.Add($"{baseCount * 2}");
-                                if(baseCount * 5 <= settings.MaxChannelDataLength)
+                                if (baseCount * 5 <= settings.MaxChannelDataLength)
                                     depths.Add($"{baseCount * 5}");
                                 baseCount *= 10;
-                                if(baseCount > settings.MaxChannelDataLength)
+                                if (baseCount > settings.MaxChannelDataLength)
                                     break;
                             }
                             // Perhaps take into account the sample rate to get 1ms/2ms/5ms/10ms/etc windows instead?
