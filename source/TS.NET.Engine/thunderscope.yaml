@@ -62,9 +62,9 @@ ProcessingThreadProcessorAffinity: -1
 
 Calibration:
   Channel1:
-    AttenuatorGainHighZ: -33.9794
-    AttenuatorGainFiftyOhm: -13.9794
-    BufferGain: 0
+    AttenuatorGain1MOhm: -34
+    AttenuatorGain50Ohm: -14
+    BufferGain: -0.25
     PgaPreampLowGain: 10
     PgaPreampHighGain: 30
     PgaAttenuatorGain0: 0
@@ -79,12 +79,12 @@ Calibration:
     PgaAttenuatorGain9: -18
     PgaAttenuatorGain10: -20
     PgaOutputAmpGain: 8.86
-    HardwareOffsetVoltageLowGain: 2.515
-    HardwareOffsetVoltageHighGain: 2.525
+    HardwareOffsetVoltageLowGain: 2.529
+    HardwareOffsetVoltageHighGain: 2.533
   Channel2:
-    AttenuatorGainHighZ: -33.9794
-    AttenuatorGainFiftyOhm: -13.9794
-    BufferGain: 0
+    AttenuatorGain1MOhm: -34
+    AttenuatorGain50Ohm: -14
+    BufferGain: -0.25
     PgaPreampLowGain: 10
     PgaPreampHighGain: 30
     PgaAttenuatorGain0: 0
@@ -99,12 +99,12 @@ Calibration:
     PgaAttenuatorGain9: -18
     PgaAttenuatorGain10: -20
     PgaOutputAmpGain: 8.86
-    HardwareOffsetVoltageLowGain: 2.525
+    HardwareOffsetVoltageLowGain: 2.521
     HardwareOffsetVoltageHighGain: 2.525
   Channel3:
-    AttenuatorGainHighZ: -33.9794
-    AttenuatorGainFiftyOhm: -13.9794
-    BufferGain: 0
+    AttenuatorGain1MOhm: -34
+    AttenuatorGain50Ohm: -14
+    BufferGain: -0.25
     PgaPreampLowGain: 10
     PgaPreampHighGain: 30
     PgaAttenuatorGain0: 0
@@ -119,12 +119,12 @@ Calibration:
     PgaAttenuatorGain9: -18
     PgaAttenuatorGain10: -20
     PgaOutputAmpGain: 8.86
-    HardwareOffsetVoltageLowGain: 2.525
+    HardwareOffsetVoltageLowGain: 2.528
     HardwareOffsetVoltageHighGain: 2.525
   Channel4:
-    AttenuatorGainHighZ: -33.9794
-    AttenuatorGainFiftyOhm: -13.9794
-    BufferGain: 0
+    AttenuatorGain1MOhm: -33.9794
+    AttenuatorGain50Ohm: -13.9794
+    BufferGain: -0.25
     PgaPreampLowGain: 10
     PgaPreampHighGain: 30
     PgaAttenuatorGain0: 0
@@ -139,5 +139,5 @@ Calibration:
     PgaAttenuatorGain9: -18
     PgaAttenuatorGain10: -20
     PgaOutputAmpGain: 8.86
-    HardwareOffsetVoltageLowGain: 2.525
+    HardwareOffsetVoltageLowGain: 2.524
     HardwareOffsetVoltageHighGain: 2.525

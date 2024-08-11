@@ -9,10 +9,10 @@ public enum ChannelLength : ulong
 public enum TriggerChannel : byte
 {
     NotSet = 0,
-    Channel0 = 1,
-    Channel1 = 2,
-    Channel2 = 3,
-    Channel3 = 4
+    Channel1 = 1,
+    Channel2 = 2,
+    Channel3 = 3,
+    Channel4 = 4
 }
 
 public enum TriggerMode : byte

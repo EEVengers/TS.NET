@@ -65,9 +65,9 @@ namespace TS.NET.Engine
                 OsThread.SetThreadAffinity(settings.HardwareThreadProcessorAffinity);
                 logger.LogDebug($"{nameof(HardwareThread)} thread processor affinity set to {settings.HardwareThreadProcessorAffinity}");
             }
-            
+
             try
-            {               
+            {
                 thunderscope.Start();
                 logger.LogInformation("Started");
                 startSemaphore.Release();
@@ -99,41 +99,80 @@ namespace TS.NET.Engine
                                 case HardwareStopRequest hardwareStopRequest:
                                     logger.LogDebug("Stop request (ignore)");
                                     break;
-                                case HardwareConfigureChannelDto hardwareConfigureChannelDto:
-                                    var channelIndex = ((HardwareConfigureChannelDto)request).Channel;
-                                    ThunderscopeChannel channel = thunderscope.GetChannel(channelIndex);
-                                    switch (request)
+                                case HardwareSetChannelFrontendRequest hardwareConfigureChannelFrontendDto:
                                     {
-                                        case HardwareSetVoltOffsetRequest hardwareSetOffsetRequest:
-                                            logger.LogDebug($"{nameof(HardwareSetVoltOffsetRequest)} (channel: {channelIndex}, offset: {hardwareSetOffsetRequest.VoltOffset})");
-                                            channel.VoltOffset = hardwareSetOffsetRequest.VoltOffset;
-                                            break;
-                                        case HardwareSetVoltFullScaleRequest hardwareSetVdivRequest:
-                                            logger.LogDebug($"{nameof(HardwareSetVoltFullScaleRequest)} (channel: {channelIndex}, scale: {hardwareSetVdivRequest.VoltFullScale})");
-                                            channel.VoltFullScale = hardwareSetVdivRequest.VoltFullScale;
-                                            break;
-                                        case HardwareSetBandwidthRequest hardwareSetBandwidthRequest:
-                                            logger.LogDebug($"{nameof(HardwareSetBandwidthRequest)} (channel: {channelIndex}, bandwidth: {hardwareSetBandwidthRequest.Bandwidth})");
-                                            channel.Bandwidth = hardwareSetBandwidthRequest.Bandwidth;
-                                            break;
-                                        case HardwareSetCouplingRequest hardwareSetCouplingRequest:
-                                            logger.LogDebug($"{nameof(HardwareSetCouplingRequest)} (channel: {channelIndex}, coupling: {hardwareSetCouplingRequest.Coupling})");
-                                            channel.Coupling = hardwareSetCouplingRequest.Coupling;
-                                            break;
-                                        case HardwareSetEnabledRequest hardwareSetEnabledRequest:
-                                            logger.LogDebug($"{nameof(HardwareSetEnabledRequest)} (channel: {channelIndex}, enabled: {hardwareSetEnabledRequest.Enabled})");
-                                            thunderscope.SetChannelEnable(channelIndex, hardwareSetEnabledRequest.Enabled);
-                                            break;
-                                        case HardwareSetTerminationRequest hardwareSetTerminationRequest:
-                                            logger.LogDebug($"{nameof(HardwareSetTerminationRequest)} (channel: {channelIndex}, termination: {hardwareSetTerminationRequest.Termination})");
-                                            channel.Termination = hardwareSetTerminationRequest.Termination;
-                                            break;
-                                        default:
-                                            logger.LogWarning($"Unknown {nameof(HardwareConfigureChannelDto)}: {request}");
-                                            break;
+                                        var channelIndex = ((HardwareSetChannelFrontendRequest)request).ChannelIndex;
+                                        var channelFrontend = thunderscope.GetChannelFrontend(channelIndex);
+                                        channelFrontend.PgaConfigWordOverride = false;
+                                        switch (request)
+                                        {
+                                            case HardwareSetVoltOffsetRequest hardwareSetOffsetRequest:
+                                                logger.LogDebug($"{nameof(HardwareSetVoltOffsetRequest)} (channel: {channelIndex}, offset: {hardwareSetOffsetRequest.VoltOffset})");
+                                                channelFrontend.VoltOffset = hardwareSetOffsetRequest.VoltOffset;
+                                                break;
+                                            case HardwareSetVoltFullScaleRequest hardwareSetVdivRequest:
+                                                logger.LogDebug($"{nameof(HardwareSetVoltFullScaleRequest)} (channel: {channelIndex}, scale: {hardwareSetVdivRequest.VoltFullScale})");
+                                                channelFrontend.VoltFullScale = hardwareSetVdivRequest.VoltFullScale;
+                                                break;
+                                            case HardwareSetBandwidthRequest hardwareSetBandwidthRequest:
+                                                logger.LogDebug($"{nameof(HardwareSetBandwidthRequest)} (channel: {channelIndex}, bandwidth: {hardwareSetBandwidthRequest.Bandwidth})");
+                                                channelFrontend.Bandwidth = hardwareSetBandwidthRequest.Bandwidth;
+                                                break;
+                                            case HardwareSetCouplingRequest hardwareSetCouplingRequest:
+                                                logger.LogDebug($"{nameof(HardwareSetCouplingRequest)} (channel: {channelIndex}, coupling: {hardwareSetCouplingRequest.Coupling})");
+                                                channelFrontend.Coupling = hardwareSetCouplingRequest.Coupling;
+                                                break;
+                                            case HardwareSetEnabledRequest hardwareSetEnabledRequest:
+                                                logger.LogDebug($"{nameof(HardwareSetEnabledRequest)} (channel: {channelIndex}, enabled: {hardwareSetEnabledRequest.Enabled})");
+                                                thunderscope.SetChannelEnable(channelIndex, hardwareSetEnabledRequest.Enabled);
+                                                break;
+                                            case HardwareSetTerminationRequest hardwareSetTerminationRequest:
+                                                logger.LogDebug($"{nameof(HardwareSetTerminationRequest)} (channel: {channelIndex}, termination: {hardwareSetTerminationRequest.Termination})");
+                                                channelFrontend.Termination = hardwareSetTerminationRequest.Termination;
+                                                break;
+                                            default:
+                                                logger.LogWarning($"Unknown {nameof(HardwareSetChannelFrontendRequest)}: {request}");
+                                                break;
+                                        }
+                                        thunderscope.SetChannelFrontend(channelIndex, channelFrontend);
+                                        break;
                                     }
-                                    thunderscope.SetChannel(channelIndex, channel);
-                                    break;
+                                case HardwareSetChannelCalibrationRequest hardwareSetChannelCalibrationDto:
+                                    {
+                                        var channelIndex = ((HardwareSetChannelCalibrationRequest)request).ChannelIndex;
+                                        var channelCalibration = thunderscope.GetChannelCalibration(channelIndex);
+                                        switch (request)
+                                        {
+                                            case HardwareSetOffsetVoltageLowGainRequest hardwareSetOffsetVoltageLowGainRequest:
+                                                logger.LogDebug($"{nameof(HardwareSetOffsetVoltageLowGainRequest)} (channel: {channelIndex})");
+                                                channelCalibration.HardwareOffsetVoltageLowGain = hardwareSetOffsetVoltageLowGainRequest.OffsetVoltage;
+                                                break;
+                                            case HardwareSetOffsetVoltageHighGainRequest hardwareSetOffsetVoltageHighGainRequest:
+                                                logger.LogDebug($"{nameof(HardwareSetOffsetVoltageHighGainRequest)} (channel: {channelIndex})");
+                                                channelCalibration.HardwareOffsetVoltageHighGain = hardwareSetOffsetVoltageHighGainRequest.OffsetVoltage;
+                                                break;
+                                        }
+                                        thunderscope.SetChannelCalibration(channelIndex, channelCalibration);
+                                        break;
+                                    }
+                                case HardwareSetChannelFrontendOverrideRequest hardwareSetChannelFrontendOverrideRequest:
+                                    {
+                                        var channelIndex = ((HardwareSetChannelFrontendOverrideRequest)request).ChannelIndex;
+                                        var channelFrontend = thunderscope.GetChannelFrontend(channelIndex);
+                                        switch (request)
+                                        {
+                                            case HardwareSetPgaConfigWordOverrideRequest hardwareSetPgaWordOverrideRequest:
+                                                logger.LogDebug($"{nameof(HardwareSetPgaConfigWordOverrideRequest)} (channel: {channelIndex})");
+                                                channelFrontend.PgaConfigWordOverride = true;
+                                                ushort pgaConfigWord = hardwareSetPgaWordOverrideRequest.PgaConfigWord;
+                                                pgaConfigWord &= 0x01FF;    // Mask off the top 7 bits
+                                                pgaConfigWord |= 0x400;     // Add on mandatory Aux Hi-Z bit
+                                                channelFrontend.PgaConfigWord = pgaConfigWord;
+                                                break;
+                                        }
+                                        thunderscope.SetChannelFrontend(channelIndex, channelFrontend);
+                                        break;
+                                    }
                                 default:
                                     logger.LogWarning($"Unknown {nameof(HardwareRequestDto)}: {request}");
                                     break;

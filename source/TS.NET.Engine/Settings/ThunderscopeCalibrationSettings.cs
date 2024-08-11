@@ -10,17 +10,6 @@ namespace TS.NET
         public ThunderscopeChannelCalibrationSettings Channel3 { get; set; }
         public ThunderscopeChannelCalibrationSettings Channel4 { get; set; }
 
-        public ThunderscopeCalibration ToDriver()
-        {
-            return new ThunderscopeCalibration()
-            {
-                Channel1 = this.Channel1.ToDriver(),
-                Channel2 = this.Channel2.ToDriver(),
-                Channel3 = this.Channel3.ToDriver(),
-                Channel4 = this.Channel4.ToDriver(),
-            };
-        }
-
         public static ThunderscopeCalibrationSettings Default()
         {
             return new ThunderscopeCalibrationSettings()
@@ -35,14 +24,34 @@ namespace TS.NET
 
     // This has the potential to be a complex structure with per-PGA-gain-setting gain & offset, etc. Bodge for now.
     [YamlSerializable]
-    public class ThunderscopeChannelCalibrationSettings : ThunderscopeChannelCalibration
+    public class ThunderscopeChannelCalibrationSettings
     {
+        public double AttenuatorGain1MOhm { get; set; }
+        public double AttenuatorGain50Ohm { get; set; }
+        public double BufferGain { get; set; }
+        public double PgaPreampLowGain { get; set; }
+        public double PgaPreampHighGain { get; set; }
+        public double PgaAttenuatorGain0 { get; set; }
+        public double PgaAttenuatorGain1 { get; set; }
+        public double PgaAttenuatorGain2 { get; set; }
+        public double PgaAttenuatorGain3 { get; set; }
+        public double PgaAttenuatorGain4 { get; set; }
+        public double PgaAttenuatorGain5 { get; set; }
+        public double PgaAttenuatorGain6 { get; set; }
+        public double PgaAttenuatorGain7 { get; set; }
+        public double PgaAttenuatorGain8 { get; set; }
+        public double PgaAttenuatorGain9 { get; set; }
+        public double PgaAttenuatorGain10 { get; set; }
+        public double PgaOutputAmpGain { get; set; }
+        public double HardwareOffsetVoltageLowGain { get; set; }
+        public double HardwareOffsetVoltageHighGain { get; set; }
+
         public ThunderscopeChannelCalibration ToDriver()
         {
             return new ThunderscopeChannelCalibration()
             {
-                AttenuatorGainHighZ = this.AttenuatorGainHighZ,
-                AttenuatorGainFiftyOhm = this.AttenuatorGainFiftyOhm,
+                AttenuatorGain1MOhm = this.AttenuatorGain1MOhm,
+                AttenuatorGain50Ohm = this.AttenuatorGain50Ohm,
                 BufferGain = this.BufferGain,
                 PgaPreampLowGain = this.PgaPreampLowGain,
                 PgaPreampHighGain = this.PgaPreampHighGain,
@@ -67,8 +76,8 @@ namespace TS.NET
         {
             return new ThunderscopeChannelCalibrationSettings()
             {
-                AttenuatorGainHighZ = -33.9794,
-                AttenuatorGainFiftyOhm = -13.9794,
+                AttenuatorGain1MOhm = -33.9794,
+                AttenuatorGain50Ohm = -13.9794,
                 BufferGain = 0,
                 PgaPreampLowGain = 10,
                 PgaPreampHighGain = 30,

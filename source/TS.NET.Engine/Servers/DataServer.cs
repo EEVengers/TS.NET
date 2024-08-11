@@ -134,17 +134,18 @@ namespace TS.NET.Engine
                     if (bridge.Triggered)
                     {
                         var signedData = bridge.AcquiredRegionI8;
+                        // To fix - trigger interpolation only works on 4 channel mode
                         var channelData = bridge.Processing.TriggerChannel switch
                         {
-                            TriggerChannel.Channel0 => signedData.Slice(0 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
-                            TriggerChannel.Channel1 => signedData.Slice(1 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
-                            TriggerChannel.Channel2 => signedData.Slice(2 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
-                            TriggerChannel.Channel3 => signedData.Slice(3 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
+                            TriggerChannel.Channel1 => signedData.Slice(0 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
+                            TriggerChannel.Channel2 => signedData.Slice(1 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
+                            TriggerChannel.Channel3 => signedData.Slice(2 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
+                            TriggerChannel.Channel4 => signedData.Slice(3 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
                             _ => throw new NotImplementedException()
                         };
                         // Get the trigger index. If it's greater than 0, then do trigger interpolation.
                         int triggerIndex = (int)(bridge.Processing.TriggerDelayFs / femtosecondsPerSample);
-                        if (triggerIndex > 0)
+                        if (triggerIndex > 0 && triggerIndex < channelData.Length)
                         {
                             float fa = (chHeader.scale * channelData[triggerIndex - 1]) - chHeader.offset;
                             float fb = (chHeader.scale * channelData[triggerIndex]) - chHeader.offset;
@@ -164,7 +165,7 @@ namespace TS.NET.Engine
 
                         for (byte channelIndex = 0; channelIndex < processing.CurrentChannelCount; channelIndex++)
                         {
-                            ThunderscopeChannel thunderscopeChannel = configuration.Channels[channelIndex];
+                            ThunderscopeChannelFrontend thunderscopeChannel = configuration.Frontend[channelIndex];
                             chHeader.chNum = channelIndex;
                             chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
                             chHeader.offset = (float)thunderscopeChannel.VoltOffset;

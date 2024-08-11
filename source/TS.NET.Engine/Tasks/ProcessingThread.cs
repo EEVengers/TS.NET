@@ -83,7 +83,7 @@ namespace TS.NET.Engine
                 {
                     CurrentChannelCount = settings.MaxChannelCount,
                     CurrentChannelDataLength = settings.MaxChannelDataLength,
-                    TriggerChannel = TriggerChannel.Channel0,
+                    TriggerChannel = TriggerChannel.Channel1,
                     TriggerMode = TriggerMode.Auto,
                     TriggerType = TriggerType.RisingEdge,
                     TriggerDelayFs = 0,
@@ -221,7 +221,7 @@ namespace TS.NET.Engine
                                 var requestedTriggerLevel = processingSetTriggerLevelDto.LevelVolts;
                                 // Convert the voltage to Int8
 
-                                var triggerChannel = cachedHardwareConfig.GetTriggerChannel(processingConfig.TriggerChannel);
+                                var triggerChannel = cachedHardwareConfig.GetTriggerChannelFrontend(processingConfig.TriggerChannel);
 
                                 if ((requestedTriggerLevel > triggerChannel.ActualVoltFullScale / 2) || (requestedTriggerLevel < -triggerChannel.ActualVoltFullScale / 2))
                                 {
@@ -465,10 +465,10 @@ namespace TS.NET.Engine
                                             {
                                                 var triggerChannelBuffer = processingConfig.TriggerChannel switch
                                                 {
-                                                    TriggerChannel.Channel0 => postShuffleCh1_4,
-                                                    TriggerChannel.Channel1 => postShuffleCh2_4,
-                                                    TriggerChannel.Channel2 => postShuffleCh3_4,
-                                                    TriggerChannel.Channel3 => postShuffleCh4_4,
+                                                    TriggerChannel.Channel1 => postShuffleCh1_4,
+                                                    TriggerChannel.Channel2 => postShuffleCh2_4,
+                                                    TriggerChannel.Channel3 => postShuffleCh3_4,
+                                                    TriggerChannel.Channel4 => postShuffleCh4_4,
                                                     _ => throw new ArgumentException("Invalid TriggerChannel value")
                                                 };
 

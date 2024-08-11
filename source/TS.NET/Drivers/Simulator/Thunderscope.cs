@@ -6,18 +6,18 @@
         private DateTimeOffset startTimestamp;
         private double totalTime;
 
-        public ThunderscopeChannel GetChannel(int channelIndex)
+        public ThunderscopeChannelFrontend GetChannelFrontend(int channelIndex)
         {
-            return new ThunderscopeChannel();
+            return new ThunderscopeChannelFrontend();
         }
 
         public ThunderscopeHardwareConfig GetConfiguration()
         {
             var config = new ThunderscopeHardwareConfig() { AdcChannelMode = AdcChannelMode.Quad };
-            config.Channels[0].ActualVoltFullScale = 1;
-            config.Channels[1].ActualVoltFullScale = 1;
-            config.Channels[2].ActualVoltFullScale = 1;
-            config.Channels[3].ActualVoltFullScale = 1;
+            config.Frontend[0].ActualVoltFullScale = 1;
+            config.Frontend[1].ActualVoltFullScale = 1;
+            config.Frontend[2].ActualVoltFullScale = 1;
+            config.Frontend[3].ActualVoltFullScale = 1;
             return config;
         }
 
@@ -35,7 +35,12 @@
             Thread.Sleep((int)sleepTime);
         }
 
-        public void SetChannel(int channelIndex, ThunderscopeChannel channel)
+        public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetChannelCalibration(int channelIndex, ThunderscopeChannelCalibration channelCalibration)
         {
             throw new NotImplementedException();
         }
@@ -59,6 +64,11 @@
 
         public void Stop()
         {
+        }
+
+        public ThunderscopeChannelCalibration GetChannelCalibration(int channelIndex)
+        {
+            throw new NotImplementedException();
         }
     }
 }

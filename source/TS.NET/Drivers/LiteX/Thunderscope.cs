@@ -1,4 +1,4 @@
-﻿using TS.NET.Driver.LiteX;
+using TS.NET.Driver.LiteX;
 
 namespace TS.NET.Driver.LiteX
 {

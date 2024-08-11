@@ -3,7 +3,7 @@
 namespace TS.NET
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]     // Struct packing allows the use of this datatype in ThunderscopeBridge header as it's consistent with the other datatypes
-    public struct ThunderscopeChannel
+    public struct ThunderscopeChannelFrontend
     {
         public ThunderscopeCoupling Coupling;
         public ThunderscopeTermination Termination;
@@ -11,17 +11,21 @@ namespace TS.NET
         public double VoltOffset;
         public ThunderscopeBandwidth Bandwidth;
 
+        // Used by calibration for fixed setting of PGA gain & attenuator
+        public bool PgaConfigWordOverride;
+
         // Calculated data
-        public bool Attenuator;
+        public bool Attenuator1MOhm;
+        public bool Attenuator50Ohm;
+        public ushort PgaConfigWord;
+        public double ActualSystemGain;
         public double ActualVoltFullScale;
-        public ushort PgaConfigurationWord;
-        public bool PgaIsHighGain;
         public ushort TrimOffsetDac;
         public ushort TrimSensitivityDac;
 
-        public static ThunderscopeChannel Default()
+        public static ThunderscopeChannelFrontend Default()
         {
-            return new ThunderscopeChannel()
+            return new ThunderscopeChannelFrontend()
             {
                 Coupling = ThunderscopeCoupling.DC,
                 VoltFullScale = 0.5,
@@ -29,6 +33,12 @@ namespace TS.NET
                 Bandwidth = ThunderscopeBandwidth.BwFull               
             };
         }
+
+        public bool PgaAux() => (PgaConfigWord & 0x400) > 0;
+        public ThunderscopeBandwidth PgaFilter() => (ThunderscopeBandwidth)((PgaConfigWord & 0x1C0) >> 6);
+        public bool PgaHighGain() => (PgaConfigWord & 0x10) > 0;
+        public int PgaAttenuator() => PgaConfigWord & 0x0F;
+        public string PgaToString() => $"aux {(PgaAux() ? "hi-z" : "on")}, filter {PgaFilter()}, preamp {(PgaHighGain() ? "HG": "LG")}, ladder {PgaAttenuator()}";
     }
 
     public enum ThunderscopeCoupling : byte
