@@ -62,9 +62,9 @@ ProcessingThreadProcessorAffinity: -1
 
 Calibration:
   Channel1:
-    AttenuatorGain1MOhm: -33.9794
-    AttenuatorGain50Ohm: -13.9794
-    BufferGain: 0
+    AttenuatorGain1MOhm: -34
+    AttenuatorGain50Ohm: -14
+    BufferGain: -0.25
     PgaPreampLowGain: 10
     PgaPreampHighGain: 30
     PgaAttenuatorGain0: 0
@@ -80,11 +80,11 @@ Calibration:
     PgaAttenuatorGain10: -20
     PgaOutputAmpGain: 8.86
     HardwareOffsetVoltageLowGain: 2.529
-    HardwareOffsetVoltageHighGain: 2.525
+    HardwareOffsetVoltageHighGain: 2.533
   Channel2:
-    AttenuatorGain1MOhm: -33.9794
-    AttenuatorGain50Ohm: -13.9794
-    BufferGain: 0
+    AttenuatorGain1MOhm: -34
+    AttenuatorGain50Ohm: -14
+    BufferGain: -0.25
     PgaPreampLowGain: 10
     PgaPreampHighGain: 30
     PgaAttenuatorGain0: 0
@@ -102,9 +102,9 @@ Calibration:
     HardwareOffsetVoltageLowGain: 2.521
     HardwareOffsetVoltageHighGain: 2.525
   Channel3:
-    AttenuatorGain1MOhm: -33.9794
-    AttenuatorGain50Ohm: -13.9794
-    BufferGain: 0
+    AttenuatorGain1MOhm: -34
+    AttenuatorGain50Ohm: -14
+    BufferGain: -0.25
     PgaPreampLowGain: 10
     PgaPreampHighGain: 30
     PgaAttenuatorGain0: 0
@@ -124,7 +124,7 @@ Calibration:
   Channel4:
     AttenuatorGain1MOhm: -33.9794
     AttenuatorGain50Ohm: -13.9794
-    BufferGain: 0
+    BufferGain: -0.25
     PgaPreampLowGain: 10
     PgaPreampHighGain: 30
     PgaAttenuatorGain0: 0
