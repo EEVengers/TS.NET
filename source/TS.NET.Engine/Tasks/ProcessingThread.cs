@@ -297,18 +297,6 @@ namespace TS.NET.Engine
                                 // Write to circular buffer
                                 circularBuffer1.Write(shuffleBuffer);
                                 streamSampleCounter += shuffleBuffer.Length;
-                                // Force
-                                if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
-                                {
-                                    var bridgeSpan = bridge.AcquiringRegionI8;
-                                    circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
-                                    bridge.DataWritten(triggered: false);
-                                    bridge.SwitchRegionIfNeeded();
-                                    forceTriggerLatch = false;
-
-                                    streamSampleCounter = 0;
-                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
-                                }
                                 // Trigger
                                 if (runMode)
                                 {
@@ -353,6 +341,17 @@ namespace TS.NET.Engine
                                                     autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
                                                 }
                                             }
+                                            if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
+                                            {
+                                                var bridgeSpan = bridge.AcquiringRegionI8;
+                                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
+                                                bridge.DataWritten(triggered: false);
+                                                bridge.SwitchRegionIfNeeded();
+                                                forceTriggerLatch = false;
+
+                                                streamSampleCounter = 0;
+                                                autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
+                                            }
                                             if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                             {
                                                 SingleChannelStream(channelLength);
@@ -373,19 +372,6 @@ namespace TS.NET.Engine
                                 circularBuffer1.Write(postShuffleCh1_2);
                                 circularBuffer2.Write(postShuffleCh2_2);
                                 streamSampleCounter += postShuffleCh1_2.Length;
-                                // Force
-                                if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
-                                {
-                                    var bridgeSpan = bridge.AcquiringRegionI8;
-                                    circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
-                                    circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                                    bridge.DataWritten(triggered: false);
-                                    bridge.SwitchRegionIfNeeded();
-                                    forceTriggerLatch = false;
-
-                                    streamSampleCounter = 0;
-                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
-                                }
                                 // Trigger
                                 if (runMode)
                                 {
@@ -433,6 +419,18 @@ namespace TS.NET.Engine
                                                     autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
                                                 }
                                             }
+                                            if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
+                                            {
+                                                var bridgeSpan = bridge.AcquiringRegionI8;
+                                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
+                                                circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
+                                                bridge.DataWritten(triggered: false);
+                                                bridge.SwitchRegionIfNeeded();
+                                                forceTriggerLatch = false;
+
+                                                streamSampleCounter = 0;
+                                                autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
+                                            }
                                             if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                             {
                                                 DualChannelStream(channelLength);
@@ -455,21 +453,6 @@ namespace TS.NET.Engine
                                 circularBuffer3.Write(postShuffleCh3_4);
                                 circularBuffer4.Write(postShuffleCh4_4);
                                 streamSampleCounter += postShuffleCh1_4.Length;
-                                // Force
-                                if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
-                                {
-                                    var bridgeSpan = bridge.AcquiringRegionI8;
-                                    circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
-                                    circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                                    circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
-                                    circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
-                                    bridge.DataWritten(triggered: false);
-                                    bridge.SwitchRegionIfNeeded();
-                                    forceTriggerLatch = false;
-
-                                    streamSampleCounter = 0;
-                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
-                                }
                                 // Trigger
                                 if (runMode)
                                 {
@@ -523,6 +506,20 @@ namespace TS.NET.Engine
                                                     streamSampleCounter = 0;
                                                     autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
                                                 }
+                                            }
+                                            if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
+                                            {
+                                                var bridgeSpan = bridge.AcquiringRegionI8;
+                                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
+                                                circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
+                                                circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
+                                                circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
+                                                bridge.DataWritten(triggered: false);
+                                                bridge.SwitchRegionIfNeeded();
+                                                forceTriggerLatch = false;
+
+                                                streamSampleCounter = 0;
+                                                autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
                                             }
                                             if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                             {
