@@ -509,10 +509,12 @@ namespace TS.NET.Driver.XMDA
         {
             // LMH6518
             // This encapsulates ADC gain, TODO: break it out into true full scale range and gain later (both controllable via ADC SPI)
-            double adcFullScaleRange = 0.7;
+            double adcFullScaleRange = 2;
+            double adcGainDb = 9;
+            double adcGain = Math.Pow(10.0, -1.0 * adcGainDb / 20);
 
             // Calculate System Gain that would bring the user requested full scale voltage to the adc equivalent full scale voltage
-            double requestedSystemGain = 20 * Math.Log10(adcFullScaleRange / channelFrontend.VoltFullScale);
+            double requestedSystemGain = 20 * Math.Log10((adcFullScaleRange * adcGain) / channelFrontend.VoltFullScale);
 
             // We can't avoid adding these gains.
             double fixedGain = channelCalibration.BufferGain + channelCalibration.PgaOutputAmpGain;
@@ -591,7 +593,7 @@ namespace TS.NET.Driver.XMDA
             // Calculate actual system gain with chosen variable gain value + fixedGain
             channelFrontend.ActualSystemGain = potentialPgaVariableGain + fixedGain;
             // Calculate actual full scale voltage from actual gain
-            channelFrontend.ActualVoltFullScale = adcFullScaleRange / Math.Pow(10, channelFrontend.ActualSystemGain / 20);
+            channelFrontend.ActualVoltFullScale = (adcFullScaleRange * adcGain) / Math.Pow(10, channelFrontend.ActualSystemGain / 20);
 
             logger.LogTrace($"AFE: {Math.Pow(10, (channelFrontend.ActualSystemGain) / 20):F3}dB, {channelFrontend.ActualVoltFullScale:F3}Vpp, Attenuator1MOhm {(channelFrontend.Attenuator1MOhm ? "on" : "off")}, Attenuator50Ohm {(channelFrontend.Attenuator50Ohm ? "on" : "off")}");
 
