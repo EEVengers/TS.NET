@@ -26,8 +26,8 @@ namespace TS.NET
     [YamlSerializable]
     public class ThunderscopeChannelCalibrationSettings
     {
-        public double AttenuatorGainHighZ { get; set; }
-        public double AttenuatorGainFiftyOhm { get; set; }
+        public double AttenuatorGain1MOhm { get; set; }
+        public double AttenuatorGain50Ohm { get; set; }
         public double BufferGain { get; set; }
         public double PgaPreampLowGain { get; set; }
         public double PgaPreampHighGain { get; set; }
@@ -50,8 +50,8 @@ namespace TS.NET
         {
             return new ThunderscopeChannelCalibration()
             {
-                AttenuatorGainHighZ = this.AttenuatorGainHighZ,
-                AttenuatorGainFiftyOhm = this.AttenuatorGainFiftyOhm,
+                AttenuatorGain1MOhm = this.AttenuatorGain1MOhm,
+                AttenuatorGain50Ohm = this.AttenuatorGain50Ohm,
                 BufferGain = this.BufferGain,
                 PgaPreampLowGain = this.PgaPreampLowGain,
                 PgaPreampHighGain = this.PgaPreampHighGain,
@@ -76,8 +76,8 @@ namespace TS.NET
         {
             return new ThunderscopeChannelCalibrationSettings()
             {
-                AttenuatorGainHighZ = -33.9794,
-                AttenuatorGainFiftyOhm = -13.9794,
+                AttenuatorGain1MOhm = -33.9794,
+                AttenuatorGain50Ohm = -13.9794,
                 BufferGain = 0,
                 PgaPreampLowGain = 10,
                 PgaPreampHighGain = 30,

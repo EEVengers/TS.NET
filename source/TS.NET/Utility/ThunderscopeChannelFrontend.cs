@@ -15,8 +15,10 @@ namespace TS.NET
         public bool PgaConfigWordOverride;
 
         // Calculated data
+        public bool Attenuator1MOhm;
+        public bool Attenuator50Ohm;
         public ushort PgaConfigWord;
-        public bool Attenuator;
+        public double ActualSystemGain;
         public double ActualVoltFullScale;
         public ushort TrimOffsetDac;
         public ushort TrimSensitivityDac;
@@ -32,8 +34,11 @@ namespace TS.NET
             };
         }
 
+        public bool PgaAux() => (PgaConfigWord & 0x400) > 0;
+        public ThunderscopeBandwidth PgaFilter() => (ThunderscopeBandwidth)((PgaConfigWord & 0x1C0) >> 6);
         public bool PgaHighGain() => (PgaConfigWord & 0x10) > 0;
-        public int PgaAttenuator() => (PgaConfigWord & 0x0F);
+        public int PgaAttenuator() => PgaConfigWord & 0x0F;
+        public string PgaToString() => $"aux {(PgaAux() ? "hi-z" : "on")}, filter {PgaFilter()}, preamp {(PgaHighGain() ? "HG": "LG")}, ladder {PgaAttenuator()}";
     }
 
     public enum ThunderscopeCoupling : byte

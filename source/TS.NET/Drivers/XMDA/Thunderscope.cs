@@ -134,7 +134,7 @@ namespace TS.NET.Driver.XMDA
         {
             configuration.Frontend[channelIndex] = channel;
             //UpdateAdc();
-            UpdateAfe(channelIndex, ref channel);           
+            UpdateAfe(channelIndex, ref channel);
         }
 
         // Returns a by-value copy
@@ -252,11 +252,11 @@ namespace TS.NET.Driver.XMDA
                 {
                     numChannelsEnabled++;
                 }
-                if (configuration.Frontend[channel].Termination == ThunderscopeTermination.FiftyOhm)
+                if (configuration.Frontend[channel].Attenuator50Ohm)
                 {
                     datamoverRegister |= (uint)1 << (12 + channel);
                 }
-                if (!configuration.Frontend[channel].Attenuator)
+                if (!configuration.Frontend[channel].Attenuator1MOhm)
                 {
                     datamoverRegister |= (uint)1 << 16 + channel;
                 }
@@ -408,7 +408,8 @@ namespace TS.NET.Driver.XMDA
             if (!channelFrontend.PgaConfigWordOverride)
                 CalculatePgaConfigurationWord(ref configuration.Calibration[channelIndex], ref channelFrontend);
 
-            logger.LogTrace("PGA: preamp {preamp}, attenuator {attenuator}", channelFrontend.PgaHighGain() ? "high gain" : "low gain", channelFrontend.PgaAttenuator());
+            logger.LogTrace("PGA: {string}", channelFrontend.PgaToString());
+
             SetPGA(channelIndex, channelFrontend.PgaConfigWord);
 
             CalculateTrimConfiguration(ref configuration.Calibration[channelIndex], ref channelFrontend);
@@ -505,7 +506,6 @@ namespace TS.NET.Driver.XMDA
         private void CalculatePgaConfigurationWord(ref ThunderscopeChannelCalibration channelCalibration, ref ThunderscopeChannelFrontend channelFrontend)
         {
             // LMH6518
-
             // This encapsulates ADC gain, TODO: break it out into true full scale range and gain later (both controllable via ADC SPI)
             double adcFullScaleRange = 2;
             double adcGain = 9;
@@ -513,25 +513,26 @@ namespace TS.NET.Driver.XMDA
             // Calculate System Gain that would bring the user requested full scale voltage to the adc equivalent full scale voltage
             double requestedSystemGain = 20 * Math.Log10(adcFullScaleRange / channelFrontend.VoltFullScale);
 
-            //logger.LogTrace($"Requested FS Voltage: {channel.VoltFullScale:F3}");
-            //logger.LogTrace($"Requested System Gain dB: {requestedSystemGain:F3}");
-
-            // We can't avoid adding these gains
+            // We can't avoid adding these gains.
             double fixedGain = channelCalibration.BufferGain + channelCalibration.PgaOutputAmpGain + adcGain; //Putting ADC Gain as fixed for now
             // If we are in 50 Ohm mode we have to add the attenuator gain of the 50 ohm terminator (40 Ohm - 10 Ohm divider)
+            channelFrontend.Attenuator50Ohm = false;
             if (channelFrontend.Termination == ThunderscopeTermination.FiftyOhm)
-                fixedGain += channelCalibration.AttenuatorGainFiftyOhm;
+            {
+                channelFrontend.Attenuator50Ohm = true;
+                fixedGain += channelCalibration.AttenuatorGain50Ohm;
+            }
             // What's left are the gains we can control - PGA and 1M Attenuator (and we can't use the 1M Attenuator in 50 Ohm mode)
             double requestedVariableGain = requestedSystemGain - fixedGain;
 
             // This is the lowest variable gain we can do without the 1M Attenuator
             double pgaMinVariableGain = channelCalibration.PgaPreampLowGain + channelCalibration.PgaAttenuatorGain10;
             // Keep the 1M Attenuator off unless we need it, or if we can't use it (50 Ohm mode)
-            channelFrontend.Attenuator = false;
-            if ((requestedVariableGain < pgaMinVariableGain) && (channelFrontend.Termination == ThunderscopeTermination.OneMegaohm))
+            channelFrontend.Attenuator1MOhm = false;
+            if ((channelFrontend.Termination == ThunderscopeTermination.OneMegaohm) && (requestedVariableGain < pgaMinVariableGain))
             {
-                channelFrontend.Attenuator = true;
-                requestedVariableGain -= channelCalibration.AttenuatorGainHighZ;
+                channelFrontend.Attenuator1MOhm = true;
+                requestedVariableGain -= channelCalibration.AttenuatorGain1MOhm;
             }
 
             // Now check all the PGA gain options, starting from highest gain setting
@@ -540,23 +541,16 @@ namespace TS.NET.Driver.XMDA
             byte ladderSetting = 0;
             double potentialPgaVariableGain = 0;
 
-            for (int potentialLadderSetting = 0; potentialLadderSetting < 11; potentialLadderSetting++)
+            if (channelFrontend.PgaConfigWordOverride)
             {
-                potentialPgaVariableGain = CalculatePotentialGain(channelCalibration, potentialLadderSetting);
-
-                if (potentialPgaVariableGain < requestedVariableGain)
-                {
-                    gainFound = true;
-                    ladderSetting = (byte)potentialLadderSetting;
-                    break;
-                }
+                preamp = ((channelFrontend.PgaConfigWord >> 4) & 0x01) > 0;
+                potentialPgaVariableGain = CalculateAfeVariableGain(channelCalibration, channelFrontend.PgaConfigWord | 0x0F);
             }
-            if (!gainFound)
+            else
             {
-                preamp = false;
                 for (int potentialLadderSetting = 0; potentialLadderSetting < 11; potentialLadderSetting++)
                 {
-                    potentialPgaVariableGain = CalculatePotentialGain(channelCalibration, potentialLadderSetting);
+                    potentialPgaVariableGain = CalculateAfeVariableGain(channelCalibration, potentialLadderSetting);
                     if (potentialPgaVariableGain < requestedVariableGain)
                     {
                         gainFound = true;
@@ -564,39 +558,50 @@ namespace TS.NET.Driver.XMDA
                         break;
                     }
                 }
-            }
-            if (!gainFound)
-            {
-                // throw new NotSupportedException();
+                if (!gainFound)
+                {
+                    preamp = false;
+                    for (int potentialLadderSetting = 0; potentialLadderSetting < 11; potentialLadderSetting++)
+                    {
+                        potentialPgaVariableGain = CalculateAfeVariableGain(channelCalibration, potentialLadderSetting);
+                        if (potentialPgaVariableGain < requestedVariableGain)
+                        {
+                            gainFound = true;
+                            ladderSetting = (byte)potentialLadderSetting;
+                            break;
+                        }
+                    }
+                }
+                if (!gainFound)
+                {
+                    // throw new NotSupportedException();
 
-                // There are options here, a few of them being:
-                // 1. Throw an error and don't attempt to adjust AFE. Error propagates up to UI somehow.
-                // 2. Select the widest range (but maintain 50/1M termination) and accept that clipping will happen.
-                //   2a. UI to detect clipping and display warning, or:
-                //   2b. Send message to UI so warning gets displayed even with 0V input.
-                // 3. Allow user to select desired behaviour in config.
+                    // There are options here, a few of them being:
+                    // 1. Throw an error and don't attempt to adjust AFE. Error propagates up to UI somehow.
+                    // 2. Select the widest range (but maintain 50/1M termination) and accept that clipping will happen.
+                    //   2a. UI to detect clipping and display warning, or:
+                    //   2b. Send message to UI so warning gets displayed even with 0V input.
+                    // 3. Allow user to select desired behaviour in config.
 
-                preamp = false;
-                ladderSetting = 10;
-                // channelFrontend.Attenuator should already be enabled in prior logic in 1M mode. If prior logic changes, enable attenuator here when in 1M mode.
-                potentialPgaVariableGain = CalculatePotentialGain(channelCalibration, ladderSetting);
-            }
-
+                    preamp = false;
+                    ladderSetting = 10;
+                    // channelFrontend.Attenuator should already be enabled in prior logic in 1M mode. If prior logic changes, enable attenuator here when in 1M mode.
+                    potentialPgaVariableGain = CalculateAfeVariableGain(channelCalibration, ladderSetting);
+                    logger.LogWarning("Requested input range was too wide, coerced to widest possible range without changing termination");
+                }
+            }              
 
             // Calculate actual system gain with chosen variable gain value
-            double actualSystemGainDb = potentialPgaVariableGain;
+            channelFrontend.ActualSystemGain = potentialPgaVariableGain;
             // Add 1M attenuator if it was enabled earlier
-            if (channelFrontend.Attenuator)
-                actualSystemGainDb += channelCalibration.AttenuatorGainHighZ;
+            if (channelFrontend.Attenuator1MOhm)
+                channelFrontend.ActualSystemGain += channelCalibration.AttenuatorGain1MOhm;
             // Add fixed gain value from earlier (includes 50 Ohm attenuator if in 50 Ohm mode)
-            actualSystemGainDb += fixedGain;
-
+            channelFrontend.ActualSystemGain += fixedGain;
             // Calculate actual full scale voltage from actual gain
-            channelFrontend.ActualVoltFullScale = adcFullScaleRange / Math.Pow(10, actualSystemGainDb / 20);
+            channelFrontend.ActualVoltFullScale = adcFullScaleRange / Math.Pow(10, channelFrontend.ActualSystemGain / 20);
 
-            logger.LogTrace($"Gain: system {Math.Pow(10, (actualSystemGainDb) / 20):F3}V/V, Vpp {channelFrontend.ActualVoltFullScale:F3}V");
-            if (!gainFound)
-                logger.LogWarning("Requested input range was too wide, coerced to widest possible range without changing termination");
+            logger.LogTrace($"AFE: {Math.Pow(10, (channelFrontend.ActualSystemGain) / 20):F3}dB, {channelFrontend.ActualVoltFullScale:F3}Vpp, Attenuator1MOhm {(channelFrontend.Attenuator1MOhm ? "on" : "off")}, Attenuator50Ohm {(channelFrontend.Attenuator50Ohm ? "on" : "off")}");
 
             // Decode N into PGA LNA gain and PGA attentuator step
             channelFrontend.PgaConfigWord = (byte)ladderSetting;
@@ -631,7 +636,7 @@ namespace TS.NET.Driver.XMDA
                     throw new Exception("ThunderscopeBandwidth enum value not handled");
             }
 
-            double CalculatePotentialGain(ThunderscopeChannelCalibration channelCalibration, int potentialLadderSetting)
+            double CalculateAfeVariableGain(ThunderscopeChannelCalibration channelCalibration, int potentialLadderSetting)
             {
                 double ladderGain = potentialLadderSetting switch
                 {
@@ -658,10 +663,10 @@ namespace TS.NET.Driver.XMDA
             //double adcEquivFullScaleRange = 0.7;             
             //Calulate the requested offset at the PGA_N terminal
             double systemGainToPga = channelCal.BufferGain;
-            if (channel.Termination == ThunderscopeTermination.FiftyOhm)
-                systemGainToPga += channelCal.AttenuatorGainFiftyOhm;
-            else if (channel.Attenuator)
-                systemGainToPga += channelCal.AttenuatorGainHighZ;
+            if (channel.Attenuator50Ohm)
+                systemGainToPga += channelCal.AttenuatorGain50Ohm;
+            else if (channel.Attenuator1MOhm)
+                systemGainToPga += channelCal.AttenuatorGain1MOhm;
 
             double requestedOffsetVoltageAtPga = channel.VoltOffset * Math.Pow(10, systemGainToPga / 20);
 

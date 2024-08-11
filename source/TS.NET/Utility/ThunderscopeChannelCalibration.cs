@@ -6,8 +6,8 @@ namespace TS.NET
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct ThunderscopeChannelCalibration
     {
-        public double AttenuatorGainHighZ { get; set; }
-        public double AttenuatorGainFiftyOhm { get; set; }
+        public double AttenuatorGain1MOhm { get; set; }
+        public double AttenuatorGain50Ohm { get; set; }
         public double BufferGain { get; set; }
         public double PgaPreampLowGain { get; set; }
         public double PgaPreampHighGain { get; set; }
