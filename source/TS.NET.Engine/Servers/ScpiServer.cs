@@ -196,7 +196,7 @@ namespace TS.NET.Engine
                                             logger.LogWarning($"Trigger source argument not valid");
                                             break;
                                         }
-                                        int source = Convert.ToInt32(argument.ToArray()[^1]);
+                                        int source = Convert.ToInt32(argument.ToArray()[^1]) - '0';
                                         if (source < 1 || source > 4)
                                             source = 1;
                                         logger.LogDebug($"Set trigger source to ch {source}");
