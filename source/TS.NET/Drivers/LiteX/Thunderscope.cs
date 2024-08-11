@@ -78,8 +78,8 @@ namespace TS.NET.Driver.LiteX
             {
                 ulong length = ThunderscopeMemory.Length;
                 ulong dataRead = 0;
-                const uint readSegment = 2048*128;
-                while(length > 0)
+                uint readSegment = 2048*128;
+                while(length >= 2048)
                 {
                     int readLen = Interop.Read(tsHandle, data.Pointer + dataRead, readSegment);
                     
@@ -90,7 +90,12 @@ namespace TS.NET.Driver.LiteX
                 
                     dataRead += (ulong)readSegment;
                     length -= (ulong)readSegment;
-                
+
+                    if(length < readSegment)
+                    {
+                        //Reduce readSegment to the amount remaining, rounded down to a multiple of 2048
+                        readSegment = ((uint)length / 2048) * 2048;
+                    }
                 }
             }
         }
