@@ -507,7 +507,7 @@ namespace TS.NET.Driver.XMDA
         {
             // LMH6518
             // This encapsulates ADC gain, TODO: break it out into true full scale range and gain later (both controllable via ADC SPI)
-            double adcFullScaleRange = 2;
+            double adcFullScaleRange = 1;
             double adcGain = 9;
 
             // Calculate System Gain that would bring the user requested full scale voltage to the adc equivalent full scale voltage
