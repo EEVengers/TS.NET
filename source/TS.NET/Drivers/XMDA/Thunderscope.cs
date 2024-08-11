@@ -537,67 +537,51 @@ namespace TS.NET.Driver.XMDA
             // Now check all the PGA gain options, starting from highest gain setting
             bool gainFound = false;
             bool preamp = true;
-            double ladderGain = channelCalibration.PgaAttenuatorGain0;
             byte ladderSetting = 0;
-            double potentialPgaVariableGain = channelCalibration.PgaPreampLowGain + ladderGain;
+            double potentialPgaVariableGain = 0;
 
-            for (int x = 0; x < 11; x++)
+            for (int potentialLadderSetting = 0; potentialLadderSetting < 11; potentialLadderSetting++)
             {
-                ladderGain = x switch
-                {
-                    0 => channelCalibration.PgaAttenuatorGain0,
-                    1 => channelCalibration.PgaAttenuatorGain1,
-                    2 => channelCalibration.PgaAttenuatorGain2,
-                    3 => channelCalibration.PgaAttenuatorGain3,
-                    4 => channelCalibration.PgaAttenuatorGain4,
-                    5 => channelCalibration.PgaAttenuatorGain5,
-                    6 => channelCalibration.PgaAttenuatorGain6,
-                    7 => channelCalibration.PgaAttenuatorGain7,
-                    8 => channelCalibration.PgaAttenuatorGain8,
-                    9 => channelCalibration.PgaAttenuatorGain9,
-                    10 => channelCalibration.PgaAttenuatorGain10,
-                };
-
-                potentialPgaVariableGain = (preamp ? channelCalibration.PgaPreampHighGain : channelCalibration.PgaPreampLowGain) + ladderGain;
+                potentialPgaVariableGain = CalculatePotentialGain(channelCalibration, potentialLadderSetting);
 
                 if (potentialPgaVariableGain < requestedVariableGain)
                 {
                     gainFound = true;
-                    ladderSetting = (byte)x;
+                    ladderSetting = (byte)potentialLadderSetting;
                     break;
                 }
             }
             if (!gainFound)
             {
                 preamp = false;
-                for (int x = 0; x < 11; x++)
+                for (int potentialLadderSetting = 0; potentialLadderSetting < 11; potentialLadderSetting++)
                 {
-                    ladderGain = x switch
-                    {
-                        0 => channelCalibration.PgaAttenuatorGain0,
-                        1 => channelCalibration.PgaAttenuatorGain1,
-                        2 => channelCalibration.PgaAttenuatorGain2,
-                        3 => channelCalibration.PgaAttenuatorGain3,
-                        4 => channelCalibration.PgaAttenuatorGain4,
-                        5 => channelCalibration.PgaAttenuatorGain5,
-                        6 => channelCalibration.PgaAttenuatorGain6,
-                        7 => channelCalibration.PgaAttenuatorGain7,
-                        8 => channelCalibration.PgaAttenuatorGain8,
-                        9 => channelCalibration.PgaAttenuatorGain9,
-                        10 => channelCalibration.PgaAttenuatorGain10,
-                    };
-
-                    potentialPgaVariableGain = (preamp ? channelCalibration.PgaPreampHighGain : channelCalibration.PgaPreampLowGain) + ladderGain;
+                    potentialPgaVariableGain = CalculatePotentialGain(channelCalibration, potentialLadderSetting);
                     if (potentialPgaVariableGain < requestedVariableGain)
                     {
                         gainFound = true;
-                        ladderSetting = (byte)x;
+                        ladderSetting = (byte)potentialLadderSetting;
                         break;
                     }
                 }
             }
             if (!gainFound)
-                throw new NotSupportedException();
+            {
+                // throw new NotSupportedException();
+
+                // There are options here, a few of them being:
+                // 1. Throw an error and don't attempt to adjust AFE. Error propagates up to UI somehow.
+                // 2. Select the widest range (but maintain 50/1M termination) and accept that clipping will happen.
+                //   2a. UI to detect clipping and display warning, or:
+                //   2b. Send message to UI so warning gets displayed even with 0V input.
+                // 3. Allow user to select desired behaviour in config.
+
+                preamp = false;
+                ladderSetting = 10;
+                // channelFrontend.Attenuator should already be enabled in prior logic in 1M mode. If prior logic changes, enable attenuator here when in 1M mode.
+                potentialPgaVariableGain = CalculatePotentialGain(channelCalibration, ladderSetting);
+            }
+
 
             // Calculate actual system gain with chosen variable gain value
             double actualSystemGainDb = potentialPgaVariableGain;
@@ -611,6 +595,8 @@ namespace TS.NET.Driver.XMDA
             channelFrontend.ActualVoltFullScale = adcFullScaleRange / Math.Pow(10, actualSystemGainDb / 20);
 
             logger.LogTrace($"Gain: system {Math.Pow(10, (actualSystemGainDb) / 20):F3}V/V, Vpp {channelFrontend.ActualVoltFullScale:F3}V");
+            if (!gainFound)
+                logger.LogWarning("Requested input range was too wide, coerced to widest possible range without changing termination");
 
             // Decode N into PGA LNA gain and PGA attentuator step
             channelFrontend.PgaConfigWord = (byte)ladderSetting;
@@ -643,6 +629,26 @@ namespace TS.NET.Driver.XMDA
                     break;
                 default:
                     throw new Exception("ThunderscopeBandwidth enum value not handled");
+            }
+
+            double CalculatePotentialGain(ThunderscopeChannelCalibration channelCalibration, int potentialLadderSetting)
+            {
+                double ladderGain = potentialLadderSetting switch
+                {
+                    0 => channelCalibration.PgaAttenuatorGain0,
+                    1 => channelCalibration.PgaAttenuatorGain1,
+                    2 => channelCalibration.PgaAttenuatorGain2,
+                    3 => channelCalibration.PgaAttenuatorGain3,
+                    4 => channelCalibration.PgaAttenuatorGain4,
+                    5 => channelCalibration.PgaAttenuatorGain5,
+                    6 => channelCalibration.PgaAttenuatorGain6,
+                    7 => channelCalibration.PgaAttenuatorGain7,
+                    8 => channelCalibration.PgaAttenuatorGain8,
+                    9 => channelCalibration.PgaAttenuatorGain9,
+                    10 => channelCalibration.PgaAttenuatorGain10,
+                    _ => throw new NotImplementedException()
+                };
+                return (preamp ? channelCalibration.PgaPreampHighGain : channelCalibration.PgaPreampLowGain) + ladderGain;
             }
         }
         //Works on really low voltage ranges now
