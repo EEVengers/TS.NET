@@ -118,8 +118,9 @@ class Program
                 }
             case "litex":
                 {
-                    var ts = new TS.NET.Driver.LiteX.Thunderscope();
-                    ts.Open(0, thunderscopeSettings.Calibration.ToDriver());
+                    var ts = new TS.NET.Driver.LiteX.Thunderscope(loggerFactory);
+                    ts.Open(0);
+                    // ts.Open(0, thunderscopeSettings.Calibration); //TODO
                     thunderscope = ts;
                     break;
                 }
