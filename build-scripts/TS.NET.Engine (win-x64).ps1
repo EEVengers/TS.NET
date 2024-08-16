@@ -6,6 +6,7 @@ $version = [Version] $xml.Project.PropertyGroup.Version
 New-Variable -Name "publishFolder" -Value (Join-Path (Resolve-Path ..) -ChildPath 'builds/win-x64/TS.NET.Engine' | Join-Path -ChildPath $version)
 $tsYamlFileExists = Test-Path -Path $publishFolder\thunderscope.yaml
 $appSettingsFileExists = Test-Path -Path $publishFolder\appsettings.json
+$tslitexDllExists = Test-Path -Path $publishFolder\tslitex.dll
 
 Write-Host "Project folder:" $projectFolder -ForegroundColor green
 Write-Host "Project version:" $version -ForegroundColor green
@@ -21,6 +22,11 @@ if($appSettingsFileExists)
 {
     Write-Host "Found existing appsettings.json, preserving it." -ForegroundColor green
     Copy-Item -Path $publishFolder\appsettings.json -Destination $publishFolder\..\appsettings.json
+}
+if($tslitexDllExists)
+{
+    Write-Host "Found existing tslitex DLL, preserving it." -ForegroundColor green
+    Copy-Item -Path $publishFolder\tslitex.dll -Destination $publishFolder\..\tslitex.dll
 }
 
 # Remove destination folder if exists
@@ -46,6 +52,11 @@ if($appSettingsFileExists)
 {
     Copy-Item -Path $publishFolder\..\appsettings.json -Destination $publishFolder\appsettings.json
     Remove-Item -Path $publishFolder\..\appsettings.json
+}
+if($tslitexDllExists)
+{
+    Copy-Item -Path $publishFolder\..\tslitex.dll -Destination $publishFolder\tslitex.dll
+    Remove-Item -Path $publishFolder\..\tslitex.dll
 }
 
 # Compress-Archive -Force -Path $publishFolder\* -DestinationPath $publishFolder/../TS.NET.Engine_win-x64_v$version.zip
