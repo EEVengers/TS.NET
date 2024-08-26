@@ -62,8 +62,8 @@ ProcessingThreadProcessorAffinity: -1
 
 Calibration:
   Channel1:
-    AttenuatorGain1MOhm: -34
-    AttenuatorGain50Ohm: -14
+    AttenuatorGain1MOhm: -33.9794
+    AttenuatorGain50Ohm: -13.9794
     BufferGain: -0.25
     PgaPreampLowGain: 10
     PgaPreampHighGain: 30
@@ -81,9 +81,17 @@ Calibration:
     PgaOutputAmpGain: 8.86
     HardwareOffsetVoltageLowGain: 2.529
     HardwareOffsetVoltageHighGain: 2.533
+    BufferOffset: 2.5
+    BiasVoltage: 2.5
+    TrimResistorOhms: 50000
+    PgaLowGainError: 0
+    PgaHighGainError: 0
+    PgaLowOffsetVoltage: 0
+    PgaHighOffsetVoltage: 0
+    PgaOutputGainError: 0
   Channel2:
-    AttenuatorGain1MOhm: -34
-    AttenuatorGain50Ohm: -14
+    AttenuatorGain1MOhm: -33.9794
+    AttenuatorGain50Ohm: -13.9794
     BufferGain: -0.25
     PgaPreampLowGain: 10
     PgaPreampHighGain: 30
@@ -101,9 +109,17 @@ Calibration:
     PgaOutputAmpGain: 8.86
     HardwareOffsetVoltageLowGain: 2.521
     HardwareOffsetVoltageHighGain: 2.525
+    BufferOffset: 2.5
+    BiasVoltage: 2.5
+    TrimResistorOhms: 50000
+    PgaLowGainError: 0
+    PgaHighGainError: 0
+    PgaLowOffsetVoltage: 0
+    PgaHighOffsetVoltage: 0
+    PgaOutputGainError: 0
   Channel3:
-    AttenuatorGain1MOhm: -34
-    AttenuatorGain50Ohm: -14
+    AttenuatorGain1MOhm: -33.9794
+    AttenuatorGain50Ohm: -13.9794
     BufferGain: -0.25
     PgaPreampLowGain: 10
     PgaPreampHighGain: 30
@@ -121,6 +137,14 @@ Calibration:
     PgaOutputAmpGain: 8.86
     HardwareOffsetVoltageLowGain: 2.528
     HardwareOffsetVoltageHighGain: 2.525
+    BufferOffset: 2.5
+    BiasVoltage: 2.5
+    TrimResistorOhms: 50000
+    PgaLowGainError: 0
+    PgaHighGainError: 0
+    PgaLowOffsetVoltage: 0
+    PgaHighOffsetVoltage: 0
+    PgaOutputGainError: 0
   Channel4:
     AttenuatorGain1MOhm: -33.9794
     AttenuatorGain50Ohm: -13.9794
@@ -141,3 +165,11 @@ Calibration:
     PgaOutputAmpGain: 8.86
     HardwareOffsetVoltageLowGain: 2.524
     HardwareOffsetVoltageHighGain: 2.525
+    BufferOffset: 2.5
+    BiasVoltage: 2.5
+    TrimResistorOhms: 50000
+    PgaLowGainError: 0
+    PgaHighGainError: 0
+    PgaLowOffsetVoltage: 0
+    PgaHighOffsetVoltage: 0
+    PgaOutputGainError: 0

@@ -11,10 +11,13 @@ namespace TS.NET.Driver.LiteX
         private nint tsHandle;
         private double[] channel_volt_scale;
 
+        private ThunderscopeChannelCalibration[] tsCalibration;
+
         public Thunderscope(ILoggerFactory loggerFactory)
         {
             logger = loggerFactory.CreateLogger("Drivers.LiteX");
             channel_volt_scale = new double[4];
+            tsCalibration = new ThunderscopeChannelCalibration[4];
         }
 
         ~Thunderscope()
@@ -23,8 +26,7 @@ namespace TS.NET.Driver.LiteX
                 Close();
         }
 
-        // public void Open(uint devIndex, ThunderscopeChannelCalibrationArray calibration)
-        public void Open(uint devIndex)
+        public void Open(uint devIndex, ThunderscopeChannelCalibrationArray calibration)
         {
             if (open)
                 Close();
@@ -37,7 +39,10 @@ namespace TS.NET.Driver.LiteX
             open = true;
 
             //Send Calibration to libtslitex
-            //TODO
+            for(int chan=0; chan < 4; chan++)
+            {
+                SetChannelCalibration(chan, calibration[chan]);
+            }
         }
 
         public void Close()
@@ -111,7 +116,7 @@ namespace TS.NET.Driver.LiteX
             var channel = new ThunderscopeChannelFrontend();
             var tsChannel = new Interop.tsChannelParam_t();
 
-            var retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, ref tsChannel);
+            var retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, out tsChannel);
             if ( retVal != 0)
                 throw new Exception($"Thunderscope failed to get channel {channelIndex} config ({retVal})");
             
@@ -144,7 +149,7 @@ namespace TS.NET.Driver.LiteX
             {
                 var tsChannel = new Interop.tsChannelParam_t();
 
-                var retVal = Interop.GetChannelConfig(tsHandle, (uint)ch, ref tsChannel);
+                var retVal = Interop.GetChannelConfig(tsHandle, (uint)ch, out tsChannel);
                 if ( retVal != 0)
                     throw new Exception($"Thunderscope failed to get channel {ch} config ({retVal})");
                 
@@ -177,9 +182,13 @@ namespace TS.NET.Driver.LiteX
         
         public ThunderscopeChannelCalibration GetChannelCalibration(int channelIndex)
         {
-            var cal = new ThunderscopeChannelCalibration();
-            //TODO
-            return cal;
+            if(!open)
+                throw new Exception("Thunderscope not open");
+            
+            if(channelIndex >= 4 || channelIndex < 0)
+                throw new Exception($"Invalid Channel Index {channelIndex}");
+
+            return tsCalibration[channelIndex];
         }
 
         public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)
@@ -188,7 +197,7 @@ namespace TS.NET.Driver.LiteX
                 throw new Exception("Thunderscope not open");
 
             var tsChannel = new Interop.tsChannelParam_t();
-            var retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, ref tsChannel);
+            var retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, out tsChannel);
 
             if ( retVal != 0)
                 throw new Exception($"Thunderscope failed to get channel {channelIndex} config ({retVal})");
@@ -204,7 +213,7 @@ namespace TS.NET.Driver.LiteX
                                     (channel.Bandwidth == ThunderscopeBandwidth.Bw100M) ? (uint)100 :
                                     (channel.Bandwidth == ThunderscopeBandwidth.Bw20M) ? (uint)20 : (uint)0;
             
-            retVal = Interop.SetChannelConfig(tsHandle, (uint)channelIndex, ref tsChannel);
+            retVal = Interop.SetChannelConfig(tsHandle, (uint)channelIndex, in tsChannel);
 
             if ( retVal != 0)
                 throw new Exception($"Thunderscope failed to set channel {channelIndex} config ({retVal})");
@@ -214,7 +223,29 @@ namespace TS.NET.Driver.LiteX
 
         public void SetChannelCalibration(int channelIndex, ThunderscopeChannelCalibration channelCalibration)
         {
-            //TODO
+            if(!open)
+                throw new Exception("Thunderscope not open");
+            
+            if(channelIndex >= 4 || channelIndex < 0)
+                throw new Exception($"Invalid Channel Index {channelIndex}");
+
+            var tsCal = new Interop.tsChannelCalibration_t
+            {
+                buffer_mV = (int)(channelCalibration.BufferOffset * 1000),
+                bias_mV = (int)(channelCalibration.BiasVoltage * 1000),
+                attenuatorGain1M_mdB = (int)(channelCalibration.AttenuatorGain1MOhm * 1000),
+                attenuatorGain50_mdB = (int)(channelCalibration.AttenuatorGain50Ohm * 1000),
+                bufferGain_mdB = (int)(channelCalibration.BufferGain * 1000),
+                trimRheostat_range = (int)channelCalibration.TrimResistorOhms,
+                preampLowGainError_mdB = (int)(channelCalibration.PgaLowGainError * 1000),
+                preampHighGainError_mdB = (int)(channelCalibration.PgaHighGainError * 1000),
+                preampLowOffset_mV = (int)(channelCalibration.PgaLowOffsetVoltage * 1000),
+                preampHighOffset_mV = (int)(channelCalibration.PgaHighOffsetVoltage * 1000),
+                preampOutputGainError_mdB = (int)(channelCalibration.PgaOutputGainError * 1000),
+            };
+
+            tsCalibration[channelIndex] = channelCalibration;
+            Interop.SetCalibration(tsHandle, (uint)channelIndex, in tsCal);
         }
 
         public void SetChannelEnable(int channelIndex, bool enabled)
@@ -223,14 +254,14 @@ namespace TS.NET.Driver.LiteX
                 throw new Exception("Thunderscope not open");
 
             var tsChannel = new Interop.tsChannelParam_t();
-            var retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, ref tsChannel);
+            var retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, out tsChannel);
 
             if ( retVal != 0)
                 throw new Exception($"Thunderscope failed to get channel {channelIndex} config ({retVal})");
 
             tsChannel.active = enabled ? (byte)1 : (byte)0;
 
-            retVal = Interop.SetChannelConfig(tsHandle, (uint)channelIndex, ref tsChannel);
+            retVal = Interop.SetChannelConfig(tsHandle, (uint)channelIndex, in tsChannel);
 
             if ( retVal != 0)
                 throw new Exception($"Thunderscope failed to set channel {channelIndex} config ({retVal})");

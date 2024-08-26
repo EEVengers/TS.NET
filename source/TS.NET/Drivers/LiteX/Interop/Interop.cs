@@ -18,17 +18,17 @@ namespace TS.NET.Driver.LiteX
             public byte reserved;
         }
 
-        // [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-        // public struct tsDeviceInfo_t
-        // {
-        //     uint deviceID;
-        //     [MarshalAs (UnmanagedType.ByValTStr, SizeConst=256)]
-        //     string devicePath;
-        //     [MarshalAs (UnmanagedType.ByValTStr, SizeConst=256)]
-        //     string identity;
-        //     [MarshalAs (UnmanagedType.ByValTStr, SizeConst=256)]
-        //     string serialNumber;
-        // }
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        public struct tsDeviceInfo_t
+        {
+            public uint deviceID;
+            // [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
+            // public string devicePath;
+            // [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
+            // public string identity;
+            // [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
+            // public string serialNumber;
+        }
 
         
         [StructLayout(LayoutKind.Sequential)]
@@ -45,29 +45,48 @@ namespace TS.NET.Driver.LiteX
             public uint vcc_bram;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct tsChannelCalibration_t
+        {
+            public int buffer_mV;
+            public int bias_mV;
+            public int attenuatorGain1M_mdB;
+            public int attenuatorGain50_mdB;
+            public int bufferGain_mdB;
+            public int trimRheostat_range;
+            public int preampLowGainError_mdB;
+            public int preampHighGainError_mdB;
+
+            // [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
+            // public int[] preampAttenuatorGain_mdB;
+            public int preampOutputGainError_mdB;
+            public int preampLowOffset_mV;
+            public int preampHighOffset_mV;
+        }
+
         [LibraryImport(library, EntryPoint = "thunderscopeOpen")]
         public static partial nint Open(uint devIndex);
 
         [LibraryImport(library, EntryPoint = "thunderscopeClose")]
         public static partial int Close(nint ts);
 
-        // [LibraryImport(library, EntryPoint = "thunderscopeListDevices")]
-        // public static partial int ListDevices(uint devIndex, ref tsDeviceInfo_t devInfo);
+        [LibraryImport(library, EntryPoint = "thunderscopeListDevices", StringMarshalling = StringMarshalling.Utf8)]
+        public static partial int ListDevices(uint devIndex, out tsDeviceInfo_t devInfo);
 
         [LibraryImport(library, EntryPoint = "thunderscopeChannelConfigGet")]
-        public static partial int GetChannelConfig(nint ts, uint channel, ref tsChannelParam_t conf);
+        public static partial int GetChannelConfig(nint ts, uint channel, out tsChannelParam_t conf);
         
         [LibraryImport(library, EntryPoint = "thunderscopeChannelConfigSet")]
-        public static partial int SetChannelConfig(nint ts, uint channel, ref tsChannelParam_t conf);
+        public static partial int SetChannelConfig(nint ts, uint channel, in tsChannelParam_t conf);
 
         [LibraryImport(library, EntryPoint = "thunderscopeStatusGet")]
-        public static partial int GetStatus(nint ts, ref tsScopeState_t conf);
+        public static partial int GetStatus(nint ts, out tsScopeState_t conf);
 
         [LibraryImport(library, EntryPoint = "thunderscopeSampleModeSet")]
         public static partial int SetSampleMode(nint ts, uint rate, uint resolution);
 
         [LibraryImport(library, EntryPoint = "thunderscopeCalibrationSet")]
-        public static partial int SetCalibration(nint ts, uint channel, uint cal);
+        public static partial int SetCalibration(nint ts, uint channel, in tsChannelCalibration_t cal);
 
         [LibraryImport(library, EntryPoint = "thunderscopeDataEnable")]
         public static partial int DataEnable(nint ts, byte enable);

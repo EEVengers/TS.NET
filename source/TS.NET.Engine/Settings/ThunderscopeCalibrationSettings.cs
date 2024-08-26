@@ -45,6 +45,14 @@ namespace TS.NET
         public double PgaOutputAmpGain { get; set; }
         public double HardwareOffsetVoltageLowGain { get; set; }
         public double HardwareOffsetVoltageHighGain { get; set; }
+        public double BufferOffset { get; set; }
+        public double BiasVoltage { get; set; }
+        public double TrimResistorOhms { get; set; }
+        public double PgaLowGainError { get; set; }
+        public double PgaHighGainError { get; set; }
+        public double PgaLowOffsetVoltage { get; set; }
+        public double PgaHighOffsetVoltage { get; set; }
+        public double PgaOutputGainError { get; set; }
 
         public ThunderscopeChannelCalibration ToDriver()
         {
@@ -68,7 +76,15 @@ namespace TS.NET
                 PgaAttenuatorGain10 = this.PgaAttenuatorGain10,
                 PgaOutputAmpGain = this.PgaOutputAmpGain,
                 HardwareOffsetVoltageLowGain = this.HardwareOffsetVoltageLowGain,
-                HardwareOffsetVoltageHighGain = this.HardwareOffsetVoltageHighGain
+                HardwareOffsetVoltageHighGain = this.HardwareOffsetVoltageHighGain,
+                BufferOffset = this.BufferOffset,
+                BiasVoltage = this.BiasVoltage,
+                TrimResistorOhms = this.TrimResistorOhms,
+                PgaLowGainError = this.PgaLowGainError,
+                PgaHighGainError = this.PgaHighGainError,
+                PgaLowOffsetVoltage = this.PgaLowOffsetVoltage,
+                PgaHighOffsetVoltage = this.PgaHighOffsetVoltage,
+                PgaOutputGainError = this.PgaOutputGainError
             };
         }
 
@@ -94,7 +110,15 @@ namespace TS.NET
                 PgaAttenuatorGain10 = -20,
                 PgaOutputAmpGain = 8.86,
                 HardwareOffsetVoltageLowGain = 2.525,
-                HardwareOffsetVoltageHighGain = 2.525
+                HardwareOffsetVoltageHighGain = 2.525,
+                BufferOffset = 2.5,
+                BiasVoltage = 2.5,
+                TrimResistorOhms = 50000,
+                PgaLowGainError = 0,
+                PgaHighGainError = 0,
+                PgaLowOffsetVoltage = 0,
+                PgaHighOffsetVoltage = 0,
+                PgaOutputGainError = 0
             };
         }
     }
