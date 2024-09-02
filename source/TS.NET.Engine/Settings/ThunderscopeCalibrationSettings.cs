@@ -53,6 +53,7 @@ namespace TS.NET
         public double PgaLowOffsetVoltage { get; set; }
         public double PgaHighOffsetVoltage { get; set; }
         public double PgaOutputGainError { get; set; }
+        public double PgaInputBiasCurrent { get; set; }
 
         public ThunderscopeChannelCalibration ToDriver()
         {
@@ -84,7 +85,8 @@ namespace TS.NET
                 PgaHighGainError = this.PgaHighGainError,
                 PgaLowOffsetVoltage = this.PgaLowOffsetVoltage,
                 PgaHighOffsetVoltage = this.PgaHighOffsetVoltage,
-                PgaOutputGainError = this.PgaOutputGainError
+                PgaOutputGainError = this.PgaOutputGainError,
+                PgaInputBiasCurrent = this.PgaInputBiasCurrent
             };
         }
 
@@ -118,7 +120,8 @@ namespace TS.NET
                 PgaHighGainError = 0,
                 PgaLowOffsetVoltage = 0,
                 PgaHighOffsetVoltage = 0,
-                PgaOutputGainError = 0
+                PgaOutputGainError = 0,
+                PgaInputBiasCurrent = 40
             };
         }
     }

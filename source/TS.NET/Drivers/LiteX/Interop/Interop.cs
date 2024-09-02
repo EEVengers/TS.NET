@@ -62,6 +62,7 @@ namespace TS.NET.Driver.LiteX
             public int preampOutputGainError_mdB;
             public int preampLowOffset_mV;
             public int preampHighOffset_mV;
+            public int preampInputBias_uA;
         }
 
         [LibraryImport(library, EntryPoint = "thunderscopeOpen")]

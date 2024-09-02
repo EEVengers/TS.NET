@@ -89,6 +89,7 @@ Calibration:
     PgaLowOffsetVoltage: 0
     PgaHighOffsetVoltage: 0
     PgaOutputGainError: 0
+    PgaInputBiasCurrent: 40
   Channel2:
     AttenuatorGain1MOhm: -33.9794
     AttenuatorGain50Ohm: -13.9794
@@ -117,6 +118,7 @@ Calibration:
     PgaLowOffsetVoltage: 0
     PgaHighOffsetVoltage: 0
     PgaOutputGainError: 0
+    PgaInputBiasCurrent: 40
   Channel3:
     AttenuatorGain1MOhm: -33.9794
     AttenuatorGain50Ohm: -13.9794
@@ -145,6 +147,7 @@ Calibration:
     PgaLowOffsetVoltage: 0
     PgaHighOffsetVoltage: 0
     PgaOutputGainError: 0
+    PgaInputBiasCurrent: 40
   Channel4:
     AttenuatorGain1MOhm: -33.9794
     AttenuatorGain50Ohm: -13.9794
@@ -173,3 +176,4 @@ Calibration:
     PgaLowOffsetVoltage: 0
     PgaHighOffsetVoltage: 0
     PgaOutputGainError: 0
+    PgaInputBiasCurrent: 40

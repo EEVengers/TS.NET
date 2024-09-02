@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using Microsoft.Extensions.Logging;
 using TS.NET.Driver.LiteX;
 
@@ -242,6 +242,7 @@ namespace TS.NET.Driver.LiteX
                 preampLowOffset_mV = (int)(channelCalibration.PgaLowOffsetVoltage * 1000),
                 preampHighOffset_mV = (int)(channelCalibration.PgaHighOffsetVoltage * 1000),
                 preampOutputGainError_mdB = (int)(channelCalibration.PgaOutputGainError * 1000),
+                preampInputBias_uA = (int)channelCalibration.PgaInputBiasCurrent,
             };
 
             tsCalibration[channelIndex] = channelCalibration;

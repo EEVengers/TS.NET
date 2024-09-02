@@ -33,5 +33,6 @@ namespace TS.NET
         public double PgaLowOffsetVoltage { get; set; }
         public double PgaHighOffsetVoltage { get; set; }
         public double PgaOutputGainError { get; set; }
+        public double PgaInputBiasCurrent { get; set; }
     }
 }
