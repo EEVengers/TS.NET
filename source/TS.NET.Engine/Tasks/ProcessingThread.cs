@@ -138,8 +138,8 @@ namespace TS.NET.Engine
                 // singleTriggerLatch: used in Single mode to stop the trigger subsystem after a trigger.
 
                 AdcChannelMode cachedAdcChannelMode = AdcChannelMode.Quad;
-                RisingEdgeTriggerI8_v2 risingEdgeTrigger = new(5, processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, 0, processingConfig.TriggerHoldoff);
-                FallingEdgeTriggerI8_v2 fallingEdgeTrigger = new(5, processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, 0, processingConfig.TriggerHoldoff);
+                RisingEdgeTriggerI8 risingEdgeTrigger = new(5, (byte)processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, 0, processingConfig.TriggerHoldoff);
+                FallingEdgeTriggerI8 fallingEdgeTrigger = new(5, (byte)processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, 0, processingConfig.TriggerHoldoff);
                 bool runMode = true;
                 bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
                 bool singleTriggerLatch = false;    // "Latch" because it will reset state back to false. When reset, runTrigger will be set to false.
@@ -233,8 +233,8 @@ namespace TS.NET.Engine
                                 if (triggerLevel != processingConfig.TriggerLevel)
                                 {
                                     processingConfig.TriggerLevel = triggerLevel;
-                                    risingEdgeTrigger.SetVertical(triggerLevel, processingConfig.TriggerHysteresis);
-                                    fallingEdgeTrigger.SetVertical(triggerLevel, processingConfig.TriggerHysteresis);
+                                    risingEdgeTrigger.SetVertical(triggerLevel, (byte)processingConfig.TriggerHysteresis);
+                                    fallingEdgeTrigger.SetVertical(triggerLevel, (byte)processingConfig.TriggerHysteresis);
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (level: {triggerLevel}, hysteresis: {processingConfig.TriggerHysteresis})");
                                 }
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (no change)");

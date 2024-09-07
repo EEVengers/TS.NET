@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.CommandLine;
+using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.X86;
 using TS.NET;
 using TS.NET.Engine;
 
@@ -22,10 +24,9 @@ class Program
 
         // To do: have something better than array index. Hardware serial?
         var deviceIndexOption = new Option<int>(name: "-i", description: "The ThunderScope to use if there are multiple connected to the host.", getDefaultValue: () => { return 0; });
-
         var configurationFilePathOption = new Option<string>(name: "-config", description: "Configuration file to use.", getDefaultValue: () => { return "thunderscope.yaml"; });
 
-        var rootCommand = new RootCommand("TS.Net.Engine"){
+        var rootCommand = new RootCommand("TS.NET.Engine"){
             deviceIndexOption,
             configurationFilePathOption
         };
@@ -67,9 +68,25 @@ class Program
                     options.TimestampFormat = "HH:mm:ss ";
                 });
         });
+        var logger = loggerFactory.CreateLogger("TS.NET.Engine");
+
+        // Validation of CPU architecture
+        if (!Avx2.IsSupported)
+        {
+            if (AdvSimd.Arm64.IsSupported)
+            {
+                logger?.LogCritical("AArch64 not yet supported.");
+                return;
+            }
+            else
+            {
+                logger?.LogCritical("CPU does not support AVX2.");
+                return;
+            }
+        }
 
         // Instantiate dataflow channels
-        const int bufferLength = 120; // 120 = about 1 seconds worth of samples at 1GSPS (each ThunderscopeMemory is 8388608 bytes), 120x = 1006632960
+        const int bufferLength = 60; // 60 = about 0.5 seconds worth of samples at 1GSPS (each ThunderscopeMemory is 8388608 bytes), 60x = 503316480. Might be able to reduce to near-zero with LiteX.
 
         ThunderscopeMemoryRegion memoryRegion = new(bufferLength);
         BlockingChannel<ThunderscopeMemory> inputChannel = new(bufferLength);
@@ -80,8 +97,6 @@ class Program
         BlockingChannel<HardwareResponseDto> hardwareResponseChannel = new();
         BlockingChannel<ProcessingRequestDto> processingRequestChannel = new();
         BlockingChannel<ProcessingResponseDto> processingResponseChannel = new();
-
-        Thread.Sleep(1000);
 
         IThunderscope thunderscope;
         switch (thunderscopeSettings.HardwareDriver.ToLower())
@@ -97,9 +112,15 @@ class Program
                     // Find thunderscope
                     var devices = TS.NET.Driver.XMDA.Thunderscope.IterateDevices();
                     if (devices.Count == 0)
-                        throw new Exception("No thunderscopes found");
+                    {
+                        logger?.LogCritical("No thunderscopes found");
+                        return;
+                    }
                     if (deviceIndex > devices.Count - 1)
-                        throw new Exception($"Invalid thunderscope index ({deviceIndex}). Only {devices.Count} Thunderscopes connected.");
+                    {
+                        logger?.LogCritical($"Invalid thunderscope index ({deviceIndex}). Only {devices.Count} Thunderscopes connected.");
+                        return;
+                    }
                     var ts = new TS.NET.Driver.XMDA.Thunderscope(loggerFactory);
                     ThunderscopeHardwareConfig initialHardwareConfiguration = new();
                     initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Quad;
@@ -125,7 +146,10 @@ class Program
                     break;
                 }
             default:
-                throw new ArgumentException($"{thunderscopeSettings.HardwareDriver} driver not supported");
+                {
+                    logger?.LogCritical($"{thunderscopeSettings.HardwareDriver} driver not supported");
+                    return;
+                }
         }
 
         string bridgeNamespace = $"ThunderScope.{deviceIndex}";

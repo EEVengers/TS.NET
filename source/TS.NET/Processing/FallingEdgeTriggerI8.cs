@@ -4,63 +4,80 @@ namespace TS.NET;
 
 public class FallingEdgeTriggerI8
 {
-    enum TriggerArmState { Unarmed, Armed, InHoldoff }
-    private TriggerArmState triggerArmState;
+    enum TriggerState { Unarmed, Armed, InCapture, InHoldoff }
+    private TriggerState triggerState;
     private sbyte triggerLevel;
     private sbyte armLevel;
+
+    private ulong captureSamples;
+    private ulong captureRemaining;
+
     private ulong holdoffSamples;
-    private ulong holdoffRemaining = 0;
+    private ulong holdoffRemaining;
 
     private Vector256<sbyte> triggerLevelVector;
     private Vector256<sbyte> armLevelVector;
 
-    public FallingEdgeTriggerI8(sbyte triggerLevel, sbyte armLevel, ulong holdoffSamples)
+    public FallingEdgeTriggerI8(sbyte triggerLevel, byte triggerHysteresis, ulong windowWidth, ulong windowTriggerPosition, ulong additionalHoldoff)
     {
-        Reset(triggerLevel, armLevel, holdoffSamples);
+        triggerState = TriggerState.Unarmed;
+
+        SetVertical(triggerLevel, triggerHysteresis);
+        SetHorizontal(windowWidth, windowTriggerPosition, additionalHoldoff);
     }
 
-    public void Reset(sbyte triggerLevel, sbyte armLevel, ulong holdoffSamples)
+    public void SetVertical(sbyte triggerLevel, byte triggerHysteresis)
     {
-        SetHoldoff(holdoffSamples);
-        triggerArmState = TriggerArmState.Unarmed;
+        if (triggerLevel == sbyte.MaxValue)
+            triggerLevel -= (sbyte)triggerHysteresis;   // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
+        if (triggerLevel == sbyte.MinValue)
+            triggerLevel += 1;                          // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
+
+        triggerState = TriggerState.Unarmed;
+
         this.triggerLevel = triggerLevel;
-        this.armLevel = armLevel;
-        holdoffRemaining = 0;
+        armLevel = triggerLevel;
+        armLevel += (sbyte)triggerHysteresis;
+
         triggerLevelVector = Vector256.Create(triggerLevel);
-        armLevelVector = Vector256.Create(armLevel);
+        armLevelVector = Vector256.Create(armLevel);        
     }
 
-    public void SetHoldoff(ulong holdoffSamples)
+    public void SetHorizontal(ulong windowWidth, ulong windowTriggerPosition, ulong additionalHoldoff)
     {
-        if (holdoffSamples > 10000000000)
-            throw new ArgumentException($"holdoffSamples cannot be greater than 10GS");
-        if (holdoffSamples < 1000)
-            throw new ArgumentException($"holdoffSamples cannot be less than 1000");
+        if (windowWidth < 1000)
+            throw new ArgumentException($"windowWidth cannot be less than 1000");
+        if (windowTriggerPosition > (windowWidth - 1))
+            windowTriggerPosition = windowWidth - 1;
 
-        this.holdoffSamples = holdoffSamples;
+        triggerState = TriggerState.Unarmed;
+
+        captureSamples = windowWidth - windowTriggerPosition;
+        captureRemaining = 0;
+
+        holdoffSamples = windowWidth - captureSamples + additionalHoldoff;
+        holdoffRemaining = 0;
     }
 
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ProcessSimd(ReadOnlySpan<sbyte> input, Span<uint> triggerIndices, out uint triggerCount, Span<uint> holdoffEndIndices, out uint holdoffEndCount)
+    public void ProcessSimd(ReadOnlySpan<sbyte> input, Span<uint> captureEndIndices, out uint captureEndCount)
     {
         uint inputLength = (uint)input.Length;
-        uint simdLength = (inputLength - 32);
-        triggerCount = 0;
-        holdoffEndCount = 0;
+        uint simdLength = inputLength - 32;
+        captureEndCount = 0;
         uint i = 0;
 
-        triggerIndices.Clear();
-        holdoffEndIndices.Clear();
+        captureEndIndices.Clear();
         unsafe
         {
             fixed (sbyte* samplesPtr = input)
             {
                 while (i < inputLength)
                 {
-                    switch (triggerArmState)
+                    switch (triggerState)
                     {
-                        case TriggerArmState.Unarmed:
-                            // Process 32 bytes at a time.  Edit: for this simplified version, just use SIMD to scan then fallback to serial processing
+                        case TriggerState.Unarmed:
+                            // Process 32 bytes at a time.  For this simplified version, use SIMD to scan then fallback to serial processing
                             for (; i < simdLength; i += 32)
                             {
                                 var inputVector = Avx.LoadVector256(samplesPtr + i);
@@ -74,13 +91,13 @@ public class FallingEdgeTriggerI8
                             {
                                 if (samplesPtr[(int)i] >= armLevel)
                                 {
-                                    triggerArmState = TriggerArmState.Armed;
+                                    triggerState = TriggerState.Armed;
                                     break;
                                 }
                             }
                             break;
-                        case TriggerArmState.Armed:
-                            // Process 32 bytes at a time. Edit: for this simplified version, just use SIMD to scan then fallback to serial processing
+                        case TriggerState.Armed:
+                            // Process 32 bytes at a time. For this simplified version, use SIMD to scan then fallback to serial processing
                             for (; i < simdLength; i += 32)
                             {
                                 var inputVector = Avx.LoadVector256(samplesPtr + i);
@@ -94,34 +111,58 @@ public class FallingEdgeTriggerI8
                             {
                                 if (samplesPtr[(int)i] < triggerLevel)
                                 {
-                                    triggerIndices[(int)triggerCount++] = i;
-                                    triggerArmState = TriggerArmState.InHoldoff;
-                                    holdoffRemaining = holdoffSamples;
+                                    triggerState = TriggerState.InCapture;
+                                    captureRemaining = captureSamples;
                                     break;
                                 }
                             }
                             break;
-                        case TriggerArmState.InHoldoff:
-                            uint remainingSamples = inputLength - i;
-                            if (remainingSamples > holdoffRemaining)
+                        case TriggerState.InCapture:
                             {
-                                i += (uint)holdoffRemaining;    // Cast is ok because remainingSamples (in the conditional expression) is uint
-                                holdoffRemaining = 0;
-                            }
-                            else
-                            {
-                                holdoffRemaining -= remainingSamples;
-                                i = inputLength;    // Ends the state machine loop
-                            }
-                            if (holdoffRemaining == 0)
-                            {
-                                holdoffEndIndices[(int)holdoffEndCount++] = i;
-
-                                // Special edge case logic: if the last sample is above the armLevel, immediately rearm
-                                if (samplesPtr[(int)i] >= armLevel)
-                                    triggerArmState = TriggerArmState.Armed;
+                                uint remainingSamples = inputLength - i;
+                                if (remainingSamples > captureRemaining)
+                                {
+                                    i += (uint)captureRemaining;    // Cast is ok because remainingSamples (in the conditional expression) is uint
+                                    captureRemaining = 0;
+                                }
                                 else
-                                    triggerArmState = TriggerArmState.Unarmed;
+                                {
+                                    captureRemaining -= remainingSamples;
+                                    i = inputLength;    // Ends the state machine loop
+                                }
+                                if (captureRemaining == 0)
+                                {
+                                    captureEndIndices[(int)captureEndCount++] = i;
+                                    if(holdoffSamples > 0)
+                                    {
+                                        triggerState = TriggerState.InHoldoff;
+                                        holdoffRemaining = holdoffSamples;
+                                    }
+                                    else
+                                    {
+                                        triggerState = TriggerState.Unarmed;
+                                    }
+                                }
+                            }
+
+                            break;
+                        case TriggerState.InHoldoff:
+                            {
+                                uint remainingSamples = inputLength - i;
+                                if (remainingSamples > holdoffRemaining)
+                                {
+                                    i += (uint)holdoffRemaining;    // Cast is ok because remainingSamples (in the conditional expression) is uint
+                                    holdoffRemaining = 0;
+                                }
+                                else
+                                {
+                                    holdoffRemaining -= remainingSamples;
+                                    i = inputLength;    // Ends the state machine loop
+                                }
+                                if (holdoffRemaining == 0)
+                                {
+                                    triggerState = TriggerState.Unarmed;
+                                }
                             }
                             break;
                     }
@@ -129,8 +170,4 @@ public class FallingEdgeTriggerI8
             }
         }
     }
-
-    // To do:
-    // public uint ProcessSimd(ReadOnlySpan<short> <- I16 variant using SIMD
-    // public uint Process(ReadOnlySpan<int> input <- I32 variant, probably doesn't need SIMD as it will be small amount of data
 }

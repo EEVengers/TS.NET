@@ -13,8 +13,8 @@ namespace TS.NET
         public TriggerType TriggerType;         // U8
         public ulong TriggerDelayFs;
         public ulong TriggerHoldoff;
-        public short TriggerLevel;              // Uint: count (typically raw ADC value)
-        public ushort TriggerHysteresis;        // Unit: count (typically raw ADC value)
+        public int TriggerLevel;                // I32 (allows for 32-bit processing)
+        public uint TriggerHysteresis;          // U32 (allows for 32-bit processing)
 
         public BoxcarAveraging BoxcarAveraging; // U32
     }
