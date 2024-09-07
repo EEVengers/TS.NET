@@ -36,7 +36,7 @@ namespace TS.NET.Tests
         [Fact]
         public void FiftySample()
         {
-            RisingEdgeTriggerI8 trigger = new(0, 10, 50, 0, 0);
+            RisingEdgeTriggerI8 trigger = new();
             Span<uint> captureEndIndices = new uint[10000];
             Span<sbyte> input = new sbyte[50];
             input.Fill(sbyte.MinValue);
@@ -133,7 +133,9 @@ namespace TS.NET.Tests
         public void SituationC_Simd()
         {
             var situation = RisingEdgeTriggerSituations.SituationC();
-            RisingEdgeTriggerI8 trigger = new(situation.TriggerLevel, situation.TriggerHysteresis, situation.WindowWidth, situation.WindowTriggerPosition, situation.AdditionalHoldoff);
+            var trigger = new RisingEdgeTriggerI8();
+            trigger.SetVertical(situation.TriggerLevel, situation.TriggerHysteresis);
+            trigger.SetHorizontal(situation.WindowWidth, situation.WindowTriggerPosition, situation.AdditionalHoldoff);
             Span<uint> captureEndIndices = new uint[10000];
 
             for (int i = 0; i < situation.ChunkCount; i++)

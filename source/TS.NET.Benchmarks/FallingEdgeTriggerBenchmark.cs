@@ -19,7 +19,7 @@ namespace TS.NET.Benchmark
         private readonly Memory<sbyte> buffer1MHz = new sbyte[byteBufferSize];
         private readonly Memory<sbyte> buffer1KHz = new sbyte[byteBufferSize];
         private readonly Memory<uint> captureEndIndicesU64 = new uint[byteBufferSize / 64];
-        private readonly FallingEdgeTriggerI8 trigger = new(0, 10, 1000, 0, 0);
+        private readonly FallingEdgeTriggerI8 trigger = new();
         private readonly ulong ChannelLength = 1000;
 
         [GlobalSetup]
