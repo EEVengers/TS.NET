@@ -131,7 +131,7 @@ namespace TS.NET.Engine
                     ulong bytesSent = 0;
 
                     // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
-                    if (bridge.Triggered)
+                    if (bridge.Triggered && bridge.Processing.TriggerType == TriggerType.RisingEdge)
                     {
                         var signedData = bridge.AcquiredRegionI8;
                         // To fix - trigger interpolation only works on 4 channel mode
