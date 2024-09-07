@@ -2,7 +2,7 @@
 
 [Thunderscope](https://github.com/EEVengers/ThunderScope)-compatible PC-host software written in C# using high-performing primitives & SIMD.
 
-- Receives stream from TB4/PCIe thunderscope and performs oscilloscope triggering & processing operations.
+- Receives stream from TB3/PCIe thunderscope and performs oscilloscope triggering & processing operations.
 - Exposes SCPI socket & data socket for user interface.
 - High emphasis on cross-platform compatibility & ease of build from source.
 
