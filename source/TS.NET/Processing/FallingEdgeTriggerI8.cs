@@ -6,7 +6,7 @@ namespace TS.NET;
 public class FallingEdgeTriggerI8 : IEdgeTriggerI8
 {
     enum TriggerState { Unarmed, Armed, InCapture, InHoldoff }
-    private TriggerState triggerState;
+    private TriggerState triggerState = TriggerState.Unarmed;
     private sbyte triggerLevel;
     private sbyte armLevel;
 
@@ -19,12 +19,10 @@ public class FallingEdgeTriggerI8 : IEdgeTriggerI8
     private Vector256<sbyte> triggerLevelVector;
     private Vector256<sbyte> armLevelVector;
 
-    public FallingEdgeTriggerI8(sbyte triggerLevel, byte triggerHysteresis, ulong windowWidth, ulong windowTriggerPosition, ulong additionalHoldoff)
+    public FallingEdgeTriggerI8()
     {
-        triggerState = TriggerState.Unarmed;
-
-        SetVertical(triggerLevel, triggerHysteresis);
-        SetHorizontal(windowWidth, windowTriggerPosition, additionalHoldoff);
+        SetVertical(0, 5);
+        SetHorizontal(1000000, 0, 0);
     }
 
     public void SetVertical(sbyte triggerLevel, byte triggerHysteresis)

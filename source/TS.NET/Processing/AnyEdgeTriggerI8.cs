@@ -6,7 +6,7 @@ namespace TS.NET;
 public class AnyEdgeTriggerI8 : IEdgeTriggerI8
 {
     enum TriggerState { Unarmed, ArmedRisingEdge, ArmedFallingEdge, InCapture, InHoldoff }
-    private TriggerState triggerState;
+    private TriggerState triggerState = TriggerState.Unarmed;
     private sbyte triggerLevel;
     private sbyte upperArmLevel;
     private sbyte lowerArmLevel;
@@ -21,12 +21,10 @@ public class AnyEdgeTriggerI8 : IEdgeTriggerI8
     private Vector256<sbyte> upperArmLevelVector;
     private Vector256<sbyte> lowerArmLevelVector;
 
-    public AnyEdgeTriggerI8(sbyte triggerLevel, byte triggerHysteresis, ulong windowWidth, ulong windowTriggerPosition, ulong additionalHoldoff)
+    public AnyEdgeTriggerI8()
     {
-        triggerState = TriggerState.Unarmed;
-
-        SetVertical(triggerLevel, triggerHysteresis);
-        SetHorizontal(windowWidth, windowTriggerPosition, additionalHoldoff);
+        SetVertical(0, 5);
+        SetHorizontal(1000000, 0, 0);
     }
 
     public void SetVertical(sbyte triggerLevel, byte triggerHysteresis)

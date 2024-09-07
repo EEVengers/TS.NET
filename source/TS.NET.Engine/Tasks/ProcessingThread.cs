@@ -138,7 +138,7 @@ namespace TS.NET.Engine
                 // singleTriggerLatch: used in Single mode to stop the trigger subsystem after a trigger.
 
                 AdcChannelMode cachedAdcChannelMode = AdcChannelMode.Quad;
-                IEdgeTriggerI8 edgeTriggerI8 = CreateEdgeTriggerI8();
+                IEdgeTriggerI8 edgeTriggerI8 = new RisingEdgeTriggerI8();
                 bool runMode = true;
                 bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
                 bool singleTriggerLatch = false;    // "Latch" because it will reset state back to false. When reset, runTrigger will be set to false.
@@ -238,10 +238,10 @@ namespace TS.NET.Engine
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (no change)");
                                 break;
                             case ProcessingSetTriggerTypeDto processingSetTriggerTypeDto:
-                                if(processingConfig.TriggerType != processingSetTriggerTypeDto.Type)
+                                if (processingConfig.TriggerType != processingSetTriggerTypeDto.Type)
                                 {
                                     processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
-                                    edgeTriggerI8 = CreateEdgeTriggerI8();
+                                    CreateEdgeTriggerI8();
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (type: {processingConfig.TriggerType})");
                                 }
                                 else
@@ -589,15 +589,17 @@ namespace TS.NET.Engine
                     }
                 }
 
-                IEdgeTriggerI8 CreateEdgeTriggerI8()
+                void CreateEdgeTriggerI8()
                 {
-                    return processingConfig.TriggerType switch
+                    edgeTriggerI8 = processingConfig.TriggerType switch
                     {
-                        TriggerType.RisingEdge => new RisingEdgeTriggerI8(5, (byte)processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, 0, processingConfig.TriggerHoldoff),
-                        TriggerType.FallingEdge => new FallingEdgeTriggerI8(5, (byte)processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, 0, processingConfig.TriggerHoldoff),
-                        TriggerType.AnyEdge => new AnyEdgeTriggerI8(5, (byte)processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, 0, processingConfig.TriggerHoldoff),
+                        TriggerType.RisingEdge => new RisingEdgeTriggerI8(),
+                        TriggerType.FallingEdge => new FallingEdgeTriggerI8(),
+                        TriggerType.AnyEdge => new AnyEdgeTriggerI8(),
                         _ => throw new NotImplementedException()
                     };
+                    edgeTriggerI8.SetVertical((sbyte)processingConfig.TriggerLevel, (byte)processingConfig.TriggerHysteresis);
+                    UpdateTriggerHorizontalPosition();
                 }
             }
             catch (OperationCanceledException)
