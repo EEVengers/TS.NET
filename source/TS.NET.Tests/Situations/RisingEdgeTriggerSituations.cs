@@ -5,8 +5,10 @@ namespace TS.NET.Tests
     public class TriggerSituation
     {
         public sbyte TriggerLevel { get; set; }
-        public sbyte ArmLevel { get; set; }
-        public uint HoldoffSamples { get; set; }
+        public byte TriggerHysteresis { get; set; }
+        public uint WindowWidth { get; set; }
+        public uint WindowTriggerPosition { get; set; }
+        public uint AdditionalHoldoff { get; set; }
 
         public uint ChunkSize { get; set; }
         public uint ChunkCount { get; set; }
@@ -44,8 +46,10 @@ namespace TS.NET.Tests
             TriggerSituation situation = new TriggerSituation()
             {
                 TriggerLevel = 127,
-                ArmLevel = 117,
-                HoldoffSamples = 50 * 1000000,
+                TriggerHysteresis = 10,
+                WindowWidth = 50 * 1000000,
+                WindowTriggerPosition = 0,
+                AdditionalHoldoff = 0,
 
                 ChunkSize = 8388608,
                 ChunkCount = chunkCount,
@@ -63,10 +67,10 @@ namespace TS.NET.Tests
 
             situation.ExpectedTriggerIndices[0] = new uint[1];
             situation.ExpectedTriggerIndices[0].Span[0] = 0;
-            var quotient = situation.HoldoffSamples / situation.ChunkSize;
-            var remainder = situation.HoldoffSamples % situation.ChunkSize;
-            situation.ExpectedHoldoffEndIndices[quotient] = new uint[1];
-            situation.ExpectedHoldoffEndIndices[quotient].Span[0] = remainder;
+            //var quotient = situation.HoldoffSamples / situation.ChunkSize;
+            //var remainder = situation.HoldoffSamples % situation.ChunkSize;
+            //situation.ExpectedHoldoffEndIndices[quotient] = new uint[1];
+            //situation.ExpectedHoldoffEndIndices[quotient].Span[0] = remainder;
 
             return situation;
         }
@@ -78,8 +82,10 @@ namespace TS.NET.Tests
             TriggerSituation situation = new TriggerSituation()
             {
                 TriggerLevel = 127,
-                ArmLevel = 117,
-                HoldoffSamples = 5 * 1000000,
+                TriggerHysteresis = 10,
+                WindowWidth = 5 * 1000000,
+                WindowTriggerPosition = 0,
+                AdditionalHoldoff = 0,
 
                 ChunkSize = 8388608,
                 ChunkCount = chunkCount,
@@ -101,10 +107,10 @@ namespace TS.NET.Tests
 
             situation.ExpectedTriggerIndices[0] = new uint[1];
             situation.ExpectedTriggerIndices[0].Span[0] = 0;
-            var quotient = situation.HoldoffSamples / situation.ChunkSize;
-            var remainder = situation.HoldoffSamples % situation.ChunkSize;
-            situation.ExpectedHoldoffEndIndices[quotient] = new uint[1];
-            situation.ExpectedHoldoffEndIndices[quotient].Span[0] = remainder;
+            //var quotient = situation.HoldoffSamples / situation.ChunkSize;
+            //var remainder = situation.HoldoffSamples % situation.ChunkSize;
+            //situation.ExpectedHoldoffEndIndices[quotient] = new uint[1];
+            //situation.ExpectedHoldoffEndIndices[quotient].Span[0] = remainder;
 
             return situation;
         }

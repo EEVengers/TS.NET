@@ -36,13 +36,12 @@ namespace TS.NET.Tests
         [Fact]
         public void FiftySample()
         {
-            RisingEdgeTriggerI8 trigger = new(0, -10, 1000);
-            Span<uint> triggerIndices = new uint[10000];
-            Span<uint> holdoffEndIndices = new uint[10000];
+            RisingEdgeTriggerI8 trigger = new(0, 10, 50, 0, 0);
+            Span<uint> captureEndIndices = new uint[10000];
             Span<sbyte> input = new sbyte[50];
             input.Fill(sbyte.MinValue);
             input[16] = 100;
-            trigger.ProcessSimd(input, triggerIndices, out uint triggerCount, holdoffEndIndices, out uint holdoffEndCount);
+            trigger.ProcessSimd(input, captureEndIndices, out uint captureEndCount);
 
         }
 
@@ -134,21 +133,13 @@ namespace TS.NET.Tests
         public void SituationC_Simd()
         {
             var situation = RisingEdgeTriggerSituations.SituationC();
-            RisingEdgeTriggerI8 trigger = new(situation.TriggerLevel, situation.ArmLevel, situation.HoldoffSamples);
-            Span<uint> triggerIndices = new uint[10000];
-            Span<uint> holdoffEndIndices = new uint[10000];
+            RisingEdgeTriggerI8 trigger = new(situation.TriggerLevel, situation.TriggerHysteresis, situation.WindowWidth, situation.WindowTriggerPosition, situation.AdditionalHoldoff);
+            Span<uint> captureEndIndices = new uint[10000];
 
             for (int i = 0; i < situation.ChunkCount; i++)
             {
-                trigger.ProcessSimd(
-                    situation.Input.Span.Slice((int)(i * situation.ChunkSize), (int)situation.ChunkSize),
-                    triggerIndices,
-                    out uint triggerCount,
-                    holdoffEndIndices,
-                    out uint holdoffEndCount);
-                if (triggerCount > 0)
-                    Console.WriteLine("Hi");
-                if (holdoffEndCount > 0)
+                trigger.ProcessSimd(situation.Input.Span.Slice((int)(i * situation.ChunkSize), (int)situation.ChunkSize), captureEndIndices, out uint captureEndCount);
+                if (captureEndCount > 0)
                     Console.WriteLine("Hi");
             }
         }
