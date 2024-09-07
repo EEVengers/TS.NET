@@ -1,8 +1,9 @@
 ﻿using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+
 namespace TS.NET;
 
-public class FallingEdgeTriggerI8
+public class FallingEdgeTriggerI8 : IEdgeTriggerI8
 {
     enum TriggerState { Unarmed, Armed, InCapture, InHoldoff }
     private TriggerState triggerState;

@@ -28,7 +28,8 @@ public enum TriggerMode : byte
 public enum TriggerType : byte
 {
     RisingEdge = 1,
-    FallingEdge = 2
+    FallingEdge = 2,
+    AnyEdge = 3
 }
 
     // 9 bit =     4x sum, 1x >>

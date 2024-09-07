@@ -222,6 +222,7 @@ namespace TS.NET.Engine
                                         {
                                             "RISING" => TriggerType.RisingEdge,
                                             "FALLING" => TriggerType.FallingEdge,
+                                            "ANY" => TriggerType.AnyEdge,
                                             _ => throw new NotImplementedException()
                                         };
                                         processingRequestChannel.Write(new ProcessingSetTriggerTypeDto(type));

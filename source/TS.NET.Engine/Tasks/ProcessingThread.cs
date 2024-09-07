@@ -138,8 +138,7 @@ namespace TS.NET.Engine
                 // singleTriggerLatch: used in Single mode to stop the trigger subsystem after a trigger.
 
                 AdcChannelMode cachedAdcChannelMode = AdcChannelMode.Quad;
-                RisingEdgeTriggerI8 risingEdgeTrigger = new(5, (byte)processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, 0, processingConfig.TriggerHoldoff);
-                FallingEdgeTriggerI8 fallingEdgeTrigger = new(5, (byte)processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, 0, processingConfig.TriggerHoldoff);
+                IEdgeTriggerI8 edgeTriggerI8 = CreateEdgeTriggerI8();
                 bool runMode = true;
                 bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
                 bool singleTriggerLatch = false;    // "Latch" because it will reset state back to false. When reset, runTrigger will be set to false.
@@ -233,15 +232,22 @@ namespace TS.NET.Engine
                                 if (triggerLevel != processingConfig.TriggerLevel)
                                 {
                                     processingConfig.TriggerLevel = triggerLevel;
-                                    risingEdgeTrigger.SetVertical(triggerLevel, (byte)processingConfig.TriggerHysteresis);
-                                    fallingEdgeTrigger.SetVertical(triggerLevel, (byte)processingConfig.TriggerHysteresis);
+                                    edgeTriggerI8.SetVertical(triggerLevel, (byte)processingConfig.TriggerHysteresis);
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (level: {triggerLevel}, hysteresis: {processingConfig.TriggerHysteresis})");
                                 }
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (no change)");
                                 break;
                             case ProcessingSetTriggerTypeDto processingSetTriggerTypeDto:
-                                processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
-                                logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (type: {processingConfig.TriggerType})");
+                                if(processingConfig.TriggerType != processingSetTriggerTypeDto.Type)
+                                {
+                                    processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
+                                    edgeTriggerI8 = CreateEdgeTriggerI8();
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (type: {processingConfig.TriggerType})");
+                                }
+                                else
+                                {
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (no change)");
+                                }
                                 break;
                             case ProcessingGetRateRequestDto processingGetRateRequestDto:
                                 logger.LogDebug($"{nameof(ProcessingGetRateRequestDto)}");
@@ -310,15 +316,7 @@ namespace TS.NET.Engine
                                                 var triggerChannelBuffer = shuffleBuffer;
 
                                                 uint captureEndCount = 0;
-                                                switch (processingConfig.TriggerType)
-                                                {
-                                                    case TriggerType.RisingEdge:
-                                                        risingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
-                                                        break;
-                                                    case TriggerType.FallingEdge:
-                                                        fallingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
-                                                        break;
-                                                }
+                                                edgeTriggerI8.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
 
                                                 if (captureEndCount > 0)
                                                 {
@@ -387,15 +385,7 @@ namespace TS.NET.Engine
                                                     triggerChannelBuffer = postShuffleCh1_2;
 
                                                 uint captureEndCount = 0;
-                                                switch (processingConfig.TriggerType)
-                                                {
-                                                    case TriggerType.RisingEdge:
-                                                        risingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
-                                                        break;
-                                                    case TriggerType.FallingEdge:
-                                                        fallingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
-                                                        break;
-                                                }
+                                                edgeTriggerI8.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
 
                                                 if (captureEndCount > 0)
                                                 {
@@ -473,15 +463,7 @@ namespace TS.NET.Engine
                                                 };
 
                                                 uint captureEndCount = 0;
-                                                switch (processingConfig.TriggerType)
-                                                {
-                                                    case TriggerType.RisingEdge:
-                                                        risingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
-                                                        break;
-                                                    case TriggerType.FallingEdge:
-                                                        fallingEdgeTrigger.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
-                                                        break;
-                                                }
+                                                edgeTriggerI8.ProcessSimd(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
 
                                                 if (captureEndCount > 0)
                                                 {
@@ -564,8 +546,7 @@ namespace TS.NET.Engine
                     };
 
                     var windowTriggerPosition = processingConfig.TriggerDelayFs / femtosecondsPerSample;
-                    risingEdgeTrigger.SetHorizontal(processingConfig.CurrentChannelDataLength, windowTriggerPosition, processingConfig.TriggerHoldoff);
-                    fallingEdgeTrigger.SetHorizontal(processingConfig.CurrentChannelDataLength, windowTriggerPosition, processingConfig.TriggerHoldoff);
+                    edgeTriggerI8.SetHorizontal(processingConfig.CurrentChannelDataLength, windowTriggerPosition, processingConfig.TriggerHoldoff);
                 }
 
                 void SingleChannelStream(int channelLength)
@@ -606,6 +587,17 @@ namespace TS.NET.Engine
                         bridge.DataWritten(triggered: false);
                         bridge.SwitchRegionIfNeeded();
                     }
+                }
+
+                IEdgeTriggerI8 CreateEdgeTriggerI8()
+                {
+                    return processingConfig.TriggerType switch
+                    {
+                        TriggerType.RisingEdge => new RisingEdgeTriggerI8(5, (byte)processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, 0, processingConfig.TriggerHoldoff),
+                        TriggerType.FallingEdge => new FallingEdgeTriggerI8(5, (byte)processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, 0, processingConfig.TriggerHoldoff),
+                        TriggerType.AnyEdge => new AnyEdgeTriggerI8(5, (byte)processingConfig.TriggerHysteresis, processingConfig.CurrentChannelDataLength, 0, processingConfig.TriggerHoldoff),
+                        _ => throw new NotImplementedException()
+                    };
                 }
             }
             catch (OperationCanceledException)
