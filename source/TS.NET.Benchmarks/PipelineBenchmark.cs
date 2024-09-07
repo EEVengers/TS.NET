@@ -12,10 +12,10 @@ namespace TS.NET.Benchmark
         private readonly Memory<byte> input = new byte[byteBufferSize];
         private readonly Memory<byte> shuffleOutput = new byte[byteBufferSize];
         private readonly Memory<ulong> triggerBuffer = new ulong[byteBufferSize / 64];
-        private readonly RisingEdgeTriggerI8 trigger1 = new(0, -10, 1000);
-        private readonly RisingEdgeTriggerI8 trigger2 = new(0, -10, 1000);
-        private readonly RisingEdgeTriggerI8 trigger3 = new(0, -10, 1000);
-        private readonly RisingEdgeTriggerI8 trigger4 = new(0, -10, 1000);
+        private readonly RisingEdgeTriggerI8 trigger1 = new(0, 10, 1000, 0, 0);
+        private readonly RisingEdgeTriggerI8 trigger2 = new(0, 10, 1000, 0, 0);
+        private readonly RisingEdgeTriggerI8 trigger3 = new(0, 10, 1000, 0, 0);
+        private readonly RisingEdgeTriggerI8 trigger4 = new(0, 10, 1000, 0, 0);
         private Memory<byte> channel1;
         private Memory<byte> channel2;
         private Memory<byte> channel3;
