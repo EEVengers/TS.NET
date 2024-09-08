@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using NReco.Logging.File;
 using System.CommandLine;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;

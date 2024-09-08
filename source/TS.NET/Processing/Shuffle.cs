@@ -36,7 +36,7 @@ public class Shuffle
                     var permuted1 = Avx2.PermuteVar8x32(shuffled1.AsInt32(), permuteMask);  // permuted1 = <16843009, 16843009, 33686018, 33686018, 50529027, 50529027, 67372036, 67372036>
                     var permuted2 = Avx2.PermuteVar8x32(shuffled2.AsInt32(), permuteMask);
                     var permuted1_64 = permuted1.AsUInt64();
-                    var permuted2_64 = permuted1.AsUInt64();
+                    var permuted2_64 = permuted2.AsUInt64();
 
                     outputPtr[0] = permuted1_64[0];
                     outputPtr[1] = permuted2_64[0];
