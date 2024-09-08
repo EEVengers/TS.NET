@@ -55,5 +55,6 @@ namespace TS.NET
     {
         public ulong TotalAcquisitions;
         public ulong DroppedAcquisitions;   // Acquisitions that weren't consumed by bridge reader
+        public float AcquisitionsPerSec;
     }
 }

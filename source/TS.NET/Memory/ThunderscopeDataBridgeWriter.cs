@@ -50,7 +50,7 @@ namespace TS.NET
                     header.Version = 1;
                     header.DataCapacityBytes = dataCapacityBytes;
 
-                    header.Bridge = bridgeConfig;                  
+                    header.Bridge = bridgeConfig;
 
                     header.AcquiringRegion = ThunderscopeMemoryAcquiringRegion.RegionA;
 
@@ -128,11 +128,21 @@ namespace TS.NET
             }
         }
 
+        private ulong monitoringIntervalTotalAcquisitions = 0;
+        private DateTimeOffset monitoringIntervalStart = DateTimeOffset.UtcNow;
         public void DataWritten(bool triggered)
         {
             header.Monitoring.TotalAcquisitions++;
             if (acquiringRegionFilledAndWaitingForReader)
                 header.Monitoring.DroppedAcquisitions++;
+            var intervalTimeElapsed = DateTimeOffset.UtcNow.Subtract(monitoringIntervalStart).TotalSeconds;
+            if (intervalTimeElapsed > 1)
+            {
+                var intervalTotalAcquisitions = header.Monitoring.TotalAcquisitions - monitoringIntervalTotalAcquisitions;
+                header.Monitoring.AcquisitionsPerSec = (float)(intervalTotalAcquisitions / intervalTimeElapsed);
+                monitoringIntervalTotalAcquisitions = header.Monitoring.TotalAcquisitions;
+                monitoringIntervalStart = monitoringIntervalStart = DateTimeOffset.UtcNow;
+            }
             acquiringRegionFilledAndWaitingForReader = true;
             this.triggered = triggered;
             SetHeader();

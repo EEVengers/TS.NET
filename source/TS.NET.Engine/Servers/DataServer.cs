@@ -115,7 +115,7 @@ namespace TS.NET.Engine
                         numChannels = processing.CurrentChannelCount,
                         fsPerSample = femtosecondsPerSample,
                         triggerFs = (long)processing.TriggerDelayFs,
-                        hwWaveformsPerSec = 1
+                        hwWaveformsPerSec = bridge.Monitoring.AcquisitionsPerSec
                     };
 
                     ChannelHeader chHeader = new()

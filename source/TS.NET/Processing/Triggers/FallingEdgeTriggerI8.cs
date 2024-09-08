@@ -3,7 +3,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace TS.NET;
 
-public class RisingEdgeTriggerI8 : IEdgeTriggerI8
+public class FallingEdgeTriggerI8 : IEdgeTriggerI8
 {
     enum TriggerState { Unarmed, Armed, InCapture, InHoldoff }
     private TriggerState triggerState = TriggerState.Unarmed;
@@ -19,7 +19,7 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
     private Vector256<sbyte> triggerLevelVector;
     private Vector256<sbyte> armLevelVector;
 
-    public RisingEdgeTriggerI8()
+    public FallingEdgeTriggerI8()
     {
         SetVertical(0, 5);
         SetHorizontal(1000000, 0, 0);
@@ -27,16 +27,16 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
 
     public void SetVertical(sbyte triggerLevel, byte triggerHysteresis)
     {
-        if (triggerLevel == sbyte.MinValue)
-            triggerLevel += (sbyte)triggerHysteresis;  // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
         if (triggerLevel == sbyte.MaxValue)
-            triggerLevel -= 1;                  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms
+            triggerLevel -= (sbyte)triggerHysteresis;   // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
+        if (triggerLevel == sbyte.MinValue)
+            triggerLevel += 1;                          // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
 
         triggerState = TriggerState.Unarmed;
 
         this.triggerLevel = triggerLevel;
         armLevel = triggerLevel;
-        armLevel -= (sbyte)triggerHysteresis;
+        armLevel += (sbyte)triggerHysteresis;
 
         triggerLevelVector = Vector256.Create(triggerLevel);
         armLevelVector = Vector256.Create(armLevel);        
@@ -49,7 +49,7 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
         if (windowTriggerPosition > (windowWidth - 1))
             windowTriggerPosition = windowWidth - 1;
 
-         triggerState = TriggerState.Unarmed;
+        triggerState = TriggerState.Unarmed;
 
         captureSamples = windowWidth - windowTriggerPosition;
         captureRemaining = 0;
@@ -59,7 +59,7 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
     }
 
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ProcessSimd(ReadOnlySpan<sbyte> input, Span<uint> captureEndIndices, out uint captureEndCount)
+    public void Process(ReadOnlySpan<sbyte> input, Span<uint> captureEndIndices, out uint captureEndCount)
     {
         uint inputLength = (uint)input.Length;
         uint simdLength = inputLength - 32;
@@ -80,7 +80,7 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
                             for (; i < simdLength; i += 32)
                             {
                                 var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                var resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector, inputVector), armLevelVector);
+                                var resultVector = Avx2.CompareEqual(Avx2.Min(armLevelVector, inputVector), armLevelVector);
                                 uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
                                 if (resultCount != 0)
                                     break;
@@ -88,7 +88,7 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
                             // Process 1 byte at a time
                             for (; i < inputLength; i++)
                             {
-                                if (samplesPtr[(int)i] <= armLevel)
+                                if (samplesPtr[(int)i] >= armLevel)
                                 {
                                     triggerState = TriggerState.Armed;
                                     break;
@@ -100,7 +100,7 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
                             for (; i < simdLength; i += 32)
                             {
                                 var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector, inputVector), triggerLevelVector);
+                                var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector, inputVector), triggerLevelVector);
                                 uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
                                 if (resultCount != 0)
                                     break;
@@ -108,7 +108,7 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
                             // Process 1 byte at a time
                             for (; i < inputLength; i++)
                             {
-                                if (samplesPtr[(int)i] > triggerLevel)
+                                if (samplesPtr[(int)i] < triggerLevel)
                                 {
                                     triggerState = TriggerState.InCapture;
                                     captureRemaining = captureSamples;
