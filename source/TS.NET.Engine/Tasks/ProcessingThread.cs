@@ -525,7 +525,7 @@ namespace TS.NET.Engine
 
                             // Note there is also bridge.Monitoring.AcquisitionsPerSec available but for the sake of accuracy, calculate it here too.
                             //logger.LogDebug($"Outstanding frames: {processChannel.PeekAvailable()}, dequeues/sec: {dequeueCount / periodicUpdateTimer.Elapsed.TotalSeconds:F2}, dequeue count: {totalDequeueCount}");
-                            logger.LogDebug($"Bridge writes/sec: {totalAcquisitions / periodicUpdateTimer.Elapsed.TotalSeconds:F2}, Bridge reads/sec: {uiUpdates / periodicUpdateTimer.Elapsed.TotalSeconds:F2}, total: {bridge.Monitoring.TotalAcquisitions}, dropped: {bridge.Monitoring.DroppedAcquisitions} {bridge.Monitoring.AcquisitionsPerSec:F2}");
+                            logger.LogDebug($"Bridge writes/sec: {totalAcquisitions / periodicUpdateTimer.Elapsed.TotalSeconds:F2}, Bridge reads/sec: {uiUpdates / periodicUpdateTimer.Elapsed.TotalSeconds:F2}, total: {bridge.Monitoring.TotalAcquisitions}, dropped: {bridge.Monitoring.DroppedAcquisitions}");
                             periodicUpdateTimer.Restart();
 
                             cachedTotalDequeueCount = totalDequeueCount;

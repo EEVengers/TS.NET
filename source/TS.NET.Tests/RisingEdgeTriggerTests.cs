@@ -41,7 +41,7 @@ namespace TS.NET.Tests
             Span<sbyte> input = new sbyte[50];
             input.Fill(sbyte.MinValue);
             input[16] = 100;
-            trigger.ProcessSimd(input, captureEndIndices, out uint captureEndCount);
+            trigger.Process(input, captureEndIndices, out uint captureEndCount);
 
         }
 
@@ -140,7 +140,7 @@ namespace TS.NET.Tests
 
             for (int i = 0; i < situation.ChunkCount; i++)
             {
-                trigger.ProcessSimd(situation.Input.Span.Slice((int)(i * situation.ChunkSize), (int)situation.ChunkSize), captureEndIndices, out uint captureEndCount);
+                trigger.Process(situation.Input.Span.Slice((int)(i * situation.ChunkSize), (int)situation.ChunkSize), captureEndIndices, out uint captureEndCount);
                 if (captureEndCount > 0)
                     Console.WriteLine("Hi");
             }
