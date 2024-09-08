@@ -19,7 +19,8 @@ namespace TS.NET.Engine
         public int HardwareThreadProcessorAffinity { get; set; }
         public int ProcessingThreadProcessorAffinity { get; set; }
 
-        public ThunderscopeCalibrationSettings Calibration { get; set; }
+        public ThunderscopeCalibrationSettings XdmaCalibration { get; set; }
+        public ThunderscopeCalibrationSettings LiteXCalibration { get; set; }
 
         public static ThunderscopeSettings Default()
         {
@@ -36,7 +37,8 @@ namespace TS.NET.Engine
                 HardwareThreadProcessorAffinity = -1,
                 ProcessingThreadProcessorAffinity = -1,
 
-                Calibration = ThunderscopeCalibrationSettings.Default()
+                XdmaCalibration = ThunderscopeCalibrationSettings.Default(),
+                LiteXCalibration = ThunderscopeCalibrationSettings.Default()
             };
         }
 
