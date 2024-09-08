@@ -129,10 +129,10 @@ class Program
                     initialHardwareConfiguration.Frontend[1] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Frontend[2] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Frontend[3] = ThunderscopeChannelFrontend.Default();
-                    initialHardwareConfiguration.Calibration[0] = thunderscopeSettings.Calibration.Channel1.ToDriver();
-                    initialHardwareConfiguration.Calibration[1] = thunderscopeSettings.Calibration.Channel2.ToDriver();
-                    initialHardwareConfiguration.Calibration[2] = thunderscopeSettings.Calibration.Channel3.ToDriver();
-                    initialHardwareConfiguration.Calibration[3] = thunderscopeSettings.Calibration.Channel4.ToDriver();
+                    initialHardwareConfiguration.Calibration[0] = thunderscopeSettings.XdmaCalibration.Channel1.ToDriver();
+                    initialHardwareConfiguration.Calibration[1] = thunderscopeSettings.XdmaCalibration.Channel2.ToDriver();
+                    initialHardwareConfiguration.Calibration[2] = thunderscopeSettings.XdmaCalibration.Channel3.ToDriver();
+                    initialHardwareConfiguration.Calibration[3] = thunderscopeSettings.XdmaCalibration.Channel4.ToDriver();
                     ts.Open(devices[deviceIndex], initialHardwareConfiguration, thunderscopeSettings.HardwareRevision);
                     thunderscope = ts;
                     break;
@@ -140,8 +140,14 @@ class Program
             case "litex":
                 {
                     var ts = new TS.NET.Driver.LiteX.Thunderscope(loggerFactory);
-                    ts.Open(0);
-                    // ts.Open(0, thunderscopeSettings.Calibration); //TODO
+
+                    var tsCal = new ThunderscopeChannelCalibrationArray();
+                    tsCal[0] = thunderscopeSettings.LiteXCalibration.Channel1.ToDriver();
+                    tsCal[1] = thunderscopeSettings.LiteXCalibration.Channel2.ToDriver();
+                    tsCal[2] = thunderscopeSettings.LiteXCalibration.Channel3.ToDriver();
+                    tsCal[3] = thunderscopeSettings.LiteXCalibration.Channel4.ToDriver();
+
+                    ts.Open((uint)deviceIndex, tsCal);
                     thunderscope = ts;
                     break;
                 }

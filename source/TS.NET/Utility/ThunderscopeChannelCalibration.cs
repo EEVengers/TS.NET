@@ -25,5 +25,14 @@ namespace TS.NET
         public double PgaOutputAmpGain { get; set; }
         public double HardwareOffsetVoltageLowGain { get; set; }
         public double HardwareOffsetVoltageHighGain { get; set; }
+        public double BufferOffset { get; set; }
+        public double BiasVoltage { get; set; }
+        public double TrimResistorOhms { get; set; }
+        public double PgaLowGainError { get; set; }
+        public double PgaHighGainError { get; set; }
+        public double PgaLowOffsetVoltage { get; set; }
+        public double PgaHighOffsetVoltage { get; set; }
+        public double PgaOutputGainError { get; set; }
+        public double PgaInputBiasCurrent { get; set; }
     }
 }
