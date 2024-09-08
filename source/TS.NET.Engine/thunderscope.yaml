@@ -62,8 +62,8 @@ ProcessingThreadProcessorAffinity: -1
 
 XdmaCalibration:
   Channel1:
-    AttenuatorGain1MOhm: -33.9794
-    AttenuatorGain50Ohm: -13.9794
+    AttenuatorGain1MOhm: -34
+    AttenuatorGain50Ohm: -14
     BufferGain: -0.25
     PgaPreampLowGain: 10
     PgaPreampHighGain: 30
@@ -82,8 +82,8 @@ XdmaCalibration:
     HardwareOffsetVoltageLowGain: 2.529
     HardwareOffsetVoltageHighGain: 2.533
   Channel2:
-    AttenuatorGain1MOhm: -33.9794
-    AttenuatorGain50Ohm: -13.9794
+    AttenuatorGain1MOhm: -34
+    AttenuatorGain50Ohm: -14
     BufferGain: -0.25
     PgaPreampLowGain: 10
     PgaPreampHighGain: 30
@@ -102,8 +102,8 @@ XdmaCalibration:
     HardwareOffsetVoltageLowGain: 2.521
     HardwareOffsetVoltageHighGain: 2.525
   Channel3:
-    AttenuatorGain1MOhm: -33.9794
-    AttenuatorGain50Ohm: -13.9794
+    AttenuatorGain1MOhm: -34
+    AttenuatorGain50Ohm: -14
     BufferGain: -0.25
     PgaPreampLowGain: 10
     PgaPreampHighGain: 30
@@ -122,8 +122,8 @@ XdmaCalibration:
     HardwareOffsetVoltageLowGain: 2.528
     HardwareOffsetVoltageHighGain: 2.525
   Channel4:
-    AttenuatorGain1MOhm: -33.9794
-    AttenuatorGain50Ohm: -13.9794
+    AttenuatorGain1MOhm: -34
+    AttenuatorGain50Ohm: -14
     BufferGain: -0.25
     PgaPreampLowGain: 10
     PgaPreampHighGain: 30

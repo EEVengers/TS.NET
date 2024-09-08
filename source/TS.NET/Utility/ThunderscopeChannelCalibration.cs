@@ -6,6 +6,7 @@ namespace TS.NET
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct ThunderscopeChannelCalibration
     {
+        // XDMA calibration
         public double AttenuatorGain1MOhm { get; set; }
         public double AttenuatorGain50Ohm { get; set; }
         public double BufferGain { get; set; }
@@ -25,6 +26,8 @@ namespace TS.NET
         public double PgaOutputAmpGain { get; set; }
         public double HardwareOffsetVoltageLowGain { get; set; }
         public double HardwareOffsetVoltageHighGain { get; set; }
+
+        // LiteX calibration
         public double BufferOffset { get; set; }
         public double BiasVoltage { get; set; }
         public double TrimResistorOhms { get; set; }
