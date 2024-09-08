@@ -19,19 +19,33 @@ namespace TS.NET.Benchmark
             Waveforms.FourChannelCountSignedByte(input.Span);
         }
 
-        [Benchmark(Description = "Four channel shuffle [production] (125 x 8MS)")]
-        public void FourChannels()
-        {
-            for (int i = 0; i < 125; i++)
-                Shuffle.FourChannels(input.Span, output.Span);
-        }
+        //[Benchmark(Description = "Four channel shuffle [run length 1, baseline] (125 x 8MS)")]
+        //public void FourChannels()
+        //{
+        //    for (int i = 0; i < 125; i++)
+        //        Shuffle.FourChannelsRunLength1(input.Span, output.Span);
+        //}
 
-        [Benchmark(Description = "Four channel shuffle [run length 1] (125 x 8MS)")]
-        public void FourChannelsRunLength1()
-        {
-            for (int i = 0; i < 125; i++)
-                Shuffle.FourChannelsRunLength1(input.Span, output.Span);
-        }
+        //[Benchmark(Description = "Four channel shuffle [run length 1, variant A] (125 x 8MS)")]
+        //public void FourChannelsVariantA()
+        //{
+        //    for (int i = 0; i < 125; i++)
+        //        Shuffle.FourChannelsRunLength1VariantA(input.Span, output.Span);
+        //}
+
+        //[Benchmark(Description = "Four channel shuffle [run length 1, variant B] (125 x 8MS)")]
+        //public void FourChannelsVariantB()
+        //{
+        //    for (int i = 0; i < 125; i++)
+        //        Shuffle.FourChannelsRunLength1VariantB(input.Span, output.Span);
+        //}
+
+        //[Benchmark(Description = "Four channel shuffle [run length 1, variant C] (125 x 8MS)")]
+        //public void FourChannelsVariantC()
+        //{
+        //    for (int i = 0; i < 125; i++)
+        //        Shuffle.FourChannelsRunLength1VariantC(input.Span, output.Span);
+        //}
 
         //[Benchmark(Description = "Four channel shuffle [no SIMD] (125 x 8MS)")]
         //public void FourChannelsNoSimd()
@@ -68,11 +82,11 @@ namespace TS.NET.Benchmark
         //        Shuffle.FourChannelsRunLength32NoSimd(input.Span, output.Span);
         //}
 
-        //[Benchmark(Description = "Two channel shuffle (125 x 8MS)")]
-        //public void TwoChannels()
-        //{
-        //    for (int i = 0; i < 125; i++)
-        //        Shuffle.TwoChannels(input.Span, output.Span);
-        //}
+        [Benchmark(Description = "Two channel shuffle (125 x 8MS)")]
+        public void TwoChannels()
+        {
+            for (int i = 0; i < 125; i++)
+                Shuffle.TwoChannels(input.Span, output.Span);
+        }
     }
 }

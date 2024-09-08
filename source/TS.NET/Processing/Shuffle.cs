@@ -8,22 +8,18 @@ public class Shuffle
 {
     public static void FourChannels(ReadOnlySpan<sbyte> input, Span<sbyte> output)
     {
-        if (input.Length % 32 != 0)
-            throw new ArgumentException($"Input length must be multiple of 32");
+        if (input.Length % 64 != 0)
+            throw new ArgumentException($"Input length must be multiple of 64");
         if (input.Length != output.Length)
             throw new ArgumentException("Array lengths must match");
 
         Vector256<sbyte> shuffleMask = Vector256.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15).AsSByte();
         Vector256<int> permuteMask = Vector256.Create(0, 4, 1, 5, 2, 6, 3, 7);
-        Vector256<ulong> storeCh1Mask = Vector256.Create(ulong.MaxValue, 0, 0, 0);
-        Vector256<ulong> storeCh2Mask = Vector256.Create(0, ulong.MaxValue, 0, 0);
-        Vector256<ulong> storeCh3Mask = Vector256.Create(0, 0, ulong.MaxValue, 0);
-        Vector256<ulong> storeCh4Mask = Vector256.Create(0, 0, 0, ulong.MaxValue);
         Span<ulong> outputU64 = MemoryMarshal.Cast<sbyte, ulong>(output);
         int channelBlockSize = outputU64.Length / 4;
-        int ch2Offset = channelBlockSize - 1;
-        int ch3Offset = (channelBlockSize * 2) - 2;
-        int ch4Offset = (channelBlockSize * 3) - 3;
+        int ch2Offset = channelBlockSize;
+        int ch3Offset = (channelBlockSize * 2);
+        int ch4Offset = (channelBlockSize * 3);
         unsafe
         {
             fixed (sbyte* inputP = input)
@@ -34,13 +30,28 @@ public class Shuffle
                 sbyte* finishPtr = inputP + input.Length;
                 while (inputPtr < finishPtr)
                 {
-                    Vector256<ulong> shuffledVector = Avx2.PermuteVar8x32(Avx2.Shuffle(Avx.LoadVector256(inputPtr), shuffleMask).AsInt32(), permuteMask).AsUInt64();
-                    Avx2.MaskStore(outputPtr, storeCh1Mask, shuffledVector);
-                    Avx2.MaskStore(outputPtr + ch2Offset, storeCh2Mask, shuffledVector);
-                    Avx2.MaskStore(outputPtr + ch3Offset, storeCh3Mask, shuffledVector);
-                    Avx2.MaskStore(outputPtr + ch4Offset, storeCh4Mask, shuffledVector);
-                    inputPtr += 32;
-                    outputPtr++;
+                    // Note: x2 unroll seems to be the sweet spot in benchmarks
+                    var shuffled1 = Avx2.Shuffle(Avx.LoadVector256(inputPtr), shuffleMask); // shuffled1 = <1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4>
+                    var shuffled2 = Avx2.Shuffle(Avx.LoadVector256(inputPtr + 32), shuffleMask);
+                    var permuted1 = Avx2.PermuteVar8x32(shuffled1.AsInt32(), permuteMask);  // permuted1 = <16843009, 16843009, 33686018, 33686018, 50529027, 50529027, 67372036, 67372036>
+                    var permuted2 = Avx2.PermuteVar8x32(shuffled2.AsInt32(), permuteMask);
+                    var permuted1_64 = permuted1.AsUInt64();
+                    var permuted2_64 = permuted1.AsUInt64();
+
+                    outputPtr[0] = permuted1_64[0];
+                    outputPtr[1] = permuted2_64[0];
+
+                    outputPtr[0 + ch2Offset] = permuted1_64[1];
+                    outputPtr[1 + ch2Offset] = permuted2_64[1];
+
+                    outputPtr[0 + ch3Offset] = permuted1_64[2];
+                    outputPtr[1 + ch3Offset] = permuted2_64[2];
+
+                    outputPtr[0 + ch4Offset] = permuted1_64[3];
+                    outputPtr[1 + ch4Offset] = permuted2_64[3];
+
+                    inputPtr += 64;
+                    outputPtr += 2;
                 }
             }
         }
@@ -82,6 +93,7 @@ public class Shuffle
 
     // For benchmarking
 
+    // This is the baseline run length 1 algorithm for comparison purposes
     public static void FourChannelsRunLength1(ReadOnlySpan<sbyte> input, Span<sbyte> output)
     {
         if (input.Length % 32 != 0)
@@ -117,6 +129,175 @@ public class Shuffle
                     Avx2.MaskStore(outputPtr + ch4Offset, storeCh4Mask, shuffledVector);
                     inputPtr += 32;
                     outputPtr++;
+                }
+            }
+        }
+    }
+
+    public static void FourChannelsRunLength1VariantA(ReadOnlySpan<sbyte> input, Span<sbyte> output)
+    {
+        if (input.Length % 128 != 0)
+            throw new ArgumentException($"Input length must be multiple of 128");
+        if (input.Length != output.Length)
+            throw new ArgumentException("Array lengths must match");
+
+        Vector256<sbyte> shuffleMask = Vector256.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15).AsSByte();
+        Vector256<int> permuteMask = Vector256.Create(0, 4, 1, 5, 2, 6, 3, 7);
+        Vector256<sbyte> blendMask = Vector256.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15).AsSByte();
+        Vector256<ulong> storeCh1Mask = Vector256.Create(ulong.MaxValue, 0, 0, 0);
+        Vector256<ulong> storeCh2Mask = Vector256.Create(0, ulong.MaxValue, 0, 0);
+        Vector256<ulong> storeCh3Mask = Vector256.Create(0, 0, ulong.MaxValue, 0);
+        Vector256<ulong> storeCh4Mask = Vector256.Create(0, 0, 0, ulong.MaxValue);
+        Span<ulong> outputU64 = MemoryMarshal.Cast<sbyte, ulong>(output);
+        int channelBlockSize = outputU64.Length / 4;
+        int ch2Offset = channelBlockSize;
+        int ch3Offset = (channelBlockSize * 2);
+        int ch4Offset = (channelBlockSize * 3);
+        unsafe
+        {
+            fixed (sbyte* inputP = input)
+            fixed (ulong* outputP = outputU64)
+            {
+                sbyte* inputPtr = inputP;
+                ulong* outputPtr = outputP;
+                sbyte* finishPtr = inputP + input.Length;
+                while (inputPtr < finishPtr)
+                {
+                    // Notes:
+                    // Avx.LoadVector256 has latency 7, throughput 0.33-0.56 depending on architecture
+                    // Avx2.Shuffle has latency 1, throughput 0.5-1 depending on architecture
+                    // Avx2.PermuteVar8x32 has latency 3, throughput 1
+                    // Avx2.Blend has latency 1, throughput 0.33
+                    // Avx2.MaskStore has latency 3-6, throughput 1-1.06 depending on architecture
+
+                    var shuffled1 = Avx2.Shuffle(Avx.LoadVector256(inputPtr), shuffleMask);
+                    // shuffled1 = <1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4>
+                    var permuted1 = Avx2.PermuteVar8x32(shuffled1.AsInt32(), permuteMask);
+                    // permuted1 = <16843009, 16843009, 33686018, 33686018, 50529027, 50529027, 67372036, 67372036>
+                    var permuted1_64 = permuted1.AsUInt64();
+                    outputPtr[0] = permuted1_64[0];
+                    outputPtr[0 + ch2Offset] = permuted1_64[1];
+                    outputPtr[0 + ch3Offset] = permuted1_64[2];
+                    outputPtr[0 + ch4Offset] = permuted1_64[3];
+                    inputPtr += 32;
+                    outputPtr += 1;
+                }
+            }
+        }
+    }
+
+    public static void FourChannelsRunLength1VariantB(ReadOnlySpan<sbyte> input, Span<sbyte> output)
+    {
+        if (input.Length % 64 != 0)
+            throw new ArgumentException($"Input length must be multiple of 64");
+        if (input.Length != output.Length)
+            throw new ArgumentException("Array lengths must match");
+
+        Vector256<sbyte> shuffleMask = Vector256.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15).AsSByte();
+        Vector256<int> permuteMask = Vector256.Create(0, 4, 1, 5, 2, 6, 3, 7);
+        Span<ulong> outputU64 = MemoryMarshal.Cast<sbyte, ulong>(output);
+        int channelBlockSize = outputU64.Length / 4;
+        int ch2Offset = channelBlockSize;
+        int ch3Offset = (channelBlockSize * 2);
+        int ch4Offset = (channelBlockSize * 3);
+        unsafe
+        {
+            fixed (sbyte* inputP = input)
+            fixed (ulong* outputP = outputU64)
+            {
+                sbyte* inputPtr = inputP;
+                ulong* outputPtr = outputP;
+                sbyte* finishPtr = inputP + input.Length;
+                while (inputPtr < finishPtr)
+                {
+                    var shuffled1 = Avx2.Shuffle(Avx.LoadVector256(inputPtr), shuffleMask); // shuffled1 = <1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4>
+                    var shuffled2 = Avx2.Shuffle(Avx.LoadVector256(inputPtr + 32), shuffleMask);
+                    var permuted1 = Avx2.PermuteVar8x32(shuffled1.AsInt32(), permuteMask);  // permuted1 = <16843009, 16843009, 33686018, 33686018, 50529027, 50529027, 67372036, 67372036>
+                    var permuted2 = Avx2.PermuteVar8x32(shuffled2.AsInt32(), permuteMask);
+                    var permuted1_64 = permuted1.AsUInt64();
+                    var permuted2_64 = permuted1.AsUInt64();
+
+                    outputPtr[0] = permuted1_64[0];
+                    outputPtr[1] = permuted2_64[0];
+                    outputPtr[0 + ch2Offset] = permuted1_64[1];
+                    outputPtr[1 + ch2Offset] = permuted2_64[1];
+                    outputPtr[0 + ch3Offset] = permuted1_64[2];
+                    outputPtr[1 + ch3Offset] = permuted2_64[2];
+                    outputPtr[0 + ch4Offset] = permuted1_64[3];
+                    outputPtr[1 + ch4Offset] = permuted2_64[3];
+
+                    inputPtr += 64;
+                    outputPtr += 2;
+                }
+            }
+        }
+    }
+
+    public static void FourChannelsRunLength1VariantC(ReadOnlySpan<sbyte> input, Span<sbyte> output)
+    {
+        if (input.Length % 128 != 0)
+            throw new ArgumentException($"Input length must be multiple of 128");
+        if (input.Length != output.Length)
+            throw new ArgumentException("Array lengths must match");
+
+        Vector256<sbyte> shuffleMask = Vector256.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15).AsSByte();
+        Vector256<int> permuteMask = Vector256.Create(0, 4, 1, 5, 2, 6, 3, 7);
+        Vector256<sbyte> blendMask = Vector256.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15).AsSByte();
+        Vector256<ulong> storeCh1Mask = Vector256.Create(ulong.MaxValue, 0, 0, 0);
+        Vector256<ulong> storeCh2Mask = Vector256.Create(0, ulong.MaxValue, 0, 0);
+        Vector256<ulong> storeCh3Mask = Vector256.Create(0, 0, ulong.MaxValue, 0);
+        Vector256<ulong> storeCh4Mask = Vector256.Create(0, 0, 0, ulong.MaxValue);
+        Span<ulong> outputU64 = MemoryMarshal.Cast<sbyte, ulong>(output);
+        int channelBlockSize = outputU64.Length / 4;
+        int ch2Offset = channelBlockSize;
+        int ch3Offset = (channelBlockSize * 2);
+        int ch4Offset = (channelBlockSize * 3);
+        unsafe
+        {
+            fixed (sbyte* inputP = input)
+            fixed (ulong* outputP = outputU64)
+            {
+                sbyte* inputPtr = inputP;
+                ulong* outputPtr = outputP;
+                sbyte* finishPtr = inputP + input.Length;
+                while (inputPtr < finishPtr)
+                {
+                    var shuffled1 = Avx2.Shuffle(Avx.LoadVector256(inputPtr), shuffleMask);
+                    // shuffled1 = <1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4>
+                    var shuffled2 = Avx2.Shuffle(Avx.LoadVector256(inputPtr + 32), shuffleMask);
+                    var shuffled3 = Avx2.Shuffle(Avx.LoadVector256(inputPtr + 64), shuffleMask);
+                    var shuffled4 = Avx2.Shuffle(Avx.LoadVector256(inputPtr + 96), shuffleMask);
+                    var permuted1 = Avx2.PermuteVar8x32(shuffled1.AsInt32(), permuteMask);
+                    // permuted1 = <16843009, 16843009, 33686018, 33686018, 50529027, 50529027, 67372036, 67372036>
+                    var permuted2 = Avx2.PermuteVar8x32(shuffled2.AsInt32(), permuteMask);
+                    var permuted3 = Avx2.PermuteVar8x32(shuffled3.AsInt32(), permuteMask);
+                    var permuted4 = Avx2.PermuteVar8x32(shuffled4.AsInt32(), permuteMask);
+                    var permuted1_64 = permuted1.AsUInt64();
+                    var permuted2_64 = permuted1.AsUInt64();
+                    var permuted3_64 = permuted1.AsUInt64();
+                    var permuted4_64 = permuted1.AsUInt64();
+
+                    outputPtr[0] = permuted1_64[0];
+                    outputPtr[1] = permuted2_64[0];
+                    outputPtr[2] = permuted3_64[0];
+                    outputPtr[3] = permuted4_64[0];
+
+                    outputPtr[0 + ch2Offset] = permuted1_64[1];
+                    outputPtr[1 + ch2Offset] = permuted2_64[1];
+                    outputPtr[2 + ch2Offset] = permuted3_64[1];
+                    outputPtr[3 + ch2Offset] = permuted4_64[1];
+
+                    outputPtr[0 + ch3Offset] = permuted1_64[2];
+                    outputPtr[1 + ch3Offset] = permuted2_64[2];
+                    outputPtr[2 + ch3Offset] = permuted3_64[2];
+                    outputPtr[3 + ch3Offset] = permuted4_64[2];
+
+                    outputPtr[0 + ch4Offset] = permuted1_64[3];
+                    outputPtr[1 + ch4Offset] = permuted2_64[3];
+                    outputPtr[2 + ch4Offset] = permuted3_64[3];
+                    outputPtr[3 + ch4Offset] = permuted4_64[3];
+                    inputPtr += 128;
+                    outputPtr += 4;
                 }
             }
         }
