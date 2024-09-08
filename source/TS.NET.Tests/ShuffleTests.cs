@@ -6,7 +6,7 @@ namespace TS.NET.Tests
     public class ShuffleTests
     {
         [Fact]
-        public void ShuffleFourChannels_RunLength1_Samples64()
+        public void ShuffleFourChannels_Samples64()
         {
             const int length = 64;
             ReadOnlySpan<sbyte> input = [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4];
@@ -23,7 +23,7 @@ namespace TS.NET.Tests
         }
 
         [Fact]
-        public void ShuffleFourChannels_RunLength1_Samples128()
+        public void ShuffleFourChannels_Samples128()
         {
             const int length = 128;
             Span<sbyte> input = new sbyte[length];
@@ -239,7 +239,7 @@ namespace TS.NET.Tests
         }
 
         [Fact]
-        public void ShuffleTwoChannels_RunLength1_Samples64()
+        public void ShuffleTwoChannels_Samples64()
         {
             const int length = 64;
             Span<sbyte> input = new sbyte[length];
@@ -251,6 +251,31 @@ namespace TS.NET.Tests
             Span<sbyte> output = new sbyte[length];
 
             Shuffle.TwoChannels(input, output);
+
+            Span<sbyte> expectedOutput = new sbyte[length];
+            var runLength = length / 2;
+            expectedOutput.Slice(runLength * 0, runLength).Fill(1);
+            expectedOutput.Slice(runLength * 1, runLength).Fill(2);
+
+            for (int i = 0; i < length; i++)
+            {
+                Assert.Equal(expectedOutput[i], output[i]);
+            }
+        }
+
+        [Fact]
+        public void ShuffleTwoChannels_RunLength1_VariantA_Samples64()
+        {
+            const int length = 64;
+            Span<sbyte> input = new sbyte[length];
+            for (int i = 0; i < length; i += 2)
+            {
+                input[i] = 1;
+                input[i + 1] = 2;
+            }
+            Span<sbyte> output = new sbyte[length];
+
+            Shuffle.TwoChannelsRunLength1VariantA(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 2;

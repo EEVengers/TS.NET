@@ -64,6 +64,44 @@ public class Shuffle
         if (input.Length != output.Length)
             throw new ArgumentException("Array lengths must match");
 
+        Vector256<sbyte> shuffleMask = Vector256.Create(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15, 0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15).AsSByte();
+        Vector256<int> permuteMask = Vector256.Create(0, 1, 4, 5, 2, 3, 6, 7);
+        Span<ulong> outputU64 = MemoryMarshal.Cast<sbyte, ulong>(output);
+        int channelBlockSize = outputU64.Length / 2;
+        unsafe
+        {
+            fixed (sbyte* inputP = input)
+            fixed (ulong* outputP = outputU64)
+            {
+                sbyte* inputPtr = inputP;
+                ulong* outputPtr = outputP;
+                sbyte* finishPtr = inputP + input.Length;
+                while (inputPtr < finishPtr)
+                {
+                    var shuffled1 = Avx2.Shuffle(Avx.LoadVector256(inputPtr), shuffleMask); // shuffled1 = <1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2>
+                    var permuted1 = Avx2.PermuteVar8x32(shuffled1.AsInt32(), permuteMask);  // permuted1 = <16843009, 16843009, 16843009, 16843009, 33686018, 33686018, 33686018, 33686018>
+                    var permuted1_64 = permuted1.AsUInt64();
+                    outputPtr[0] = permuted1_64[0];
+                    outputPtr[1] = permuted1_64[1];
+                    outputPtr[0 + channelBlockSize] = permuted1_64[2];
+                    outputPtr[1 + channelBlockSize] = permuted1_64[3];
+                    inputPtr += 32;
+                    outputPtr += 2;
+                }
+            }
+        }
+    }
+
+    // For benchmarking
+
+    // This is the baseline 2-channel run length 1 algorithm for comparison purposes
+    public static void TwoChannelsRunLength1(ReadOnlySpan<sbyte> input, Span<sbyte> output)
+    {
+        if (input.Length % 32 != 0)
+            throw new ArgumentException($"Length of samples ({input.Length}) is not multiple of 32");
+        if (input.Length != output.Length)
+            throw new ArgumentException("Array lengths must match");
+
         int loopIterations = input.Length / 32;
         Vector256<sbyte> shuffleMask = Vector256.Create(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15, 0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15).AsSByte();
         Vector256<int> permuteMask = Vector256.Create(0, 1, 4, 5, 2, 3, 6, 7);
@@ -81,9 +119,11 @@ public class Shuffle
                 ulong* outputPtr = outputP;
                 for (int i = 0; i < loopIterations; i++)
                 {
-                    Vector256<ulong> shuffledVector = Avx2.PermuteVar8x32(Avx2.Shuffle(Avx.LoadVector256(inputPtr), shuffleMask).AsInt32(), permuteMask).AsUInt64();
-                    Avx2.MaskStore(outputPtr, storeCh1Mask, shuffledVector);
-                    Avx2.MaskStore(outputPtr + ch2Offset, storeCh2Mask, shuffledVector);
+                    var shuffled1 = Avx2.Shuffle(Avx.LoadVector256(inputPtr), shuffleMask); // shuffled1 = <1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2>
+                    var permuted1 = Avx2.PermuteVar8x32(shuffled1.AsInt32(), permuteMask);  // permuted1 = <16843009, 16843009, 16843009, 16843009, 33686018, 33686018, 33686018, 33686018>
+                    var permuted1_64 = permuted1.AsUInt64();
+                    Avx2.MaskStore(outputPtr, storeCh1Mask, permuted1_64);
+                    Avx2.MaskStore(outputPtr + ch2Offset, storeCh2Mask, permuted1_64);
                     inputPtr += 32;
                     outputPtr += 2;
                 }
@@ -91,9 +131,42 @@ public class Shuffle
         }
     }
 
-    // For benchmarking
+    public static void TwoChannelsRunLength1VariantA(ReadOnlySpan<sbyte> input, Span<sbyte> output)
+    {
+        if (input.Length % 32 != 0)
+            throw new ArgumentException($"Length of samples ({input.Length}) is not multiple of 32");
+        if (input.Length != output.Length)
+            throw new ArgumentException("Array lengths must match");
 
-    // This is the baseline run length 1 algorithm for comparison purposes
+        Vector256<sbyte> shuffleMask = Vector256.Create(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15, 0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15).AsSByte();
+        Vector256<int> permuteMask = Vector256.Create(0, 1, 4, 5, 2, 3, 6, 7);
+        Span<ulong> outputU64 = MemoryMarshal.Cast<sbyte, ulong>(output);
+        int channelBlockSize = outputU64.Length / 2;
+        unsafe
+        {
+            fixed (sbyte* inputP = input)
+            fixed (ulong* outputP = outputU64)
+            {
+                sbyte* inputPtr = inputP;
+                ulong* outputPtr = outputP;
+                sbyte* finishPtr = inputP + input.Length;
+                while (inputPtr < finishPtr)
+                {
+                    var shuffled1 = Avx2.Shuffle(Avx.LoadVector256(inputPtr), shuffleMask); // shuffled1 = <1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2>
+                    var permuted1 = Avx2.PermuteVar8x32(shuffled1.AsInt32(), permuteMask);  // permuted1 = <16843009, 16843009, 16843009, 16843009, 33686018, 33686018, 33686018, 33686018>
+                    var permuted1_64 = permuted1.AsUInt64();
+                    outputPtr[0] = permuted1_64[0];
+                    outputPtr[1] = permuted1_64[1];
+                    outputPtr[0 + channelBlockSize] = permuted1_64[2];
+                    outputPtr[1 + channelBlockSize] = permuted1_64[3];
+                    inputPtr += 32;
+                    outputPtr += 2;
+                }
+            }
+        }
+    }
+
+    // This is the baseline 4-channel run length 1 algorithm for comparison purposes
     public static void FourChannelsRunLength1(ReadOnlySpan<sbyte> input, Span<sbyte> output)
     {
         if (input.Length % 32 != 0)
