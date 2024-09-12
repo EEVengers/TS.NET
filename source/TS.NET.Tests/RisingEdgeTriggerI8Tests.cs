@@ -3,7 +3,7 @@ using Xunit;
 
 namespace TS.NET.Tests
 {
-    public class RisingEdgeTriggerTests
+    public class RisingEdgeTriggerI8Tests
     {
         //[Fact]
         //public void SituationA_NonSimd()

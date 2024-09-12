@@ -363,7 +363,7 @@ namespace TS.NET.Engine
                                 break;
                             case AdcChannelMode.Dual:
                                 // Shuffle
-                                Shuffle.TwoChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
+                                ShuffleI8.TwoChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                                 // Finished with the memory, return it
                                 inputChannel.Write(inputDataDto.Memory);
                                 // Write to circular buffer
@@ -434,7 +434,7 @@ namespace TS.NET.Engine
                                 break;
                             case AdcChannelMode.Quad:
                                 // Shuffle
-                                Shuffle.FourChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
+                                ShuffleI8.FourChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                                 // Finished with the memory, return it
                                 inputChannel.Write(inputDataDto.Memory);
                                 // Write to circular buffer

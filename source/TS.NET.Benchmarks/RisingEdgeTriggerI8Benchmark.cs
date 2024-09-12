@@ -10,7 +10,7 @@ namespace TS.NET.Benchmark
     //[CpuDiagnoser]
     //[InProcess]
     //[HardwareCounters(HardwareCounter.TotalIssues)]
-    public class RisingEdgeTriggerBenchmark
+    public class RisingEdgeTriggerI8Benchmark
     {
         private const int samplingRate = 1000000000;
         private const int byteBufferSize = 8000000;

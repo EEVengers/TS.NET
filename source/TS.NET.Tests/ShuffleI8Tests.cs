@@ -3,16 +3,16 @@ using Xunit;
 
 namespace TS.NET.Tests
 {
-    public class ShuffleTests
+    public class ShuffleI8Tests
     {
         [Fact]
-        public void ShuffleFourChannels_Samples64()
+        public void ShuffleI8_FourChannels_Samples64()
         {
             const int length = 64;
             ReadOnlySpan<sbyte> input = [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4];
             Span<sbyte> output = new sbyte[length];
 
-            Shuffle.FourChannels(input, output);
+            ShuffleI8.FourChannels(input, output);
 
             Span<sbyte> expectedOutput = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4];
 
@@ -23,7 +23,7 @@ namespace TS.NET.Tests
         }
 
         [Fact]
-        public void ShuffleFourChannels_Samples128()
+        public void ShuffleI8_FourChannels_Samples128()
         {
             const int length = 128;
             Span<sbyte> input = new sbyte[length];
@@ -36,7 +36,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            Shuffle.FourChannels(input, output);
+            ShuffleI8.FourChannels(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 4;
@@ -52,7 +52,7 @@ namespace TS.NET.Tests
         }
 
         [Fact]
-        public void ShuffleFourChannels_Samples8388608()
+        public void ShuffleI8_FourChannels_Samples8388608()
         {
             const int length = 1 << 23;     // 8388608 bytes
             Span<sbyte> input = new sbyte[length];
@@ -65,7 +65,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            Shuffle.FourChannels(input, output);
+            ShuffleI8.FourChannels(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 4;
@@ -81,7 +81,7 @@ namespace TS.NET.Tests
         }
 
         [Fact]
-        public void ShuffleFourChannels_RunLength1_VariantA_Samples128()
+        public void ShuffleI8_FourChannels_RunLength1_VariantA_Samples128()
         {
             const int length = 128;
             Span<sbyte> input = new sbyte[length];
@@ -94,7 +94,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            Shuffle.FourChannelsRunLength1VariantA(input, output);
+            ShuffleI8.FourChannelsRunLength1VariantA(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 4;
@@ -110,7 +110,7 @@ namespace TS.NET.Tests
         }
 
         [Fact]
-        public void ShuffleFourChannels_RunLength1_VariantB_Samples128()
+        public void ShuffleI8_FourChannels_RunLength1_VariantB_Samples128()
         {
             const int length = 128;
             Span<sbyte> input = new sbyte[length];
@@ -123,7 +123,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            Shuffle.FourChannelsRunLength1VariantB(input, output);
+            ShuffleI8.FourChannelsRunLength1VariantB(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 4;
@@ -139,7 +139,7 @@ namespace TS.NET.Tests
         }
 
         [Fact]
-        public void ShuffleFourChannels_RunLength1_VariantC_Samples128()
+        public void ShuffleI8_FourChannels_RunLength1_VariantC_Samples128()
         {
             const int length = 128;
             Span<sbyte> input = new sbyte[length];
@@ -152,7 +152,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            Shuffle.FourChannelsRunLength1VariantC(input, output);
+            ShuffleI8.FourChannelsRunLength1VariantC(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 4;
@@ -168,13 +168,13 @@ namespace TS.NET.Tests
         }
 
         [Fact]
-        public void ShuffleFourChannelsNoSimd_RunLength1_Samples64()
+        public void ShuffleI8_FourChannelsNoSimd_RunLength1_Samples64()
         {
             const int length = 64;
             ReadOnlySpan<sbyte> input = [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4];
             Span<sbyte> output = new sbyte[length];
 
-            Shuffle.FourChannelsNoSimd(input, output);
+            ShuffleI8.FourChannelsNoSimd(input, output);
 
             Span<sbyte> expectedOutput = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4];
 
@@ -185,13 +185,13 @@ namespace TS.NET.Tests
         }
 
         [Fact]
-        public void ShuffleFourChannels_RunLength4_Samples64()
+        public void ShuffleI8_FourChannels_RunLength4_Samples64()
         {
             const int length = 64;
             ReadOnlySpan<sbyte> input = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4];
             Span<sbyte> output = new sbyte[length];
 
-            Shuffle.FourChannelsRunLength4(input, output);
+            ShuffleI8.FourChannelsRunLength4(input, output);
 
             Span<sbyte> expectedOutput = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4];
 
@@ -202,13 +202,13 @@ namespace TS.NET.Tests
         }
 
         [Fact]
-        public void ShuffleFourChannels_RunLength8_Samples64()
+        public void ShuffleI8_FourChannels_RunLength8_Samples64()
         {
             const int length = 64;
             ReadOnlySpan<sbyte> input = [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4];
             Span<sbyte> output = new sbyte[length];
 
-            Shuffle.FourChannelsRunLength8(input, output);
+            ShuffleI8.FourChannelsRunLength8(input, output);
 
             Span<sbyte> expectedOutput = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4];
 
@@ -219,7 +219,7 @@ namespace TS.NET.Tests
         }
 
         [Fact]
-        public void ShuffleFourChannels_RunLength32_Samples1024()
+        public void ShuffleI8_FourChannels_RunLength32_Samples1024()
         {
             const int length = 1024;
             Span<sbyte> input = new sbyte[length];
@@ -247,7 +247,7 @@ namespace TS.NET.Tests
                 i += 32;
             }
             Span<sbyte> output = new sbyte[length];
-            Shuffle.FourChannelsRunLength32(input, output);
+            ShuffleI8.FourChannelsRunLength32(input, output);
 
             for (int i = 0; i < 256; i++)
             {
@@ -268,7 +268,7 @@ namespace TS.NET.Tests
         }
 
         [Fact]
-        public void ShuffleTwoChannels_Samples64()
+        public void ShuffleI8_TwoChannels_Samples64()
         {
             const int length = 64;
             Span<sbyte> input = new sbyte[length];
@@ -279,7 +279,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            Shuffle.TwoChannels(input, output);
+            ShuffleI8.TwoChannels(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 2;
@@ -293,7 +293,7 @@ namespace TS.NET.Tests
         }
 
         [Fact]
-        public void ShuffleTwoChannels_Samples8388608()
+        public void ShuffleI8_TwoChannels_Samples8388608()
         {
             const int length = 1 << 23;     // 8388608 bytes
             Span<sbyte> input = new sbyte[length];
@@ -304,7 +304,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            Shuffle.TwoChannels(input, output);
+            ShuffleI8.TwoChannels(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 2;
@@ -318,7 +318,7 @@ namespace TS.NET.Tests
         }
 
         [Fact]
-        public void ShuffleTwoChannels_RunLength1_VariantA_Samples64()
+        public void ShuffleI8_TwoChannels_RunLength1_VariantA_Samples64()
         {
             const int length = 64;
             Span<sbyte> input = new sbyte[length];
@@ -329,7 +329,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            Shuffle.TwoChannelsRunLength1VariantA(input, output);
+            ShuffleI8.TwoChannelsRunLength1VariantA(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 2;

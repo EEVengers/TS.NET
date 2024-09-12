@@ -1,13 +1,13 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 
-namespace TS.NET.Benchmark
+namespace TS.NET.Benchmarks
 {
     [SimpleJob(RuntimeMoniker.Net80)]
     [MemoryDiagnoser]
     //[CpuDiagnoser]
     //[InProcess]
-    public class ShuffleBenchmark
+    public class ShuffleI8Benchmark
     {
         private const int byteBufferSize = 8000000;
         private readonly Memory<sbyte> input = new sbyte[byteBufferSize];
@@ -23,7 +23,7 @@ namespace TS.NET.Benchmark
         public void FourChannels()
         {
             for (int i = 0; i < 125; i++)
-                Shuffle.FourChannels(input.Span, output.Span);
+                ShuffleI8.FourChannels(input.Span, output.Span);
         }
 
         //[Benchmark(Description = "Four channel shuffle [run length 1, baseline] (125 x 8MS)")]
@@ -93,7 +93,7 @@ namespace TS.NET.Benchmark
         public void TwoChannels()
         {
             for (int i = 0; i < 125; i++)
-                Shuffle.TwoChannels(input.Span, output.Span);
+                ShuffleI8.TwoChannels(input.Span, output.Span);
         }
 
         //[Benchmark(Description = "Two channel shuffle [run length 1,variant A] (125 x 8MS)")]

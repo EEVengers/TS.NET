@@ -4,7 +4,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace TS.NET;
 
-public class Shuffle
+public class ShuffleI8
 {
     public static void FourChannels(ReadOnlySpan<sbyte> input, Span<sbyte> output)
     {
@@ -236,13 +236,6 @@ public class Shuffle
                 sbyte* finishPtr = inputP + input.Length;
                 while (inputPtr < finishPtr)
                 {
-                    // Notes:
-                    // Avx.LoadVector256 has latency 7, throughput 0.33-0.56 depending on architecture
-                    // Avx2.Shuffle has latency 1, throughput 0.5-1 depending on architecture
-                    // Avx2.PermuteVar8x32 has latency 3, throughput 1
-                    // Avx2.Blend has latency 1, throughput 0.33
-                    // Avx2.MaskStore has latency 3-6, throughput 1-1.06 depending on architecture
-
                     var shuffled1 = Avx2.Shuffle(Avx.LoadVector256(inputPtr), shuffleMask);
                     // shuffled1 = <1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4>
                     var permuted1 = Avx2.PermuteVar8x32(shuffled1.AsInt32(), permuteMask);
