@@ -234,6 +234,14 @@ namespace TS.NET.Engine
                     {
                         var oneSecondEnqueueCount = periodicEnqueueCount / periodicUpdateTimer.Elapsed.TotalSeconds;
                         logger.LogDebug($"Enqueues/sec: {oneSecondEnqueueCount:F2}, MB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.Length / 1000 / 1000):F3}, MiB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.Length / 1024 / 1024):F3}, enqueue count: {enqueueCounter}");
+                        try
+                        {
+                            var healthAndStatus = thunderscope.GetStatus();
+                            logger.LogDebug($"Lost Sample Buffers: {healthAndStatus.AdcSamplesLost}, FPGA Temperature: {healthAndStatus.FpgaTemp:F2}, VCC Int: {healthAndStatus.VccInt:F3}, VCC Aux: {healthAndStatus.VccAux:F3}, VCC BRAM: {healthAndStatus.VccBram:F3}");
+                        }
+                        catch (NotImplementedException)
+                        { }
+
                         periodicUpdateTimer.Restart();
                         periodicEnqueueCount = 0;
                     }

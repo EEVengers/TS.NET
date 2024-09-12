@@ -191,6 +191,28 @@ namespace TS.NET.Driver.LiteX
             return tsCalibration[channelIndex];
         }
 
+        public ThunderscopeHealthStatus GetStatus()
+        {
+            if (!open)
+                throw new Exception("Thunderscope not open");
+
+            var tsHealth = new ThunderscopeHealthStatus();
+            var litexState = new Interop.tsScopeState_t();
+            if(Interop.GetStatus(tsHandle, out litexState) != 0)
+                throw new Exception("");
+
+            tsHealth.AdcSampleRate = litexState.adc_sample_rate;
+            tsHealth.AdcSampleSize = litexState.adc_sample_bits;
+            tsHealth.AdcSampleResolution = litexState.adc_sample_resolution;
+            tsHealth.AdcSamplesLost = litexState.adc_lost_buffer_count;
+            tsHealth.FpgaTemp = litexState.temp_c/1000.0;
+            tsHealth.VccInt = litexState.vcc_int/1000.0;
+            tsHealth.VccAux = litexState.vcc_aux/1000.0;
+            tsHealth.VccBram = litexState.vcc_bram/1000.0;
+
+            return tsHealth;
+        }
+
         public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)
         {
             if (!open)

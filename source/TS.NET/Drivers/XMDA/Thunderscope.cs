@@ -171,6 +171,11 @@ namespace TS.NET.Driver.XMDA
             return configuration;
         }
 
+        public ThunderscopeHealthStatus GetStatus()
+        {
+            throw new NotImplementedException();
+        }
+
         public void ResetBuffer()
         {
             hardwareState.BufferHead = 0;

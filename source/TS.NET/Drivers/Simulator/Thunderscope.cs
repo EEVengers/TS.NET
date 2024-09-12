@@ -70,5 +70,11 @@
         {
             throw new NotImplementedException();
         }
+        
+
+        public ThunderscopeHealthStatus GetStatus()
+        {
+            throw new NotImplementedException();
+        }
     }
 }
