@@ -23,5 +23,12 @@ namespace TS.NET.Benchmarks
             for (int i = 0; i < 125; i++)
                 DecimationI8.Process(input.Span, buffer.Span, 2);
         }
+
+        [Benchmark(Description = "DecimationI8 (125 x 8MS)")]
+        public void DecimationI8_Interval4()
+        {
+            for (int i = 0; i < 125; i++)
+                DecimationI8.Process(input.Span, buffer.Span, 4);
+        }
     }
 }
