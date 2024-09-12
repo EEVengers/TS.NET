@@ -110,9 +110,9 @@ public static class Waveforms
         }
     }
 
-    public static void Oversampling_1Channel_2Avg(Span<byte> buffer)
+    public static void Oversampling_1Channel_2Avg(Span<sbyte> buffer)
     {
-        byte counter = 0;
+        sbyte counter = 0;
         for(int i = 0; i < buffer.Length; i += 2)
         {
             buffer[i] = counter;

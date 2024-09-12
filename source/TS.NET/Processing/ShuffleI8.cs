@@ -15,18 +15,17 @@ public class ShuffleI8
 
         Vector256<sbyte> shuffleMask = Vector256.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15).AsSByte();
         Vector256<int> permuteMask = Vector256.Create(0, 4, 1, 5, 2, 6, 3, 7);
-        Span<ulong> outputU64 = MemoryMarshal.Cast<sbyte, ulong>(output);
-        int channelBlockSize = outputU64.Length / 4;
-        int ch2Offset = channelBlockSize;
-        int ch3Offset = (channelBlockSize * 2);
-        int ch4Offset = (channelBlockSize * 3);
+        int channelBlockSize8B = output.Length / 4;
+        int ch2Offset64B = channelBlockSize8B / 8;
+        int ch3Offset64B = (channelBlockSize8B * 2) / 8;
+        int ch4Offset64B = (channelBlockSize8B * 3) / 8;
         unsafe
         {
             fixed (sbyte* inputP = input)
-            fixed (ulong* outputP = outputU64)
+            fixed (sbyte* outputP = output)
             {
                 sbyte* inputPtr = inputP;
-                ulong* outputPtr = outputP;
+                ulong* outputPtr = (ulong*)outputP;
                 sbyte* finishPtr = inputP + input.Length;
                 while (inputPtr < finishPtr)
                 {
@@ -41,14 +40,14 @@ public class ShuffleI8
                     outputPtr[0] = permuted1_64[0];
                     outputPtr[1] = permuted2_64[0];
 
-                    outputPtr[0 + ch2Offset] = permuted1_64[1];
-                    outputPtr[1 + ch2Offset] = permuted2_64[1];
+                    outputPtr[0 + ch2Offset64B] = permuted1_64[1];
+                    outputPtr[1 + ch2Offset64B] = permuted2_64[1];
 
-                    outputPtr[0 + ch3Offset] = permuted1_64[2];
-                    outputPtr[1 + ch3Offset] = permuted2_64[2];
+                    outputPtr[0 + ch3Offset64B] = permuted1_64[2];
+                    outputPtr[1 + ch3Offset64B] = permuted2_64[2];
 
-                    outputPtr[0 + ch4Offset] = permuted1_64[3];
-                    outputPtr[1 + ch4Offset] = permuted2_64[3];
+                    outputPtr[0 + ch4Offset64B] = permuted1_64[3];
+                    outputPtr[1 + ch4Offset64B] = permuted2_64[3];
 
                     inputPtr += 64;
                     outputPtr += 2;
@@ -364,6 +363,54 @@ public class ShuffleI8
                     outputPtr[3 + ch4Offset] = permuted4_64[3];
                     inputPtr += 128;
                     outputPtr += 4;
+                }
+            }
+        }
+    }
+
+    public static void FourChannelsRunLength1VariantD(ReadOnlySpan<sbyte> input, Span<sbyte> output)
+    {
+        if (input.Length % 128 != 0)
+            throw new ArgumentException($"Input length must be multiple of 128");
+        if (input.Length != output.Length)
+            throw new ArgumentException("Array lengths must match");
+
+        Vector128<sbyte> shuffleMask = Vector128.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15).AsSByte();
+        Vector128<uint> storeCh1Mask = Vector128.Create(uint.MaxValue, 0, 0, 0);
+        Vector128<uint> storeCh2Mask = Vector128.Create(0, uint.MaxValue, 0, 0);
+        Vector128<uint> storeCh3Mask = Vector128.Create(0, 0, uint.MaxValue, 0);
+        Vector128<uint> storeCh4Mask = Vector128.Create(0, 0, 0, uint.MaxValue);
+        Span<uint> outputU32 = MemoryMarshal.Cast<sbyte, uint>(output);
+        int channelBlockSize = outputU32.Length / 4;
+        int ch2Offset = channelBlockSize;
+        int ch3Offset = (channelBlockSize * 2);
+        int ch4Offset = (channelBlockSize * 3);
+        unsafe
+        {
+            fixed (sbyte* inputP = input)
+            fixed (uint* outputP = outputU32)
+            {
+                sbyte* inputPtr = inputP;
+                uint* outputPtr = outputP;
+                sbyte* finishPtr = inputP + input.Length;
+                while (inputPtr < finishPtr)
+                {
+                    var shuffled1 = Ssse3.Shuffle(Sse2.LoadVector128(inputPtr), shuffleMask).AsUInt32(); // shuffled1 = <1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4>
+                    var shuffled2 = Ssse3.Shuffle(Sse2.LoadVector128(inputPtr + 16), shuffleMask).AsUInt32(); // shuffled1 = <1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4>
+                    outputPtr[0] = shuffled1[0];
+                    outputPtr[1] = shuffled2[0];
+
+                    outputPtr[0 + ch2Offset] = shuffled1[1];
+                    outputPtr[1 + ch2Offset] = shuffled2[1];
+
+                    outputPtr[0 + ch3Offset] = shuffled1[2];
+                    outputPtr[1 + ch3Offset] = shuffled2[2];
+
+                    outputPtr[0 + ch4Offset] = shuffled1[3];
+                    outputPtr[1 + ch4Offset] = shuffled2[3];
+
+                    inputPtr += 32;
+                    outputPtr += 2;
                 }
             }
         }

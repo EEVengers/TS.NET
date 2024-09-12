@@ -17,14 +17,14 @@ namespace TS.NET.Benchmarks
             Waveforms.FourChannelCountSignedByte(input.Span);
         }
 
-        [Benchmark(Description = "DecimationI8 (125 x 8MS)")]
+        [Benchmark(Description = "DecimationI8, interval 2 (1GS -> 500MS)", Baseline = true)]
         public void DecimationI8_Interval2()
         {
             for (int i = 0; i < 125; i++)
                 DecimationI8.Process(input.Span, buffer.Span, 2);
         }
 
-        [Benchmark(Description = "DecimationI8 (125 x 8MS)")]
+        [Benchmark(Description = "DecimationI8, interval 4 (1GS -> 250MS)")]
         public void DecimationI8_Interval4()
         {
             for (int i = 0; i < 125; i++)
