@@ -115,7 +115,7 @@ namespace TS.NET.Engine
                         numChannels = processing.CurrentChannelCount,
                         fsPerSample = femtosecondsPerSample,
                         triggerFs = (long)processing.TriggerDelayFs,
-                        hwWaveformsPerSec = bridge.Monitoring.AcquisitionsPerSec
+                        hwWaveformsPerSec = bridge.Monitoring.Processing.BridgeWritesPerSec
                     };
 
                     ChannelHeader chHeader = new()
@@ -128,10 +128,13 @@ namespace TS.NET.Engine
                         clipping = 0
                     };
 
+                    ThunderscopeBridgeDataRegionHeader dataHeader = new();
+                    bridge.GetAcquiredRegionHeader(ref dataHeader);
+
                     ulong bytesSent = 0;
 
                     // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
-                    if (bridge.Triggered)
+                    if (dataHeader.Triggered)
                     {
                         var signedData = bridge.AcquiredRegionI8;
                         // To fix - trigger interpolation only works on 4 channel mode

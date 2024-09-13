@@ -6,78 +6,65 @@ using TS.NET.Memory.Windows;
 
 namespace TS.NET
 {
-    // This is a shared memory-mapped file between processes, with only a single writer and a single reader with a header struct
-    // Not thread safe
+    // This is a lock-free memory-mapped interprocess/cross-platform bridge between producer & consumer, with only a single writer and a single reader
     public class ThunderscopeDataBridgeWriter : IDisposable
     {
-        private readonly IMemoryFile file;
-        private readonly MemoryMappedViewAccessor view;
-        private unsafe byte* basePointer;
-        private unsafe byte* dataPointer { get; }
-        private ThunderscopeDataBridgeHeader header;
-        private readonly IInterprocessSemaphoreWaiter dataRequestSemaphore;         // When this is signalled, a consumer (UI or intermediary) has requested data.
-        private readonly IInterprocessSemaphoreReleaser dataResponseSemaphore;      // When data has been gathered, this is signalled to the consumer to indicate they can consume data.
-        private bool firstRun = true;           // Data bridge writer will always write an initial waveform, to unblock a UI that was running before Engine was started
-        private bool dataRequested = false;
+        private readonly IMemoryFile bridgeFile;
+        private readonly MemoryMappedViewAccessor bridgeView;
+        private readonly unsafe byte* bridgeBasePointer;
+        private readonly unsafe byte* dataRequestAndResponsePointer;
+        private readonly unsafe byte* dataRegionAHeaderPointer;
+        private readonly unsafe byte* dataRegionADataPointer;
+        private readonly unsafe byte* dataRegionBHeaderPointer;
+        private readonly unsafe byte* dataRegionBDataPointer;
+        private ThunderscopeBridgeHeader bridgeHeader;
+        private byte dataRequestAndResponse;
         private bool acquiringRegionFilledAndWaitingForReader = false;
-        private readonly uint cachedDataWidth;
-        private bool triggered = false;
 
         public Span<sbyte> AcquiringRegionI8 { get { return GetAcquiringRegionI8(); } }
-        public ThunderscopeDataMonitoring Monitoring { get { return header.Monitoring; } }
+        public ThunderscopeMonitoring Monitoring { get { return bridgeHeader.Monitoring; } }
 
-        public unsafe ThunderscopeDataBridgeWriter(string bridgeNamespace, ThunderscopeDataBridgeConfig bridgeConfig)
+        public unsafe ThunderscopeDataBridgeWriter(string bridgeNamespace, ThunderscopeBridgeConfig bridgeConfig)
         {
-            string mmfName = bridgeNamespace + ".Data";
-            cachedDataWidth = bridgeConfig.ChannelDataType.Width();
-            var dataCapacityBytes = bridgeConfig.MaxChannelCount * bridgeConfig.MaxChannelDataLength * cachedDataWidth * 2;   // * 2 as there are 2 regions used in tick-tock fashion
-            var bridgeCapacityBytes = (ulong)sizeof(ThunderscopeDataBridgeHeader) + dataCapacityBytes;
-            //Console.WriteLine($"Bridge capacity: {bridgeCapacityBytes} bytes");
-            file = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? new MemoryFileWindows(mmfName, bridgeCapacityBytes)
-                : new MemoryFileUnix(mmfName, bridgeCapacityBytes);
-
+            string mmfName = bridgeNamespace + ".Bridge";
+            var mmfCapacityBytes = (ulong)sizeof(ThunderscopeBridgeHeader) + sizeof(byte) + bridgeConfig.DataTotalCapacityBytes();
+            bridgeFile = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new MemoryFileWindows(mmfName, mmfCapacityBytes) : new MemoryFileUnix(mmfName, mmfCapacityBytes);
             try
             {
-                view = file.MappedFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite);
-
+                bridgeView = bridgeFile.MappedFile.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite);
                 try
                 {
-                    basePointer = GetPointer();
-                    dataPointer = basePointer + sizeof(ThunderscopeDataBridgeHeader);
+                    bridgeBasePointer = GetPointer();
+                    dataRequestAndResponsePointer = bridgeBasePointer + sizeof(ThunderscopeBridgeHeader);
+                    dataRegionAHeaderPointer = dataRequestAndResponsePointer + sizeof(byte);
+                    dataRegionADataPointer = dataRegionAHeaderPointer + sizeof(ThunderscopeBridgeDataRegionHeader);
+                    dataRegionBHeaderPointer = dataRegionADataPointer + bridgeConfig.DataRegionCapacityBytes();
+                    dataRegionBDataPointer = dataRegionBHeaderPointer + sizeof(ThunderscopeBridgeDataRegionHeader);
 
-                    // Writer sets initial state of header
-                    header.Version = 1;
-                    header.DataCapacityBytes = dataCapacityBytes;
-
-                    header.Bridge = bridgeConfig;
-
-                    header.AcquiringRegion = ThunderscopeMemoryAcquiringRegion.RegionA;
-
-                    SetHeader();
-
-                    dataRequestSemaphore = InterprocessSemaphore.CreateWaiter(bridgeNamespace + ".DataRequest", 0);
-                    dataResponseSemaphore = InterprocessSemaphore.CreateReleaser(bridgeNamespace + ".DataResponse", 0);
+                    bridgeHeader.Version = 1;
+                    bridgeHeader.Bridge = bridgeConfig;
+                    bridgeHeader.AcquiringRegion = ThunderscopeMemoryAcquiringRegion.RegionA;
+                    SetBridgeHeader();
                 }
                 catch
                 {
-                    view.Dispose();
+                    bridgeView.Dispose();
                     throw;
                 }
             }
             catch
             {
-                file.Dispose();
+                bridgeFile.Dispose();
                 throw;
             }
         }
 
         public void Dispose()
         {
-            view.SafeMemoryMappedViewHandle.ReleasePointer();
-            view.Flush();
-            view.Dispose();
-            file.Dispose();
+            bridgeView.SafeMemoryMappedViewHandle.ReleasePointer();
+            bridgeView.Flush();
+            bridgeView.Dispose();
+            bridgeFile.Dispose();
         }
 
         public ThunderscopeHardwareConfig Hardware
@@ -85,8 +72,8 @@ namespace TS.NET
             set
             {
                 // This is a shallow copy, but considering the struct should be 100% blitable (i.e. no reference types), this is effectively a full copy
-                header.Hardware = value;
-                SetHeader();
+                bridgeHeader.Hardware = value;
+                SetBridgeHeader();
             }
         }
 
@@ -95,73 +82,84 @@ namespace TS.NET
             set
             {
                 // This is a shallow copy, but considering the struct should be 100% blitable (i.e. no reference types), this is effectively a full copy
-                header.Processing = value;
-                SetHeader();
+                bridgeHeader.Processing = value;
+                SetBridgeHeader();
             }
         }
 
         public void MonitoringReset()
         {
-            header.Monitoring.TotalAcquisitions = 0;
-            header.Monitoring.DroppedAcquisitions = 0;
-            SetHeader();
+            bridgeHeader.Monitoring.Processing.BridgeWrites = 0;
+            bridgeHeader.Monitoring.Processing.BridgeReads = 0;
+            bridgeHeader.Monitoring.Processing.BridgeWritesPerSec = 0;
+            SetBridgeHeader();
         }
 
-        public void SwitchRegionIfNeeded()
+        private ulong monitoringIntervalTotalAcquisitions = 0;
+        private DateTimeOffset monitoringIntervalStart = DateTimeOffset.UtcNow;
+        public void HandleReader()
         {
-            if (!dataRequested)
-                dataRequested = dataRequestSemaphore.Wait(0);           // Only wait on the semaphore once and cache the result if true, clearing when needed later
-            if ((firstRun || dataRequested) && acquiringRegionFilledAndWaitingForReader)   // UI has requested data and there is data available to be read...
+            GetDataRequestAndResponse();
+            if (acquiringRegionFilledAndWaitingForReader && dataRequestAndResponse > 0)
             {
-                firstRun = false;
-                dataRequested = false;
                 acquiringRegionFilledAndWaitingForReader = false;
-                header.AcquiringRegion = header.AcquiringRegion switch
+
+                bridgeHeader.AcquiringRegion = bridgeHeader.AcquiringRegion switch      // Switch region
                 {
                     ThunderscopeMemoryAcquiringRegion.RegionA => ThunderscopeMemoryAcquiringRegion.RegionB,
                     ThunderscopeMemoryAcquiringRegion.RegionB => ThunderscopeMemoryAcquiringRegion.RegionA,
                     _ => throw new InvalidDataException("Enum value not handled, add enum value to switch")
                 };
-                header.Triggered = triggered;
-                SetHeader();
-                dataResponseSemaphore.Release();        // Allow UI to use the acquired region
-            }
-        }
+                bridgeHeader.Monitoring.Processing.BridgeReads++;
+                SetBridgeHeader();
 
-        private ulong monitoringIntervalTotalAcquisitions = 0;
-        private DateTimeOffset monitoringIntervalStart = DateTimeOffset.UtcNow;
-        public void DataWritten(bool triggered)
-        {
-            header.Monitoring.TotalAcquisitions++;
-            if (acquiringRegionFilledAndWaitingForReader)
-                header.Monitoring.DroppedAcquisitions++;
+                dataRequestAndResponse = 0;    // Reader will see this change and use the new region
+                SetDataRequestAndResponse();                            
+            }
+
             var intervalTimeElapsed = DateTimeOffset.UtcNow.Subtract(monitoringIntervalStart).TotalSeconds;
             if (intervalTimeElapsed > 1)
             {
-                var intervalTotalAcquisitions = header.Monitoring.TotalAcquisitions - monitoringIntervalTotalAcquisitions;
-                header.Monitoring.AcquisitionsPerSec = (float)(intervalTotalAcquisitions / intervalTimeElapsed);
-                monitoringIntervalTotalAcquisitions = header.Monitoring.TotalAcquisitions;
+                var intervalTotalAcquisitions = bridgeHeader.Monitoring.Processing.BridgeWrites - monitoringIntervalTotalAcquisitions;
+                bridgeHeader.Monitoring.Processing.BridgeWritesPerSec = (float)(intervalTotalAcquisitions / intervalTimeElapsed);
+                monitoringIntervalTotalAcquisitions = bridgeHeader.Monitoring.Processing.BridgeWrites;
                 monitoringIntervalStart = monitoringIntervalStart = DateTimeOffset.UtcNow;
             }
-            acquiringRegionFilledAndWaitingForReader = true;
-            this.triggered = triggered;
-            SetHeader();
         }
 
-        //private void GetHeader()
-        //{
-        //    unsafe { Unsafe.Copy(ref header, basePointer); }
-        //}
-
-        private void SetHeader()
+        ThunderscopeBridgeDataRegionHeader acquiringDataRegionHeader;
+        public void DataWritten(ThunderscopeHardwareConfig hardware, ThunderscopeProcessingConfig processing, bool triggered)
         {
-            unsafe { Unsafe.Copy(basePointer, ref header); }
+            acquiringRegionFilledAndWaitingForReader = true;
+
+            acquiringDataRegionHeader.Hardware = hardware;
+            acquiringDataRegionHeader.Processing = processing;
+            acquiringDataRegionHeader.Triggered = triggered;
+            SetAcquiringRegionHeader(ref acquiringDataRegionHeader);
+
+            bridgeHeader.Monitoring.Processing.BridgeWrites++;
+            SetBridgeHeader();            
+        }
+
+        private void GetDataRequestAndResponse()
+        {
+            unsafe { Unsafe.Copy(ref dataRequestAndResponse, dataRequestAndResponsePointer); }
+        }
+
+        private void SetDataRequestAndResponse()
+        {
+            unsafe { Unsafe.Copy(dataRequestAndResponsePointer, ref dataRequestAndResponse); }
+        }
+
+        private void SetBridgeHeader()
+        {
+            unsafe { Unsafe.Copy(bridgeBasePointer, ref bridgeHeader); }
         }
 
         private unsafe byte* GetPointer()
         {
             byte* ptr = null;
-            view.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
+            bridgeView.SafeMemoryMappedViewHandle.AcquirePointer(ref ptr);
             if (ptr == null)
                 throw new InvalidOperationException("Failed to acquire a pointer to the memory mapped file view.");
 
@@ -170,13 +168,28 @@ namespace TS.NET
 
         private unsafe Span<sbyte> GetAcquiringRegionI8()
         {
-            int regionLength = (int)(header.Processing.CurrentChannelCount * header.Processing.CurrentChannelDataLength * cachedDataWidth);
-            return header.AcquiringRegion switch
+            int maxRegionLength = (int)bridgeHeader.Bridge.DataRegionCapacityBytes();
+            return bridgeHeader.AcquiringRegion switch
             {
-                ThunderscopeMemoryAcquiringRegion.RegionA => new Span<sbyte>(dataPointer, regionLength),
-                ThunderscopeMemoryAcquiringRegion.RegionB => new Span<sbyte>(dataPointer + regionLength, regionLength),
+                ThunderscopeMemoryAcquiringRegion.RegionA => new Span<sbyte>(dataRegionADataPointer, maxRegionLength),
+                ThunderscopeMemoryAcquiringRegion.RegionB => new Span<sbyte>(dataRegionBDataPointer, maxRegionLength),
                 _ => throw new InvalidDataException("Enum value not handled, add enum value to switch")
             };
+        }
+
+        private unsafe void SetAcquiringRegionHeader(ref ThunderscopeBridgeDataRegionHeader header)
+        {
+            switch (bridgeHeader.AcquiringRegion)
+            {
+                case ThunderscopeMemoryAcquiringRegion.RegionA:
+                    unsafe { Unsafe.Copy(dataRegionAHeaderPointer, ref header); }
+                    break;
+                case ThunderscopeMemoryAcquiringRegion.RegionB:
+                    unsafe { Unsafe.Copy(dataRegionBHeaderPointer, ref header); }
+                    break;
+                default:
+                    throw new InvalidDataException("Enum value not handled, add enum value to switch");
+            }
         }
     }
 }
