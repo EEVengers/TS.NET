@@ -19,10 +19,9 @@ namespace TS.NET
         internal ThunderscopeMonitoring Monitoring;         // 16 bytes, Read only from UI perspective, UI optionally displays these values     
 
         // BridgeConfig is set once from config file or hard coded
-        // HardwareConfig, ProcessingConfig & DataMonitoring is runtime variable
+        // Hardware, Processing & Monitoring is runtime variable
 
         internal ThunderscopeMemoryAcquiringRegion AcquiringRegion; // Therefore 'AcquiredRegion' (to be used by UI) is the opposite
-        //internal byte DataRequestAndResponse; // A byte after the header!
     }
 
     public enum ThunderscopeMemoryAcquiringRegion : byte
