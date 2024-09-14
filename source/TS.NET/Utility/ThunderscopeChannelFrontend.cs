@@ -30,7 +30,31 @@ namespace TS.NET
                 Coupling = ThunderscopeCoupling.DC,
                 VoltFullScale = 0.5,
                 VoltOffset = 0,
-                Bandwidth = ThunderscopeBandwidth.BwFull               
+                Bandwidth = ThunderscopeBandwidth.BwFull
+            };
+        }
+
+        /// <param name="ladderAttenuation">0 to 10, corresponding to 0dB to -20dB in 2dB steps</param>
+        /// <param name="preampHighGain">+30dB if true, +10dB if false</param>
+        public void CalculatePgaConfigWord(byte ladderAttenuation, bool preampHighGain, ThunderscopeBandwidth filter)
+        {
+            if (ladderAttenuation > 10)
+                ladderAttenuation = 10;
+            PgaConfigWord = ladderAttenuation;
+            if (preampHighGain)
+                PgaConfigWord |= 0x10;
+            // Always set the Aux Hi-Z
+            PgaConfigWord |= 0x400;
+            PgaConfigWord |= filter switch
+            {
+                ThunderscopeBandwidth.BwFull => 0,
+                ThunderscopeBandwidth.Bw20M => 1 << 6,
+                ThunderscopeBandwidth.Bw100M => 2 << 6,
+                ThunderscopeBandwidth.Bw200M => 3 << 6,
+                ThunderscopeBandwidth.Bw350M => 4 << 6,
+                ThunderscopeBandwidth.Bw650M => 5 << 6,
+                ThunderscopeBandwidth.Bw750M => 6 << 6,
+                _ => throw new Exception("ThunderscopeBandwidth enum value not handled")
             };
         }
 
@@ -38,7 +62,7 @@ namespace TS.NET
         public ThunderscopeBandwidth PgaFilter() => (ThunderscopeBandwidth)((PgaConfigWord & 0x1C0) >> 6);
         public bool PgaHighGain() => (PgaConfigWord & 0x10) > 0;
         public int PgaAttenuator() => PgaConfigWord & 0x0F;
-        public string PgaToString() => $"aux {(PgaAux() ? "hi-z" : "on")}, filter {PgaFilter()}, preamp {(PgaHighGain() ? "HG": "LG")}, ladder {PgaAttenuator()}";
+        public string PgaToString() => $"aux {(PgaAux() ? "hi-z" : "on")}, filter {PgaFilter()}, preamp {(PgaHighGain() ? "HG" : "LG")}, ladder {PgaAttenuator()}";
     }
 
     public enum ThunderscopeCoupling : byte

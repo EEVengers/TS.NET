@@ -403,12 +403,13 @@ namespace TS.NET.Driver.XMDA
 
             if (num_channels_on != 0)
                 ConfigureDatamover(hardwareState);
+            logger.LogTrace("Channel enables: {0} {1} {2} {3}", ((configuration.EnabledChannels >> 0) & 0x01) > 0, ((configuration.EnabledChannels >> 1) & 0x01) > 0, ((configuration.EnabledChannels >> 2) & 0x01) > 0, ((configuration.EnabledChannels >> 3) & 0x01) > 0);
         }
 
         private void UpdateAfe(int channelIndex, ref ThunderscopeChannelFrontend channelFrontend)
         {
             if (!channelFrontend.PgaConfigWordOverride)
-                CalculatePgaConfigurationWord(ref configuration.Calibration[channelIndex], ref channelFrontend);
+                CalculateFrontend(ref configuration.Calibration[channelIndex], ref channelFrontend);
 
             logger.LogTrace("PGA: {string}", channelFrontend.PgaToString());
 
@@ -505,7 +506,7 @@ namespace TS.NET.Driver.XMDA
                 throw new ThunderscopeMemoryOutOfMemoryException("Thunderscope - memory full");
         }
 
-        private void CalculatePgaConfigurationWord(ref ThunderscopeChannelCalibration channelCalibration, ref ThunderscopeChannelFrontend channelFrontend)
+        private void CalculateFrontend(ref ThunderscopeChannelCalibration channelCalibration, ref ThunderscopeChannelFrontend channelFrontend)
         {
             // LMH6518
             // This encapsulates ADC gain, TODO: break it out into true full scale range and gain later (both controllable via ADC SPI)
@@ -597,38 +598,7 @@ namespace TS.NET.Driver.XMDA
 
             logger.LogTrace($"AFE: {Math.Pow(10, (channelFrontend.ActualSystemGain) / 20):F3}dB, {channelFrontend.ActualVoltFullScale:F3}Vpp, Attenuator1MOhm {(channelFrontend.Attenuator1MOhm ? "on" : "off")}, Attenuator50Ohm {(channelFrontend.Attenuator50Ohm ? "on" : "off")}");
 
-            // Decode N into PGA LNA gain and PGA attentuator step
-            channelFrontend.PgaConfigWord = (byte)ladderSetting;
-            if (preamp)
-                channelFrontend.PgaConfigWord |= 0x10;
-
-            channelFrontend.PgaConfigWord |= 0x400;  // Aux Hi-Z
-
-            switch (channelFrontend.Bandwidth)
-            {
-                case ThunderscopeBandwidth.BwFull:
-                    break;
-                case ThunderscopeBandwidth.Bw20M:
-                    channelFrontend.PgaConfigWord |= 1 << 6;
-                    break;
-                case ThunderscopeBandwidth.Bw100M:
-                    channelFrontend.PgaConfigWord |= 2 << 6;
-                    break;
-                case ThunderscopeBandwidth.Bw200M:
-                    channelFrontend.PgaConfigWord |= 3 << 6;
-                    break;
-                case ThunderscopeBandwidth.Bw350M:
-                    channelFrontend.PgaConfigWord |= 4 << 6;
-                    break;
-                case ThunderscopeBandwidth.Bw650M:
-                    channelFrontend.PgaConfigWord |= 5 << 6;
-                    break;
-                case ThunderscopeBandwidth.Bw750M:
-                    channelFrontend.PgaConfigWord |= 6 << 6;
-                    break;
-                default:
-                    throw new Exception("ThunderscopeBandwidth enum value not handled");
-            }
+            channelFrontend.CalculatePgaConfigWord(ladderSetting, preamp, channelFrontend.Bandwidth);
 
             double CalculatePgaGain(ThunderscopeChannelCalibration channelCalibration, int potentialLadderSetting)
             {
