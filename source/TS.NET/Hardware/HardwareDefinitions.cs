@@ -1,4 +1,4 @@
-namespace TS.NET;
+﻿namespace TS.NET;
 
 internal struct ThunderscopeHardwareState
 {
@@ -9,6 +9,7 @@ internal struct ThunderscopeHardwareState
     public bool DatamoverEnabled = false;
     public bool FpgaAdcEnabled = false;
     public bool SerdesResetN = false;
+    public ulong BufferHead = 0;
     public ulong BufferTail = 0;
     public ulong RamSizePages = 0x10000;
     public bool[] ChannelEnables = new bool[4];
