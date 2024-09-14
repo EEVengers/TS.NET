@@ -59,20 +59,36 @@ public enum BoxcarAveraging : uint
     Average65536 = 65536,   // ENOB+8
 };
 
-public enum ThunderscopeChannelDataType : byte
+public enum ThunderscopeDataType : byte
 {
     U8 = 1,
-    I8 = 2
+    I8 = 2,
+    U16 = 3,
+    I16 = 4,
+    U32 = 5,
+    I32 = 6,
+    F32 = 7,
+    U64 = 8,
+    I64 = 9,
+    F64 = 10,
 }
 
 public static class ThunderscopeChannelDataTypeExtensions
 {
-    public static uint Width(this ThunderscopeChannelDataType type)
+    public static byte ByteWidth(this ThunderscopeDataType type)
     {
         return type switch
         {
-            ThunderscopeChannelDataType.U8 => 1,
-            ThunderscopeChannelDataType.I8 => 1,
+            ThunderscopeDataType.U8 => 1,
+            ThunderscopeDataType.I8 => 1,
+            ThunderscopeDataType.U16 => 2,
+            ThunderscopeDataType.I16 => 2,
+            ThunderscopeDataType.U32 => 4,
+            ThunderscopeDataType.I32 => 4,
+            ThunderscopeDataType.F32 => 4,
+            ThunderscopeDataType.U64 => 8,
+            ThunderscopeDataType.I64 => 8,
+            ThunderscopeDataType.F64 => 8,
             _ => throw new NotImplementedException()
         };
     }

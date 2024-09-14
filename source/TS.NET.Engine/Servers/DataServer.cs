@@ -96,10 +96,10 @@ namespace TS.NET.Engine
                 if (bridge.RequestAndWaitForData(500))
                 {
                     //logger.LogDebug("Sending waveform...");
-                    var dataHeader = bridge.AcquiredRegionHeader;
+                    var dataHeader = bridge.AcquiredDataRegionHeader;
                     var configuration = dataHeader.Hardware;
                     var processing = dataHeader.Processing;
-                    var data = bridge.AcquiredRegionU8;
+                    var data = bridge.AcquiredDataRegionU8;
 
                     // Remember AdcChannelMode reflects the hardware reality - user may only have 3 channels enabled but hardware has to capture 4.
                     ulong femtosecondsPerSample = configuration.AdcChannelMode switch
@@ -134,7 +134,7 @@ namespace TS.NET.Engine
                     // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
                     if (dataHeader.Triggered)
                     {
-                        var signedData = bridge.AcquiredRegionI8;
+                        var signedData = bridge.AcquiredDataRegionI8;
                         // To fix - trigger interpolation only works on 4 channel mode
                         var channelData = bridge.Processing.TriggerChannel switch
                         {

@@ -72,8 +72,8 @@ namespace TS.NET.Engine
                 {
                     MaxChannelCount = settings.MaxChannelCount,
                     MaxChannelDataLength = settings.MaxChannelDataLength,
-                    ChannelDataType = ThunderscopeChannelDataType.I8,
-                    RegionCount = 2
+                    MaxDataRegionDataByteWidth = ThunderscopeDataType.I8.ByteWidth(),
+                    DataRegionCount = 2
                 };
                 ThunderscopeDataBridgeWriter bridge = new(bridgeNamespace, bridgeConfig);
 
@@ -323,10 +323,10 @@ namespace TS.NET.Engine
                                                 {
                                                     for (int i = 0; i < captureEndCount; i++)
                                                     {
-                                                        var bridgeSpan = bridge.AcquiringRegionI8;
+                                                        var bridgeSpan = bridge.AcquiringDataRegionI8;
                                                         uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
                                                         circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), endOffset);
-                                                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: true);
+                                                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: true, ThunderscopeDataType.I8);
                                                         bridge.HandleReader();
 
                                                         if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
@@ -342,9 +342,9 @@ namespace TS.NET.Engine
                                             }
                                             if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
                                             {
-                                                var bridgeSpan = bridge.AcquiringRegionI8;
+                                                var bridgeSpan = bridge.AcquiringDataRegionI8;
                                                 circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
-                                                bridge.DataWritten(hardwareConfig, processingConfig, triggered: false);
+                                                bridge.DataWritten(hardwareConfig, processingConfig, triggered: false, ThunderscopeDataType.I8);
                                                 bridge.HandleReader();
                                                 forceTriggerLatch = false;
 
@@ -392,11 +392,11 @@ namespace TS.NET.Engine
                                                 {
                                                     for (int i = 0; i < captureEndCount; i++)
                                                     {
-                                                        var bridgeSpan = bridge.AcquiringRegionI8;
+                                                        var bridgeSpan = bridge.AcquiringDataRegionI8;
                                                         uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
                                                         circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), endOffset);
                                                         circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), endOffset);
-                                                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: true);
+                                                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: true, ThunderscopeDataType.I8);
                                                         bridge.HandleReader();
 
                                                         if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
@@ -412,10 +412,10 @@ namespace TS.NET.Engine
                                             }
                                             if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
                                             {
-                                                var bridgeSpan = bridge.AcquiringRegionI8;
+                                                var bridgeSpan = bridge.AcquiringDataRegionI8;
                                                 circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
                                                 circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                                                bridge.DataWritten(hardwareConfig, processingConfig, triggered: false);
+                                                bridge.DataWritten(hardwareConfig, processingConfig, triggered: false, ThunderscopeDataType.I8);
                                                 bridge.HandleReader();
                                                 forceTriggerLatch = false;
 
@@ -470,13 +470,13 @@ namespace TS.NET.Engine
                                                 {
                                                     for (int i = 0; i < captureEndCount; i++)
                                                     {
-                                                        var bridgeSpan = bridge.AcquiringRegionI8;
+                                                        var bridgeSpan = bridge.AcquiringDataRegionI8;
                                                         uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
                                                         circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), endOffset);
                                                         circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), endOffset);
                                                         circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), endOffset);
                                                         circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), endOffset);
-                                                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: true);
+                                                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: true, ThunderscopeDataType.I8);
                                                         bridge.HandleReader();
 
                                                         if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
@@ -492,12 +492,12 @@ namespace TS.NET.Engine
                                             }
                                             if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
                                             {
-                                                var bridgeSpan = bridge.AcquiringRegionI8;
+                                                var bridgeSpan = bridge.AcquiringDataRegionI8;
                                                 circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
                                                 circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
                                                 circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
                                                 circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
-                                                bridge.DataWritten(hardwareConfig, processingConfig, triggered: false);
+                                                bridge.DataWritten(hardwareConfig, processingConfig, triggered: false, ThunderscopeDataType.I8);
                                                 bridge.HandleReader();
                                                 forceTriggerLatch = false;
 
@@ -559,9 +559,9 @@ namespace TS.NET.Engine
                     while (streamSampleCounter > channelLength)
                     {
                         streamSampleCounter -= channelLength;
-                        var bridgeSpan = bridge.AcquiringRegionI8;
+                        var bridgeSpan = bridge.AcquiringDataRegionI8;
                         circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
-                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: false);
+                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: false, ThunderscopeDataType.I8);
                         bridge.HandleReader();
                     }
                 }
@@ -571,10 +571,10 @@ namespace TS.NET.Engine
                     while (streamSampleCounter > channelLength)
                     {
                         streamSampleCounter -= channelLength;
-                        var bridgeSpan = bridge.AcquiringRegionI8;
+                        var bridgeSpan = bridge.AcquiringDataRegionI8;
                         circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
                         circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: false);
+                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: false, ThunderscopeDataType.I8);
                         bridge.HandleReader();
                     }
                 }
@@ -584,12 +584,12 @@ namespace TS.NET.Engine
                     while (streamSampleCounter > channelLength)
                     {
                         streamSampleCounter -= channelLength;
-                        var bridgeSpan = bridge.AcquiringRegionI8;
+                        var bridgeSpan = bridge.AcquiringDataRegionI8;
                         circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
                         circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
                         circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
                         circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
-                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: false);
+                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: false, ThunderscopeDataType.I8);
                         bridge.HandleReader();
                     }
                 }

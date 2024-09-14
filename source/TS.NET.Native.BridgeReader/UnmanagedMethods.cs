@@ -71,7 +71,7 @@ namespace TS.NET.Native.BridgeReader
                 {
                     return -2;
                 }
-                var headerPointer = bridgeReader.GetAcquiredRegionHeaderPointer();
+                var headerPointer = bridgeReader.GetAcquiredDataRegionHeaderPointer();
                 Unsafe.CopyBlock((byte*)buffer, (byte*)headerPointer, (uint)headerSize);
                 return headerSize;
             }
@@ -89,12 +89,12 @@ namespace TS.NET.Native.BridgeReader
             if (handle.Target != null)
             {
                 var bridgeReader = (ThunderscopeDataBridgeReader)handle.Target;
-                var dataSize = bridgeReader.GetAcquiredRegionDataLength();
+                var dataSize = bridgeReader.GetAcquiredDataRegionDataLength();
                 if (dataSize > maxLength)
                 {
                     return -2;
                 }
-                var dataPointer = bridgeReader.GetAcquiredRegionDataPointer();
+                var dataPointer = bridgeReader.GetAcquiredDataRegionDataPointer();
                 Unsafe.CopyBlock((byte*)buffer, (byte*)dataPointer, (uint)dataSize);
                 return dataSize;
             }

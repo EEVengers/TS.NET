@@ -18,9 +18,9 @@ namespace TS.NET
         private readonly unsafe byte* dataRegionBDataPointer;
         private ThunderscopeBridgeHeader bridgeHeader;
 
-        public ReadOnlySpan<sbyte> AcquiredRegionI8 { get { GetBridgeHeader(); return GetAcquiredRegionI8(); } }
-        public ReadOnlySpan<byte> AcquiredRegionU8 { get { GetBridgeHeader(); return GetAcquiredRegionU8(); } }        // Useful for the Socket API which only accepts byte
-        public ThunderscopeBridgeDataRegionHeader AcquiredRegionHeader { get { return GetAcquiredRegionHeader(); } }
+        public ReadOnlySpan<sbyte> AcquiredDataRegionI8 { get { GetBridgeHeader(); return GetAcquiredDataRegionI8(); } }
+        public ReadOnlySpan<byte> AcquiredDataRegionU8 { get { GetBridgeHeader(); return GetAcquiredDataRegionU8(); } }        // Useful for the Socket API which only accepts byte
+        public ThunderscopeBridgeDataRegionHeader AcquiredDataRegionHeader { get { return GetAcquiredDataRegionHeader(); } }
         public ThunderscopeHardwareConfig Hardware { get { GetBridgeHeader(); return bridgeHeader.Hardware; } }
         public ThunderscopeProcessingConfig Processing { get { GetBridgeHeader(); return bridgeHeader.Processing; } }
         public ThunderscopeMonitoring Monitoring { get { GetBridgeHeader(); return bridgeHeader.Monitoring; } }
@@ -69,7 +69,7 @@ namespace TS.NET
                     dataRequestAndResponsePointer = bridgeBasePointer + sizeof(ThunderscopeBridgeHeader);
                     dataRegionAHeaderPointer = dataRequestAndResponsePointer + sizeof(byte);
                     dataRegionADataPointer = dataRegionAHeaderPointer + sizeof(ThunderscopeBridgeDataRegionHeader);
-                    dataRegionBHeaderPointer = dataRegionADataPointer + bridgeHeader.Bridge.DataRegionCapacityBytes();
+                    dataRegionBHeaderPointer = dataRegionADataPointer + bridgeHeader.Bridge.MaxDataRegionLengthBytes();
                     dataRegionBDataPointer = dataRegionBHeaderPointer + sizeof(ThunderscopeBridgeDataRegionHeader);
                 }
                 catch
@@ -144,24 +144,24 @@ namespace TS.NET
             return version;
         }
 
-        private ThunderscopeBridgeDataRegionHeader GetAcquiredRegionHeader()
+        private ThunderscopeBridgeDataRegionHeader GetAcquiredDataRegionHeader()
         {
-            var acquiredRegionHeader = new ThunderscopeBridgeDataRegionHeader();
+            var acquiredDataRegionHeader = new ThunderscopeBridgeDataRegionHeader();
             unsafe
             {
-                switch (bridgeHeader.AcquiringRegion)
+                switch (bridgeHeader.AcquiringDataRegion)
                 {
-                    case ThunderscopeMemoryAcquiringRegion.RegionA:
-                        Unsafe.Copy(ref acquiredRegionHeader, dataRegionBHeaderPointer);
+                    case ThunderscopeMemoryAcquiringDataRegion.RegionA:
+                        Unsafe.Copy(ref acquiredDataRegionHeader, dataRegionBHeaderPointer);
                         break;
-                    case ThunderscopeMemoryAcquiringRegion.RegionB:
-                        Unsafe.Copy(ref acquiredRegionHeader, dataRegionAHeaderPointer);
+                    case ThunderscopeMemoryAcquiringDataRegion.RegionB:
+                        Unsafe.Copy(ref acquiredDataRegionHeader, dataRegionAHeaderPointer);
                         break;
                     default:
                         throw new InvalidDataException("Enum value not handled, add enum value to switch");
                 }
             }
-            return acquiredRegionHeader;
+            return acquiredDataRegionHeader;
         }
 
         private unsafe byte* GetPointer()
@@ -174,65 +174,62 @@ namespace TS.NET
             return ptr;
         }
 
-        private ReadOnlySpan<sbyte> GetAcquiredRegionI8()
+        private ReadOnlySpan<sbyte> GetAcquiredDataRegionI8()
         {
-            var acquiredRegionHeader = GetAcquiredRegionHeader();
-            int currentRegionLength = (int)(acquiredRegionHeader.Processing.CurrentChannelCount * acquiredRegionHeader.Processing.CurrentChannelDataLength * bridgeHeader.Bridge.ChannelDataType.Width());
+            var acquiredDataRegionHeader = GetAcquiredDataRegionHeader();
             unsafe
             {
-                return bridgeHeader.AcquiringRegion switch
+                return bridgeHeader.AcquiringDataRegion switch
                 {
-                    ThunderscopeMemoryAcquiringRegion.RegionA => new ReadOnlySpan<sbyte>(dataRegionBDataPointer, currentRegionLength), // If acquiring region is Region A, return Region B
-                    ThunderscopeMemoryAcquiringRegion.RegionB => new ReadOnlySpan<sbyte>(dataRegionADataPointer, currentRegionLength), // If acquiring region is Region B, return Region A
+                    ThunderscopeMemoryAcquiringDataRegion.RegionA => new ReadOnlySpan<sbyte>(dataRegionBDataPointer, acquiredDataRegionHeader.DataRegionDataLengthBytes()), // If acquiring region is Region A, return Region B
+                    ThunderscopeMemoryAcquiringDataRegion.RegionB => new ReadOnlySpan<sbyte>(dataRegionADataPointer, acquiredDataRegionHeader.DataRegionDataLengthBytes()), // If acquiring region is Region B, return Region A
                     _ => throw new InvalidDataException("Enum value not handled, add enum value to switch")
                 };
             }
         }
 
-        private ReadOnlySpan<byte> GetAcquiredRegionU8()
+        private ReadOnlySpan<byte> GetAcquiredDataRegionU8()
         {
-            var acquiredRegionHeader = GetAcquiredRegionHeader();
-            int currentRegionLength = (int)(acquiredRegionHeader.Processing.CurrentChannelCount * acquiredRegionHeader.Processing.CurrentChannelDataLength * bridgeHeader.Bridge.ChannelDataType.Width());
+            var acquiredDataRegionHeader = GetAcquiredDataRegionHeader();
             unsafe
             {
-                return bridgeHeader.AcquiringRegion switch
+                return bridgeHeader.AcquiringDataRegion switch
                 {
-                    ThunderscopeMemoryAcquiringRegion.RegionA => new ReadOnlySpan<byte>(dataRegionBDataPointer, currentRegionLength),  // If acquiring region is Region A, return Region B
-                    ThunderscopeMemoryAcquiringRegion.RegionB => new ReadOnlySpan<byte>(dataRegionADataPointer, currentRegionLength),  // If acquiring region is Region B, return Region A
+                    ThunderscopeMemoryAcquiringDataRegion.RegionA => new ReadOnlySpan<byte>(dataRegionBDataPointer, acquiredDataRegionHeader.DataRegionDataLengthBytes()),  // If acquiring region is Region A, return Region B
+                    ThunderscopeMemoryAcquiringDataRegion.RegionB => new ReadOnlySpan<byte>(dataRegionADataPointer, acquiredDataRegionHeader.DataRegionDataLengthBytes()),  // If acquiring region is Region B, return Region A
                     _ => throw new InvalidDataException("Enum value not handled, add enum value to switch")
                 };
             }
         }
 
         // For use by TS.NET.Native.BridgeReader only
-        public IntPtr GetAcquiredRegionHeaderPointer()
+        public IntPtr GetAcquiredDataRegionHeaderPointer()
         {
             unsafe
             {
-                return bridgeHeader.AcquiringRegion switch
+                return bridgeHeader.AcquiringDataRegion switch
                 {
-                    ThunderscopeMemoryAcquiringRegion.RegionA => (IntPtr)dataRegionBHeaderPointer,    // If acquiring region is Region A, return Region B
-                    ThunderscopeMemoryAcquiringRegion.RegionB => (IntPtr)dataRegionAHeaderPointer,    // If acquiring region is Region B, return Region A
+                    ThunderscopeMemoryAcquiringDataRegion.RegionA => (IntPtr)dataRegionBHeaderPointer,    // If acquiring region is Region A, return Region B
+                    ThunderscopeMemoryAcquiringDataRegion.RegionB => (IntPtr)dataRegionAHeaderPointer,    // If acquiring region is Region B, return Region A
                     _ => throw new InvalidDataException("Enum value not handled, add enum value to switch")
                 };
             }
         }
 
-        public int GetAcquiredRegionDataLength()
+        public int GetAcquiredDataRegionDataLength()
         {
-            var acquiredRegionHeader = GetAcquiredRegionHeader();
-            int currentRegionLength = (int)(acquiredRegionHeader.Processing.CurrentChannelCount * acquiredRegionHeader.Processing.CurrentChannelDataLength * bridgeHeader.Bridge.ChannelDataType.Width());
-            return currentRegionLength;
+            var acquiredRegionHeader = GetAcquiredDataRegionHeader();
+            return acquiredRegionHeader.DataRegionDataLengthBytes();
         }
 
-        public IntPtr GetAcquiredRegionDataPointer()
+        public IntPtr GetAcquiredDataRegionDataPointer()
         {
             unsafe
             {
-                return bridgeHeader.AcquiringRegion switch
+                return bridgeHeader.AcquiringDataRegion switch
                 {
-                    ThunderscopeMemoryAcquiringRegion.RegionA => (IntPtr)dataRegionBDataPointer,    // If acquiring region is Region A, return Region B
-                    ThunderscopeMemoryAcquiringRegion.RegionB => (IntPtr)dataRegionADataPointer,    // If acquiring region is Region B, return Region A
+                    ThunderscopeMemoryAcquiringDataRegion.RegionA => (IntPtr)dataRegionBDataPointer,    // If acquiring region is Region A, return Region B
+                    ThunderscopeMemoryAcquiringDataRegion.RegionB => (IntPtr)dataRegionADataPointer,    // If acquiring region is Region B, return Region A
                     _ => throw new InvalidDataException("Enum value not handled, add enum value to switch")
                 };
             }

@@ -22,10 +22,10 @@ namespace TS.NET
         // BridgeConfig is set once from config file or hard coded
         // Hardware, Processing & Monitoring is runtime variable
 
-        internal ThunderscopeMemoryAcquiringRegion AcquiringRegion; // Therefore 'AcquiredRegion' (to be used by UI) is the opposite
+        internal ThunderscopeMemoryAcquiringDataRegion AcquiringDataRegion; // Therefore 'AcquiredDataRegion' (to be used by UI) is the opposite
     }
 
-    public enum ThunderscopeMemoryAcquiringRegion : byte
+    public enum ThunderscopeMemoryAcquiringDataRegion : byte
     {
         RegionA = 1,
         RegionB = 2
@@ -38,17 +38,22 @@ namespace TS.NET
 
         public ushort MaxChannelCount;
         public uint MaxChannelDataLength;
-        public ThunderscopeChannelDataType ChannelDataType;
-        public byte RegionCount;
+        public byte MaxDataRegionDataByteWidth;
+        public byte DataRegionCount;
 
-        public unsafe readonly ulong DataRegionCapacityBytes()
+        public readonly ulong MaxDataRegionLengthBytes()
         {
-            return (ulong)sizeof(ThunderscopeBridgeDataRegionHeader) + MaxChannelCount * MaxChannelDataLength * ChannelDataType.Width();
+            unsafe
+            {
+                uint headerLength = (uint)sizeof(ThunderscopeBridgeDataRegionHeader);
+                return headerLength + (MaxChannelCount * MaxChannelDataLength * MaxDataRegionDataByteWidth);
+            }
+            
         }
 
-        public readonly ulong DataTotalCapacityBytes()
+        public readonly ulong MaxAllDataRegionLengthBytes()
         {
-            return DataRegionCapacityBytes() * RegionCount;
+            return MaxDataRegionLengthBytes() * DataRegionCount;
         }
     }
 }

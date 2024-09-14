@@ -11,5 +11,8 @@ namespace TS.NET
         public ThunderscopeHardwareConfig Hardware;           // 2 + 4*32, read only from UI perspective, UI uses SCPI interface to change configuration
         public ThunderscopeProcessingConfig Processing;       // 37 bytes, read only from UI perspective, UI uses SCPI interface to change configuration
         public bool Triggered;                                // Indicate if acquired data was triggered (i.e. to run trigger interpolation or not)
+        public ThunderscopeDataType DataType;
+
+        public readonly int DataRegionDataLengthBytes() => (int)(Processing.CurrentChannelCount * Processing.CurrentChannelDataLength * DataType.ByteWidth());
     }
 }
