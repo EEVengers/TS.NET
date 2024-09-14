@@ -1,27 +1,34 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace TS.NET.Native.BridgeReader
 {
     public class UnmanagedMethods
     {
-        [UnmanagedCallersOnly(EntryPoint = "add")]
-        public static int Add(int a, int b)
+        /// <summary>
+        /// Open reference to thunderscope bridge
+        /// </summary>
+        /// <returns>Success: bridge reader pointer, fail: -1 (possible cause: bridge version mismatch)</returns>
+        [UnmanagedCallersOnly(EntryPoint = "open")]
+        public static IntPtr Open()
         {
-            return a + b;
+            try
+            {
+                ThunderscopeDataBridgeReader bridgeReader = new("ThunderScope.0");
+                GCHandle handle = GCHandle.Alloc(bridgeReader, GCHandleType.Pinned);
+                return handle.AddrOfPinnedObject();
+            }
+            catch
+            {
+                return -1;
+            }
         }
 
-        // Returns pointer to ThunderscopeBridgeReader, pass this into subsequent methods
-        [UnmanagedCallersOnly(EntryPoint = "init")]
-        public static IntPtr Init()
-        {
-            ThunderscopeDataBridgeReader bridgeReader = new("ThunderScope.0");
-
-            GCHandle handle = GCHandle.Alloc(bridgeReader, GCHandleType.Pinned);
-            return handle.AddrOfPinnedObject();
-        }
-
-        [UnmanagedCallersOnly(EntryPoint = "dispose")]
-        public static void Dispose(IntPtr bridgeReaderPtr)
+        /// <summary>
+        /// Close reference to thunderscope bridge
+        /// </summary>
+        [UnmanagedCallersOnly(EntryPoint = "close")]
+        public static void Close(IntPtr bridgeReaderPtr)
         {
             var handle = GCHandle.FromIntPtr(bridgeReaderPtr);
             if (handle.Target != null)
@@ -32,46 +39,66 @@ namespace TS.NET.Native.BridgeReader
             handle.Free();   // Free the managed object
         }
 
-        // Returns true if new data is available, false if timeout
+        /// <summary>
+        /// Request and wait for new data, with millisecond timeout
+        /// </summary>
+        /// <returns>Success, new data available: 0, invalid bridge pointer: -1, timeout: 1</returns>
         [UnmanagedCallersOnly(EntryPoint = "requestAndWaitForData")]
-        public static bool RequestAndWaitForData(IntPtr bridgeReaderPtr, int millisecondsTimeout)
+        public static int RequestAndWaitForData(IntPtr bridgeReaderPtr, int millisecondsTimeout)
         {
             var handle = GCHandle.FromIntPtr(bridgeReaderPtr);
             if (handle.Target != null)
             {
                 var bridgeReader = (ThunderscopeDataBridgeReader)handle.Target;
-                return bridgeReader.RequestAndWaitForData(millisecondsTimeout);
+                return bridgeReader.RequestAndWaitForData(millisecondsTimeout) ? 0 : 1;
             }
-            return false;
+            return -1;
         }
 
-        // Returns the length of the data
-        [UnmanagedCallersOnly(EntryPoint = "getDataLength")]
-        public static int GetDataLength(IntPtr bridgeReaderPtr)
+        /// <summary>
+        /// Copy data header to buffer and return length of header.
+        /// </summary>
+        /// <returns>Success: length of header in buffer, invalid bridge pointer: -1, buffer too short: -2</returns>
+        [UnmanagedCallersOnly(EntryPoint = "getDataHeader")]
+        public static unsafe int GetDataHeader(IntPtr bridgeReaderPtr, IntPtr buffer, int maxLength)
         {
             var handle = GCHandle.FromIntPtr(bridgeReaderPtr);
             if (handle.Target != null)
             {
                 var bridgeReader = (ThunderscopeDataBridgeReader)handle.Target;
-                var acquiredRegionLength = bridgeReader.AcquiredRegionI8.Length;
-                return acquiredRegionLength;
+                var headerSize = sizeof(ThunderscopeBridgeDataRegionHeader);
+                if (headerSize > maxLength)
+                {
+                    return -2;
+                }
+                var headerPointer = bridgeReader.GetAcquiredRegionHeaderPointer();
+                Unsafe.CopyBlock((byte*)buffer, (byte*)headerPointer, (uint)headerSize);
+                return headerSize;
             }
-            return 0;
+            return -1;
         }
 
-        // Attempt at zero copy by allowing caller to get a pointer to read the memory region directly.
-        // Returns a pointer to the memory location that contains the data.
-        // GetDataLength should be used to get the allowable length. (hopefully this can be combined into a single method in future once UnmanagedCallersOnly behaviour is understood better)
-        [UnmanagedCallersOnly(EntryPoint = "getDataPointer")]
-        public static unsafe byte* GetDataPointer(IntPtr bridgeReaderPtr)
+        /// <summary>
+        /// Copy data to buffer and return length of data
+        /// </summary>
+        /// <returns>Success: length of data in buffer, invalid bridge pointer: -1, buffer too short: -2</returns>
+        [UnmanagedCallersOnly(EntryPoint = "getData")]
+        public static unsafe int GetData(IntPtr bridgeReaderPtr, IntPtr buffer, int maxLength)
         {
             var handle = GCHandle.FromIntPtr(bridgeReaderPtr);
             if (handle.Target != null)
             {
                 var bridgeReader = (ThunderscopeDataBridgeReader)handle.Target;
-                return bridgeReader.GetAcquiredRegionPointer();
+                var dataSize = bridgeReader.GetAcquiredRegionDataLength();
+                if (dataSize > maxLength)
+                {
+                    return -2;
+                }
+                var dataPointer = bridgeReader.GetAcquiredRegionDataPointer();
+                Unsafe.CopyBlock((byte*)buffer, (byte*)dataPointer, (uint)dataSize);
+                return dataSize;
             }
-            return default;
+            return -1;
         }
     }
 }

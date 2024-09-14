@@ -96,8 +96,7 @@ namespace TS.NET.Engine
                 if (bridge.RequestAndWaitForData(500))
                 {
                     //logger.LogDebug("Sending waveform...");
-                    ThunderscopeBridgeDataRegionHeader dataHeader = new();
-                    bridge.GetAcquiredRegionHeader(ref dataHeader);
+                    var dataHeader = bridge.AcquiredRegionHeader;
                     var configuration = dataHeader.Hardware;
                     var processing = dataHeader.Processing;
                     var data = bridge.AcquiredRegionU8;

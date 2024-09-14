@@ -41,7 +41,7 @@ namespace TS.NET
                     dataRegionBHeaderPointer = dataRegionADataPointer + bridgeConfig.DataRegionCapacityBytes();
                     dataRegionBDataPointer = dataRegionBHeaderPointer + sizeof(ThunderscopeBridgeDataRegionHeader);
 
-                    bridgeHeader.Version = 1;
+                    bridgeHeader.Version = ThunderscopeBridgeHeader.BuildVersion;
                     bridgeHeader.Bridge = bridgeConfig;
                     bridgeHeader.AcquiringRegion = ThunderscopeMemoryAcquiringRegion.RegionA;
                     SetBridgeHeader();

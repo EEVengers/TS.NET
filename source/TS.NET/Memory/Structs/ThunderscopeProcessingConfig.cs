@@ -5,6 +5,8 @@ namespace TS.NET
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct ThunderscopeProcessingConfig   // Idempotent so that UI doesn't have to store state and removes the possibility of config mismatch with multiple actors changing config (e.g. SCPI and Web UI)
     {
+        // If the contents of this struct changes, consider incrementing the BuildVersion on ThunderscopeBridgeHeader
+
         public ushort CurrentChannelCount;      // From 1 to ThunderscopeBridgeHeader.MaxChannelCount
         public ulong CurrentChannelDataLength;  // From 1 to ThunderscopeBridgeHeader.MaxChannelDataLength
                

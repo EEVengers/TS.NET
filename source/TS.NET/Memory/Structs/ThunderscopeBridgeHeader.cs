@@ -11,7 +11,8 @@ namespace TS.NET
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal struct ThunderscopeBridgeHeader
     {
-        internal byte Version;              // Allows UI to know which ThunderscopeMemoryBridgeHeader version to use, hence the size of the header.
+        public const uint BuildVersion = 1; // If the build version of the writer & reader has a mismatch, throw an error
+        internal uint Version;              // The version used by the writer
 
         internal ThunderscopeBridgeConfig Bridge;           // 7 bytes, read only from UI perspective
         internal ThunderscopeHardwareConfig Hardware;       // 2 + 4*32, read only from UI perspective, UI uses SCPI interface to change configuration
@@ -33,6 +34,8 @@ namespace TS.NET
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct ThunderscopeBridgeConfig
     {
+        // If the contents of this struct changes, consider incrementing the BuildVersion on ThunderscopeBridgeHeader
+
         public ushort MaxChannelCount;
         public uint MaxChannelDataLength;
         public ThunderscopeChannelDataType ChannelDataType;
