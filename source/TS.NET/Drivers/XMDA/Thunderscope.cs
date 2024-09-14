@@ -52,8 +52,7 @@ namespace TS.NET.Driver.XMDA
                 throw new Exception("Thunderscope not open");
             if (hardwareState.DatamoverEnabled)
                 throw new Exception("Thunderscope already started");
-            hardwareState.DatamoverEnabled = true;
-            hardwareState.FpgaAdcEnabled = true;
+            EnableDatamover(ref hardwareState);
             hardwareState.BufferHead = 0;
             hardwareState.BufferTail = 0;
             ConfigureDatamover(hardwareState);
@@ -65,11 +64,7 @@ namespace TS.NET.Driver.XMDA
                 throw new Exception("Thunderscope not open");
             if (!hardwareState.DatamoverEnabled)
                 throw new Exception("Thunderscope not started");
-            hardwareState.DatamoverEnabled = false;
-            ConfigureDatamover(hardwareState);
-            Thread.Sleep(5);
-            hardwareState.FpgaAdcEnabled = false;
-            ConfigureDatamover(hardwareState);
+            DisableDatamover(ref hardwareState);
         }
 
         public void Read(ThunderscopeMemory data, CancellationToken cancellationToken)     //ThunderscopeMemory ensures memory is aligned on 4k boundary
@@ -238,6 +233,42 @@ namespace TS.NET.Driver.XMDA
             }
         }
 
+        private void EnableDatamover(ref ThunderscopeHardwareState state)
+        {
+            state.DatamoverEnabled = true;
+            ConfigureDatamover(state);
+            Thread.Sleep(1);
+            state.FpgaAdcEnabled = true;
+            ConfigureDatamover(state);
+            Thread.Sleep(1);
+            state.SerdesResetN = true;
+            ConfigureDatamover(state);
+            Thread.Sleep(10);
+
+        }
+
+        private void DisableDatamover(ref ThunderscopeHardwareState state)
+        {
+                state.SerdesResetN = false;
+                ConfigureDatamover(state);
+                Thread.Sleep(10);
+
+                state.DatamoverEnabled = false;
+                ConfigureDatamover(state);
+
+                for (int i = 0; i < 10; i++){
+                    Thread.Sleep(1);
+                    uint transfer_counter = Read32(BarRegister.DATAMOVER_TRANSFER_COUNTER);
+                    if (((transfer_counter >> 29) & 1) > 0 )
+                        break;
+                    if (i == 9)
+                        throw new Exception("Thunderscope - datamover timeout");
+                }
+                
+                hardwareState.FpgaAdcEnabled = false;
+                ConfigureDatamover(hardwareState);
+        }
+
         private void ConfigureDatamover(ThunderscopeHardwareState state)
         {
             uint datamoverRegister = 0;
@@ -246,6 +277,7 @@ namespace TS.NET.Driver.XMDA
             if (state.FrontEndEnabled) datamoverRegister |= 0x04000000;
             if (state.DatamoverEnabled) datamoverRegister |= 0x1;
             if (state.FpgaAdcEnabled) datamoverRegister |= 0x2;
+            if (state.SerdesResetN) datamoverRegister |= 0x4;
 
             int numChannelsEnabled = 0;
             for (int channel = 0; channel < 4; channel++)
@@ -394,15 +426,15 @@ namespace TS.NET.Driver.XMDA
             SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL12, (ushort)(2 << insel[0] | 512 << insel[1]));
             SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL34, (ushort)(2 << insel[2] | 512 << insel[3]));
 
-            ThunderscopeHardwareState temporaryState = hardwareState;
-            temporaryState.DatamoverEnabled = false;
-            temporaryState.FpgaAdcEnabled = false;
-            ConfigureDatamover(temporaryState);
+            if (hardwareState.DatamoverEnabled)
+            {
+            DisableDatamover(ref hardwareState);
 
             Thread.Sleep(5);
 
             if (num_channels_on != 0)
-                ConfigureDatamover(hardwareState);
+                EnableDatamover(ref hardwareState);
+            }
         }
 
         private void UpdateAfe(int channelIndex, ref ThunderscopeChannelFrontend channelFrontend)
@@ -489,7 +521,7 @@ namespace TS.NET.Driver.XMDA
             if ((error_code & 1) > 0)
                 throw new ThunderscopeFifoOverflowException("Thunderscope - FIFO overflow");
 
-            uint overflow_cycles = transfer_counter >> 16 & 0x3FFF;
+            uint overflow_cycles = transfer_counter >> 18 & 0x03FF;
             if (overflow_cycles > 0)
                 throw new Exception("Thunderscope - pipeline overflow");
 
