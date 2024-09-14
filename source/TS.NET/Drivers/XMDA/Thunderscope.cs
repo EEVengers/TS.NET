@@ -596,7 +596,7 @@ namespace TS.NET.Driver.XMDA
             // Calculate actual full scale voltage from actual gain
             channelFrontend.ActualVoltFullScale = (adcFullScaleRange / adcGain) / Math.Pow(10, channelFrontend.ActualSystemGain / 20);
 
-            logger.LogTrace($"AFE: {Math.Pow(10, (channelFrontend.ActualSystemGain) / 20):F3}dB, {channelFrontend.ActualVoltFullScale:F3}Vpp, Attenuator1MOhm {(channelFrontend.Attenuator1MOhm ? "on" : "off")}, Attenuator50Ohm {(channelFrontend.Attenuator50Ohm ? "on" : "off")}");
+            logger.LogTrace($"AFE: {channelFrontend.ActualSystemGain:F3}dB, {channelFrontend.ActualVoltFullScale:F3}Vpp, Attenuator1MOhm {(channelFrontend.Attenuator1MOhm ? "on" : "off")}, Attenuator50Ohm {(channelFrontend.Attenuator50Ohm ? "on" : "off")}");
 
             channelFrontend.CalculatePgaConfigWord(ladderSetting, preamp, channelFrontend.Bandwidth);
 
