@@ -8,8 +8,8 @@ namespace TS.NET.Engine
     [YamlSerializable]
     public class ThunderscopeSettings
     {
-        public string HardwareDriver { get; set; }
-        public string HardwareRevision { get; set; }
+        public string HardwareDriver { get; set; } = "";
+        public string HardwareRevision { get; set; } = "";
         public ushort MaxChannelCount { get; set; }
         public uint MaxChannelDataLength { get; set; }
         public int ScpiPort { get; set; }
@@ -19,8 +19,8 @@ namespace TS.NET.Engine
         public int HardwareThreadProcessorAffinity { get; set; }
         public int ProcessingThreadProcessorAffinity { get; set; }
 
-        public ThunderscopeCalibrationSettings XdmaCalibration { get; set; }
-        public ThunderscopeCalibrationSettings LiteXCalibration { get; set; }
+        public ThunderscopeCalibrationSettings XdmaCalibration { get; set; } = new();
+        public ThunderscopeCalibrationSettings LiteXCalibration { get; set; } = new();
 
         public static ThunderscopeSettings Default()
         {

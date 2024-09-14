@@ -5,20 +5,14 @@ namespace TS.NET
     [YamlSerializable]
     public class ThunderscopeCalibrationSettings
     {
-        public ThunderscopeChannelCalibrationSettings Channel1 { get; set; }
-        public ThunderscopeChannelCalibrationSettings Channel2 { get; set; }
-        public ThunderscopeChannelCalibrationSettings Channel3 { get; set; }
-        public ThunderscopeChannelCalibrationSettings Channel4 { get; set; }
+        public ThunderscopeChannelCalibrationSettings Channel1 { get; set; } = ThunderscopeChannelCalibrationSettings.Default();
+        public ThunderscopeChannelCalibrationSettings Channel2 { get; set; } = ThunderscopeChannelCalibrationSettings.Default();
+        public ThunderscopeChannelCalibrationSettings Channel3 { get; set; } = ThunderscopeChannelCalibrationSettings.Default();
+        public ThunderscopeChannelCalibrationSettings Channel4 { get; set; } = ThunderscopeChannelCalibrationSettings.Default();
 
         public static ThunderscopeCalibrationSettings Default()
         {
-            return new ThunderscopeCalibrationSettings()
-            {
-                Channel1 = ThunderscopeChannelCalibrationSettings.Default(),
-                Channel2 = ThunderscopeChannelCalibrationSettings.Default(),
-                Channel3 = ThunderscopeChannelCalibrationSettings.Default(),
-                Channel4 = ThunderscopeChannelCalibrationSettings.Default(),
-            };
+            return new ThunderscopeCalibrationSettings();
         }
     }
 

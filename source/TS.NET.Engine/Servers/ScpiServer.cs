@@ -59,9 +59,6 @@ namespace TS.NET.Engine
                     Send(response);
                 }
             }
-            //Server.Multicast(message);
-            //if (message == "!")
-            //    Disconnect();
         }
 
         protected override void OnError(SocketError error)
@@ -108,8 +105,6 @@ namespace TS.NET.Engine
                 subject = command.Substring(0, index);
                 command = command.Substring(index + 1);
             }
-
-            bool hasArg = argument != null;
             // logger.LogDebug("o:'{String}', q:{bool}, s:'{String?}', c:'{String?}', a:'{String?}'", fullCommand, isQuery, subject, command, argument);
 
             if (!isQuery)
@@ -150,7 +145,7 @@ namespace TS.NET.Engine
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
                                     return null;
                                 case "DEPTH":
-                                    if (hasArg)
+                                    if (argument != null)
                                     {
                                         ulong depth = Convert.ToUInt64(argument);
                                         processingRequestChannel.Write(new ProcessingSetDepthDto(depth));
@@ -158,7 +153,7 @@ namespace TS.NET.Engine
                                     }
                                     return null;
                                 case "RATE":
-                                    if (hasArg)
+                                    if (argument != null)
                                     {
                                         long rate = Convert.ToInt64(argument);
                                         processingRequestChannel.Write(new ProcessingSetRateDto(rate));
@@ -178,7 +173,7 @@ namespace TS.NET.Engine
                             // TRIG:
                             switch (command)
                             {
-                                case var _ when command.StartsWith("LEV") && hasArg:
+                                case var _ when command.StartsWith("LEV") && argument != null:
                                     {
                                         // TRIGger:LEVel <arg>
                                         // TRIG:LEV <arg>
@@ -187,7 +182,7 @@ namespace TS.NET.Engine
                                         processingRequestChannel.Write(new ProcessingSetTriggerLevelDto(level));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("SOU") && hasArg:
+                                case var _ when command.StartsWith("SOU") && argument != null:
                                     {
                                         // TRIGger:SOUrce <arg>
                                         // TRIG:SOU <arg>
@@ -203,7 +198,7 @@ namespace TS.NET.Engine
                                         processingRequestChannel.Write(new ProcessingSetTriggerSourceDto((TriggerChannel)source));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("DEL") && hasArg:
+                                case var _ when command.StartsWith("DEL") && argument != null:
                                     {
                                         // TRIGger:DELay <arg>
                                         // TRIG:DEL <arg>
@@ -212,7 +207,7 @@ namespace TS.NET.Engine
                                         processingRequestChannel.Write(new ProcessingSetTriggerDelayDto((ulong)delay));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("EDGE") && hasArg:
+                                case var _ when command.StartsWith("EDGE") && argument != null:
                                     {
                                         // TRIGger:EDGE:SLOPe <arg>
                                         // TRIG:EDGE:SLOP <arg>
@@ -228,7 +223,7 @@ namespace TS.NET.Engine
                                         processingRequestChannel.Write(new ProcessingSetTriggerTypeDto(type));
                                         return null;
                                     }
-                                    //case var _ when command.StartsWith("HOLD") && hasArg:
+                                    //case var _ when command.StartsWith("HOLD") && argument != null:
                                     //    {
                                     //        // TRIGger:HOLDoff:MODE <OFF|TIME>
                                     //        // TRIGger:HOLDoff:TIME <arg>
@@ -255,7 +250,7 @@ namespace TS.NET.Engine
                                         hardwareRequestChannel.Write(new HardwareSetEnabledRequest(channelIndex, command == "ON"));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("BAND") && hasArg:
+                                case var _ when command.StartsWith("BAND") && argument != null:
                                     {
                                         // CHANnel1:BANDwidth <arg>
                                         // CHAN1:BAND <arg>
@@ -278,7 +273,7 @@ namespace TS.NET.Engine
                                         hardwareRequestChannel.Write(new HardwareSetBandwidthRequest(channelIndex, (ThunderscopeBandwidth)thunderscopeBandwidth));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("COUP") && hasArg:
+                                case var _ when command.StartsWith("COUP") && argument != null:
                                     {
                                         // CHANnel1:COUPling <arg>
                                         // CHAN1:COUP <arg>
@@ -296,7 +291,7 @@ namespace TS.NET.Engine
                                         hardwareRequestChannel.Write(new HardwareSetCouplingRequest(channelIndex, (ThunderscopeCoupling)thunderscopeCoupling));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("TERM") && hasArg:
+                                case var _ when command.StartsWith("TERM") && argument != null:
                                     {
                                         // CHANnel1:TERMination <arg>
                                         // CHAN1:TERM <arg>
@@ -314,7 +309,7 @@ namespace TS.NET.Engine
                                         hardwareRequestChannel.Write(new HardwareSetTerminationRequest(channelIndex, (ThunderscopeTermination)thunderscopeTermination));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("OFFS") && hasArg:
+                                case var _ when command.StartsWith("OFFS") && argument != null:
                                     {
                                         // CHANnel1:OFFSet <arg>
                                         // CHAN1:OFFS <arg>
@@ -323,7 +318,7 @@ namespace TS.NET.Engine
                                         hardwareRequestChannel.Write(new HardwareSetVoltOffsetRequest(channelIndex, offset));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("RANG") && hasArg:
+                                case var _ when command.StartsWith("RANG") && argument != null:
                                     {
                                         double range = Convert.ToDouble(argument);
                                         range = Math.Clamp(range, -50, 50);       // Change to final values later
@@ -341,7 +336,7 @@ namespace TS.NET.Engine
                             // :CAL
                             switch (command)
                             {
-                                case var _ when command.StartsWith("OFFSET:GAIN:LOW") && hasArg:
+                                case var _ when command.StartsWith("OFFSET:GAIN:LOW") && argument != null:
                                     {
                                         var args = argument.Split(' ');
                                         if (!char.IsDigit(args[0][^1]))
@@ -361,7 +356,7 @@ namespace TS.NET.Engine
                                         hardwareRequestChannel.Write(new HardwareSetOffsetVoltageLowGainRequest(channelIndex, voltage));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("OFFSET:GAIN:HIGH") && hasArg:
+                                case var _ when command.StartsWith("OFFSET:GAIN:HIGH") && argument != null:
                                     {
                                         var args = argument.Split(' ');
                                         if (!char.IsDigit(args[0][^1]))
@@ -381,7 +376,7 @@ namespace TS.NET.Engine
                                         hardwareRequestChannel.Write(new HardwareSetOffsetVoltageHighGainRequest(channelIndex, voltage));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("OVERRIDE:PGA:CONFIG") && hasArg:
+                                case var _ when command.StartsWith("OVERRIDE:PGA:CONFIG") && argument != null:
                                     {
                                         var args = argument.Split(' ');
                                         if (!char.IsDigit(args[0][^1]))

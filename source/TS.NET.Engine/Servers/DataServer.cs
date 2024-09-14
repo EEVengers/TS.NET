@@ -68,24 +68,6 @@ namespace TS.NET.Engine
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
         {
-            //string messageStream = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
-            //var messages = messageStream.Split('\n');
-            //foreach (var message in messages)
-            //{
-            //    if (string.IsNullOrWhiteSpace(message)) { continue; }
-
-            //    //string? response = ProcessWaveformCommand(logger, hardwareRequestChannel, hardwareResponseChannel, processingRequestChannel, processingResponseChannel, message.Trim());
-
-            //    if (response != null)
-            //    {
-            //        logger.LogDebug(" -> Waveform reply: '{String}'", response);
-            //        Send(response);
-            //    }
-            //}
-            //Server.Multicast(message);
-            //if (message == "!")
-            //    Disconnect();
-
             if (size == 0)
                 return;
 
