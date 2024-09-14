@@ -96,8 +96,10 @@ namespace TS.NET.Engine
                 if (bridge.RequestAndWaitForData(500))
                 {
                     //logger.LogDebug("Sending waveform...");
-                    var configuration = bridge.Hardware;
-                    var processing = bridge.Processing;
+                    ThunderscopeBridgeDataRegionHeader dataHeader = new();
+                    bridge.GetAcquiredRegionHeader(ref dataHeader);
+                    var configuration = dataHeader.Hardware;
+                    var processing = dataHeader.Processing;
                     var data = bridge.AcquiredRegionU8;
 
                     // Remember AdcChannelMode reflects the hardware reality - user may only have 3 channels enabled but hardware has to capture 4.
@@ -127,9 +129,6 @@ namespace TS.NET.Engine
                         trigphase = 0,
                         clipping = 0
                     };
-
-                    ThunderscopeBridgeDataRegionHeader dataHeader = new();
-                    bridge.GetAcquiredRegionHeader(ref dataHeader);
 
                     ulong bytesSent = 0;
 
