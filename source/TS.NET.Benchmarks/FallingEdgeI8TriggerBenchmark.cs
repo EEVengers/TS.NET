@@ -1,16 +1,15 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Jobs;
-using System;
 
-namespace TS.NET.Benchmark
+namespace TS.NET.Benchmarks
 {
     [SimpleJob(RuntimeMoniker.Net80)]
     [MemoryDiagnoser]
     //[CpuDiagnoser]
     //[InProcess]
     //[HardwareCounters(HardwareCounter.TotalIssues)]
-    public class FallingEdgeTriggerBenchmark
+    public class FallingEdgeI8TriggerBenchmark
     {
         private const int samplingRate = 1000000000;
         private const int byteBufferSize = 8000000;
@@ -19,8 +18,7 @@ namespace TS.NET.Benchmark
         private readonly Memory<sbyte> buffer1MHz = new sbyte[byteBufferSize];
         private readonly Memory<sbyte> buffer1KHz = new sbyte[byteBufferSize];
         private readonly Memory<uint> captureEndIndicesU64 = new uint[byteBufferSize / 64];
-        private readonly FallingEdgeTriggerI8 trigger = new();
-        private readonly ulong ChannelLength = 1000;
+        private readonly FallingEdgeTriggerI8 trigger = new(true);
 
         [GlobalSetup]
         public void Setup()
@@ -30,13 +28,6 @@ namespace TS.NET.Benchmark
             Waveforms.SineI8(buffer1MHz.Span, samplingRate, 1000000);
             Waveforms.SineI8(buffer1KHz.Span, samplingRate, 1000);
         }
-
-        //[Benchmark(Description = "Falling edge with hysteresis (10 counts) & holdoff (1us) and no SIMD, 1KHz sine (125 x 8MS)")]
-        //public void FallingEdge2()
-        //{
-        //    for (int i = 0; i < 125; i++)
-        //        trigger.FallingEdge(buffer1KHz.Span, triggerBufferU64.Span);
-        //}
 
         [Benchmark(Description = "Falling edge (hysteresis: 10), width: 1us, signal: DC (0), run length: 125 x 8M")]
         public void FallingEdge1()

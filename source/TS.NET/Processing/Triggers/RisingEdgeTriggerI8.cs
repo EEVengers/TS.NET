@@ -19,8 +19,19 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
     private Vector256<sbyte> triggerLevelVector;
     private Vector256<sbyte> armLevelVector;
 
-    public RisingEdgeTriggerI8()
+    enum Architecture { Scalar, AVX2 }      // Architectures supported by trigger processing
+    private readonly Architecture processingArchitecture;
+
+    public RisingEdgeTriggerI8(bool forceScalar = false)
     {
+        if (Avx2.IsSupported)
+            processingArchitecture = Architecture.AVX2;
+        else
+            processingArchitecture = Architecture.Scalar;
+
+        if(forceScalar)
+            processingArchitecture = Architecture.Scalar;
+
         SetVertical(0, 5);
         SetHorizontal(1000000, 0, 0);
     }
@@ -39,7 +50,7 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
         armLevel -= (sbyte)triggerHysteresis;
 
         triggerLevelVector = Vector256.Create(triggerLevel);
-        armLevelVector = Vector256.Create(armLevel);        
+        armLevelVector = Vector256.Create(armLevel);
     }
 
     public void SetHorizontal(ulong windowWidth, ulong windowTriggerPosition, ulong additionalHoldoff)
@@ -49,7 +60,7 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
         if (windowTriggerPosition > (windowWidth - 1))
             windowTriggerPosition = windowWidth - 1;
 
-         triggerState = TriggerState.Unarmed;
+        triggerState = TriggerState.Unarmed;
 
         captureSamples = windowWidth - windowTriggerPosition;
         captureRemaining = 0;
@@ -76,37 +87,42 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
                     switch (triggerState)
                     {
                         case TriggerState.Unarmed:
-                            // Process 32 bytes at a time.  For this simplified version, use SIMD to scan then fallback to serial processing
-                            for (; i < simdLength; i += 32)
+                            if (processingArchitecture == Architecture.AVX2)
                             {
-                                var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                var resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector, inputVector), armLevelVector);
-                                uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                if (resultCount != 0)
-                                    break;
+                                while (i < simdLength)
+                                {
+                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
+                                    var resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector, inputVector), armLevelVector);
+                                    uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
+                                    if (resultCount != 0)
+                                        break;
+                                    i += 32;
+                                }
                             }
-                            // Process 1 byte at a time
-                            for (; i < inputLength; i++)
+                            while (i < inputLength)
                             {
                                 if (samplesPtr[(int)i] <= armLevel)
                                 {
                                     triggerState = TriggerState.Armed;
                                     break;
                                 }
+                                i++;
                             }
                             break;
                         case TriggerState.Armed:
-                            // Process 32 bytes at a time. For this simplified version, use SIMD to scan then fallback to serial processing
-                            for (; i < simdLength; i += 32)
+                            if (processingArchitecture == Architecture.AVX2)
                             {
-                                var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector, inputVector), triggerLevelVector);
-                                uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                if (resultCount != 0)
-                                    break;
+                                while (i < simdLength)
+                                {
+                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
+                                    var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector, inputVector), triggerLevelVector);
+                                    uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
+                                    if (resultCount != 0)
+                                        break;
+                                    i += 32;
+                                }
                             }
-                            // Process 1 byte at a time
-                            for (; i < inputLength; i++)
+                            while (i < inputLength)
                             {
                                 if (samplesPtr[(int)i] > triggerLevel)
                                 {
@@ -114,6 +130,7 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
                                     captureRemaining = captureSamples;
                                     break;
                                 }
+                                i++;
                             }
                             break;
                         case TriggerState.InCapture:
@@ -132,7 +149,7 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
                                 if (captureRemaining == 0)
                                 {
                                     captureEndIndices[(int)captureEndCount++] = i;
-                                    if(holdoffSamples > 0)
+                                    if (holdoffSamples > 0)
                                     {
                                         triggerState = TriggerState.InHoldoff;
                                         holdoffRemaining = holdoffSamples;
