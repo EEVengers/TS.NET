@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using NReco.Logging.File;
 using System.CommandLine;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using TS.NET;
@@ -71,18 +72,22 @@ class Program
         });
         var logger = loggerFactory.CreateLogger("TS.NET.Engine");
 
-        // Validation of CPU architecture
-        if (!Avx2.IsSupported)
+        if (RuntimeInformation.ProcessArchitecture == Architecture.X86 || RuntimeInformation.ProcessArchitecture == Architecture.X64)
         {
-            if (AdvSimd.Arm64.IsSupported)
+            if (!Avx2.IsSupported)
             {
-                logger?.LogCritical("AArch64 not yet supported.");
-                return;
+                logger?.LogWarning("x86/x64 CPU without AVX2. CPU load will be high.");
+            }
+        }
+        if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+        {
+            if (!AdvSimd.Arm64.IsSupported)
+            {
+                logger?.LogWarning("AArch64 CPU without Neon. CPU load will be high.");
             }
             else
             {
-                logger?.LogCritical("CPU does not support AVX2.");
-                return;
+                logger?.LogWarning("AArch64 CPU with Neon. Neon hot paths not implemented. CPU load will be high.");
             }
         }
 

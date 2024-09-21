@@ -1,3 +1,19 @@
+## ShuffleI8
+
+Scalar processing
+
+| Method                             | Mean     | Error   | StdDev  | Allocated |
+|----------------------------------- |---------:|--------:|--------:|----------:|
+| 'Four channel shuffle (125 x 8MS)' | 226.7 ms | 0.37 ms | 0.31 ms |     133 B |
+| 'Two channel shuffle (125 x 8MS)'  | 238.2 ms | 0.12 ms | 0.10 ms |      21 B |
+
+AVX2 processing
+
+| Method                             | Mean     | Error    | StdDev   | Allocated |
+|----------------------------------- |---------:|---------:|---------:|----------:|
+| 'Four channel shuffle (125 x 8MS)' | 34.85 ms | 0.052 ms | 0.047 ms |       7 B |
+| 'Two channel shuffle (125 x 8MS)'  | 37.77 ms | 0.099 ms | 0.092 ms |      29 B |
+
 ## RisingEdgeTriggerI8
 
 Scalar processing

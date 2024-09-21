@@ -103,15 +103,15 @@ namespace TS.NET.Engine
                 // Shuffle buffers. Only needed for 2/4 channel modes.
                 Span<sbyte> shuffleBuffer = new sbyte[ThunderscopeMemory.Length];
                 // --2 channel buffers
-                int blockLength_2 = (int)ThunderscopeMemory.Length / 2;
-                Span<sbyte> postShuffleCh1_2 = shuffleBuffer.Slice(0, blockLength_2);
-                Span<sbyte> postShuffleCh2_2 = shuffleBuffer.Slice(blockLength_2, blockLength_2);
+                int blockLength_2Ch = (int)ThunderscopeMemory.Length / 2;
+                Span<sbyte> shuffleBuffer2Ch_1 = shuffleBuffer.Slice(0, blockLength_2Ch);
+                Span<sbyte> shuffleBuffer2Ch_2 = shuffleBuffer.Slice(blockLength_2Ch, blockLength_2Ch);
                 // --4 channel buffers
-                int blockLength_4 = (int)ThunderscopeMemory.Length / 4;
-                Span<sbyte> postShuffleCh1_4 = shuffleBuffer.Slice(0, blockLength_4);
-                Span<sbyte> postShuffleCh2_4 = shuffleBuffer.Slice(blockLength_4, blockLength_4);
-                Span<sbyte> postShuffleCh3_4 = shuffleBuffer.Slice(blockLength_4 * 2, blockLength_4);
-                Span<sbyte> postShuffleCh4_4 = shuffleBuffer.Slice(blockLength_4 * 3, blockLength_4);
+                int blockLength_4Ch = (int)ThunderscopeMemory.Length / 4;
+                Span<sbyte> shuffleBuffer4Ch_1 = shuffleBuffer.Slice(0, blockLength_4Ch);
+                Span<sbyte> shuffleBuffer4Ch_2 = shuffleBuffer.Slice(blockLength_4Ch, blockLength_4Ch);
+                Span<sbyte> shuffleBuffer4Ch_3 = shuffleBuffer.Slice(blockLength_4Ch * 2, blockLength_4Ch);
+                Span<sbyte> shuffleBuffer4Ch_4 = shuffleBuffer.Slice(blockLength_4Ch * 3, blockLength_4Ch);
                 Span<uint> captureEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum window width
 
                 // Periodic debug display variables
@@ -140,6 +140,7 @@ namespace TS.NET.Engine
 
                 AdcChannelMode cachedAdcChannelMode = AdcChannelMode.Quad;
                 IEdgeTriggerI8 edgeTriggerI8 = new RisingEdgeTriggerI8();
+                ShuffleI8 shuffle = new ShuffleI8();
                 bool runMode = true;
                 bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
                 bool singleTriggerLatch = false;    // "Latch" because it will reset state back to false. When reset, runTrigger will be set to false.
@@ -364,13 +365,13 @@ namespace TS.NET.Engine
                                 break;
                             case AdcChannelMode.Dual:
                                 // Shuffle
-                                ShuffleI8.TwoChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
+                                shuffle.TwoChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                                 // Finished with the memory, return it
                                 inputChannel.Write(inputDataDto.Memory);
                                 // Write to circular buffer
-                                circularBuffer1.Write(postShuffleCh1_2);
-                                circularBuffer2.Write(postShuffleCh2_2);
-                                streamSampleCounter += postShuffleCh1_2.Length;
+                                circularBuffer1.Write(shuffleBuffer2Ch_1);
+                                circularBuffer2.Write(shuffleBuffer2Ch_2);
+                                streamSampleCounter += shuffleBuffer2Ch_1.Length;
                                 // Trigger
                                 if (runMode)
                                 {
@@ -381,9 +382,9 @@ namespace TS.NET.Engine
                                         case TriggerMode.Auto:
                                             if (hardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
                                             {
-                                                var triggerChannelBuffer = postShuffleCh2_2;
+                                                var triggerChannelBuffer = shuffleBuffer2Ch_2;
                                                 if (hardwareConfig.DualChannelModeIsTriggerChannelInFirstPosition(processingConfig.TriggerChannel))
-                                                    triggerChannelBuffer = postShuffleCh1_2;
+                                                    triggerChannelBuffer = shuffleBuffer2Ch_1;
 
                                                 uint captureEndCount = 0;
                                                 edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
@@ -435,15 +436,15 @@ namespace TS.NET.Engine
                                 break;
                             case AdcChannelMode.Quad:
                                 // Shuffle
-                                ShuffleI8.FourChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
+                                shuffle.FourChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                                 // Finished with the memory, return it
                                 inputChannel.Write(inputDataDto.Memory);
                                 // Write to circular buffer
-                                circularBuffer1.Write(postShuffleCh1_4);
-                                circularBuffer2.Write(postShuffleCh2_4);
-                                circularBuffer3.Write(postShuffleCh3_4);
-                                circularBuffer4.Write(postShuffleCh4_4);
-                                streamSampleCounter += postShuffleCh1_4.Length;
+                                circularBuffer1.Write(shuffleBuffer4Ch_1);
+                                circularBuffer2.Write(shuffleBuffer4Ch_2);
+                                circularBuffer3.Write(shuffleBuffer4Ch_3);
+                                circularBuffer4.Write(shuffleBuffer4Ch_4);
+                                streamSampleCounter += shuffleBuffer4Ch_1.Length;
                                 // Trigger
                                 if (runMode)
                                 {
@@ -456,10 +457,10 @@ namespace TS.NET.Engine
                                             {
                                                 var triggerChannelBuffer = processingConfig.TriggerChannel switch
                                                 {
-                                                    TriggerChannel.Channel1 => postShuffleCh1_4,
-                                                    TriggerChannel.Channel2 => postShuffleCh2_4,
-                                                    TriggerChannel.Channel3 => postShuffleCh3_4,
-                                                    TriggerChannel.Channel4 => postShuffleCh4_4,
+                                                    TriggerChannel.Channel1 => shuffleBuffer4Ch_1,
+                                                    TriggerChannel.Channel2 => shuffleBuffer4Ch_2,
+                                                    TriggerChannel.Channel3 => shuffleBuffer4Ch_3,
+                                                    TriggerChannel.Channel4 => shuffleBuffer4Ch_4,
                                                     _ => throw new ArgumentException("Invalid TriggerChannel value")
                                                 };
 

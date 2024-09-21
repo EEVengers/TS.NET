@@ -12,6 +12,7 @@ namespace TS.NET.Benchmarks
         private const int byteBufferSize = 8000000;
         private readonly Memory<sbyte> input = new sbyte[byteBufferSize];
         private readonly Memory<sbyte> output = new sbyte[byteBufferSize];
+        private ShuffleI8 shuffle = new ShuffleI8(false);
 
         [GlobalSetup]
         public void Setup()
@@ -19,11 +20,11 @@ namespace TS.NET.Benchmarks
             Waveforms.FourChannelCountSignedByte(input.Span);
         }
 
-        [Benchmark(Description = "Four channel shuffle [production] (125 x 8MS)")]
+        [Benchmark(Description = "Four channel shuffle (125 x 8MS)")]
         public void FourChannels()
         {
             for (int i = 0; i < 125; i++)
-                ShuffleI8.FourChannels(input.Span, output.Span);
+                shuffle.FourChannels(input.Span, output.Span);
         }
 
         //[Benchmark(Description = "Four channel shuffle [run length 1, baseline] (125 x 8MS)")]
@@ -89,11 +90,11 @@ namespace TS.NET.Benchmarks
         //        Shuffle.FourChannelsRunLength32NoSimd(input.Span, output.Span);
         //}
 
-        [Benchmark(Description = "Two channel shuffle [production] (125 x 8MS)")]
+        [Benchmark(Description = "Two channel shuffle (125 x 8MS)")]
         public void TwoChannels()
         {
             for (int i = 0; i < 125; i++)
-                ShuffleI8.TwoChannels(input.Span, output.Span);
+                shuffle.TwoChannels(input.Span, output.Span);
         }
 
         //[Benchmark(Description = "Two channel shuffle [run length 1,variant A] (125 x 8MS)")]
