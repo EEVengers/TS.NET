@@ -1,10 +1,13 @@
 ﻿using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using TS.NET.Benchmarks;
 
-DefaultConfig.Instance.WithOptions(ConfigOptions.JoinSummary);
+var config = ManualConfig.CreateMinimumViable().AddJob(Job.Default);
+//var config = ManualConfig.CreateMinimumViable().AddJob(Job.Default.WithEnvironmentVariable("COMPlus_EnableAVX", "0"));
+//DefaultConfig.Instance.WithOptions(ConfigOptions.JoinSummary);
 //_ = BenchmarkRunner.Run(typeof(Program).Assembly);
-_ = BenchmarkRunner.Run<ShuffleI8Benchmark>();
+_ = BenchmarkRunner.Run<ShuffleI8Benchmark>(config);
 //_ = BenchmarkRunner.Run<RisingEdgeTriggerBenchmark>();
 //_ = BenchmarkRunner.Run<FallingEdgeTriggerBenchmark>();
 //_ = BenchmarkRunner.Run<AnyEdgeTriggerBenchmark>();
