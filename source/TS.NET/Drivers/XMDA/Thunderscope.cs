@@ -709,7 +709,7 @@ namespace TS.NET.Driver.XMDA
         private void ConfigurePLLRev1()
         {
             // These were provided by the chip configuration tool.
-            ushort[] config_clk_gen = {
+            ushort[] config_clk_gen = [
                 0x0010, 0x010B, 0x0233, 0x08B0,
                 0x0901, 0x1000, 0x1180, 0x1501,
                 0x1600, 0x1705, 0x1900, 0x1A32,
@@ -718,7 +718,7 @@ namespace TS.NET.Driver.XMDA
                 0x2303, 0x2408, 0x2500, 0x2600,
                 0x2700, 0x2F00, 0x3000, 0x3110,
                 0x3200, 0x3300, 0x3400, 0x3500,
-                0x3800, 0x4802 };
+                0x3800, 0x4802 ];
 
             // write to the clock generator
             for (int i = 0; i < config_clk_gen.Length / 2; i++)
@@ -755,14 +755,14 @@ namespace TS.NET.Driver.XMDA
             Thread.Sleep(1);
 
             // These were provided by the chip configuration tool.
-            uint[] config_clk_gen = {
+            uint[] config_clk_gen = [
                 0X000902, 0X062108, 0X063140, 0X010006,
                 0X010120, 0X010202, 0X010380, 0X010A20,
                 0X010B03, 0X01140D, 0X012006, 0X0125C0,
                 0X012660, 0X01277F, 0X012904, 0X012AB3,
                 0X012BC0, 0X012C80, 0X001C10, 0X001D80,
                 0X034003, 0X020141, 0X022135, 0X022240,
-                0X000C02, 0X000B01};
+                0X000C02, 0X000B01];
 
             // write to the clock generator
             for (int i = 0; i < config_clk_gen.Length; i++)
@@ -805,7 +805,7 @@ namespace TS.NET.Driver.XMDA
             Thread.Sleep(10);
 
             // These were provided by the chip configuration tool.
-            uint[] config_clk_gen = {
+            uint[] config_clk_gen = [
                 0x042308, 0x000301, 0x000402, 0x000521,
                 0x000701, 0x010042, 0x010100, 0x010201,
                 0x010600, 0x010700, 0x010800, 0x010900,
@@ -813,7 +813,7 @@ namespace TS.NET.Driver.XMDA
                 0x014100, 0x014200, 0x014300, 0x014400,
                 0x0145A0, 0x015300, 0x015450, 0x0155CE,
                 0x018000, 0x020080, 0x020105, 0x025080,
-                0x025102, 0x04300C, 0x043000};
+                0x025102, 0x04300C, 0x043000];
 
             // write to the clock generator
             for (int i = 0; i < config_clk_gen.Length; i++)

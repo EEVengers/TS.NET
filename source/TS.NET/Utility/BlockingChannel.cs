@@ -30,8 +30,7 @@ namespace TS.NET
         private readonly BlockingCollection<T> collection;
         internal BlockingChannelReader(BlockingCollection<T> collection)
         {
-            if (collection is null)
-                throw new ArgumentNullException(nameof(collection));
+            ArgumentNullException.ThrowIfNull(collection);
             this.collection = collection;
         }
 
@@ -45,27 +44,27 @@ namespace TS.NET
             return collection.Take(cancellationToken);
         }
 
-        public bool TryRead(out T item)
+        public bool TryRead(out T? item)
         {
             return collection.TryTake(out item);
         }
 
-        public bool TryRead(out T item, int millisecondsTimeout)
+        public bool TryRead(out T? item, int millisecondsTimeout)
         {
             return collection.TryTake(out item, millisecondsTimeout);
         }
 
-        public bool TryRead(out T item, CancellationToken cancellationToken)
+        public bool TryRead(out T? item, CancellationToken cancellationToken)
         {
             return collection.TryTake(out item, -1, cancellationToken);
         }
 
-        public bool TryRead(out T item, int millisecondsTimeout, CancellationToken cancellationToken)
+        public bool TryRead(out T? item, int millisecondsTimeout, CancellationToken cancellationToken)
         {
             return collection.TryTake(out item, millisecondsTimeout, cancellationToken);
         }
 
-        public bool TryRead(out T item, TimeSpan timeout)
+        public bool TryRead(out T? item, TimeSpan timeout)
         {
             return collection.TryTake(out item, timeout);
         }
@@ -82,8 +81,7 @@ namespace TS.NET
 
         internal BlockingChannelWriter(BlockingCollection<T> collection)
         {
-            if (collection is null)
-                throw new ArgumentNullException(nameof(collection));
+            ArgumentNullException.ThrowIfNull(collection);
             this.collection = collection;
         }
 

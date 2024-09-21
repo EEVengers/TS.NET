@@ -140,7 +140,7 @@ namespace TS.NET.Engine
 
                 AdcChannelMode cachedAdcChannelMode = AdcChannelMode.Quad;
                 IEdgeTriggerI8 edgeTriggerI8 = new RisingEdgeTriggerI8();
-                ShuffleI8 shuffle = new ShuffleI8();
+                ShuffleI8 shuffle = new();
                 bool runMode = true;
                 bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
                 bool singleTriggerLatch = false;    // "Latch" because it will reset state back to false. When reset, runTrigger will be set to false.
@@ -317,8 +317,7 @@ namespace TS.NET.Engine
                                             {
                                                 var triggerChannelBuffer = shuffleBuffer;
 
-                                                uint captureEndCount = 0;
-                                                edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
+                                                edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
 
                                                 if (captureEndCount > 0)
                                                 {
@@ -386,8 +385,7 @@ namespace TS.NET.Engine
                                                 if (hardwareConfig.DualChannelModeIsTriggerChannelInFirstPosition(processingConfig.TriggerChannel))
                                                     triggerChannelBuffer = shuffleBuffer2Ch_1;
 
-                                                uint captureEndCount = 0;
-                                                edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
+                                                edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
 
                                                 if (captureEndCount > 0)
                                                 {
@@ -464,8 +462,7 @@ namespace TS.NET.Engine
                                                     _ => throw new ArgumentException("Invalid TriggerChannel value")
                                                 };
 
-                                                uint captureEndCount = 0;
-                                                edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out captureEndCount);
+                                                edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
 
                                                 if (captureEndCount > 0)
                                                 {
