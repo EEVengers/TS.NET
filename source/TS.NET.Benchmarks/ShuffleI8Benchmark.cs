@@ -12,7 +12,7 @@ namespace TS.NET.Benchmarks
         private const int byteBufferSize = 8000000;
         private readonly Memory<sbyte> input = new sbyte[byteBufferSize];
         private readonly Memory<sbyte> output = new sbyte[byteBufferSize];
-        private ShuffleI8 shuffle = new ShuffleI8(false);
+        private ShuffleI8 shuffle = new ShuffleI8();
 
         [GlobalSetup]
         public void Setup()

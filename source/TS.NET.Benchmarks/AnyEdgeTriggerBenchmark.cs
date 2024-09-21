@@ -18,7 +18,7 @@ namespace TS.NET.Benchmarks
         private readonly Memory<sbyte> buffer1MHz = new sbyte[byteBufferSize];
         private readonly Memory<sbyte> buffer1KHz = new sbyte[byteBufferSize];
         private readonly Memory<uint> captureEndIndicesU64 = new uint[byteBufferSize / 64];
-        private readonly AnyEdgeTriggerI8 trigger = new(true);
+        private readonly AnyEdgeTriggerI8 trigger = new();
 
         [GlobalSetup]
         public void Setup()

@@ -19,19 +19,8 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
     private Vector256<sbyte> triggerLevelVector;
     private Vector256<sbyte> armLevelVector;
 
-    enum Architecture { Scalar, AVX2 }      // Architectures supported by trigger processing
-    private readonly Architecture processingArchitecture;
-
-    public RisingEdgeTriggerI8(bool forceScalar = false)
+    public RisingEdgeTriggerI8()
     {
-        if (Avx2.IsSupported)
-            processingArchitecture = Architecture.AVX2;
-        else
-            processingArchitecture = Architecture.Scalar;
-
-        if(forceScalar)
-            processingArchitecture = Architecture.Scalar;
-
         SetVertical(0, 5);
         SetHorizontal(1000000, 0, 0);
     }
@@ -87,7 +76,7 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
                     switch (triggerState)
                     {
                         case TriggerState.Unarmed:
-                            if (processingArchitecture == Architecture.AVX2)
+                            if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
                                 while (i < simdLength)
                                 {
@@ -110,7 +99,7 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
                             }
                             break;
                         case TriggerState.Armed:
-                            if (processingArchitecture == Architecture.AVX2)
+                            if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
                                 while (i < simdLength)
                                 {

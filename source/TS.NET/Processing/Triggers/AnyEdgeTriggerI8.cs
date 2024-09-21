@@ -21,19 +21,8 @@ public class AnyEdgeTriggerI8 : IEdgeTriggerI8
     private Vector256<sbyte> upperArmLevelVector;
     private Vector256<sbyte> lowerArmLevelVector;
 
-    enum Architecture { Scalar, AVX2 }      // Architectures supported by trigger processing
-    private readonly Architecture processingArchitecture;
-
-    public AnyEdgeTriggerI8(bool forceScalar = false)
+    public AnyEdgeTriggerI8()
     {
-        if (Avx2.IsSupported)
-            processingArchitecture = Architecture.AVX2;
-        else
-            processingArchitecture = Architecture.Scalar;
-
-        if (forceScalar)
-            processingArchitecture = Architecture.Scalar;
-
         SetVertical(0, 5);
         SetHorizontal(1000000, 0, 0);
     }
@@ -93,7 +82,7 @@ public class AnyEdgeTriggerI8 : IEdgeTriggerI8
                     {
                         case TriggerState.Unarmed:
                             // The arming code has rising-edge-priority.
-                            if (processingArchitecture == Architecture.AVX2)
+                            if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
                                 while (i < simdLength)
                                 {
@@ -125,7 +114,7 @@ public class AnyEdgeTriggerI8 : IEdgeTriggerI8
                             }
                             break;
                         case TriggerState.ArmedRisingEdge:
-                            if (processingArchitecture == Architecture.AVX2)
+                            if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
                                 while (i < simdLength)
                                 {
@@ -149,7 +138,7 @@ public class AnyEdgeTriggerI8 : IEdgeTriggerI8
                             }
                             break;
                         case TriggerState.ArmedFallingEdge:
-                            if (processingArchitecture == Architecture.AVX2)
+                            if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
                                 while (i < simdLength)
                                 {

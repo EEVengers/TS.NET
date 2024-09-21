@@ -5,8 +5,6 @@ namespace TS.NET.Tests
 {
     public class ShuffleI8Tests
     {
-        const bool forceScalar = false;
-
         [Fact]
         public void ShuffleI8_FourChannels_Samples64()
         {
@@ -14,7 +12,7 @@ namespace TS.NET.Tests
             ReadOnlySpan<sbyte> input = [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4];
             Span<sbyte> output = new sbyte[length];
 
-            var shuffle = new ShuffleI8(forceScalar);
+            var shuffle = new ShuffleI8();
             shuffle.FourChannels(input, output);
 
             Span<sbyte> expectedOutput = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4];
@@ -39,7 +37,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            var shuffle = new ShuffleI8(forceScalar);
+            var shuffle = new ShuffleI8();
             shuffle.FourChannels(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
@@ -69,7 +67,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            var shuffle = new ShuffleI8(forceScalar);
+            var shuffle = new ShuffleI8();
             shuffle.FourChannels(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
@@ -99,7 +97,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            var shuffle = new ShuffleI8(forceScalar);
+            var shuffle = new ShuffleI8();
             ShuffleI8.FourChannelsRunLength1VariantA(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
@@ -253,7 +251,7 @@ namespace TS.NET.Tests
                 i += 32;
             }
             Span<sbyte> output = new sbyte[length];
-            var shuffle = new ShuffleI8(forceScalar);
+            var shuffle = new ShuffleI8();
             ShuffleI8.FourChannelsRunLength32(input, output);
 
             for (int i = 0; i < 256; i++)
@@ -286,7 +284,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            var shuffle = new ShuffleI8(forceScalar);
+            var shuffle = new ShuffleI8();
             shuffle.TwoChannels(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
@@ -312,7 +310,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            var shuffle = new ShuffleI8(forceScalar);
+            var shuffle = new ShuffleI8();
             shuffle.TwoChannels(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];

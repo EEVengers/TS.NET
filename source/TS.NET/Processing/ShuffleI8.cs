@@ -6,20 +6,6 @@ namespace TS.NET;
 
 public class ShuffleI8
 {
-    enum Architecture { Scalar, AVX2 }      // Architectures supported by shuffle processing
-    private readonly Architecture processingArchitecture;
-
-    public ShuffleI8(bool forceScalar = false)
-    {
-        if (Avx2.IsSupported)
-            processingArchitecture = Architecture.AVX2;
-        else
-            processingArchitecture = Architecture.Scalar;
-
-        if (forceScalar)
-            processingArchitecture = Architecture.Scalar;
-    }
-
     public void FourChannels(ReadOnlySpan<sbyte> input, Span<sbyte> output)
     {
         if (input.Length != output.Length)
@@ -27,7 +13,7 @@ public class ShuffleI8
 
         int channelBlockSizeBytes = output.Length / 4;
 
-        if (processingArchitecture == Architecture.AVX2)
+        if (Avx2.IsSupported)       // Const after JIT/AOT
         {
             if (input.Length % 64 != 0)
                 throw new ArgumentException($"Input length must be multiple of 64");
@@ -110,7 +96,7 @@ public class ShuffleI8
 
         int channelBlockSizeBytes = output.Length / 2;
 
-        if (processingArchitecture == Architecture.AVX2)
+        if (Avx2.IsSupported)       // Const after JIT/AOT
         {
             if (input.Length % 32 != 0)
                 throw new ArgumentException($"Length of samples ({input.Length}) is not multiple of 32");
