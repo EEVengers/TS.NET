@@ -195,9 +195,9 @@ namespace TS.NET.Driver.XMDA
 
             UpdateAdc();
 
-            for (int channel = 0; channel < 4; channel++)
+            for (int channelIndex = 0; channelIndex < 4; channelIndex++)
             {
-                UpdateAfe(channel, ref configuration.Frontend[channel]);
+                UpdateAfe(channelIndex, ref configuration.Frontend[channelIndex]);
             }
 
             ConfigureDatamover(hardwareState);      // Needed to set Attenuator after UpdateAfe
@@ -426,7 +426,7 @@ namespace TS.NET.Driver.XMDA
             SetTrimSensitivityDAC(channelIndex, dacValue);
         }
 
-        private void SetTrimOffsetDAC(int channel, ushort dacValue)
+        private void SetTrimOffsetDAC(int channelIndex, ushort dacValue)
         {
             // MCP4728 - 12-bit quad DAC with EEPROM
             if (dacValue < 0)
@@ -437,14 +437,14 @@ namespace TS.NET.Driver.XMDA
             Span<byte> fifo = new byte[5];
             fifo[0] = 0xFF;                             // I2C
             fifo[1] = 0xC0;                             // MCP4728 8-bit address
-            fifo[2] = (byte)(0x40 + (channel << 1));    // p34 of MCP4728 datasheet
+            fifo[2] = (byte)(0x40 + (channelIndex << 1));    // p34 of MCP4728 datasheet
             fifo[3] = (byte)(dacValue >> 8 & 0xF);      // Vref = VDD. Power down = normal mode. Gain = 1
             fifo[4] = (byte)(dacValue & 0xFF);
             WriteFifo(fifo);
             Thread.Sleep(1);
         }
 
-        private void SetTrimSensitivityDAC(int channel, ushort dacValue)
+        private void SetTrimSensitivityDAC(int channelIndex, ushort dacValue)
         {
             // MCP4432 - 7-bit quad Digital POT
             if (dacValue < 0)
@@ -452,12 +452,13 @@ namespace TS.NET.Driver.XMDA
             if (dacValue > 0x80)
                 throw new Exception("DAC value too high");
 
-            byte command = channel switch
+            byte command = channelIndex switch
             {
                 0 => 0x06 << 4,
                 1 => 0x00 << 4,
                 2 => 0x01 << 4,
-                3 => 0x07 << 4
+                3 => 0x07 << 4,
+                _ => throw new NotImplementedException()
             };
 
             Span<byte> fifo = new byte[5];
@@ -469,10 +470,10 @@ namespace TS.NET.Driver.XMDA
             Thread.Sleep(1);
         }
 
-        private void SetPGA(int channel, ushort configurationWord)
+        private void SetPGA(int channelIndex, ushort configurationWord)
         {
             Span<byte> fifo = new byte[4];
-            fifo[0] = (byte)(0xFB - channel);           // SPI chip enable
+            fifo[0] = (byte)(0xFB - channelIndex);           // SPI chip enable
             fifo[1] = 0;
             fifo[2] = (byte)(configurationWord << 8);
             fifo[3] = (byte)(configurationWord & 0xFF);
