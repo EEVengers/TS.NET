@@ -3,46 +3,46 @@ using Xunit;
 
 namespace TS.NET.Tests
 {
-    public class RisingEdgeTriggerI8Tests
+    public class FallingEdgeTriggerI8Tests
     {
         [Fact]
         public void SituationA()
         {
-            var situation = RisingEdgeTriggerSituations.SituationA();
+            var situation = FallingEdgeTriggerSituations.SituationA();
             RunSituation(situation);
         }
 
         [Fact]
         public void SituationB()
         {
-            var situation = RisingEdgeTriggerSituations.SituationB();
+            var situation = FallingEdgeTriggerSituations.SituationB();
             RunSituation(situation);
         }
 
         [Fact]
         public void SituationC()
         {
-            var situation = RisingEdgeTriggerSituations.SituationC();
+            var situation = FallingEdgeTriggerSituations.SituationC();
             RunSituation(situation);
         }
 
         [Fact]
         public void SituationD()
         {
-            var situation = RisingEdgeTriggerSituations.SituationD();
+            var situation = FallingEdgeTriggerSituations.SituationD();
             RunSituation(situation);
         }
 
         [Fact]
         public void SituationE()
         {
-            var situation = RisingEdgeTriggerSituations.SituationE();
+            var situation = FallingEdgeTriggerSituations.SituationE();
             RunSituation(situation);
         }
 
         private static void RunSituation(EdgeTriggerSituation situation)
         {
-            RisingEdgeTriggerI8 trigger = new();
+            FallingEdgeTriggerI8 trigger = new();
             trigger.SetHorizontal(situation.WindowWidth, situation.WindowTriggerPosition, situation.AdditionalHoldoff);
             trigger.SetVertical(situation.TriggerLevel, situation.TriggerHysteresis);
 

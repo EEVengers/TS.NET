@@ -2,22 +2,7 @@
 
 namespace TS.NET.Tests
 {
-    public class EdgeTriggerSituation
-    {
-        public sbyte TriggerLevel { get; set; }
-        public byte TriggerHysteresis { get; set; }
-        public uint WindowWidth { get; set; }
-        public uint WindowTriggerPosition { get; set; }
-        public uint AdditionalHoldoff { get; set; }
-
-        public int ChunkSize { get; set; }
-        public int ChunkCount { get; set; }
-
-        public Memory<sbyte> Input { get; set; }
-        public Memory<uint> ExpectedWindowEndIndices { get; set; }
-    }
-
-    public class RisingEdgeTriggerSituations
+    public class FallingEdgeTriggerSituations
     {
         /// <summary>
         /// 100 samples idle, 100 sample wide positive pulse
@@ -26,7 +11,7 @@ namespace TS.NET.Tests
         {
             var situation = new EdgeTriggerSituation()
             {
-                TriggerLevel = 50,
+                TriggerLevel = -50,
                 TriggerHysteresis = 10,
                 WindowWidth = 10000,
                 WindowTriggerPosition = 0,
@@ -41,7 +26,7 @@ namespace TS.NET.Tests
             situation.Input.Span.Fill(0);
             for (int i = 100; i <= 200; i++)
             {
-                situation.Input.Span[i] = sbyte.MaxValue;
+                situation.Input.Span[i] = sbyte.MinValue;
             }
 
             situation.ExpectedWindowEndIndices.Span[0] = 10100;
@@ -56,7 +41,7 @@ namespace TS.NET.Tests
         {
             var situation = new EdgeTriggerSituation()
             {
-                TriggerLevel = 50,
+                TriggerLevel = -50,
                 TriggerHysteresis = 10,
                 WindowWidth = 10000,
                 WindowTriggerPosition = 0,
@@ -71,12 +56,12 @@ namespace TS.NET.Tests
             situation.Input.Span.Fill(0);
             for (int i = 100; i <= 200; i++)
             {
-                situation.Input.Span[i] = sbyte.MaxValue;
+                situation.Input.Span[i] = sbyte.MinValue;
             }
             // This pulse should be ignored
             for (int i = 300; i <= 400; i++)
             {
-                situation.Input.Span[i] = sbyte.MaxValue;
+                situation.Input.Span[i] = sbyte.MinValue;
             }
 
             situation.ExpectedWindowEndIndices.Span[0] = 10100;
@@ -91,7 +76,7 @@ namespace TS.NET.Tests
         {
             var situation = new EdgeTriggerSituation()
             {
-                TriggerLevel = 50,
+                TriggerLevel = -50,
                 TriggerHysteresis = 10,
                 WindowWidth = 10000,
                 WindowTriggerPosition = 0,
@@ -106,11 +91,11 @@ namespace TS.NET.Tests
             situation.Input.Span.Fill(0);
             for (int i = 100; i <= 200; i++)
             {
-                situation.Input.Span[i] = sbyte.MaxValue;
+                situation.Input.Span[i] = sbyte.MinValue;
             }
             for (int i = 10200; i <= 10300; i++)
             {
-                situation.Input.Span[i] = sbyte.MaxValue;
+                situation.Input.Span[i] = sbyte.MinValue;
             }
 
             situation.ExpectedWindowEndIndices.Span[0] = 10100;
@@ -126,7 +111,7 @@ namespace TS.NET.Tests
         {
             var situation = new EdgeTriggerSituation()
             {
-                TriggerLevel = 50,
+                TriggerLevel = -50,
                 TriggerHysteresis = 10,
                 WindowWidth = 10000,
                 WindowTriggerPosition = 0,
@@ -141,7 +126,7 @@ namespace TS.NET.Tests
             situation.Input.Span.Fill(0);
             for (int i = 0; i <= 100; i++)
             {
-                situation.Input.Span[i] = sbyte.MaxValue;
+                situation.Input.Span[i] = sbyte.MinValue;
             }
 
             situation.ExpectedWindowEndIndices.Span[0] = 0;
@@ -156,7 +141,7 @@ namespace TS.NET.Tests
         {
             var situation = new EdgeTriggerSituation()
             {
-                TriggerLevel = 50,
+                TriggerLevel = -50,
                 TriggerHysteresis = 10,
                 WindowWidth = 10000,
                 WindowTriggerPosition = 0,
@@ -169,7 +154,7 @@ namespace TS.NET.Tests
             situation.ExpectedWindowEndIndices = new uint[1];
 
             situation.Input.Span.Fill(0);
-            situation.Input.Span[100] = sbyte.MaxValue;
+            situation.Input.Span[100] = sbyte.MinValue;
 
             situation.ExpectedWindowEndIndices.Span[0] = 10100;
 
@@ -184,7 +169,7 @@ namespace TS.NET.Tests
         //    {
         //        TriggerLevel = 127,
         //        TriggerHysteresis = 10,
-        //        WindowWidth = 50 * 1000000,
+        //        WindowWidth = -50 * 1000000,
         //        WindowTriggerPosition = 0,
         //        AdditionalHoldoff = 0,
 
@@ -195,10 +180,10 @@ namespace TS.NET.Tests
         //    situation.ExpectedWindowEndIndices = new uint[1];
 
         //    situation.Input.Span.Fill(sbyte.MinValue);
-        //    situation.Input.Span[0] = sbyte.MaxValue;
-        //    situation.Input.Span[1] = sbyte.MaxValue;
-        //    situation.Input.Span[2] = sbyte.MaxValue;
-        //    situation.Input.Span[3] = sbyte.MaxValue;
+        //    situation.Input.Span[0] = sbyte.MinValue;
+        //    situation.Input.Span[1] = sbyte.MinValue;
+        //    situation.Input.Span[2] = sbyte.MinValue;
+        //    situation.Input.Span[3] = sbyte.MinValue;
 
         //    //situation.ExpectedWindowEndIndices[0] = new uint[1];
         //    //var quotient = situation.HoldoffSamples / situation.ChunkSize;
@@ -231,10 +216,10 @@ namespace TS.NET.Tests
         //    situation.Input.Span.Fill(sbyte.MinValue);
         //    for(int i = 0; i < situation.Input.Length; i+= 4901960)
         //    {
-        //        situation.Input.Span[i] = sbyte.MaxValue;
-        //        situation.Input.Span[i+1] = sbyte.MaxValue;
-        //        situation.Input.Span[i+2] = sbyte.MaxValue;
-        //        situation.Input.Span[i+3] = sbyte.MaxValue;
+        //        situation.Input.Span[i] = sbyte.MinValue;
+        //        situation.Input.Span[i+1] = sbyte.MinValue;
+        //        situation.Input.Span[i+2] = sbyte.MinValue;
+        //        situation.Input.Span[i+3] = sbyte.MinValue;
         //    }    
 
         //    //situation.ExpectedWindowEndIndices[0] = new uint[1];

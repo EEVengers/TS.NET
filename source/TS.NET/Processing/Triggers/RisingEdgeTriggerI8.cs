@@ -59,14 +59,14 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
     }
 
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Process(ReadOnlySpan<sbyte> input, Span<uint> captureEndIndices, out uint captureEndCount)
+    public void Process(ReadOnlySpan<sbyte> input, Span<uint> windowEndIndices, out uint windowEndCount)
     {
         uint inputLength = (uint)input.Length;
         uint simdLength = inputLength - 32;
-        captureEndCount = 0;
+        windowEndCount = 0;
         uint i = 0;
 
-        captureEndIndices.Clear();
+        windowEndIndices.Clear();
         unsafe
         {
             fixed (sbyte* samplesPtr = input)
@@ -137,7 +137,7 @@ public class RisingEdgeTriggerI8 : IEdgeTriggerI8
                                 }
                                 if (captureRemaining == 0)
                                 {
-                                    captureEndIndices[(int)captureEndCount++] = i;
+                                    windowEndIndices[(int)windowEndCount++] = i;
                                     if (holdoffSamples > 0)
                                     {
                                         triggerState = TriggerState.InHoldoff;
