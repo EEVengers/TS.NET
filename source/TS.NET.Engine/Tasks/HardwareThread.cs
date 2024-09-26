@@ -234,6 +234,13 @@ namespace TS.NET.Engine
                     {
                         var oneSecondEnqueueCount = periodicEnqueueCount / periodicUpdateTimer.Elapsed.TotalSeconds;
                         logger.LogDebug($"Enqueues/sec: {oneSecondEnqueueCount:F2}, MB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.Length / 1000 / 1000):F3}, MiB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.Length / 1024 / 1024):F3}, enqueue count: {enqueueCounter}");
+
+                        if(thunderscope is Driver.LiteX.Thunderscope liteXThunderscope)
+                        {
+                            var status = liteXThunderscope.GetStatus();
+                            logger.LogDebug($"Lost Sample Buffers: {status.AdcSamplesLost}, FPGA Temperature: {status.FpgaTemp:F2}, VCC Int: {status.VccInt:F3}, VCC Aux: {status.VccAux:F3}, VCC BRAM: {status.VccBram:F3}");
+                        }
+
                         periodicUpdateTimer.Restart();
                         periodicEnqueueCount = 0;
                     }
