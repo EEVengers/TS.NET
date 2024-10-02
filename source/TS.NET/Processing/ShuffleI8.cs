@@ -28,7 +28,7 @@ public static class ShuffleI8
                 fixed (sbyte* outputP = output)
                 {
                     sbyte* inputPtr = inputP;
-                    sbyte* inputPtr2 = inputP + 32;     // Separate pointer needed to get vmovups to bunch up at the top of the asm
+                    sbyte* inputPtr2 = inputP + Vector256<sbyte>.Count;     // Separate pointer needed to get vmovups to bunch up at the top of the asm
                     ulong* outputPtr = (ulong*)outputP;
                     sbyte* finishPtr = inputP + input.Length;
                     while (inputPtr < finishPtr)
@@ -50,8 +50,8 @@ public static class ShuffleI8
                         Vector128.Store(unpackLow.GetUpper(), outputPtr + ch3Offset64b);
                         Vector128.Store(unpackHigh.GetUpper(), outputPtr + ch4Offset64b);
 
-                        inputPtr += 64;
-                        inputPtr2 += 64;
+                        inputPtr += Vector256<sbyte>.Count * 2;
+                        inputPtr2 += Vector256<sbyte>.Count * 2;
                         outputPtr += 2;
                     }
                 }
