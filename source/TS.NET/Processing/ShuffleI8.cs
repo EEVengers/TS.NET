@@ -1,12 +1,11 @@
-﻿using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
+﻿using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
 namespace TS.NET;
 
-public class ShuffleI8
+public static class ShuffleI8
 {
-    public void FourChannels(ReadOnlySpan<sbyte> input, Span<sbyte> output)
+    public static void FourChannels(ReadOnlySpan<sbyte> input, Span<sbyte> output)
     {
         if (input.Length != output.Length)
             throw new ArgumentException("Array lengths must match");
@@ -93,7 +92,7 @@ public class ShuffleI8
         }
     }
 
-    public void TwoChannels(ReadOnlySpan<sbyte> input, Span<sbyte> output)
+    public static void TwoChannels(ReadOnlySpan<sbyte> input, Span<sbyte> output)
     {
         if (input.Length != output.Length)
             throw new ArgumentException("Array lengths must match");

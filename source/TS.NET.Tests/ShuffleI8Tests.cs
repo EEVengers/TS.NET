@@ -12,8 +12,7 @@ namespace TS.NET.Tests
             ReadOnlySpan<sbyte> input = [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4];
             Span<sbyte> output = new sbyte[length];
 
-            var shuffle = new ShuffleI8();
-            shuffle.FourChannels(input, output);
+            ShuffleI8.FourChannels(input, output);
 
             Span<sbyte> expectedOutput = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4];
 
@@ -37,8 +36,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            var shuffle = new ShuffleI8();
-            shuffle.FourChannels(input, output);
+            ShuffleI8.FourChannels(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 4;
@@ -67,8 +65,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            var shuffle = new ShuffleI8();
-            shuffle.FourChannels(input, output);
+            ShuffleI8.FourChannels(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 4;
@@ -97,8 +94,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            var shuffle = new ShuffleI8();
-            ShuffleI8.FourChannelsRunLength1VariantA(input, output);
+            ShuffleI8Benchmarks.FourChannelsRunLength1VariantA(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 4;
@@ -127,7 +123,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            ShuffleI8.FourChannelsRunLength1VariantB(input, output);
+            ShuffleI8Benchmarks.FourChannelsRunLength1VariantB(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 4;
@@ -156,7 +152,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            ShuffleI8.FourChannelsRunLength1VariantC(input, output);
+            ShuffleI8Benchmarks.FourChannelsRunLength1VariantC(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 4;
@@ -178,7 +174,7 @@ namespace TS.NET.Tests
             ReadOnlySpan<sbyte> input = [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4];
             Span<sbyte> output = new sbyte[length];
 
-            ShuffleI8.FourChannelsNoSimd(input, output);
+            ShuffleI8Benchmarks.FourChannelsNoSimd(input, output);
 
             Span<sbyte> expectedOutput = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4];
 
@@ -195,7 +191,7 @@ namespace TS.NET.Tests
             ReadOnlySpan<sbyte> input = [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4];
             Span<sbyte> output = new sbyte[length];
 
-            ShuffleI8.FourChannelsRunLength4(input, output);
+            ShuffleI8Benchmarks.FourChannelsRunLength4(input, output);
 
             Span<sbyte> expectedOutput = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4];
 
@@ -212,7 +208,7 @@ namespace TS.NET.Tests
             ReadOnlySpan<sbyte> input = [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4];
             Span<sbyte> output = new sbyte[length];
 
-            ShuffleI8.FourChannelsRunLength8(input, output);
+            ShuffleI8Benchmarks.FourChannelsRunLength8(input, output);
 
             Span<sbyte> expectedOutput = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4];
 
@@ -251,8 +247,7 @@ namespace TS.NET.Tests
                 i += 32;
             }
             Span<sbyte> output = new sbyte[length];
-            var shuffle = new ShuffleI8();
-            ShuffleI8.FourChannelsRunLength32(input, output);
+            ShuffleI8Benchmarks.FourChannelsRunLength32(input, output);
 
             for (int i = 0; i < 256; i++)
             {
@@ -284,8 +279,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            var shuffle = new ShuffleI8();
-            shuffle.TwoChannels(input, output);
+            ShuffleI8.TwoChannels(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 2;
@@ -310,8 +304,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            var shuffle = new ShuffleI8();
-            shuffle.TwoChannels(input, output);
+            ShuffleI8.TwoChannels(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 2;
@@ -336,7 +329,7 @@ namespace TS.NET.Tests
             }
             Span<sbyte> output = new sbyte[length];
 
-            ShuffleI8.TwoChannelsRunLength1VariantA(input, output);
+            ShuffleI8Benchmarks.TwoChannelsRunLength1VariantA(input, output);
 
             Span<sbyte> expectedOutput = new sbyte[length];
             var runLength = length / 2;

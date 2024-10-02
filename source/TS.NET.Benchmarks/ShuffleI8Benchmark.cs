@@ -12,7 +12,6 @@ namespace TS.NET.Benchmarks
         private const int byteBufferSize = 8000000;
         private readonly Memory<sbyte> input = new sbyte[byteBufferSize];
         private readonly Memory<sbyte> output = new sbyte[byteBufferSize];
-        private ShuffleI8 shuffle = new ShuffleI8();
 
         [GlobalSetup]
         public void Setup()
@@ -24,7 +23,7 @@ namespace TS.NET.Benchmarks
         public void FourChannels()
         {
             for (int i = 0; i < 125; i++)
-                shuffle.FourChannels(input.Span, output.Span);
+                ShuffleI8.FourChannels(input.Span, output.Span);
         }
 
         //[Benchmark(Description = "Four channel shuffle [run length 1, baseline] (125 x 8MS)")]
@@ -53,6 +52,20 @@ namespace TS.NET.Benchmarks
         //{
         //    for (int i = 0; i < 125; i++)
         //        Shuffle.FourChannelsRunLength1VariantC(input.Span, output.Span);
+        //}
+
+        [Benchmark(Description = "Four channel shuffle [vmovups tweak, unroll x2] (125 x 8MS)")]
+        public void FourChannelsRunLength1VariantD()
+        {
+            for (int i = 0; i < 125; i++)
+                ShuffleI8Benchmarks.FourChannelsRunLength1VariantD(input.Span, output.Span);
+        }
+
+        //[Benchmark(Description = "Four channel shuffle [vmovups tweak, unroll x4] (125 x 8MS)")]
+        //public void FourChannelsRunLength1VariantE()
+        //{
+        //    for (int i = 0; i < 125; i++)
+        //        ShuffleI8Benchmarks.FourChannelsRunLength1VariantE(input.Span, output.Span);
         //}
 
         //[Benchmark(Description = "Four channel shuffle [no SIMD] (125 x 8MS)")]
@@ -90,12 +103,12 @@ namespace TS.NET.Benchmarks
         //        Shuffle.FourChannelsRunLength32NoSimd(input.Span, output.Span);
         //}
 
-        [Benchmark(Description = "Two channel shuffle (125 x 8MS)")]
-        public void TwoChannels()
-        {
-            for (int i = 0; i < 125; i++)
-                shuffle.TwoChannels(input.Span, output.Span);
-        }
+        //[Benchmark(Description = "Two channel shuffle (125 x 8MS)")]
+        //public void TwoChannels()
+        //{
+        //    for (int i = 0; i < 125; i++)
+        //        shuffle.TwoChannels(input.Span, output.Span);
+        //}
 
         //[Benchmark(Description = "Two channel shuffle [run length 1,variant A] (125 x 8MS)")]
         //public void TwoChannelsRunLength1VariantA()

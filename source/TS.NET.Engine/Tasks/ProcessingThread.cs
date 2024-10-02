@@ -140,7 +140,6 @@ namespace TS.NET.Engine
 
                 AdcChannelMode cachedAdcChannelMode = AdcChannelMode.Quad;
                 IEdgeTriggerI8 edgeTriggerI8 = new RisingEdgeTriggerI8();
-                ShuffleI8 shuffle = new();
                 bool runMode = true;
                 bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
                 bool singleTriggerLatch = false;    // "Latch" because it will reset state back to false. When reset, runTrigger will be set to false.
@@ -364,7 +363,7 @@ namespace TS.NET.Engine
                                 break;
                             case AdcChannelMode.Dual:
                                 // Shuffle
-                                shuffle.TwoChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
+                                ShuffleI8.TwoChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                                 // Finished with the memory, return it
                                 inputChannel.Write(inputDataDto.Memory);
                                 // Write to circular buffer
@@ -434,7 +433,7 @@ namespace TS.NET.Engine
                                 break;
                             case AdcChannelMode.Quad:
                                 // Shuffle
-                                shuffle.FourChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
+                                ShuffleI8.FourChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                                 // Finished with the memory, return it
                                 inputChannel.Write(inputDataDto.Memory);
                                 // Write to circular buffer
