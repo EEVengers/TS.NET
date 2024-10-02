@@ -38,22 +38,17 @@ public static class ShuffleI8
                         var loaded2 = Avx.LoadVector256(inputPtr2);
                         var shuffled1 = Avx2.Shuffle(loaded1, shuffleMask); // shuffled1 = <1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4>
                         var shuffled2 = Avx2.Shuffle(loaded2, shuffleMask);
-                        var permuted1 = Avx2.PermuteVar8x32(shuffled1.AsInt32(), permuteMask);  // permuted1 = <16843009, 16843009, 33686018, 33686018, 50529027, 50529027, 67372036, 67372036>
+                        var permuted1 = Avx2.PermuteVar8x32(shuffled1.AsInt32(), permuteMask);  // permuted1 = <1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4>
                         var permuted2 = Avx2.PermuteVar8x32(shuffled2.AsInt32(), permuteMask);
                         var permuted1_64 = permuted1.AsUInt64();
                         var permuted2_64 = permuted2.AsUInt64();
+                        var unpackHigh = Avx2.UnpackHigh(permuted1_64, permuted2_64);   // unpackHigh = <2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4>
+                        var unpackLow = Avx2.UnpackLow(permuted1_64, permuted2_64);     // unpackLow = <1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3>
 
-                        outputPtr[0] = permuted1_64[0];
-                        outputPtr[1] = permuted2_64[0];
-
-                        outputPtr[0 + ch2Offset64b] = permuted1_64[1];
-                        outputPtr[1 + ch2Offset64b] = permuted2_64[1];
-
-                        outputPtr[0 + ch3Offset64b] = permuted1_64[2];
-                        outputPtr[1 + ch3Offset64b] = permuted2_64[2];
-
-                        outputPtr[0 + ch4Offset64b] = permuted1_64[3];
-                        outputPtr[1 + ch4Offset64b] = permuted2_64[3];
+                        Vector128.Store(unpackLow.GetLower(), outputPtr);
+                        Vector128.Store(unpackHigh.GetLower(), outputPtr + ch2Offset64b);
+                        Vector128.Store(unpackLow.GetUpper(), outputPtr + ch3Offset64b);
+                        Vector128.Store(unpackHigh.GetUpper(), outputPtr + ch4Offset64b);
 
                         inputPtr += 64;
                         inputPtr2 += 64;
