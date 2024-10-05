@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace TS.NET.Engine
@@ -135,6 +135,15 @@ namespace TS.NET.Engine
                                                 break;
                                         }
                                         thunderscope.SetChannelFrontend(channelIndex, channelFrontend);
+                                        break;
+                                    }
+                                case HardwareSetRateRequest hardwareSetRateRequest:
+                                    {
+                                        if(thunderscope is Driver.LiteX.Thunderscope liteXThunderscope)
+                                        {
+                                            liteXThunderscope.SetRate(hardwareSetRateRequest.rate);
+                                            logger.LogDebug($"{nameof(hardwareSetRateRequest)} (rate: {hardwareSetRateRequest.rate})");
+                                        }
                                         break;
                                     }
                                 case HardwareSetChannelCalibrationRequest hardwareSetChannelCalibrationDto:

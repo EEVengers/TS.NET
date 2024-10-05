@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using NetCoreServer;
 using System.Net;
 using System.Net.Sockets;
@@ -155,9 +155,9 @@ namespace TS.NET.Engine
                                 case "RATE":
                                     if (argument != null)
                                     {
-                                        long rate = Convert.ToInt64(argument);
-                                        processingRequestChannel.Write(new ProcessingSetRateDto(rate));
-                                        logger.LogDebug($"{nameof(ProcessingSetRateDto)} sent with argument: {rate}");
+                                        ulong rate = Convert.ToUInt64(argument);
+                                        hardwareRequestChannel.Write(new HardwareSetRateRequest(rate));
+                                        logger.LogDebug($"{nameof(HardwareSetRateRequest)} sent with argument: {rate}");
                                     }
                                     return null;
                             }
