@@ -139,11 +139,8 @@ namespace TS.NET.Engine
                                     }
                                 case HardwareSetRateRequest hardwareSetRateRequest:
                                     {
-                                        if(thunderscope is Driver.LiteX.Thunderscope liteXThunderscope)
-                                        {
-                                            liteXThunderscope.SetRate(hardwareSetRateRequest.rate);
-                                            logger.LogDebug($"{nameof(hardwareSetRateRequest)} (rate: {hardwareSetRateRequest.rate})");
-                                        }
+                                        thunderscope.SetRate(hardwareSetRateRequest.rate);
+                                        logger.LogDebug($"{nameof(hardwareSetRateRequest)} (rate: {hardwareSetRateRequest.rate})");
                                         break;
                                     }
                                 case HardwareGetRatesRequest hardwareGetRatesRequest:

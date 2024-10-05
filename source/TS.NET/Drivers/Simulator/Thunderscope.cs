@@ -71,5 +71,8 @@
         {
             throw new NotImplementedException();
         }
+        public void SetRate(ulong sampleTimeFs)
+        {
+        }
     }
 }

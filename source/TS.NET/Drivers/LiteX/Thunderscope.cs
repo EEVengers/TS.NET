@@ -217,13 +217,13 @@ namespace TS.NET.Driver.LiteX
             return tsHealth;
         }
 
-        public void SetRate(ulong rate_fs)
+        public void SetRate(ulong sampleTimeFs)
         {
             if(!open)
                 throw new Exception("Thunderscope not open");
 
             //Convert femtoseconds to samples/sec
-            ulong rate = 1000000000000000/rate_fs;
+            ulong rate = 1000000000000000/sampleTimeFs;
 
             var retVal = Interop.SetSampleMode(tsHandle, (uint)rate, tsHealth.AdcSampleResolution);
 
