@@ -86,9 +86,9 @@ namespace TS.NET.Engine
                     // Remember AdcChannelMode reflects the hardware reality - user may only have 3 channels enabled but hardware has to capture 4.
                     ulong femtosecondsPerSample = configuration.AdcChannelMode switch
                     {
-                        AdcChannelMode.Single => configuration.SampleTimeFs,         // 1 GSPS
-                        AdcChannelMode.Dual => configuration.SampleTimeFs * 2,     // 500 MSPS
-                        AdcChannelMode.Quad => configuration.SampleTimeFs * 4,    // 250 MSPS
+                        AdcChannelMode.Single => 1000000000000000/(configuration.SampleRateHz),         // 1 GSPS
+                        AdcChannelMode.Dual => 1000000000000000/(configuration.SampleRateHz / 2),     // 500 MSPS
+                        AdcChannelMode.Quad => 1000000000000000/(configuration.SampleRateHz / 4),    // 250 MSPS
                         _ => throw new NotImplementedException(),
                     };
 

@@ -18,7 +18,7 @@
             config.Frontend[1].ActualVoltFullScale = 1;
             config.Frontend[2].ActualVoltFullScale = 1;
             config.Frontend[3].ActualVoltFullScale = 1;
-            config.SampleTimeFs = 1000000;
+            config.SampleRateHz = 1000000000;
             return config;
         }
 
@@ -71,7 +71,7 @@
         {
             throw new NotImplementedException();
         }
-        public void SetRate(ulong sampleTimeFs)
+        public void SetRate(ulong sampleRateHz)
         {
         }
     }

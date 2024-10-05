@@ -150,13 +150,13 @@ namespace TS.NET.Engine
                                         switch (config.AdcChannelMode)
                                         {
                                             case AdcChannelMode.Single:
-                                                hardwareResponseChannel.Write(new HardwareGetRatesResponse(config.SampleTimeFs));
+                                                hardwareResponseChannel.Write(new HardwareGetRatesResponse(config.SampleRateHz));
                                                 break;
                                             case AdcChannelMode.Dual:
-                                                hardwareResponseChannel.Write(new HardwareGetRatesResponse(config.SampleTimeFs*2));
+                                                hardwareResponseChannel.Write(new HardwareGetRatesResponse(config.SampleRateHz/2));
                                                 break;
                                             case AdcChannelMode.Quad:
-                                                hardwareResponseChannel.Write(new HardwareGetRatesResponse(config.SampleTimeFs*4));
+                                                hardwareResponseChannel.Write(new HardwareGetRatesResponse(config.SampleRateHz/4));
                                                 break;
                                         }
                                         logger.LogDebug($"{nameof(HardwareGetRatesResponse)}");

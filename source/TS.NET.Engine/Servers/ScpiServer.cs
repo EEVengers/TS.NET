@@ -416,7 +416,7 @@ namespace TS.NET.Engine
                                 switch (response)
                                 {
                                     case HardwareGetRatesResponse hardwareGetRatesResponse:
-                                        return $"{hardwareGetRatesResponse.SampleTimeFs:F0},\n";
+                                        return $"{hardwareGetRatesResponse.SampleRateHz:F0},\n";
                                     default:
                                         logger.LogWarning($"Did not get correct response to {nameof(HardwareGetRatesResponse)}");
                                         return "";

@@ -179,7 +179,7 @@ namespace TS.NET.Driver.LiteX
                                     AdcChannelMode.Quad;
 
             GetStatus();
-            config.SampleTimeFs = 1000000000000000/(ulong)tsHealth.AdcSampleRate;
+            config.SampleRateHz = tsHealth.AdcSampleRate;
 
             return config;
         }
@@ -217,18 +217,15 @@ namespace TS.NET.Driver.LiteX
             return tsHealth;
         }
 
-        public void SetRate(ulong sampleTimeFs)
+        public void SetRate(ulong sampleRateHz)
         {
             if(!open)
                 throw new Exception("Thunderscope not open");
 
-            //Convert femtoseconds to samples/sec
-            ulong rate = 1000000000000000/sampleTimeFs;
-
-            var retVal = Interop.SetSampleMode(tsHandle, (uint)rate, tsHealth.AdcSampleResolution);
+            var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, tsHealth.AdcSampleResolution);
 
             if ( retVal != 0)
-                throw new Exception($"Thunderscope failed to set sample rate ({rate})");
+                throw new Exception($"Thunderscope failed to set sample rate ({sampleRateHz})");
         }
 
         public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)

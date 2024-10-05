@@ -11,6 +11,6 @@
         void SetChannelCalibration(int channelIndex, ThunderscopeChannelCalibration channelCalibration);
         void Read(ThunderscopeMemory data, CancellationToken cancellationToken);
         ThunderscopeHardwareConfig GetConfiguration();
-        void SetRate(ulong sampleTimeFs);
+        void SetRate(ulong sampleRateHz);
     }
 }
