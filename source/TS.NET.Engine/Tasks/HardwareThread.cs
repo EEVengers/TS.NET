@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
 namespace TS.NET.Engine
@@ -144,6 +144,25 @@ namespace TS.NET.Engine
                                             liteXThunderscope.SetRate(hardwareSetRateRequest.rate);
                                             logger.LogDebug($"{nameof(hardwareSetRateRequest)} (rate: {hardwareSetRateRequest.rate})");
                                         }
+                                        break;
+                                    }
+                                case HardwareGetRatesRequest hardwareGetRatesRequest:
+                                    {
+                                        logger.LogDebug($"{nameof(HardwareGetRatesRequest)}");
+                                        var config = thunderscope.GetConfiguration();
+                                        switch (config.AdcChannelMode)
+                                        {
+                                            case AdcChannelMode.Single:
+                                                hardwareResponseChannel.Write(new HardwareGetRatesResponse(config.SampleTimeFs));
+                                                break;
+                                            case AdcChannelMode.Dual:
+                                                hardwareResponseChannel.Write(new HardwareGetRatesResponse(config.SampleTimeFs*2));
+                                                break;
+                                            case AdcChannelMode.Quad:
+                                                hardwareResponseChannel.Write(new HardwareGetRatesResponse(config.SampleTimeFs*4));
+                                                break;
+                                        }
+                                        logger.LogDebug($"{nameof(HardwareGetRatesResponse)}");
                                         break;
                                     }
                                 case HardwareSetChannelCalibrationRequest hardwareSetChannelCalibrationDto:

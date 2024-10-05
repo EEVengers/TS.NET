@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using NetCoreServer;
 using System.Net;
 using System.Net.Sockets;
@@ -410,15 +410,15 @@ namespace TS.NET.Engine
                             logger.LogDebug("Reply to *IDN? query");
                             return "ThunderScope,(Bridge),NOSERIAL,NOVERSION\n";
                         case "RATES":
-                            processingRequestChannel.Write(new ProcessingGetRateRequestDto());
-                            if (processingResponseChannel.TryRead(out var response, 100))
+                            hardwareRequestChannel.Write(new HardwareGetRatesRequest());
+                            if (hardwareResponseChannel.TryRead(out var response, 100))
                             {
                                 switch (response)
                                 {
-                                    case ProcessingGetRateResponseDto hardwareGetRateResponse:
-                                        return $"{1000000000000000 / hardwareGetRateResponse.SampleRate:F0},\n";
+                                    case HardwareGetRatesResponse hardwareGetRatesResponse:
+                                        return $"{hardwareGetRatesResponse.SampleTimeFs:F0},\n";
                                     default:
-                                        logger.LogWarning($"Did not get correct response to {nameof(ProcessingGetRateRequestDto)}");
+                                        logger.LogWarning($"Did not get correct response to {nameof(HardwareGetRatesResponse)}");
                                         return "";
                                 }
                             }
