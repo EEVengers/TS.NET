@@ -18,6 +18,7 @@
             config.Frontend[1].ActualVoltFullScale = 1;
             config.Frontend[2].ActualVoltFullScale = 1;
             config.Frontend[3].ActualVoltFullScale = 1;
+            config.SampleTimeFs = 1000000;
             return config;
         }
 
