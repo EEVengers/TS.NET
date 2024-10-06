@@ -224,8 +224,10 @@ namespace TS.NET.Driver.LiteX
 
             var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, tsHealth.AdcSampleResolution);
 
-            if ( retVal != 0)
-                throw new Exception($"Thunderscope failed to set sample rate ({sampleRateHz})");
+            if ( retVal == -2) //Invalid Parameter
+                logger.LogTrace($"Thunderscope failed to set sample rate ({sampleRateHz}): INVALID_PARAMETER");
+            else if (retVal < 0)
+                throw new Exception($"Thunderscope had an errors trying to set sample rate {sampleRateHz} ({retVal})");
         }
 
         public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)
