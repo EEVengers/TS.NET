@@ -410,23 +410,14 @@ namespace TS.NET.Engine
                             logger.LogDebug("Reply to *IDN? query");
                             return "ThunderScope,(Bridge),NOSERIAL,NOVERSION\n";
                         case "RATES":
-                            hardwareRequestChannel.Write(new HardwareGetRatesRequest());
-                            if (hardwareResponseChannel.TryRead(out var response, 100))
-                            {
-                                switch (response)
-                                {
-                                    case HardwareGetRatesResponse hardwareGetRatesResponse:
-                                        return $"{hardwareGetRatesResponse.SampleRateHz:F0},\n";
-                                    default:
-                                        logger.LogWarning($"Did not get correct response to {nameof(HardwareGetRatesResponse)}");
-                                        return "";
-                                }
-                            }
-                            else
-                            {
-                                logger.LogWarning($"Did not get any response to {nameof(ProcessingGetRateRequestDto)}");
-                                return "";
-                            }
+                            List<string> rates = new();
+                            rates.Add("1000000000");
+                            rates.Add("750000000");
+                            rates.Add("500000000");
+                            rates.Add("250000000");
+                            rates.Add("125000000");
+                            return $"{string.Join(",", rates)},\n";
+
                         case "DEPTHS":
                             List<string> depths = new();
                             int baseCount = 1000;
