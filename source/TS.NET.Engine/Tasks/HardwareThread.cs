@@ -143,23 +143,12 @@ namespace TS.NET.Engine
                                         logger.LogDebug($"{nameof(hardwareSetRateRequest)} (rate: {hardwareSetRateRequest.rate})");
                                         break;
                                     }
-                                case HardwareGetRatesRequest hardwareGetRatesRequest:
+                                case HardwareGetRateRequest hardwareGetRateRequest:
                                     {
-                                        logger.LogDebug($"{nameof(HardwareGetRatesRequest)}");
+                                        logger.LogDebug($"{nameof(HardwareGetRateRequest)}");
                                         var config = thunderscope.GetConfiguration();
-                                        switch (config.AdcChannelMode)
-                                        {
-                                            case AdcChannelMode.Single:
-                                                hardwareResponseChannel.Write(new HardwareGetRatesResponse(config.SampleRateHz));
-                                                break;
-                                            case AdcChannelMode.Dual:
-                                                hardwareResponseChannel.Write(new HardwareGetRatesResponse(config.SampleRateHz/2));
-                                                break;
-                                            case AdcChannelMode.Quad:
-                                                hardwareResponseChannel.Write(new HardwareGetRatesResponse(config.SampleRateHz/4));
-                                                break;
-                                        }
-                                        logger.LogDebug($"{nameof(HardwareGetRatesResponse)}");
+                                        hardwareResponseChannel.Write(new HardwareGetRateResponse(config.SampleRateHz));
+                                        logger.LogDebug($"{nameof(HardwareGetRateResponse)}");
                                         break;
                                     }
                                 case HardwareSetChannelCalibrationRequest hardwareSetChannelCalibrationDto:

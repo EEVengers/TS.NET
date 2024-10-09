@@ -3,5 +3,5 @@
 namespace TS.NET.Engine
 {
     public record HardwareResponseDto();
-    public record HardwareGetRatesResponse(ulong SampleRateHz) : HardwareResponseDto;
+    public record HardwareGetRateResponse(ulong SampleRateHz) : HardwareResponseDto;
 }
