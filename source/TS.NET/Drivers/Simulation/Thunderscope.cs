@@ -1,4 +1,4 @@
-﻿namespace TS.NET.Driver.Simulator
+﻿namespace TS.NET.Driver.Simulation
 {
     public class Thunderscope : IThunderscope
     {
