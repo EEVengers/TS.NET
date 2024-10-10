@@ -8,14 +8,22 @@ namespace TS.NET.Driver.LiteX
         private bool open = false;
         private nint tsHandle;
         private double[] channel_volt_scale;
-
+        private ThunderscopeLiteXStatus tsHealth;
         private ThunderscopeChannelCalibration[] tsCalibration;
+        private uint readSegmentLengthBytes;
 
-        public Thunderscope(ILoggerFactory loggerFactory)
+        /// <summary>
+        /// readSegmentLengthBytes should be the same as DMA_BUFFER_SIZE in the driver. Other values may work, further research needed.
+        /// </summary>
+        public Thunderscope(ILoggerFactory loggerFactory, int readSegmentLengthBytes)
         {
-            logger = loggerFactory.CreateLogger("Drivers.LiteX");
+            if (ThunderscopeMemory.Length % readSegmentLengthBytes != 0)
+                throw new ArgumentException("ThunderscopeMemory.Length % readSegmentLengthBytes != 0");
+            this.readSegmentLengthBytes = (uint)readSegmentLengthBytes;
+            logger = loggerFactory.CreateLogger("Driver.LiteX");
             channel_volt_scale = new double[4];
             tsCalibration = new ThunderscopeChannelCalibration[4];
+            tsHealth = new ThunderscopeLiteXStatus();
         }
 
         ~Thunderscope()
@@ -41,6 +49,8 @@ namespace TS.NET.Driver.LiteX
             {
                 SetChannelCalibration(chan, calibration[chan]);
             }
+
+            GetStatus();
         }
 
         public void Close()
@@ -84,24 +94,17 @@ namespace TS.NET.Driver.LiteX
             {
                 ulong length = ThunderscopeMemory.Length;
                 ulong dataRead = 0;
-                uint readSegment = 2048*128;
-                while(length >= 2048)
+                while (length > 0)
                 {
-                    int readLen = Interop.Read(tsHandle, data.Pointer + dataRead, readSegment);
-                    
+                    int readLen = Interop.Read(tsHandle, data.Pointer + dataRead, readSegmentLengthBytes);
+
                     if (readLen < 0)
                         throw new Exception($"Thunderscope failed to read samples ({readLen})");
-                    else if (readLen != readSegment)
+                    else if (readLen != readSegmentLengthBytes)
                         throw new Exception($"Thunderscope read incorrect sample length ({readLen})");
-                
-                    dataRead += (ulong)readSegment;
-                    length -= (ulong)readSegment;
 
-                    if(length < readSegment)
-                    {
-                        //Reduce readSegment to the amount remaining, rounded down to a multiple of 2048
-                        readSegment = ((uint)length / 2048) * 2048;
-                    }
+                    dataRead += (ulong)readSegmentLengthBytes;
+                    length -= (ulong)readSegmentLengthBytes;
                 }
             }
         }
@@ -174,6 +177,9 @@ namespace TS.NET.Driver.LiteX
                                     (channelCount == 2) ? AdcChannelMode.Dual :
                                     AdcChannelMode.Quad;
 
+            GetStatus();
+            config.SampleRateHz = tsHealth.AdcSampleRate;
+
             return config;
         }
 
@@ -194,7 +200,6 @@ namespace TS.NET.Driver.LiteX
             if (!open)
                 throw new Exception("Thunderscope not open");
 
-            var tsHealth = new ThunderscopeLiteXStatus();
             var litexState = new Interop.tsScopeState_t();
             if (Interop.GetStatus(tsHandle, out litexState) != 0)
                 throw new Exception("");
@@ -209,6 +214,19 @@ namespace TS.NET.Driver.LiteX
             tsHealth.VccBram = litexState.vcc_bram / 1000.0;
 
             return tsHealth;
+        }
+
+        public void SetRate(ulong sampleRateHz)
+        {
+            if(!open)
+                throw new Exception("Thunderscope not open");
+
+            var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, tsHealth.AdcSampleResolution);
+
+            if ( retVal == -2) //Invalid Parameter
+                logger.LogTrace($"Thunderscope failed to set sample rate ({sampleRateHz}): INVALID_PARAMETER");
+            else if (retVal < 0)
+                throw new Exception($"Thunderscope had an errors trying to set sample rate {sampleRateHz} ({retVal})");
         }
 
         public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)

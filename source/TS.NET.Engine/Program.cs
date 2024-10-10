@@ -92,25 +92,18 @@ class Program
         }
 
         // Instantiate dataflow channels
-        const int bufferLength = 60; // 60 = about 0.5 seconds worth of samples at 1GSPS (each ThunderscopeMemory is 8388608 bytes), 60x = 503316480. Might be able to reduce to near-zero with LiteX.
-
-        ThunderscopeMemoryRegion memoryRegion = new(bufferLength);
-        BlockingChannel<ThunderscopeMemory> inputChannel = new(bufferLength);
-        for (uint i = 0; i < bufferLength; i++)
-            inputChannel.Writer.Write(memoryRegion.GetSegment(i));
-        BlockingChannel<InputDataDto> processChannel = new();
-        BlockingChannel<HardwareRequestDto> hardwareRequestChannel = new();
-        BlockingChannel<HardwareResponseDto> hardwareResponseChannel = new();
-        BlockingChannel<ProcessingRequestDto> processingRequestChannel = new();
-        BlockingChannel<ProcessingResponseDto> processingResponseChannel = new();
+        // XDMA bufferLength 60 (~0.5 seconds worth of samples at 1GSPS, 60x8388608 = 503316480)
+        // LiteX bufferLength 3 (driver has large buffer)
+        int bufferLength = 60;
 
         IThunderscope thunderscope;
         switch (thunderscopeSettings.HardwareDriver.ToLower())
         {
             case "simulator":
                 {
-                    var ts = new TS.NET.Driver.Simulator.Thunderscope();
+                    var ts = new TS.NET.Driver.Simulation.Thunderscope();
                     thunderscope = ts;
+                    bufferLength = 3;
                     break;
                 }
             case "xdma":
@@ -131,6 +124,7 @@ class Program
                     ThunderscopeHardwareConfig initialHardwareConfiguration = new();
                     initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Quad;
                     initialHardwareConfiguration.EnabledChannels = 0x0F;
+                    initialHardwareConfiguration.SampleRateHz = 250000000;
                     initialHardwareConfiguration.Frontend[0] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Frontend[1] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Frontend[2] = ThunderscopeChannelFrontend.Default();
@@ -141,11 +135,12 @@ class Program
                     initialHardwareConfiguration.Calibration[3] = thunderscopeSettings.XdmaCalibration.Channel4.ToDriver();
                     ts.Open(devices[deviceIndex], initialHardwareConfiguration, thunderscopeSettings.HardwareRevision);
                     thunderscope = ts;
+                    bufferLength = 60;
                     break;
                 }
             case "litex":
                 {
-                    var ts = new TS.NET.Driver.LiteX.Thunderscope(loggerFactory);
+                    var ts = new TS.NET.Driver.LiteX.Thunderscope(loggerFactory, 1024 * 256);
 
                     var tsCal = new ThunderscopeChannelCalibrationArray();
                     tsCal[0] = thunderscopeSettings.LiteXCalibration.Channel1.ToDriver();
@@ -155,6 +150,7 @@ class Program
 
                     ts.Open((uint)deviceIndex, tsCal);
                     thunderscope = ts;
+                    bufferLength = 3;
                     break;
                 }
             default:
@@ -165,6 +161,16 @@ class Program
         }
 
         string bridgeNamespace = $"ThunderScope.{deviceIndex}";
+
+        ThunderscopeMemoryRegion memoryRegion = new(bufferLength);
+        BlockingChannel<ThunderscopeMemory> inputChannel = new(bufferLength);
+        for (uint i = 0; i < bufferLength; i++)
+            inputChannel.Writer.Write(memoryRegion.GetSegment(i));
+        BlockingChannel<InputDataDto> processChannel = new();
+        BlockingChannel<HardwareRequestDto> hardwareRequestChannel = new();
+        BlockingChannel<HardwareResponseDto> hardwareResponseChannel = new();
+        BlockingChannel<ProcessingRequestDto> processingRequestChannel = new();
+        BlockingChannel<ProcessingResponseDto> processingResponseChannel = new();
 
         // Start threads
         SemaphoreSlim startSemaphore = new(1);

@@ -55,7 +55,7 @@ namespace TS.NET.Engine
 
                 if (response != null)
                 {
-                    logger.LogDebug(" -> SCPI reply: '{String}'", response);
+                    logger.LogDebug("SCPI response: '{String}'", response.Trim());
                     Send(response);
                 }
             }
@@ -80,7 +80,7 @@ namespace TS.NET.Engine
             string command = message;
             bool isQuery = false;
 
-            logger.LogDebug($"SCPI message: {message}");
+            logger.LogDebug($"SCPI request: {message}");
 
             if (message.Contains(" "))
             {
@@ -91,7 +91,7 @@ namespace TS.NET.Engine
             else if (command.Contains("?"))
             {
                 isQuery = true;
-                command = message.Substring(0, message.Length - 1);
+                //command = message.Substring(0, message.Length - 1);
             }
 
             if (command.StartsWith(":"))
@@ -155,9 +155,9 @@ namespace TS.NET.Engine
                                 case "RATE":
                                     if (argument != null)
                                     {
-                                        long rate = Convert.ToInt64(argument);
-                                        processingRequestChannel.Write(new ProcessingSetRateDto(rate));
-                                        logger.LogDebug($"{nameof(ProcessingSetRateDto)} sent with argument: {rate}");
+                                        ulong rate = Convert.ToUInt64(argument);
+                                        hardwareRequestChannel.Write(new HardwareSetRateRequest(rate));
+                                        logger.LogDebug($"{nameof(HardwareSetRateRequest)} sent with argument: {rate}");
                                     }
                                     return null;
                             }
@@ -406,29 +406,44 @@ namespace TS.NET.Engine
                 {
                     switch (command)
                     {
-                        case "*IDN":
-                            logger.LogDebug("Reply to *IDN? query");
+                        case "*IDN?":
                             return "ThunderScope,(Bridge),NOSERIAL,NOVERSION\n";
-                        case "RATES":
-                            processingRequestChannel.Write(new ProcessingGetRateRequestDto());
-                            if (processingResponseChannel.TryRead(out var response, 100))
+                        case "RATES?":
                             {
-                                switch (response)
+                                hardwareRequestChannel.Write(new HardwareGetRatesRequest());
+                                if (hardwareResponseChannel.TryRead(out var response, 100))
                                 {
-                                    case ProcessingGetRateResponseDto hardwareGetRateResponse:
-                                        return $"{1000000000000000 / hardwareGetRateResponse.SampleRate:F0},\n";
-                                    default:
-                                        logger.LogWarning($"Did not get correct response to {nameof(ProcessingGetRateRequestDto)}");
-                                        return "";
+                                    switch (response)
+                                    {
+                                        case HardwareGetRatesResponse hardwareGetRatesResponse:
+                                            return $"{string.Join(",", hardwareGetRatesResponse.SampleRatesHz)},\n";
+                                        default:
+                                            logger.LogError($"RATES? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                            return "Error: Invalid response from hardware.\n";
+                                    }
                                 }
+                                logger.LogError($"RATES? - No response from {nameof(hardwareResponseChannel)}");
+                                return "Error: No response from hardware.\n";
                             }
-                            else
+                        case "RATE?":
                             {
-                                logger.LogWarning($"Did not get any response to {nameof(ProcessingGetRateRequestDto)}");
-                                return "";
+                                hardwareRequestChannel.Write(new HardwareGetRateRequest());
+                                if (hardwareResponseChannel.TryRead(out var response, 100))
+                                {
+                                    switch (response)
+                                    {
+                                        case HardwareGetRateResponse hardwareGetRateResponse:
+                                            return $"{hardwareGetRateResponse.SampleRateHz}\n";
+                                        default:
+                                            logger.LogError($"RATES? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                            return "Error: Invalid response from hardware.\n";
+                                    }
+                                }
+                                logger.LogError($"RATES? - No response from {nameof(hardwareResponseChannel)}");
+                                return "Error: No response from hardware.\n";
                             }
-                        case "DEPTHS":
-                            List<string> depths = new();
+                        case "DEPTHS?":
+                            List<string> depths = [];
                             int baseCount = 1000;
                             while (true)
                             {

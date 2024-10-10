@@ -170,6 +170,9 @@ namespace TS.NET.Driver.XMDA
         {
             return configuration;
         }
+        public void SetRate(ulong sampleRateHz)
+        {
+        }
 
         public void ResetBuffer()
         {
@@ -356,6 +359,7 @@ namespace TS.NET.Driver.XMDA
                     }
                     clkdiv = 0;
                     configuration.AdcChannelMode = AdcChannelMode.Single;
+                    configuration.SampleRateHz = 1000000000;
                     break;
                 case 2:
                     for (byte i = 3; i >= 0; i--)
@@ -376,6 +380,7 @@ namespace TS.NET.Driver.XMDA
                     }
                     clkdiv = 1;
                     configuration.AdcChannelMode = AdcChannelMode.Dual;
+                    configuration.SampleRateHz = 500000000;
                     break;
                 default:
                     insel[0] = 3;
@@ -385,6 +390,7 @@ namespace TS.NET.Driver.XMDA
                     num_channels_on = 4;
                     clkdiv = 2;
                     configuration.AdcChannelMode = AdcChannelMode.Quad;
+                    configuration.SampleRateHz = 250000000;
                     break;
             }
 

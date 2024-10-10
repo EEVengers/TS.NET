@@ -1,4 +1,4 @@
-﻿namespace TS.NET.Driver.Simulator
+﻿namespace TS.NET.Driver.Simulation
 {
     public class Thunderscope : IThunderscope
     {
@@ -18,6 +18,7 @@
             config.Frontend[1].ActualVoltFullScale = 1;
             config.Frontend[2].ActualVoltFullScale = 1;
             config.Frontend[3].ActualVoltFullScale = 1;
+            config.SampleRateHz = 250000000;
             return config;
         }
 
@@ -69,6 +70,9 @@
         public ThunderscopeChannelCalibration GetChannelCalibration(int channelIndex)
         {
             throw new NotImplementedException();
+        }
+        public void SetRate(ulong sampleRateHz)
+        {
         }
     }
 }
