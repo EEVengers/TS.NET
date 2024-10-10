@@ -85,10 +85,6 @@ namespace TS.NET.Engine
                     // Check for configuration requests
                     if (hardwareRequestChannel.PeekAvailable() != 0)
                     {
-                        // To do: only do this for a subset of actions
-                        logger.LogDebug("Stop acquisition and process commands...");
-                        thunderscope.Stop();
-
                         while (hardwareRequestChannel.TryRead(out var request))
                         {
                             // Do configuration update, pausing acquisition if necessary
@@ -102,7 +98,9 @@ namespace TS.NET.Engine
                                     break;
                                 case HardwareSetRateRequest hardwareSetRateRequest:
                                     {
+                                        thunderscope.Stop();    // To do: determine if this is needed
                                         thunderscope.SetRate(hardwareSetRateRequest.rate);
+                                        thunderscope.Start();
                                         logger.LogDebug($"{nameof(hardwareSetRateRequest)} (rate: {hardwareSetRateRequest.rate})");
                                         break;
                                     }
@@ -190,7 +188,9 @@ namespace TS.NET.Engine
                                                 break;
                                             case HardwareSetEnabledRequest hardwareSetEnabledRequest:
                                                 logger.LogDebug($"{nameof(HardwareSetEnabledRequest)} (channel: {channelIndex}, enabled: {hardwareSetEnabledRequest.Enabled})");
+                                                thunderscope.Stop();    // To do: determine if this is needed
                                                 thunderscope.SetChannelEnable(channelIndex, hardwareSetEnabledRequest.Enabled);
+                                                thunderscope.Start();
                                                 break;
                                             case HardwareSetTerminationRequest hardwareSetTerminationRequest:
                                                 logger.LogDebug($"{nameof(HardwareSetTerminationRequest)} (channel: {channelIndex}, termination: {hardwareSetTerminationRequest.Termination})");
@@ -246,9 +246,6 @@ namespace TS.NET.Engine
                             if (hardwareRequestChannel.PeekAvailable() == 0)
                                 Thread.Sleep(150);
                         }
-
-                        logger.LogDebug("Start again");
-                        thunderscope.Start();
                     }
 
                     //logger.LogDebug($"Requesting memory block {enqueueCounter}");
