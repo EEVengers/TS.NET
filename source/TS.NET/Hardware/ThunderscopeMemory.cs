@@ -5,9 +5,9 @@ public unsafe struct ThunderscopeMemoryRegion
 {
     public byte* Pointer;
 
-    public ThunderscopeMemoryRegion(uint segments)
+    public ThunderscopeMemoryRegion(int segments)
     {
-        Pointer = (byte*)NativeMemory.AlignedAlloc(ThunderscopeMemory.Length * segments, 4096);   // Intentionally not sbyte
+        Pointer = (byte*)NativeMemory.AlignedAlloc(ThunderscopeMemory.Length * (uint)segments, 4096);   // Intentionally not sbyte
     }
 
     public ThunderscopeMemory GetSegment(uint index)
