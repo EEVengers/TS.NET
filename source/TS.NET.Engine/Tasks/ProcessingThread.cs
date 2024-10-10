@@ -138,7 +138,10 @@ namespace TS.NET.Engine
                 // forceTriggerLatch: disregards the Trigger Mode, push update immediately and set forceTrigger to false. If a standard trigger happened at the same time as a force, the force is ignored so the bridge only updates once.
                 // singleTriggerLatch: used in Single mode to stop the trigger subsystem after a trigger.
 
-                AdcChannelMode cachedAdcChannelMode = AdcChannelMode.Quad;
+                // Cached values that need to be compared against hardware channel single-source-of-truth
+                //AdcChannelMode cachedAdcChannelMode = AdcChannelMode.Quad;
+                ulong cachedSampleRateHz = 250000000;
+
                 IEdgeTriggerI8 edgeTriggerI8 = new RisingEdgeTriggerI8();
                 bool runMode = true;
                 bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
@@ -250,22 +253,6 @@ namespace TS.NET.Engine
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (no change)");
                                 }
                                 break;
-                            case ProcessingGetRateRequestDto processingGetRateRequestDto:
-                                logger.LogDebug($"{nameof(ProcessingGetRateRequestDto)}");
-                                switch (hardwareConfig.AdcChannelMode)
-                                {
-                                    case AdcChannelMode.Single:
-                                        processingResponseChannel.Write(new ProcessingGetRateResponseDto(1000000000));
-                                        break;
-                                    case AdcChannelMode.Dual:
-                                        processingResponseChannel.Write(new ProcessingGetRateResponseDto(500000000));
-                                        break;
-                                    case AdcChannelMode.Quad:
-                                        processingResponseChannel.Write(new ProcessingGetRateResponseDto(250000000));
-                                        break;
-                                }
-                                logger.LogDebug($"{nameof(ProcessingGetRateResponseDto)}");
-                                break;
                             default:
                                 logger.LogWarning($"Unknown ProcessingRequestDto: {request}");
                                 break;
@@ -280,10 +267,10 @@ namespace TS.NET.Engine
                         bridge.Hardware = hardwareConfig;
                         totalDequeueCount++;
 
-                        if (hardwareConfig.AdcChannelMode != cachedAdcChannelMode)
+                        if (hardwareConfig.SampleRateHz != cachedSampleRateHz)
                         {
-                            // If the AdcChannelMode changes (i.e. sample rate changes) then update horizontal trigger positions
-                            cachedAdcChannelMode = hardwareConfig.AdcChannelMode;
+                            // If the SampleRateHz changes then update horizontal trigger position
+                            cachedSampleRateHz = hardwareConfig.SampleRateHz;
                             UpdateTriggerHorizontalPosition();
                         }
 
@@ -539,14 +526,7 @@ namespace TS.NET.Engine
                 // Locally scoped methods for deduplication
                 void UpdateTriggerHorizontalPosition()
                 {
-                    ulong femtosecondsPerSample = hardwareConfig.AdcChannelMode switch
-                    {
-                        AdcChannelMode.Single => 1000000,         // 1 GSPS
-                        AdcChannelMode.Dual => 1000000 * 2,     // 500 MSPS
-                        AdcChannelMode.Quad => 1000000 * 4,    // 250 MSPS
-                        _ => throw new NotImplementedException(),
-                    };
-
+                    ulong femtosecondsPerSample = 1000000000000000 / hardwareConfig.SampleRateHz;
                     var windowTriggerPosition = processingConfig.TriggerDelayFs / femtosecondsPerSample;
                     edgeTriggerI8.SetHorizontal(processingConfig.CurrentChannelDataLength, windowTriggerPosition, processingConfig.TriggerHoldoff);
                 }

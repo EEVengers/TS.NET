@@ -407,7 +407,7 @@ namespace TS.NET.Engine
                     switch (command)
                     {
                         case "*IDN?":
-                            return "ThunderScope,NOSERIAL,NOVERSION\n";
+                            return "ThunderScope,(Bridge),NOSERIAL,NOVERSION\n";
                         case "RATES?":
                             {
                                 hardwareRequestChannel.Write(new HardwareGetRatesRequest());
@@ -416,7 +416,7 @@ namespace TS.NET.Engine
                                     switch (response)
                                     {
                                         case HardwareGetRatesResponse hardwareGetRatesResponse:
-                                            return $"{string.Join(",", hardwareGetRatesResponse.SampleRatesHz)}\n";
+                                            return $"{string.Join(",", hardwareGetRatesResponse.SampleRatesHz)},\n";
                                         default:
                                             logger.LogError($"RATES? - Invalid response from {nameof(hardwareResponseChannel)}");
                                             return "Error: Invalid response from hardware.\n";
@@ -458,7 +458,7 @@ namespace TS.NET.Engine
                                     break;
                             }
                             // Perhaps take into account the sample rate to get 1ms/2ms/5ms/10ms/etc windows instead?
-                            return $"{string.Join(",", depths)}\n";
+                            return $"{string.Join(",", depths)},\n";
                     }
                 }
             }

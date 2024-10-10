@@ -18,6 +18,4 @@ namespace TS.NET.Engine
 
     public record ProcessingSetDepthDto(ulong Samples) : ProcessingRequestDto;
     public record ProcessingSetRateDto(long SamplingHz) : ProcessingRequestDto;
-
-    public record ProcessingGetRateRequestDto() : ProcessingRequestDto;
 }

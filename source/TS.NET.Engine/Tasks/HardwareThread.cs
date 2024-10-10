@@ -85,6 +85,7 @@ namespace TS.NET.Engine
                     // Check for configuration requests
                     if (hardwareRequestChannel.PeekAvailable() != 0)
                     {
+                        // To do: only do this for a subset of actions
                         logger.LogDebug("Stop acquisition and process commands...");
                         thunderscope.Stop();
 

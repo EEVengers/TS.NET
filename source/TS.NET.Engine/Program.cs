@@ -124,7 +124,7 @@ class Program
                     ThunderscopeHardwareConfig initialHardwareConfiguration = new();
                     initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Quad;
                     initialHardwareConfiguration.EnabledChannels = 0x0F;
-                    initialHardwareConfiguration.SampleRateHz = 1000000000;
+                    initialHardwareConfiguration.SampleRateHz = 250000000;
                     initialHardwareConfiguration.Frontend[0] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Frontend[1] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Frontend[2] = ThunderscopeChannelFrontend.Default();
