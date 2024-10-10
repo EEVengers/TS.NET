@@ -55,7 +55,7 @@ namespace TS.NET.Engine
 
                 if (response != null)
                 {
-                    logger.LogDebug(" -> SCPI reply: '{String}'", response);
+                    logger.LogDebug("SCPI response: '{String}'", response.Trim());
                     Send(response);
                 }
             }
@@ -80,7 +80,7 @@ namespace TS.NET.Engine
             string command = message;
             bool isQuery = false;
 
-            logger.LogDebug($"SCPI message: {message}");
+            logger.LogDebug($"SCPI request: {message}");
 
             if (message.Contains(" "))
             {
@@ -91,7 +91,7 @@ namespace TS.NET.Engine
             else if (command.Contains("?"))
             {
                 isQuery = true;
-                command = message.Substring(0, message.Length - 1);
+                //command = message.Substring(0, message.Length - 1);
             }
 
             if (command.StartsWith(":"))
@@ -406,20 +406,44 @@ namespace TS.NET.Engine
                 {
                     switch (command)
                     {
-                        case "*IDN":
-                            logger.LogDebug("Reply to *IDN? query");
-                            return "ThunderScope,(Bridge),NOSERIAL,NOVERSION\n";
-                        case "RATES":
-                            List<string> rates = new();
-                            rates.Add("1000000000");
-                            rates.Add("750000000");
-                            rates.Add("500000000");
-                            rates.Add("250000000");
-                            rates.Add("125000000");
-                            return $"{string.Join(",", rates)},\n";
-
-                        case "DEPTHS":
-                            List<string> depths = new();
+                        case "*IDN?":
+                            return "ThunderScope,NOSERIAL,NOVERSION\n";
+                        case "RATES?":
+                            {
+                                hardwareRequestChannel.Write(new HardwareGetRatesRequest());
+                                if (hardwareResponseChannel.TryRead(out var response, 100))
+                                {
+                                    switch (response)
+                                    {
+                                        case HardwareGetRatesResponse hardwareGetRatesResponse:
+                                            return $"{string.Join(",", hardwareGetRatesResponse.SampleRatesHz)}\n";
+                                        default:
+                                            logger.LogError($"RATES? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                            return "Error: Invalid response from hardware.\n";
+                                    }
+                                }
+                                logger.LogError($"RATES? - No response from {nameof(hardwareResponseChannel)}");
+                                return "Error: No response from hardware.\n";
+                            }
+                        case "RATE?":
+                            {
+                                hardwareRequestChannel.Write(new HardwareGetRateRequest());
+                                if (hardwareResponseChannel.TryRead(out var response, 100))
+                                {
+                                    switch (response)
+                                    {
+                                        case HardwareGetRateResponse hardwareGetRateResponse:
+                                            return $"{hardwareGetRateResponse.SampleRateHz}\n";
+                                        default:
+                                            logger.LogError($"RATES? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                            return "Error: Invalid response from hardware.\n";
+                                    }
+                                }
+                                logger.LogError($"RATES? - No response from {nameof(hardwareResponseChannel)}");
+                                return "Error: No response from hardware.\n";
+                            }
+                        case "DEPTHS?":
+                            List<string> depths = [];
                             int baseCount = 1000;
                             while (true)
                             {
@@ -434,7 +458,7 @@ namespace TS.NET.Engine
                                     break;
                             }
                             // Perhaps take into account the sample rate to get 1ms/2ms/5ms/10ms/etc windows instead?
-                            return $"{string.Join(",", depths)},\n";
+                            return $"{string.Join(",", depths)}\n";
                     }
                 }
             }

@@ -99,6 +99,71 @@ namespace TS.NET.Engine
                                 case HardwareStopRequest hardwareStopRequest:
                                     logger.LogDebug("Stop request (ignore)");
                                     break;
+                                case HardwareSetRateRequest hardwareSetRateRequest:
+                                    {
+                                        thunderscope.SetRate(hardwareSetRateRequest.rate);
+                                        logger.LogDebug($"{nameof(hardwareSetRateRequest)} (rate: {hardwareSetRateRequest.rate})");
+                                        break;
+                                    }
+                                case HardwareGetRateRequest hardwareGetRateRequest:
+                                    {
+                                        logger.LogDebug($"{nameof(HardwareGetRateRequest)}");
+                                        var config = thunderscope.GetConfiguration();
+                                        hardwareResponseChannel.Write(new HardwareGetRateResponse(config.SampleRateHz));
+                                        logger.LogDebug($"{nameof(HardwareGetRateResponse)}");
+                                        break;
+                                    }
+                                case HardwareGetRatesRequest hardwareGetRatesRequest:
+                                    {
+                                        logger.LogDebug($"{nameof(HardwareGetRatesRequest)}");
+                                        var config = thunderscope.GetConfiguration();
+                                        // Create driver & hardware configuration specific response
+                                        List<ulong> rates = [];
+                                        switch (thunderscope)
+                                        {
+                                            case Driver.XMDA.Thunderscope xdmaThunderscope:
+                                                {
+                                                    switch (config.AdcChannelMode)
+                                                    {
+                                                        case AdcChannelMode.Single:
+                                                            rates.Add(1000000000);
+                                                            break;
+                                                        case AdcChannelMode.Dual:
+                                                            rates.Add(500000000);
+                                                            break;
+                                                        case AdcChannelMode.Quad:
+                                                            rates.Add(250000000);
+                                                            break;
+                                                    }
+                                                    break;
+                                                }
+                                            case Driver.LiteX.Thunderscope liteXThunderscope:
+                                                {
+                                                    switch (config.AdcChannelMode)
+                                                    {
+                                                        case AdcChannelMode.Single:
+                                                            rates.Add(1000000000);
+                                                            rates.Add(500000000);
+                                                            rates.Add(250000000);
+                                                            rates.Add(100000000);
+                                                            break;
+                                                        case AdcChannelMode.Dual:
+                                                            rates.Add(500000000);
+                                                            rates.Add(250000000);
+                                                            rates.Add(100000000);
+                                                            break;
+                                                        case AdcChannelMode.Quad:
+                                                            rates.Add(250000000);
+                                                            rates.Add(100000000);
+                                                            break;
+                                                    }
+                                                    break;
+                                                }
+                                        }
+                                        hardwareResponseChannel.Write(new HardwareGetRatesResponse(rates.ToArray()));
+                                        logger.LogDebug($"{nameof(HardwareGetRatesResponse)}");
+                                        break;
+                                    }
                                 case HardwareSetChannelFrontendRequest hardwareConfigureChannelFrontendDto:
                                     {
                                         var channelIndex = ((HardwareSetChannelFrontendRequest)request).ChannelIndex;
@@ -135,20 +200,6 @@ namespace TS.NET.Engine
                                                 break;
                                         }
                                         thunderscope.SetChannelFrontend(channelIndex, channelFrontend);
-                                        break;
-                                    }
-                                case HardwareSetRateRequest hardwareSetRateRequest:
-                                    {
-                                        thunderscope.SetRate(hardwareSetRateRequest.rate);
-                                        logger.LogDebug($"{nameof(hardwareSetRateRequest)} (rate: {hardwareSetRateRequest.rate})");
-                                        break;
-                                    }
-                                case HardwareGetRateRequest hardwareGetRateRequest:
-                                    {
-                                        logger.LogDebug($"{nameof(HardwareGetRateRequest)}");
-                                        var config = thunderscope.GetConfiguration();
-                                        hardwareResponseChannel.Write(new HardwareGetRateResponse(config.SampleRateHz));
-                                        logger.LogDebug($"{nameof(HardwareGetRateResponse)}");
                                         break;
                                     }
                                 case HardwareSetChannelCalibrationRequest hardwareSetChannelCalibrationDto:
@@ -249,7 +300,7 @@ namespace TS.NET.Engine
                         var oneSecondEnqueueCount = periodicEnqueueCount / periodicUpdateTimer.Elapsed.TotalSeconds;
                         logger.LogDebug($"Enqueues/sec: {oneSecondEnqueueCount:F2}, MB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.Length / 1000 / 1000):F3}, MiB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.Length / 1024 / 1024):F3}, enqueue count: {enqueueCounter}");
 
-                        if(thunderscope is Driver.LiteX.Thunderscope liteXThunderscope)
+                        if (thunderscope is Driver.LiteX.Thunderscope liteXThunderscope)
                         {
                             var status = liteXThunderscope.GetStatus();
                             logger.LogDebug($"Lost Sample Buffers: {status.AdcSamplesLost}, FPGA Temperature: {status.FpgaTemp:F2}, VCC Int: {status.VccInt:F3}, VCC Aux: {status.VccAux:F3}, VCC BRAM: {status.VccBram:F3}");
