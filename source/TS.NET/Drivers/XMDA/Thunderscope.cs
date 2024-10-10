@@ -170,6 +170,9 @@ namespace TS.NET.Driver.XMDA
         {
             return configuration;
         }
+        public void SetRate(ulong sampleRateHz)
+        {
+        }
 
         public void ResetBuffer()
         {

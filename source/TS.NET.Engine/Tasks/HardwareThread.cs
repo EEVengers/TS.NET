@@ -137,6 +137,20 @@ namespace TS.NET.Engine
                                         thunderscope.SetChannelFrontend(channelIndex, channelFrontend);
                                         break;
                                     }
+                                case HardwareSetRateRequest hardwareSetRateRequest:
+                                    {
+                                        thunderscope.SetRate(hardwareSetRateRequest.rate);
+                                        logger.LogDebug($"{nameof(hardwareSetRateRequest)} (rate: {hardwareSetRateRequest.rate})");
+                                        break;
+                                    }
+                                case HardwareGetRateRequest hardwareGetRateRequest:
+                                    {
+                                        logger.LogDebug($"{nameof(HardwareGetRateRequest)}");
+                                        var config = thunderscope.GetConfiguration();
+                                        hardwareResponseChannel.Write(new HardwareGetRateResponse(config.SampleRateHz));
+                                        logger.LogDebug($"{nameof(HardwareGetRateResponse)}");
+                                        break;
+                                    }
                                 case HardwareSetChannelCalibrationRequest hardwareSetChannelCalibrationDto:
                                     {
                                         var channelIndex = ((HardwareSetChannelCalibrationRequest)request).ChannelIndex;

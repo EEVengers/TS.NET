@@ -8,6 +8,7 @@ namespace TS.NET.Driver.LiteX
         private bool open = false;
         private nint tsHandle;
         private double[] channel_volt_scale;
+        private ThunderscopeLiteXStatus tsHealth;
 
         private ThunderscopeChannelCalibration[] tsCalibration;
 
@@ -16,6 +17,7 @@ namespace TS.NET.Driver.LiteX
             logger = loggerFactory.CreateLogger("Drivers.LiteX");
             channel_volt_scale = new double[4];
             tsCalibration = new ThunderscopeChannelCalibration[4];
+            tsHealth = new ThunderscopeLiteXStatus();
         }
 
         ~Thunderscope()
@@ -41,6 +43,8 @@ namespace TS.NET.Driver.LiteX
             {
                 SetChannelCalibration(chan, calibration[chan]);
             }
+
+            GetStatus();
         }
 
         public void Close()
@@ -174,6 +178,9 @@ namespace TS.NET.Driver.LiteX
                                     (channelCount == 2) ? AdcChannelMode.Dual :
                                     AdcChannelMode.Quad;
 
+            GetStatus();
+            config.SampleRateHz = tsHealth.AdcSampleRate;
+
             return config;
         }
 
@@ -194,7 +201,6 @@ namespace TS.NET.Driver.LiteX
             if (!open)
                 throw new Exception("Thunderscope not open");
 
-            var tsHealth = new ThunderscopeLiteXStatus();
             var litexState = new Interop.tsScopeState_t();
             if (Interop.GetStatus(tsHandle, out litexState) != 0)
                 throw new Exception("");
@@ -209,6 +215,19 @@ namespace TS.NET.Driver.LiteX
             tsHealth.VccBram = litexState.vcc_bram / 1000.0;
 
             return tsHealth;
+        }
+
+        public void SetRate(ulong sampleRateHz)
+        {
+            if(!open)
+                throw new Exception("Thunderscope not open");
+
+            var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, tsHealth.AdcSampleResolution);
+
+            if ( retVal == -2) //Invalid Parameter
+                logger.LogTrace($"Thunderscope failed to set sample rate ({sampleRateHz}): INVALID_PARAMETER");
+            else if (retVal < 0)
+                throw new Exception($"Thunderscope had an errors trying to set sample rate {sampleRateHz} ({retVal})");
         }
 
         public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)

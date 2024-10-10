@@ -5,6 +5,8 @@ namespace TS.NET.Engine
     public abstract record HardwareRequestDto();
     public record HardwareStartRequest() : HardwareRequestDto;
     public record HardwareStopRequest() : HardwareRequestDto;
+    public record HardwareSetRateRequest(ulong rate) : HardwareRequestDto;
+    public record HardwareGetRateRequest() : HardwareRequestDto;
 
     public abstract record HardwareSetChannelFrontendRequest(int ChannelIndex) : HardwareRequestDto;
     public record HardwareSetEnabledRequest(int ChannelIndex, bool Enabled) : HardwareSetChannelFrontendRequest(ChannelIndex);

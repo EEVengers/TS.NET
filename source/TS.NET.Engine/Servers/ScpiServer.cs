@@ -155,9 +155,9 @@ namespace TS.NET.Engine
                                 case "RATE":
                                     if (argument != null)
                                     {
-                                        long rate = Convert.ToInt64(argument);
-                                        processingRequestChannel.Write(new ProcessingSetRateDto(rate));
-                                        logger.LogDebug($"{nameof(ProcessingSetRateDto)} sent with argument: {rate}");
+                                        ulong rate = Convert.ToUInt64(argument);
+                                        hardwareRequestChannel.Write(new HardwareSetRateRequest(rate));
+                                        logger.LogDebug($"{nameof(HardwareSetRateRequest)} sent with argument: {rate}");
                                     }
                                     return null;
                             }
@@ -410,23 +410,14 @@ namespace TS.NET.Engine
                             logger.LogDebug("Reply to *IDN? query");
                             return "ThunderScope,(Bridge),NOSERIAL,NOVERSION\n";
                         case "RATES":
-                            processingRequestChannel.Write(new ProcessingGetRateRequestDto());
-                            if (processingResponseChannel.TryRead(out var response, 100))
-                            {
-                                switch (response)
-                                {
-                                    case ProcessingGetRateResponseDto hardwareGetRateResponse:
-                                        return $"{1000000000000000 / hardwareGetRateResponse.SampleRate:F0},\n";
-                                    default:
-                                        logger.LogWarning($"Did not get correct response to {nameof(ProcessingGetRateRequestDto)}");
-                                        return "";
-                                }
-                            }
-                            else
-                            {
-                                logger.LogWarning($"Did not get any response to {nameof(ProcessingGetRateRequestDto)}");
-                                return "";
-                            }
+                            List<string> rates = new();
+                            rates.Add("1000000000");
+                            rates.Add("750000000");
+                            rates.Add("500000000");
+                            rates.Add("250000000");
+                            rates.Add("125000000");
+                            return $"{string.Join(",", rates)},\n";
+
                         case "DEPTHS":
                             List<string> depths = new();
                             int baseCount = 1000;
