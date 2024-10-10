@@ -9,12 +9,18 @@ namespace TS.NET.Driver.LiteX
         private nint tsHandle;
         private double[] channel_volt_scale;
         private ThunderscopeLiteXStatus tsHealth;
-
         private ThunderscopeChannelCalibration[] tsCalibration;
+        private uint readSegmentLengthBytes;
 
-        public Thunderscope(ILoggerFactory loggerFactory)
+        /// <summary>
+        /// readSegmentLengthBytes should be the same as DMA_BUFFER_SIZE in the driver. Other values may work, further research needed.
+        /// </summary>
+        public Thunderscope(ILoggerFactory loggerFactory, int readSegmentLengthBytes)
         {
-            logger = loggerFactory.CreateLogger("Drivers.LiteX");
+            if (ThunderscopeMemory.Length % readSegmentLengthBytes != 0)
+                throw new ArgumentException("ThunderscopeMemory.Length % readSegmentLengthBytes != 0");
+            this.readSegmentLengthBytes = (uint)readSegmentLengthBytes;
+            logger = loggerFactory.CreateLogger("Driver.LiteX");
             channel_volt_scale = new double[4];
             tsCalibration = new ThunderscopeChannelCalibration[4];
             tsHealth = new ThunderscopeLiteXStatus();
@@ -88,24 +94,17 @@ namespace TS.NET.Driver.LiteX
             {
                 ulong length = ThunderscopeMemory.Length;
                 ulong dataRead = 0;
-                uint readSegment = 2048*128;
-                while(length >= 2048)
+                while (length > 0)
                 {
-                    int readLen = Interop.Read(tsHandle, data.Pointer + dataRead, readSegment);
-                    
+                    int readLen = Interop.Read(tsHandle, data.Pointer + dataRead, readSegmentLengthBytes);
+
                     if (readLen < 0)
                         throw new Exception($"Thunderscope failed to read samples ({readLen})");
-                    else if (readLen != readSegment)
+                    else if (readLen != readSegmentLengthBytes)
                         throw new Exception($"Thunderscope read incorrect sample length ({readLen})");
-                
-                    dataRead += (ulong)readSegment;
-                    length -= (ulong)readSegment;
 
-                    if(length < readSegment)
-                    {
-                        //Reduce readSegment to the amount remaining, rounded down to a multiple of 2048
-                        readSegment = ((uint)length / 2048) * 2048;
-                    }
+                    dataRead += (ulong)readSegmentLengthBytes;
+                    length -= (ulong)readSegmentLengthBytes;
                 }
             }
         }

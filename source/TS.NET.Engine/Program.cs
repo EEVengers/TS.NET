@@ -109,7 +109,7 @@ class Program
         {
             case "simulator":
                 {
-                    var ts = new TS.NET.Driver.Simulator.Thunderscope();
+                    var ts = new TS.NET.Driver.Simulation.Thunderscope();
                     thunderscope = ts;
                     break;
                 }
@@ -146,7 +146,7 @@ class Program
                 }
             case "litex":
                 {
-                    var ts = new TS.NET.Driver.LiteX.Thunderscope(loggerFactory);
+                    var ts = new TS.NET.Driver.LiteX.Thunderscope(loggerFactory, 1024 * 256);
 
                     var tsCal = new ThunderscopeChannelCalibrationArray();
                     tsCal[0] = thunderscopeSettings.LiteXCalibration.Channel1.ToDriver();
