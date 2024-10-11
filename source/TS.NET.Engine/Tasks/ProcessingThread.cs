@@ -526,7 +526,7 @@ namespace TS.NET.Engine
                             var intervalCaptureDrops = captureBuffer.CaptureDrops - cachedCaptureDrops;
                             var intervalCaptureReads = captureReads - cachedCaptureReads;
 
-                            logger.LogDebug($"[Captures] total/s: {intervalCaptureTotal / elapsedTime:F2}, drops/s: {intervalCaptureDrops / elapsedTime:F2}, reads/s: {intervalCaptureReads / elapsedTime:F2}, total: {captureBuffer.CaptureTotal}, drops: {captureBuffer.CaptureDrops}, reads: {captureReads}");
+                            logger.LogDebug($"[Capture stats] total/s: {intervalCaptureTotal / elapsedTime:F2}, drops/s: {intervalCaptureDrops / elapsedTime:F2}, reads/s: {intervalCaptureReads / elapsedTime:F2}, total: {captureBuffer.CaptureTotal}, drops: {captureBuffer.CaptureDrops}, reads: {captureReads}");
                             logger.LogDebug($"[Capture buffer] capacity: {captureBuffer.MaxCaptureCount}, current: {captureBuffer.CurrentCaptureCount}, channel count: {captureBuffer.ChannelCount}");
                             periodicUpdateTimer.Restart();
 
