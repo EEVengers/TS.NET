@@ -53,7 +53,7 @@ namespace TS.NET.Engine
         private static void Loop(
             ILogger logger,
             ThunderscopeSettings settings,
-            ThunderscopeHardwareConfig hardwareConfig,
+            ThunderscopeHardwareConfig cachedHardwareConfig,
             BlockingChannelReader<InputDataDto> processChannel,
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
@@ -82,7 +82,7 @@ namespace TS.NET.Engine
                 //ThunderscopeDataBridgeWriter bridge = new(bridgeNamespace, settings.MaxChannelCount * settings.MaxChannelDataLength * ThunderscopeDataType.I8.ByteWidth());
 
                 // Set some sensible defaults
-                ushort initialChannelCount = hardwareConfig.AdcChannelMode switch
+                ushort initialChannelCount = cachedHardwareConfig.AdcChannelMode switch
                 {
                     AdcChannelMode.Quad => 4,
                     AdcChannelMode.Dual => 2,
@@ -151,11 +151,6 @@ namespace TS.NET.Engine
                 // forceTriggerLatch: disregards the Trigger Mode, push update immediately and set forceTrigger to false. If a standard trigger happened at the same time as a force, the force is ignored so the bridge only updates once.
                 // singleTriggerLatch: used in Single mode to stop the trigger subsystem after a trigger.
 
-                // Cached values that need to be compared against hardware channel single-source-of-truth
-                //AdcChannelMode cachedAdcChannelMode = AdcChannelMode.Quad;
-                ulong cachedSampleRateHz = 250000000;
-                ushort cachedEnabledChannelsCount = 0;
-
                 IEdgeTriggerI8 edgeTriggerI8 = new RisingEdgeTriggerI8();
                 bool runMode = true;
                 bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
@@ -164,7 +159,7 @@ namespace TS.NET.Engine
                 // Variables for Auto triggering
                 Stopwatch autoTimeoutTimer = Stopwatch.StartNew();
                 int streamSampleCounter = 0;
-                long autoTimeout = 500;
+                long autoTimeout = 1000;
 
                 logger.LogInformation("Started");
                 startSemaphore.Release();
@@ -180,6 +175,7 @@ namespace TS.NET.Engine
                         {
                             case ProcessingRunDto processingStartTriggerDto:
                                 runMode = true;
+                                processingConfig.TriggerMode = TriggerMode.Auto;        // To do: cache the last setting of AUTO/NORMAL/STREAM and use it here
                                 captureBuffer.Reset();
                                 logger.LogDebug($"{nameof(ProcessingRunDto)}");
                                 break;
@@ -217,7 +213,7 @@ namespace TS.NET.Engine
                                 {
                                     processingConfig.ChannelDataLength = processingSetDepthDto.Samples;
                                     captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
-                                    UpdateTriggerHorizontalPosition();
+                                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
                                     logger.LogDebug($"{nameof(ProcessingSetDepthDto)} ({processingConfig.ChannelDataLength})");
                                 }
                                 else
@@ -238,7 +234,7 @@ namespace TS.NET.Engine
                                 if (processingConfig.TriggerDelayFs != processingSetTriggerDelayDto.Femtoseconds)
                                 {
                                     processingConfig.TriggerDelayFs = processingSetTriggerDelayDto.Femtoseconds;
-                                    UpdateTriggerHorizontalPosition();
+                                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
                                     captureBuffer.Reset();
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (femtoseconds: {processingConfig.TriggerDelayFs})");
                                 }
@@ -248,7 +244,7 @@ namespace TS.NET.Engine
                                 var requestedTriggerLevel = processingSetTriggerLevelDto.LevelVolts;
                                 // Convert the voltage to Int8
 
-                                var triggerChannel = hardwareConfig.GetTriggerChannelFrontend(processingConfig.TriggerChannel);
+                                var triggerChannel = cachedHardwareConfig.GetTriggerChannelFrontend(processingConfig.TriggerChannel);
 
                                 if ((requestedTriggerLevel > triggerChannel.ActualVoltFullScale / 2) || (requestedTriggerLevel < -triggerChannel.ActualVoltFullScale / 2))
                                 {
@@ -288,39 +284,36 @@ namespace TS.NET.Engine
                     }
 
                     if (processChannel.TryRead(out InputDataDto inputDataDto, 10, cancelToken))
-                    {
-                        hardwareConfig = inputDataDto.HardwareConfig;
-                        //bridge.Hardware = hardwareConfig;
+                    {                      
                         totalDequeueCount++;
 
-                        if (hardwareConfig.SampleRateHz != cachedSampleRateHz)
+                        // Check for any hardware changes that require action
+                        if (inputDataDto.HardwareConfig.SampleRateHz != cachedHardwareConfig.SampleRateHz)
                         {
-                            // If the SampleRateHz changes then update horizontal trigger position
-                            cachedSampleRateHz = hardwareConfig.SampleRateHz;
-                            UpdateTriggerHorizontalPosition();
+                            UpdateTriggerHorizontalPosition(inputDataDto.HardwareConfig);
+                            //for (int i = 0; i < 4; i++)
+                            //{
+                            //    sampleBuffers[i].Reset();
+                            //}
+                            captureBuffer.Reset();
+                            logger.LogTrace("Hardware sample rate change ({0})", cachedHardwareConfig.SampleRateHz);
                         }
 
-                        var enabledChannelsCount = hardwareConfig.EnabledChannelsCount();
-                        if (enabledChannelsCount != cachedEnabledChannelsCount)
+                        if (inputDataDto.HardwareConfig.EnabledChannelsCount() != cachedHardwareConfig.EnabledChannelsCount())
                         {
-                            cachedEnabledChannelsCount = enabledChannelsCount;
-                            processingConfig.ChannelCount = enabledChannelsCount;
-                            for (int i = 0; i < 4; i++)
-                            {
-                                sampleBuffers[i].Reset();
-                            }
+                            processingConfig.ChannelCount = inputDataDto.HardwareConfig.EnabledChannelsCount();
+                            //for (int i = 0; i < 4; i++)
+                            //{
+                            //    sampleBuffers[i].Reset();
+                            //}
                             captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
+                            logger.LogTrace("Hardware enabled chahnnel change ({0})", processingConfig.ChannelCount);
                         }
+                        cachedHardwareConfig = inputDataDto.HardwareConfig;
 
                         int channelLength = processingConfig.ChannelDataLength;
-                        switch (hardwareConfig.AdcChannelMode)
+                        switch (cachedHardwareConfig.AdcChannelMode)
                         {
-                            // Processing pipeline:
-                            // Shuffle (if needed)
-                            // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
-                            // Write to circular buffer
-                            // Trigger
-                            // Data segment on trigger (if needed)
                             case AdcChannelMode.Single:
                                 // Copy
                                 inputDataDto.Memory.SpanI8.CopyTo(shuffleBuffer);
@@ -337,7 +330,7 @@ namespace TS.NET.Engine
                                         case TriggerMode.Normal:
                                         case TriggerMode.Single:
                                         case TriggerMode.Auto:
-                                            if (hardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
+                                            if (cachedHardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
                                             {
                                                 var triggerChannelBuffer = shuffleBuffer;
 
@@ -348,7 +341,7 @@ namespace TS.NET.Engine
                                                     for (int i = 0; i < captureEndCount; i++)
                                                     {
                                                         uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
-                                                        Capture(triggered: true, enabledChannelsCount, endOffset);
+                                                        Capture(triggered: true, cachedHardwareConfig.EnabledChannelsCount(), endOffset);
 
                                                         if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
                                                         {
@@ -363,7 +356,7 @@ namespace TS.NET.Engine
                                             }
                                             if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
                                             {
-                                                Capture(triggered: false, enabledChannelsCount, 0);
+                                                Capture(triggered: false, cachedHardwareConfig.EnabledChannelsCount(), 0);
 
                                                 forceTriggerLatch = false;
 
@@ -372,11 +365,11 @@ namespace TS.NET.Engine
                                             }
                                             else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                             {
-                                                Stream(enabledChannelsCount, channelLength);
+                                                Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
                                             }
                                             break;
                                         case TriggerMode.Stream:
-                                            Stream(enabledChannelsCount, channelLength);
+                                            Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
                                             break;
                                     }
                                 }
@@ -398,10 +391,10 @@ namespace TS.NET.Engine
                                         case TriggerMode.Normal:
                                         case TriggerMode.Single:
                                         case TriggerMode.Auto:
-                                            if (hardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
+                                            if (cachedHardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
                                             {
                                                 var triggerChannelBuffer = shuffleBuffer2Ch_2;
-                                                if (hardwareConfig.DualChannelModeIsTriggerChannelInFirstPosition(processingConfig.TriggerChannel))
+                                                if (cachedHardwareConfig.DualChannelModeIsTriggerChannelInFirstPosition(processingConfig.TriggerChannel))
                                                     triggerChannelBuffer = shuffleBuffer2Ch_1;
 
                                                 edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
@@ -411,7 +404,7 @@ namespace TS.NET.Engine
                                                     for (int i = 0; i < captureEndCount; i++)
                                                     {
                                                         uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
-                                                        Capture(triggered: true, enabledChannelsCount, endOffset);
+                                                        Capture(triggered: true, cachedHardwareConfig.EnabledChannelsCount(), endOffset);
 
                                                         if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
                                                         {
@@ -426,7 +419,7 @@ namespace TS.NET.Engine
                                             }
                                             if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
                                             {
-                                                Capture(triggered: false, enabledChannelsCount, 0);
+                                                Capture(triggered: false, cachedHardwareConfig.EnabledChannelsCount(), 0);
 
                                                 forceTriggerLatch = false;
 
@@ -435,11 +428,11 @@ namespace TS.NET.Engine
                                             }
                                             else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                             {
-                                                Stream(enabledChannelsCount, channelLength);
+                                                Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
                                             }
                                             break;
                                         case TriggerMode.Stream:
-                                            Stream(enabledChannelsCount, channelLength);
+                                            Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
                                             break;
                                     }
                                 }
@@ -483,7 +476,7 @@ namespace TS.NET.Engine
                                                     for (int i = 0; i < captureEndCount; i++)
                                                     {
                                                         uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
-                                                        Capture(triggered: true, enabledChannelsCount, endOffset);
+                                                        Capture(triggered: true, cachedHardwareConfig.EnabledChannelsCount(), endOffset);
 
                                                         if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
                                                         {
@@ -498,7 +491,7 @@ namespace TS.NET.Engine
                                             }
                                             if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
                                             {
-                                                Capture(triggered: false, enabledChannelsCount, 0);
+                                                Capture(triggered: false, cachedHardwareConfig.EnabledChannelsCount(), 0);
 
                                                 forceTriggerLatch = false;
 
@@ -507,11 +500,11 @@ namespace TS.NET.Engine
                                             }
                                             else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                             {
-                                                Stream(enabledChannelsCount, channelLength);
+                                                Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
                                             }
                                             break;
                                         case TriggerMode.Stream:
-                                            Stream(enabledChannelsCount, channelLength);
+                                            Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
                                             break;
                                     }
                                 }
@@ -540,7 +533,7 @@ namespace TS.NET.Engine
                 }
 
                 // Locally scoped methods for deduplication
-                void UpdateTriggerHorizontalPosition()
+                void UpdateTriggerHorizontalPosition(ThunderscopeHardwareConfig hardwareConfig)
                 {
                     ulong femtosecondsPerSample = 1000000000000000 / hardwareConfig.SampleRateHz;
                     var windowTriggerPosition = processingConfig.TriggerDelayFs / femtosecondsPerSample;
@@ -555,7 +548,7 @@ namespace TS.NET.Engine
                         {
                             sampleBuffers[b].Read(captureBuffer.GetWriteBuffer(b), offset);
                         }
-                        captureBuffer.FinishWrite(triggered: triggered, hardwareConfig, processingConfig);
+                        captureBuffer.FinishWrite(triggered: triggered, cachedHardwareConfig, processingConfig);
                     }
                 }
 
@@ -570,7 +563,7 @@ namespace TS.NET.Engine
                             {
                                 sampleBuffers[b].Read(captureBuffer.GetWriteBuffer(b), 0);
                             }
-                            captureBuffer.FinishWrite(triggered: false, hardwareConfig, processingConfig);
+                            captureBuffer.FinishWrite(triggered: false, cachedHardwareConfig, processingConfig);
                         }
                     }
                 }
@@ -585,7 +578,7 @@ namespace TS.NET.Engine
                         _ => throw new NotImplementedException()
                     };
                     edgeTriggerI8.SetVertical((sbyte)processingConfig.TriggerLevel, (byte)processingConfig.TriggerHysteresis);
-                    UpdateTriggerHorizontalPosition();
+                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
                 }
             }
             catch (OperationCanceledException)

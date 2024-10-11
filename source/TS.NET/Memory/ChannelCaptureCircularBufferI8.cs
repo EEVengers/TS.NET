@@ -5,15 +5,14 @@
     // When the user changes the capture length, this buffer will empty, and then configure to allow the maximum number of captures in the given memory.
     // When the user changes various settings, this buffer will empty.
     //
-    // Needs to be thread safe for a single writer and a single reader.
+    // Needs to be thread safe for a single writer thread and a single reader thread. Multiple writers or readers not allowed.
     // The MMF becomes a pure data exchange mechanism
-    //
-    // IMPORTANT: only a single reader/writer allowed otherwise data corruption will result
+
     public class ChannelCaptureCircularBufferI8 : IDisposable
     {
         private readonly NativeMemoryAligned<sbyte> buffer;
 
-        private object configurationLock = new();
+        public object ReadLock = new();     // Configure/Reset/TryStartWrite/ResetIntervalStats happen on the same thread, so no need for a WriteLock
 
         private long captureLengthBytes;
         private int channelCount;
@@ -68,7 +67,7 @@
             if (potentialCaptureLengthBytes > buffer.Length)
                 throw new ArgumentOutOfRangeException("Requested configuration exceeds memory size.");
 
-            lock (configurationLock)
+            lock (ReadLock)
             {
                 captureLengthBytes = potentialCaptureLengthBytes;
                 this.channelCount = channelCount;
@@ -86,7 +85,7 @@
 
         public void Reset()
         {
-            lock (configurationLock)
+            lock (ReadLock)
             {
                 currentCaptureCount = 0;
                 captureTotal = 0;
@@ -104,24 +103,21 @@
             if (writeInProgress)
                 throw new InvalidOperationException();
 
-            lock (configurationLock)
+            captureTotal++;
+            intervalCaptureTotal++;
+            if (currentCaptureCount == maxCaptureCount)
             {
-                captureTotal++;
-                intervalCaptureTotal++;
-                if (currentCaptureCount == maxCaptureCount)
-                {
-                    captureDrops++;
-                    intervalCaptureDrops++;
-                    return false;
-                }
-                writeInProgress = true;
-                return true;
+                captureDrops++;
+                intervalCaptureDrops++;
+                return false;
             }
+            writeInProgress = true;
+            return true;
         }
 
         public void FinishWrite(bool triggered, ThunderscopeHardwareConfig hardwareConfig, ThunderscopeProcessingConfig processingConfig)
         {
-            lock (configurationLock)
+            lock (ReadLock)
             {
                 this.triggered[writeCaptureOffset] = triggered;
                 this.hardwareConfig = hardwareConfig;
@@ -148,38 +144,32 @@
             if (readInProgress)
                 throw new InvalidOperationException();
 
-            lock (configurationLock)
+            if (currentCaptureCount > 0)
             {
-                if (currentCaptureCount > 0)
-                {
-                    triggered = this.triggered[readCaptureOffset];
-                    hardwareConfig = this.hardwareConfig;
-                    processingConfig = this.processingConfig;
-                    readInProgress = true;
-                    return true;
-                }
-                else
-                {
-                    triggered = false;
-                    hardwareConfig = default;
-                    processingConfig = default;
-                    return false;
-                }
+                triggered = this.triggered[readCaptureOffset];
+                hardwareConfig = this.hardwareConfig;
+                processingConfig = this.processingConfig;
+                readInProgress = true;
+                return true;
+            }
+            else
+            {
+                triggered = false;
+                hardwareConfig = default;
+                processingConfig = default;
+                return false;
             }
         }
 
         public void FinishRead()
         {
-            lock (configurationLock)
-            {
-                currentCaptureCount--;
-                readCaptureOffset += captureLengthBytes;
-                if (readCaptureOffset >= wraparoundOffset)
-                    readCaptureOffset = 0;
-                captureReads++;
-                intervalCaptureReads++;
-                readInProgress = false;
-            }
+            currentCaptureCount--;
+            readCaptureOffset += captureLengthBytes;
+            if (readCaptureOffset >= wraparoundOffset)
+                readCaptureOffset = 0;
+            captureReads++;
+            intervalCaptureReads++;
+            readInProgress = false;
         }
 
         public ReadOnlySpan<sbyte> GetReadBuffer(int channelIndex)
@@ -192,12 +182,9 @@
 
         public void ResetIntervalStats()
         {
-            lock (configurationLock)
-            {
-                intervalCaptureTotal = 0;
-                intervalCaptureDrops = 0;
-                intervalCaptureReads = 0;
-            }
+            intervalCaptureTotal = 0;
+            intervalCaptureDrops = 0;
+            intervalCaptureReads = 0;
         }
     }
 }
