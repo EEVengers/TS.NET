@@ -24,6 +24,9 @@
         private long captureTotal;
         private long captureDrops;
         private long captureReads;
+        private long intervalCaptureTotal;      // Used for console messages
+        private long intervalCaptureDrops;
+        private long intervalCaptureReads;
 
         private long writeCaptureOffset;
         private long readCaptureOffset;
@@ -38,11 +41,16 @@
 
         // These properties can optionally be used with lock(){}, depending on importance of correctness
         public int ChannelCount { get { return channelCount; } }
+
+        public long MaxCaptureCount { get { return maxCaptureCount; } }
+        public long CurrentCaptureCount { get { return currentCaptureCount; } }
         public long CaptureTotal { get { return captureTotal; } }
         public long CaptureDrops { get { return captureDrops; } }
         public long CaptureReads { get { return captureReads; } }
-        public long MaxCaptureCount { get { return maxCaptureCount; } }
-        public long CurrentCaptureCount { get { return currentCaptureCount; } }
+        public long IntervalCaptureTotal { get { return intervalCaptureTotal; } }
+        public long IntervalCaptureDrops { get { return intervalCaptureDrops; } }
+        public long IntervalCaptureReads { get { return intervalCaptureReads; } }
+
         public ThunderscopeHardwareConfig Hardware { get { return hardwareConfig; } }
         public ThunderscopeProcessingConfig Processing { get { return processingConfig; } }
 
@@ -70,7 +78,7 @@
                 this.channelLengthBytes = channelLengthBytes;
 
                 maxCaptureCount = (int)(buffer.Length / captureLengthBytes);
-                if(maxCaptureCount > 10)
+                if (maxCaptureCount > 10)
                 {
                     maxCaptureCount = 10;   // Coerce for now until "stale data" logic implemented where UI is too slow to pull all the data
                 }
@@ -97,9 +105,11 @@
             lock (configurationLock)
             {
                 captureTotal++;
+                intervalCaptureTotal++;
                 if (currentCaptureCount == maxCaptureCount)
                 {
                     captureDrops++;
+                    intervalCaptureDrops++;
                     return false;
                 }
                 writeInProgress = true;
@@ -161,16 +171,27 @@
                 if (readCaptureOffset >= wraparoundOffset)
                     readCaptureOffset = 0;
                 captureReads++;
+                intervalCaptureReads++;
                 readInProgress = false;
             }
         }
 
-        public Span<sbyte> GetReadBuffer(int channelIndex)
+        public ReadOnlySpan<sbyte> GetReadBuffer(int channelIndex)
         {
             if (channelIndex >= channelCount)
                 throw new ArgumentException();
             int offset = channelIndex * channelLengthBytes;
             return buffer.AsSpan(readCaptureOffset + offset, channelLengthBytes);
+        }
+
+        public void ResetIntervalStats()
+        {
+            lock (configurationLock)
+            {
+                intervalCaptureTotal = 0;
+                intervalCaptureDrops = 0;
+                intervalCaptureReads = 0;
+            }
         }
     }
 }

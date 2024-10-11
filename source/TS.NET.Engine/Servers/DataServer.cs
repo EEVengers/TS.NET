@@ -153,8 +153,6 @@ namespace TS.NET.Engine
                                     bytesSent += (ulong)sizeof(ChannelHeader);
                                     //logger.LogDebug("ChannelHeader: " + chHeader.ToString());
                                     var channelBuffer = MemoryMarshal.Cast<sbyte, byte>(captureBuffer.GetReadBuffer(channelIndex));
-                                    var random = Random.Shared.Next(10, 100);
-                                    channelBuffer[random] = 100;
                                     Send(channelBuffer);
                                     bytesSent += (ulong)processing.ChannelDataLength;
                                 }

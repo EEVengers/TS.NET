@@ -131,9 +131,6 @@ namespace TS.NET.Engine
                 //ulong cachedBridgeWrites = 0;
                 //ulong cachedBridgeReads = 0;
 
-                long cachedCaptureTotal = 0;
-                long cachedCaptureDrops = 0;
-                long cachedCaptureReads = 0;
                 Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
 
                 var sampleBuffers = new ChannelSampleCircularBufferI8[4];
@@ -521,19 +518,17 @@ namespace TS.NET.Engine
                         if (elapsedTime >= 10)
                         {
                             var dequeueCount = totalDequeueCount - cachedTotalDequeueCount;
-                            var captureReads = captureBuffer.CaptureReads;  // Pull this out into a variable to stop invalid data (as reader is async to this)
-                            var intervalCaptureTotal = captureBuffer.CaptureTotal - cachedCaptureTotal;
-                            var intervalCaptureDrops = captureBuffer.CaptureDrops - cachedCaptureDrops;
-                            var intervalCaptureReads = captureReads - cachedCaptureReads;
 
-                            logger.LogDebug($"[Capture stats] total/s: {intervalCaptureTotal / elapsedTime:F2}, drops/s: {intervalCaptureDrops / elapsedTime:F2}, reads/s: {intervalCaptureReads / elapsedTime:F2}, total: {captureBuffer.CaptureTotal}, drops: {captureBuffer.CaptureDrops}, reads: {captureReads}");
-                            logger.LogDebug($"[Capture buffer] capacity: {captureBuffer.MaxCaptureCount}, current: {captureBuffer.CurrentCaptureCount}, channel count: {captureBuffer.ChannelCount}");
+                            var intervalCaptureTotal = captureBuffer.IntervalCaptureTotal;
+                            var intervalCaptureDrops = captureBuffer.IntervalCaptureDrops;
+                            var intervalCaptureReads = captureBuffer.IntervalCaptureReads;
+
+                            logger.LogDebug($"[Capture stats] total/s: {intervalCaptureTotal / elapsedTime:F2}, drops/s: {intervalCaptureDrops / elapsedTime:F2}, reads/s: {intervalCaptureReads / elapsedTime:F2}");
+                            logger.LogDebug($"[Capture buffer] capacity: {captureBuffer.MaxCaptureCount}, current: {captureBuffer.CurrentCaptureCount}, channel count: {captureBuffer.ChannelCount}, total: {captureBuffer.CaptureTotal}, drops: {captureBuffer.CaptureDrops}, reads: {captureBuffer.CaptureReads}");
                             periodicUpdateTimer.Restart();
 
                             cachedTotalDequeueCount = totalDequeueCount;
-                            cachedCaptureTotal = captureBuffer.CaptureTotal;
-                            cachedCaptureDrops = captureBuffer.CaptureDrops;
-                            cachedCaptureReads = captureReads;
+                            captureBuffer.ResetIntervalStats();
                         }
                     }
                 }
