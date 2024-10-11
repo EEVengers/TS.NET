@@ -108,7 +108,6 @@ namespace TS.NET.Engine
                             int triggerIndex = (int)(processingConfig.TriggerDelayFs / femtosecondsPerSample);
                             if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
                             {
-                                // To do: get actual front end values for trigger channel
                                 int channelIndex = hardwareConfig.GetChannelIndexByCaptureBufferIndex(triggerChannelCaptureIndex);
                                 ThunderscopeChannelFrontend triggerChannelFrontend = hardwareConfig.Frontend[channelIndex];
                                 var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 255.0);
