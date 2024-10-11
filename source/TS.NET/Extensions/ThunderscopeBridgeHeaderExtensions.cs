@@ -27,17 +27,70 @@
             };
         }
 
-        public static bool DualChannelModeIsTriggerChannelInFirstPosition(this ThunderscopeHardwareConfig config, TriggerChannel triggerChannel)
+        public static ushort EnabledChannelsCount(this ThunderscopeHardwareConfig config)
         {
-            // There will be 2 bits enabled in config.EnabledChannels. If the trigger channel is the rightmost bit, return true.
-            return triggerChannel switch
+            return config.EnabledChannels switch
             {
-                TriggerChannel.Channel1 => true,
-                TriggerChannel.Channel2 => (config.EnabledChannels | 0b00001100) > 0,
-                TriggerChannel.Channel3 => (config.EnabledChannels | 0b00001000) > 0,
-                TriggerChannel.Channel4 => false,
-                _ => throw new NotImplementedException(),
+                0 => 0,
+                1 => 1,
+                2 => 1,
+                3 => 2,
+                4 => 1,
+                5 => 2,
+                6 => 2,
+                7 => 3,
+                8 => 1,
+                9 => 2,
+                10 => 2,
+                11 => 3,
+                12 => 2,
+                13 => 3,
+                14 => 3,
+                15 => 4,
+                _ => throw new NotImplementedException()
             };
+        }
+
+        public static int GetChannelIndexByCaptureBufferIndex(this ThunderscopeHardwareConfig config, int position)
+        {
+            int counter = 0;
+            for (int i = 0; i < 4; i++)
+            {
+                if (((config.EnabledChannels >> i) & 0x01) > 0)
+                {
+                    if (counter == position)
+                        return i;
+                    counter++;
+                }
+            }
+            return 0;
+        }
+
+        public static int GetCaptureBufferIndexForTriggerChannel(this ThunderscopeHardwareConfig config, TriggerChannel triggerChannel)
+        {
+            // To do: simplify this horror
+            int triggerChannelIndex = ((int)triggerChannel) - 1;
+            switch (config.AdcChannelMode)
+            {
+                case AdcChannelMode.Single:
+                    return 0;
+                case AdcChannelMode.Dual:
+                    for (int i = 0; i < 2; i++)
+                    {
+                        if (config.GetChannelIndexByCaptureBufferIndex(i) == triggerChannelIndex)
+                            return i;
+                    }
+                    throw new NotImplementedException();
+                case AdcChannelMode.Quad:
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (config.GetChannelIndexByCaptureBufferIndex(i) == triggerChannelIndex)
+                            return i;
+                    }
+                    throw new NotImplementedException();
+                default:
+                    throw new NotImplementedException();
+            }
         }
     }
 }

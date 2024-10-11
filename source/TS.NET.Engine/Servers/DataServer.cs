@@ -24,7 +24,7 @@ namespace TS.NET.Engine
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal struct ChannelHeader
     {
-        internal byte chNum;
+        internal byte channelIndex;
         internal ulong depth;
         internal float scale;
         internal float offset;
@@ -32,7 +32,7 @@ namespace TS.NET.Engine
         internal byte clipping;
         public override string ToString()
         {
-            return $"chNum: {chNum}, depth: {depth}, scale: {scale}, offset: {offset}, trigphase: {trigphase}, clipping: {clipping}";
+            return $"chNum: {channelIndex}, depth: {depth}, scale: {scale}, offset: {offset}, trigphase: {trigphase}, clipping: {clipping}";
         }
     }
 
@@ -74,7 +74,7 @@ namespace TS.NET.Engine
 
                 lock (captureBuffer.ReadLock)
                 {
-                    if (captureBuffer.TryStartRead(out var triggered, out var hardwareConfig, out var processingConfig))      // Add timeout parameter and eliminate Thread.Sleep
+                    if (captureBuffer.TryStartRead(out var triggered, out var triggerChannelCaptureIndex, out var hardwareConfig, out var processingConfig))      // Add timeout parameter and eliminate Thread.Sleep
                     {
                         noCapturesAvailable = false;
                         //logger.LogDebug("Sending waveform...");
@@ -92,7 +92,7 @@ namespace TS.NET.Engine
 
                         ChannelHeader chHeader = new()
                         {
-                            chNum = 0,
+                            channelIndex = 0,
                             depth = (ulong)processingConfig.ChannelDataLength,
                             scale = 1,
                             offset = 0,
@@ -105,36 +105,22 @@ namespace TS.NET.Engine
                         // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
                         if (triggered)
                         {
-                            // To do - trigger interpolation only works on 4 channel mode
-                            ReadOnlySpan<sbyte> channelData = processingConfig.TriggerChannel switch
+                            logger.LogTrace("triggerChannelCaptureIndex: {0}", triggerChannelCaptureIndex);
+                            ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetReadBuffer(triggerChannelCaptureIndex);
+                            // Get the trigger index. If it's greater than 0, then do trigger interpolation.
+                            int triggerIndex = (int)(processingConfig.TriggerDelayFs / femtosecondsPerSample);
+                            if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
                             {
-                                TriggerChannel.Channel1 => captureBuffer.GetReadBuffer(0),
-                                TriggerChannel.Channel2 => captureBuffer.GetReadBuffer(1),
-                                TriggerChannel.Channel3 => captureBuffer.GetReadBuffer(2),
-                                TriggerChannel.Channel4 => captureBuffer.GetReadBuffer(3),
-                                _ => null
-                            };
-                            if (channelData != null)
-                            {
-                                // Get the trigger index. If it's greater than 0, then do trigger interpolation.
-                                int triggerIndex = (int)(processingConfig.TriggerDelayFs / femtosecondsPerSample);
-                                if (triggerIndex > 0 && triggerIndex < channelData.Length)
-                                {
-                                    float fa = (chHeader.scale * channelData[triggerIndex - 1]) - chHeader.offset;
-                                    float fb = (chHeader.scale * channelData[triggerIndex]) - chHeader.offset;
-                                    float triggerLevel = (chHeader.scale * processingConfig.TriggerLevel) + chHeader.offset;
-                                    float slope = fb - fa;
-                                    float delta = triggerLevel - fa;
-                                    float trigphase = delta / slope;
-                                    chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
-                                    if (!double.IsFinite(chHeader.trigphase))
-                                        chHeader.trigphase = 0;
-                                    //logger.LogTrace("Trigger phase: {0:F6}, first {1}, second {2}", chHeader.trigphase, fa, fb);
-                                }
-                            }
-                            else
-                            {
-                                logger.LogError("Capture was triggered but no trigger channel set in processingConfig.");
+                                float fa = (chHeader.scale * triggerChannelBuffer[triggerIndex - 1]) - chHeader.offset;
+                                float fb = (chHeader.scale * triggerChannelBuffer[triggerIndex]) - chHeader.offset;
+                                float triggerLevel = (chHeader.scale * processingConfig.TriggerLevel) + chHeader.offset;
+                                float slope = fb - fa;
+                                float delta = triggerLevel - fa;
+                                float trigphase = delta / slope;
+                                chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
+                                if (!double.IsFinite(chHeader.trigphase))
+                                    chHeader.trigphase = 0;
+                                //logger.LogTrace("Trigger phase: {0:F6}, first {1}, second {2}", chHeader.trigphase, fa, fb);
                             }
                         }
                         unsafe
@@ -143,17 +129,21 @@ namespace TS.NET.Engine
                             bytesSent += (ulong)sizeof(WaveformHeader);
                             //logger.LogDebug("WaveformHeader: " + header.ToString());
 
-                            for (byte channelIndex = 0; channelIndex < processingConfig.ChannelCount; channelIndex++)
+                            for (byte captureBufferIndex = 0; captureBufferIndex < captureBuffer.ChannelCount; captureBufferIndex++)
                             {
+                                // Map captureBufferIndex to channelIndex
+                                int channelIndex = hardwareConfig.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
+                                //logger.LogTrace("channelIndex: {0}", channelIndex);
+
                                 ThunderscopeChannelFrontend thunderscopeChannel = hardwareConfig.Frontend[channelIndex];
-                                chHeader.chNum = channelIndex;
+                                chHeader.channelIndex = (byte)channelIndex;
                                 chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
                                 chHeader.offset = (float)thunderscopeChannel.VoltOffset;
 
                                 Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
                                 bytesSent += (ulong)sizeof(ChannelHeader);
                                 //logger.LogDebug("ChannelHeader: " + chHeader.ToString());
-                                var channelBuffer = MemoryMarshal.Cast<sbyte, byte>(captureBuffer.GetReadBuffer(channelIndex));
+                                var channelBuffer = MemoryMarshal.Cast<sbyte, byte>(captureBuffer.GetReadBuffer(captureBufferIndex));
                                 Send(channelBuffer);
                                 bytesSent += (ulong)processingConfig.ChannelDataLength;
                             }
@@ -168,7 +158,8 @@ namespace TS.NET.Engine
                         noCapturesAvailable = true;
                     }
                 }
-                if (noCapturesAvailable) {
+                if (noCapturesAvailable)
+                {
                     Thread.Sleep(10);
                 }
             }

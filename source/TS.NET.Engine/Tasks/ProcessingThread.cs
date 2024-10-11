@@ -233,7 +233,10 @@ namespace TS.NET.Engine
                                     captureBuffer.Reset();
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (femtoseconds: {processingConfig.TriggerDelayFs})");
                                 }
-                                logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (no change)");
+                                else
+                                {
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (no change)");
+                                }
                                 break;
                             case ProcessingSetTriggerLevelDto processingSetTriggerLevelDto:
                                 var requestedTriggerLevel = processingSetTriggerLevelDto.LevelVolts;
@@ -255,7 +258,10 @@ namespace TS.NET.Engine
                                     captureBuffer.Reset();
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (level: {triggerLevel}, hysteresis: {processingConfig.TriggerHysteresis})");
                                 }
-                                logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (no change)");
+                                else
+                                {
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (no change)");
+                                }
                                 break;
                             case ProcessingSetTriggerTypeDto processingSetTriggerTypeDto:
                                 if (processingConfig.TriggerType != processingSetTriggerTypeDto.Type)
@@ -362,30 +368,51 @@ namespace TS.NET.Engine
                                     {
                                         // Load in the trigger buffer from the correct shuffle buffer
                                         Span<sbyte> triggerChannelBuffer;
+                                        int triggerChannelCaptureIndex;
                                         switch (cachedHardwareConfig.AdcChannelMode)
                                         {
                                             case AdcChannelMode.Single:
+                                                triggerChannelCaptureIndex = 0;
                                                 triggerChannelBuffer = shuffleBuffer;
                                                 break;
                                             case AdcChannelMode.Dual:
-                                                triggerChannelBuffer = shuffleBuffer2Ch_2;
-                                                if (cachedHardwareConfig.DualChannelModeIsTriggerChannelInFirstPosition(processingConfig.TriggerChannel))
-                                                    triggerChannelBuffer = shuffleBuffer2Ch_1;
+                                                triggerChannelCaptureIndex = cachedHardwareConfig.GetCaptureBufferIndexForTriggerChannel(processingConfig.TriggerChannel);
+                                                triggerChannelBuffer = triggerChannelCaptureIndex switch
+                                                {
+                                                    0 => shuffleBuffer2Ch_1,
+                                                    1 => shuffleBuffer2Ch_2,
+                                                    _ => throw new NotImplementedException()
+                                                };
                                                 break;
                                             case AdcChannelMode.Quad:
-                                                triggerChannelBuffer = processingConfig.TriggerChannel switch
+                                                triggerChannelCaptureIndex = cachedHardwareConfig.GetCaptureBufferIndexForTriggerChannel(processingConfig.TriggerChannel);
+
+                                                // Bodge for mismatch in driver behaviour
+                                                triggerChannelBuffer = settings.HardwareDriver.ToLower() switch
                                                 {
-                                                    TriggerChannel.Channel1 => shuffleBuffer4Ch_1,
-                                                    TriggerChannel.Channel2 => shuffleBuffer4Ch_2,
-                                                    TriggerChannel.Channel3 => shuffleBuffer4Ch_3,
-                                                    TriggerChannel.Channel4 => shuffleBuffer4Ch_4,
-                                                    _ => throw new ArgumentException("Invalid TriggerChannel value")
+                                                    "xdma" => processingConfig.TriggerChannel switch
+                                                    {
+                                                        TriggerChannel.Channel1 => shuffleBuffer4Ch_1,
+                                                        TriggerChannel.Channel2 => shuffleBuffer4Ch_2,
+                                                        TriggerChannel.Channel3 => shuffleBuffer4Ch_3,
+                                                        TriggerChannel.Channel4 => shuffleBuffer4Ch_4,
+                                                        _ => throw new NotImplementedException()
+                                                    },
+                                                    "litex" => triggerChannelCaptureIndex switch
+                                                    {
+                                                        0 => shuffleBuffer4Ch_1,
+                                                        1 => shuffleBuffer4Ch_2,
+                                                        2 => shuffleBuffer4Ch_3,
+                                                        3 => shuffleBuffer4Ch_4,
+                                                        _ => throw new NotImplementedException()
+                                                    },
+                                                    _ => throw new NotImplementedException(),
                                                 };
                                                 break;
                                             default:
                                                 throw new NotImplementedException();
                                         }
-                                        
+
                                         edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
 
                                         if (captureEndCount > 0)
@@ -393,7 +420,7 @@ namespace TS.NET.Engine
                                             for (int i = 0; i < captureEndCount; i++)
                                             {
                                                 uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
-                                                Capture(triggered: true, cachedHardwareConfig.EnabledChannelsCount(), endOffset);
+                                                Capture(triggered: true, triggerChannelCaptureIndex, cachedHardwareConfig.EnabledChannelsCount(), endOffset);
 
                                                 if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
                                                 {
@@ -408,7 +435,7 @@ namespace TS.NET.Engine
                                     }
                                     if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
                                     {
-                                        Capture(triggered: false, cachedHardwareConfig.EnabledChannelsCount(), 0);
+                                        Capture(triggered: false, 0, cachedHardwareConfig.EnabledChannelsCount(), 0);
 
                                         forceTriggerLatch = false;
 
@@ -453,7 +480,7 @@ namespace TS.NET.Engine
                     edgeTriggerI8.SetHorizontal((ulong)processingConfig.ChannelDataLength, windowTriggerPosition, processingConfig.TriggerHoldoff);
                 }
 
-                void Capture(bool triggered, int channelCount, uint offset)
+                void Capture(bool triggered, int triggerChannelCaptureIndex, int channelCount, uint offset)
                 {
                     if (captureBuffer.TryStartWrite())
                     {
@@ -461,7 +488,7 @@ namespace TS.NET.Engine
                         {
                             sampleBuffers[b].Read(captureBuffer.GetWriteBuffer(b), offset);
                         }
-                        captureBuffer.FinishWrite(triggered: triggered, cachedHardwareConfig, processingConfig);
+                        captureBuffer.FinishWrite(triggered, triggerChannelCaptureIndex, cachedHardwareConfig, processingConfig);
                     }
                 }
 
@@ -476,7 +503,7 @@ namespace TS.NET.Engine
                             {
                                 sampleBuffers[b].Read(captureBuffer.GetWriteBuffer(b), 0);
                             }
-                            captureBuffer.FinishWrite(triggered: false, cachedHardwareConfig, processingConfig);
+                            captureBuffer.FinishWrite(triggered: false, 0, cachedHardwareConfig, processingConfig);
                         }
                     }
                 }
