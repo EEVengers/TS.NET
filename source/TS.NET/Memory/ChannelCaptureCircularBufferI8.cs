@@ -51,9 +51,6 @@
         public long IntervalCaptureDrops { get { return intervalCaptureDrops; } }
         public long IntervalCaptureReads { get { return intervalCaptureReads; } }
 
-        public ThunderscopeHardwareConfig Hardware { get { return hardwareConfig; } }
-        public ThunderscopeProcessingConfig Processing { get { return processingConfig; } }
-
         public ChannelCaptureCircularBufferI8(long totalBufferLength)
         {
             buffer = new NativeMemoryAligned<sbyte>(totalBufferLength);
@@ -146,7 +143,7 @@
             return buffer.AsSpan(writeCaptureOffset + offset, channelLengthBytes);
         }
 
-        public bool TryStartRead(out bool triggered)
+        public bool TryStartRead(out bool triggered, out ThunderscopeHardwareConfig hardwareConfig, out ThunderscopeProcessingConfig processingConfig)
         {
             if (readInProgress)
                 throw new InvalidOperationException();
@@ -156,12 +153,16 @@
                 if (currentCaptureCount > 0)
                 {
                     triggered = this.triggered[readCaptureOffset];
+                    hardwareConfig = this.hardwareConfig;
+                    processingConfig = this.processingConfig;
                     readInProgress = true;
                     return true;
                 }
                 else
                 {
                     triggered = false;
+                    hardwareConfig = default;
+                    processingConfig = default;
                     return false;
                 }
             }
