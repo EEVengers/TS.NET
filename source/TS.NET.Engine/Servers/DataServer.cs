@@ -71,101 +71,91 @@ namespace TS.NET.Engine
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (captureBuffer.CurrentCaptureCount > 0)
+                if (captureBuffer.TryStartRead(out var triggered))      // Add timeout parameter and eliminate Thread.Sleep
                 {
-                    lock (captureBuffer)
+                    //logger.LogDebug("Sending waveform...");
+                    var hardware = captureBuffer.Hardware;
+                    var processing = captureBuffer.Processing;
+
+                    ulong femtosecondsPerSample = 1000000000000000 / hardware.SampleRateHz;
+
+                    WaveformHeader header = new()
                     {
-                        if (captureBuffer.TryStartRead(out var triggered))      // Add timeout parameter
+                        seqnum = sequenceNumber,
+                        numChannels = processing.ChannelCount,
+                        fsPerSample = femtosecondsPerSample,
+                        triggerFs = (long)processing.TriggerDelayFs,
+                        hwWaveformsPerSec = 0// bridge.Monitoring.Processing.BridgeWritesPerSec
+                    };
+
+                    ChannelHeader chHeader = new()
+                    {
+                        chNum = 0,
+                        depth = (ulong)processing.ChannelDataLength,
+                        scale = 1,
+                        offset = 0,
+                        trigphase = 0,
+                        clipping = 0
+                    };
+
+                    ulong bytesSent = 0;
+
+                    // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
+                    if (triggered)
+                    {
+                        // To do - trigger interpolation only works on 4 channel mode
+                        var channelData = processing.TriggerChannel switch
                         {
-                            //logger.LogDebug("Sending waveform...");
-                            //var dataHeader = bridge.AcquiredDataRegionHeader;
-                            var hardware = captureBuffer.Hardware;
-                            var processing = captureBuffer.Processing;
-                            //var data = bridge.AcquiredDataRegionU8;
-
-                            // Remember AdcChannelMode reflects the hardware reality - user may only have 3 channels enabled but hardware has to capture 4.
-                            ulong femtosecondsPerSample = 1000000000000000 / hardware.SampleRateHz;
-
-                            WaveformHeader header = new()
-                            {
-                                seqnum = sequenceNumber,
-                                numChannels = processing.ChannelCount,
-                                fsPerSample = femtosecondsPerSample,
-                                triggerFs = (long)processing.TriggerDelayFs,
-                                hwWaveformsPerSec = 0// bridge.Monitoring.Processing.BridgeWritesPerSec
-                            };
-
-                            ChannelHeader chHeader = new()
-                            {
-                                chNum = 0,
-                                depth = (ulong)processing.ChannelDataLength,
-                                scale = 1,
-                                offset = 0,
-                                trigphase = 0,
-                                clipping = 0
-                            };
-
-                            ulong bytesSent = 0;
-
-                            // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
-                            if (triggered)
-                            {
-                                //var signedData = bridge.AcquiredDataRegionI8;
-                                // To fix - trigger interpolation only works on 4 channel mode
-                                var channelData = processing.TriggerChannel switch
-                                {
-                                    TriggerChannel.Channel1 => captureBuffer.GetReadBuffer(0),
-                                    TriggerChannel.Channel2 => captureBuffer.GetReadBuffer(1),
-                                    TriggerChannel.Channel3 => captureBuffer.GetReadBuffer(2),
-                                    TriggerChannel.Channel4 => captureBuffer.GetReadBuffer(3),
-                                    _ => throw new NotImplementedException()
-                                };
-                                // Get the trigger index. If it's greater than 0, then do trigger interpolation.
-                                int triggerIndex = (int)(processing.TriggerDelayFs / femtosecondsPerSample);
-                                if (triggerIndex > 0 && triggerIndex < channelData.Length)
-                                {
-                                    float fa = (chHeader.scale * channelData[triggerIndex - 1]) - chHeader.offset;
-                                    float fb = (chHeader.scale * channelData[triggerIndex]) - chHeader.offset;
-                                    float triggerLevel = (chHeader.scale * processing.TriggerLevel) + chHeader.offset;
-                                    float slope = fb - fa;
-                                    float delta = triggerLevel - fa;
-                                    float trigphase = delta / slope;
-                                    chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
-                                    if (!double.IsFinite(chHeader.trigphase))
-                                        chHeader.trigphase = 0;
-                                    //logger.LogTrace("Trigger phase: {0:F6}, first {1}, second {2}", chHeader.trigphase, fa, fb);
-                                }
-                            }
-                            unsafe
-                            {
-                                Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
-                                bytesSent += (ulong)sizeof(WaveformHeader);
-                                //logger.LogDebug("WaveformHeader: " + header.ToString());
-
-                                for (byte channelIndex = 0; channelIndex < processing.ChannelCount; channelIndex++)
-                                {
-                                    ThunderscopeChannelFrontend thunderscopeChannel = hardware.Frontend[channelIndex];
-                                    chHeader.chNum = channelIndex;
-                                    chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
-                                    chHeader.offset = (float)thunderscopeChannel.VoltOffset;
-
-                                    Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
-                                    bytesSent += (ulong)sizeof(ChannelHeader);
-                                    //logger.LogDebug("ChannelHeader: " + chHeader.ToString());
-                                    var channelBuffer = MemoryMarshal.Cast<sbyte, byte>(captureBuffer.GetReadBuffer(channelIndex));
-                                    Send(channelBuffer);
-                                    bytesSent += (ulong)processing.ChannelDataLength;
-                                }
-                                //logger.LogDebug($"Sent waveform ({bytesSent} bytes)");
-                            }
-                            sequenceNumber++;
-                            captureBuffer.FinishRead();
-                            break;
+                            TriggerChannel.Channel1 => captureBuffer.GetReadBuffer(0),
+                            TriggerChannel.Channel2 => captureBuffer.GetReadBuffer(1),
+                            TriggerChannel.Channel3 => captureBuffer.GetReadBuffer(2),
+                            TriggerChannel.Channel4 => captureBuffer.GetReadBuffer(3),
+                            _ => throw new NotImplementedException()
+                        };
+                        // Get the trigger index. If it's greater than 0, then do trigger interpolation.
+                        int triggerIndex = (int)(processing.TriggerDelayFs / femtosecondsPerSample);
+                        if (triggerIndex > 0 && triggerIndex < channelData.Length)
+                        {
+                            float fa = (chHeader.scale * channelData[triggerIndex - 1]) - chHeader.offset;
+                            float fb = (chHeader.scale * channelData[triggerIndex]) - chHeader.offset;
+                            float triggerLevel = (chHeader.scale * processing.TriggerLevel) + chHeader.offset;
+                            float slope = fb - fa;
+                            float delta = triggerLevel - fa;
+                            float trigphase = delta / slope;
+                            chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
+                            if (!double.IsFinite(chHeader.trigphase))
+                                chHeader.trigphase = 0;
+                            //logger.LogTrace("Trigger phase: {0:F6}, first {1}, second {2}", chHeader.trigphase, fa, fb);
                         }
                     }
+                    unsafe
+                    {
+                        Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
+                        bytesSent += (ulong)sizeof(WaveformHeader);
+                        //logger.LogDebug("WaveformHeader: " + header.ToString());
+
+                        for (byte channelIndex = 0; channelIndex < processing.ChannelCount; channelIndex++)
+                        {
+                            ThunderscopeChannelFrontend thunderscopeChannel = hardware.Frontend[channelIndex];
+                            chHeader.chNum = channelIndex;
+                            chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
+                            chHeader.offset = (float)thunderscopeChannel.VoltOffset;
+
+                            Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
+                            bytesSent += (ulong)sizeof(ChannelHeader);
+                            //logger.LogDebug("ChannelHeader: " + chHeader.ToString());
+                            var channelBuffer = MemoryMarshal.Cast<sbyte, byte>(captureBuffer.GetReadBuffer(channelIndex));
+                            Send(channelBuffer);
+                            bytesSent += (ulong)processing.ChannelDataLength;
+                        }
+                        //logger.LogDebug($"Sent waveform ({bytesSent} bytes)");
+                    }
+                    sequenceNumber++;
+                    captureBuffer.FinishRead();
+                    break;
                 }
-                
-                Thread.Sleep(0);        // Change this later to a timeout mechanism
+                else
+                    Thread.Sleep(1);
             }
         }
 

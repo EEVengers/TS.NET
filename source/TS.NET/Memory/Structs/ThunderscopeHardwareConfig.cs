@@ -9,7 +9,7 @@ namespace TS.NET
         // If the contents of this struct changes, consider incrementing the BuildVersion on ThunderscopeBridgeHeader
 
         public AdcChannelMode AdcChannelMode;           // The number of channels enabled on ADC. ADC has input mux, e.g. Channel1.Enabled and Channel4.Enabled could have AdcChannels of Two. Useful for UI to know this, in order to clamp maximum sample rate.
-        public ulong SampleRateHz;                      // Channel sample rate
+        public ulong SampleRateHz;                      // Channel sample rate (not ADC sample rate)
         public byte EnabledChannels;                    // LSB = Ch0, LSB+1 = Ch1, etc
 
         public ThunderscopeChannelFrontendArray Frontend;
