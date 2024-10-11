@@ -155,7 +155,7 @@ namespace TS.NET.Engine
                     break;
                 }
                 else
-                    Thread.Sleep(1);
+                    Thread.Sleep(10);
             }
         }
 

@@ -145,15 +145,21 @@ namespace TS.NET.Engine
                                                             rates.Add(500000000);
                                                             rates.Add(250000000);
                                                             rates.Add(100000000);
+                                                            rates.Add(50000000);
+                                                            rates.Add(25000000);
                                                             break;
                                                         case AdcChannelMode.Dual:
                                                             rates.Add(500000000);
                                                             rates.Add(250000000);
                                                             rates.Add(100000000);
+                                                            rates.Add(50000000);
+                                                            rates.Add(25000000);
                                                             break;
                                                         case AdcChannelMode.Quad:
                                                             rates.Add(250000000);
                                                             rates.Add(100000000);
+                                                            rates.Add(50000000);
+                                                            rates.Add(25000000);
                                                             break;
                                                     }
                                                     break;

@@ -82,6 +82,15 @@
                 {
                     maxCaptureCount = 10;   // Coerce for now until "stale data" logic implemented where UI is too slow to pull all the data
                 }
+                wraparoundOffset = maxCaptureCount * captureLengthBytes;
+                Reset();
+            }
+        }
+
+        public void Reset()
+        {
+            lock (configurationLock)
+            {
                 currentCaptureCount = 0;
                 captureTotal = 0;
                 captureDrops = 0;
@@ -89,11 +98,7 @@
 
                 writeCaptureOffset = 0;
                 readCaptureOffset = 0;
-                wraparoundOffset = maxCaptureCount * captureLengthBytes;
-
                 triggered = [];
-                writeInProgress = false;
-                readInProgress = false;
             }
         }
 

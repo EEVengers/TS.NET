@@ -180,14 +180,16 @@ namespace TS.NET.Engine
                         {
                             case ProcessingRunDto processingStartTriggerDto:
                                 runMode = true;
+                                captureBuffer.Reset();
                                 logger.LogDebug($"{nameof(ProcessingRunDto)}");
                                 break;
                             case ProcessingStopDto processingStopTriggerDto:
                                 runMode = false;
                                 logger.LogDebug($"{nameof(ProcessingStopDto)}");
                                 break;
-                            case ProcessingForceTriggerDto processingForceTriggerDto:
+                            case ProcessingForceTriggerDto processingForceTriggerDto:       // Force only works in RUN mode, and finishes in RUN
                                 forceTriggerLatch = true;
+                                captureBuffer.Reset();
                                 logger.LogDebug($"{nameof(ProcessingForceTriggerDto)}");
                                 break;
                             case ProcessingSetTriggerModeDto processingSetTriggerModeDto:
@@ -198,7 +200,8 @@ namespace TS.NET.Engine
                                     case TriggerMode.Stream:
                                         singleTriggerLatch = false;
                                         break;
-                                    case TriggerMode.Single:
+                                    case TriggerMode.Single:                                // Single works in both RUN/STOP, and finishes in STOP
+                                        runMode = true;
                                         singleTriggerLatch = true;
                                         break;
                                     case TriggerMode.Auto:
@@ -206,7 +209,7 @@ namespace TS.NET.Engine
                                         autoTimeoutTimer.Restart();
                                         break;
                                 }
-                                captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
+                                captureBuffer.Reset();
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} (mode: {processingConfig.TriggerMode})");
                                 break;
                             case ProcessingSetDepthDto processingSetDepthDto:
@@ -217,7 +220,10 @@ namespace TS.NET.Engine
                                     UpdateTriggerHorizontalPosition();
                                     logger.LogDebug($"{nameof(ProcessingSetDepthDto)} ({processingConfig.ChannelDataLength})");
                                 }
-                                logger.LogDebug($"{nameof(ProcessingSetDepthDto)} (no change)");
+                                else
+                                {
+                                    logger.LogDebug($"{nameof(ProcessingSetDepthDto)} (no change)");
+                                }
                                 break;
                             //case ProcessingSetRateDto processingSetRateDto:
                             //    var rate = processingSetRateDto.SamplingHz;
@@ -225,7 +231,7 @@ namespace TS.NET.Engine
                             //    break;
                             case ProcessingSetTriggerSourceDto processingSetTriggerSourceDto:
                                 processingConfig.TriggerChannel = processingSetTriggerSourceDto.Channel;
-                                captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
+                                captureBuffer.Reset();
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerSourceDto)} (channel: {processingConfig.TriggerChannel})");
                                 break;
                             case ProcessingSetTriggerDelayDto processingSetTriggerDelayDto:
@@ -233,7 +239,7 @@ namespace TS.NET.Engine
                                 {
                                     processingConfig.TriggerDelayFs = processingSetTriggerDelayDto.Femtoseconds;
                                     UpdateTriggerHorizontalPosition();
-                                    captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
+                                    captureBuffer.Reset();
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (femtoseconds: {processingConfig.TriggerDelayFs})");
                                 }
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (no change)");
@@ -255,7 +261,7 @@ namespace TS.NET.Engine
                                 {
                                     processingConfig.TriggerLevel = triggerLevel;
                                     edgeTriggerI8.SetVertical(triggerLevel, (byte)processingConfig.TriggerHysteresis);
-                                    captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
+                                    captureBuffer.Reset();
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (level: {triggerLevel}, hysteresis: {processingConfig.TriggerHysteresis})");
                                 }
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (no change)");
@@ -265,7 +271,7 @@ namespace TS.NET.Engine
                                 {
                                     processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
                                     CreateEdgeTriggerI8();
-                                    captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
+                                    captureBuffer.Reset();
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (type: {processingConfig.TriggerType})");
                                 }
                                 else
@@ -303,7 +309,7 @@ namespace TS.NET.Engine
                             {
                                 sampleBuffers[i].Reset();
                             }
-                            captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes()); 
+                            captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
                         }
 
                         int channelLength = processingConfig.ChannelDataLength;
@@ -364,7 +370,7 @@ namespace TS.NET.Engine
                                                 streamSampleCounter = 0;
                                                 autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
                                             }
-                                            if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
+                                            else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                             {
                                                 Stream(enabledChannelsCount, channelLength);
                                             }
@@ -421,13 +427,13 @@ namespace TS.NET.Engine
                                             if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
                                             {
                                                 Capture(triggered: false, enabledChannelsCount, 0);
-                                                
+
                                                 forceTriggerLatch = false;
 
                                                 streamSampleCounter = 0;
                                                 autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
                                             }
-                                            if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
+                                            else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                             {
                                                 Stream(enabledChannelsCount, channelLength);
                                             }
@@ -493,13 +499,13 @@ namespace TS.NET.Engine
                                             if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
                                             {
                                                 Capture(triggered: false, enabledChannelsCount, 0);
-                                                
+
                                                 forceTriggerLatch = false;
 
                                                 streamSampleCounter = 0;
                                                 autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
                                             }
-                                            if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
+                                            else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                             {
                                                 Stream(enabledChannelsCount, channelLength);
                                             }
