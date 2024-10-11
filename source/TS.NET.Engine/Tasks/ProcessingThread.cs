@@ -168,7 +168,6 @@ namespace TS.NET.Engine
                 {
                     cancelToken.ThrowIfCancellationRequested();
 
-                    // Check for processing requests
                     if (processingRequestChannel.TryRead(out var request))
                     {
                         switch (request)
@@ -221,10 +220,6 @@ namespace TS.NET.Engine
                                     logger.LogDebug($"{nameof(ProcessingSetDepthDto)} (no change)");
                                 }
                                 break;
-                            //case ProcessingSetRateDto processingSetRateDto:
-                            //    var rate = processingSetRateDto.SamplingHz;
-                            //    logger.LogWarning($"{nameof(ProcessingSetRateDto)} [Not implemented]");
-                            //    break;
                             case ProcessingSetTriggerSourceDto processingSetTriggerSourceDto:
                                 processingConfig.TriggerChannel = processingSetTriggerSourceDto.Channel;
                                 captureBuffer.Reset();
@@ -266,7 +261,17 @@ namespace TS.NET.Engine
                                 if (processingConfig.TriggerType != processingSetTriggerTypeDto.Type)
                                 {
                                     processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
-                                    CreateEdgeTriggerI8();
+
+                                    edgeTriggerI8 = processingConfig.TriggerType switch
+                                    {
+                                        TriggerType.RisingEdge => new RisingEdgeTriggerI8(),
+                                        TriggerType.FallingEdge => new FallingEdgeTriggerI8(),
+                                        TriggerType.AnyEdge => new AnyEdgeTriggerI8(),
+                                        _ => throw new NotImplementedException()
+                                    };
+                                    edgeTriggerI8.SetVertical((sbyte)processingConfig.TriggerLevel, (byte)processingConfig.TriggerHysteresis);
+                                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
+
                                     captureBuffer.Reset();
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (type: {processingConfig.TriggerType})");
                                 }
@@ -279,8 +284,6 @@ namespace TS.NET.Engine
                                 logger.LogWarning($"Unknown ProcessingRequestDto: {request}");
                                 break;
                         }
-
-                        //bridge.Processing = processingConfig;
                     }
 
                     if (processChannel.TryRead(out InputDataDto inputDataDto, 10, cancelToken))
@@ -311,7 +314,6 @@ namespace TS.NET.Engine
                         }
                         cachedHardwareConfig = inputDataDto.HardwareConfig;
 
-                        int channelLength = processingConfig.ChannelDataLength;
                         switch (cachedHardwareConfig.AdcChannelMode)
                         {
                             case AdcChannelMode.Single:
@@ -349,7 +351,6 @@ namespace TS.NET.Engine
                                 break;
                         }
 
-                        // Trigger
                         if (runMode)
                         {
                             switch (processingConfig.TriggerMode)
@@ -359,6 +360,7 @@ namespace TS.NET.Engine
                                 case TriggerMode.Auto:
                                     if (cachedHardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
                                     {
+                                        // Load in the trigger buffer from the correct shuffle buffer
                                         Span<sbyte> triggerChannelBuffer;
                                         switch (cachedHardwareConfig.AdcChannelMode)
                                         {
@@ -383,6 +385,7 @@ namespace TS.NET.Engine
                                             default:
                                                 throw new NotImplementedException();
                                         }
+                                        
                                         edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
 
                                         if (captureEndCount > 0)
@@ -414,11 +417,11 @@ namespace TS.NET.Engine
                                     }
                                     else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                     {
-                                        Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
+                                        Stream(cachedHardwareConfig.EnabledChannelsCount(), processingConfig.ChannelDataLength);
                                     }
                                     break;
                                 case TriggerMode.Stream:
-                                    Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
+                                    Stream(cachedHardwareConfig.EnabledChannelsCount(), processingConfig.ChannelDataLength);
                                     break;
                             }
                         }
@@ -476,19 +479,6 @@ namespace TS.NET.Engine
                             captureBuffer.FinishWrite(triggered: false, cachedHardwareConfig, processingConfig);
                         }
                     }
-                }
-
-                void CreateEdgeTriggerI8()
-                {
-                    edgeTriggerI8 = processingConfig.TriggerType switch
-                    {
-                        TriggerType.RisingEdge => new RisingEdgeTriggerI8(),
-                        TriggerType.FallingEdge => new FallingEdgeTriggerI8(),
-                        TriggerType.AnyEdge => new AnyEdgeTriggerI8(),
-                        _ => throw new NotImplementedException()
-                    };
-                    edgeTriggerI8.SetVertical((sbyte)processingConfig.TriggerLevel, (byte)processingConfig.TriggerHysteresis);
-                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
                 }
             }
             catch (OperationCanceledException)
