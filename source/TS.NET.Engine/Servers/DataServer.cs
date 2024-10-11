@@ -92,11 +92,8 @@ namespace TS.NET.Engine
 
                         ChannelHeader chHeader = new()
                         {
-                            channelIndex = 0,
+                            // All other values set later
                             depth = (ulong)processingConfig.ChannelDataLength,
-                            scale = 1,
-                            offset = 0,
-                            trigphase = 0,
                             clipping = 0
                         };
 
@@ -105,15 +102,21 @@ namespace TS.NET.Engine
                         // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
                         if (triggered)
                         {
-                            logger.LogTrace("triggerChannelCaptureIndex: {0}", triggerChannelCaptureIndex);
+                            //logger.LogTrace("triggerChannelCaptureIndex: {0}", triggerChannelCaptureIndex);
                             ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetReadBuffer(triggerChannelCaptureIndex);
                             // Get the trigger index. If it's greater than 0, then do trigger interpolation.
                             int triggerIndex = (int)(processingConfig.TriggerDelayFs / femtosecondsPerSample);
                             if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
                             {
-                                float fa = (chHeader.scale * triggerChannelBuffer[triggerIndex - 1]) - chHeader.offset;
-                                float fb = (chHeader.scale * triggerChannelBuffer[triggerIndex]) - chHeader.offset;
-                                float triggerLevel = (chHeader.scale * processingConfig.TriggerLevel) + chHeader.offset;
+                                // To do: get actual front end values for trigger channel
+                                int channelIndex = hardwareConfig.GetChannelIndexByCaptureBufferIndex(triggerChannelCaptureIndex);
+                                ThunderscopeChannelFrontend triggerChannelFrontend = hardwareConfig.Frontend[channelIndex];
+                                var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 255.0);
+                                var channelOffset = (float)triggerChannelFrontend.VoltOffset;
+
+                                float fa = (channelScale * triggerChannelBuffer[triggerIndex - 1]) - channelOffset;
+                                float fb = (channelScale * triggerChannelBuffer[triggerIndex]) - channelOffset;
+                                float triggerLevel = (channelScale * processingConfig.TriggerLevel) + channelOffset;
                                 float slope = fb - fa;
                                 float delta = triggerLevel - fa;
                                 float trigphase = delta / slope;
