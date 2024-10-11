@@ -284,7 +284,7 @@ namespace TS.NET.Engine
                     }
 
                     if (processChannel.TryRead(out InputDataDto inputDataDto, 10, cancelToken))
-                    {                      
+                    {
                         totalDequeueCount++;
 
                         // Check for any hardware changes that require action
@@ -307,7 +307,7 @@ namespace TS.NET.Engine
                             //    sampleBuffers[i].Reset();
                             //}
                             captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
-                            logger.LogTrace("Hardware enabled chahnnel change ({0})", processingConfig.ChannelCount);
+                            logger.LogTrace("Hardware enabled channel change ({0})", processingConfig.ChannelCount);
                         }
                         cachedHardwareConfig = inputDataDto.HardwareConfig;
 
@@ -322,57 +322,6 @@ namespace TS.NET.Engine
                                 // Write to circular buffer
                                 sampleBuffers[0].Write(shuffleBuffer);
                                 streamSampleCounter += shuffleBuffer.Length;
-                                // Trigger
-                                if (runMode)
-                                {
-                                    switch (processingConfig.TriggerMode)
-                                    {
-                                        case TriggerMode.Normal:
-                                        case TriggerMode.Single:
-                                        case TriggerMode.Auto:
-                                            if (cachedHardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
-                                            {
-                                                var triggerChannelBuffer = shuffleBuffer;
-
-                                                edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
-
-                                                if (captureEndCount > 0)
-                                                {
-                                                    for (int i = 0; i < captureEndCount; i++)
-                                                    {
-                                                        uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
-                                                        Capture(triggered: true, cachedHardwareConfig.EnabledChannelsCount(), endOffset);
-
-                                                        if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
-                                                        {
-                                                            singleTriggerLatch = false;
-                                                            runMode = false;
-                                                            break;
-                                                        }
-                                                    }
-                                                    streamSampleCounter = 0;
-                                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
-                                                }
-                                            }
-                                            if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
-                                            {
-                                                Capture(triggered: false, cachedHardwareConfig.EnabledChannelsCount(), 0);
-
-                                                forceTriggerLatch = false;
-
-                                                streamSampleCounter = 0;
-                                                autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
-                                            }
-                                            else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
-                                            {
-                                                Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
-                                            }
-                                            break;
-                                        case TriggerMode.Stream:
-                                            Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
-                                            break;
-                                    }
-                                }
                                 break;
                             case AdcChannelMode.Dual:
                                 // Shuffle
@@ -383,59 +332,6 @@ namespace TS.NET.Engine
                                 sampleBuffers[0].Write(shuffleBuffer2Ch_1);
                                 sampleBuffers[1].Write(shuffleBuffer2Ch_2);
                                 streamSampleCounter += shuffleBuffer2Ch_1.Length;
-                                // Trigger
-                                if (runMode)
-                                {
-                                    switch (processingConfig.TriggerMode)
-                                    {
-                                        case TriggerMode.Normal:
-                                        case TriggerMode.Single:
-                                        case TriggerMode.Auto:
-                                            if (cachedHardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
-                                            {
-                                                var triggerChannelBuffer = shuffleBuffer2Ch_2;
-                                                if (cachedHardwareConfig.DualChannelModeIsTriggerChannelInFirstPosition(processingConfig.TriggerChannel))
-                                                    triggerChannelBuffer = shuffleBuffer2Ch_1;
-
-                                                edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
-
-                                                if (captureEndCount > 0)
-                                                {
-                                                    for (int i = 0; i < captureEndCount; i++)
-                                                    {
-                                                        uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
-                                                        Capture(triggered: true, cachedHardwareConfig.EnabledChannelsCount(), endOffset);
-
-                                                        if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
-                                                        {
-                                                            singleTriggerLatch = false;
-                                                            runMode = false;
-                                                            break;
-                                                        }
-                                                    }
-                                                    streamSampleCounter = 0;
-                                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
-                                                }
-                                            }
-                                            if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
-                                            {
-                                                Capture(triggered: false, cachedHardwareConfig.EnabledChannelsCount(), 0);
-
-                                                forceTriggerLatch = false;
-
-                                                streamSampleCounter = 0;
-                                                autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
-                                            }
-                                            else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
-                                            {
-                                                Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
-                                            }
-                                            break;
-                                        case TriggerMode.Stream:
-                                            Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
-                                            break;
-                                    }
-                                }
                                 break;
                             case AdcChannelMode.Quad:
                                 // Quad channel mode is a bit different, it's processed as 4 channels but
@@ -450,17 +346,32 @@ namespace TS.NET.Engine
                                 sampleBuffers[2].Write(shuffleBuffer4Ch_3);
                                 sampleBuffers[3].Write(shuffleBuffer4Ch_4);
                                 streamSampleCounter += shuffleBuffer4Ch_1.Length;
-                                // Trigger
-                                if (runMode)
-                                {
-                                    switch (processingConfig.TriggerMode)
+                                break;
+                        }
+
+                        // Trigger
+                        if (runMode)
+                        {
+                            switch (processingConfig.TriggerMode)
+                            {
+                                case TriggerMode.Normal:
+                                case TriggerMode.Single:
+                                case TriggerMode.Auto:
+                                    if (cachedHardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
                                     {
-                                        case TriggerMode.Normal:
-                                        case TriggerMode.Single:
-                                        case TriggerMode.Auto:
-                                            if (processingConfig.TriggerChannel != TriggerChannel.NotSet)
-                                            {
-                                                var triggerChannelBuffer = processingConfig.TriggerChannel switch
+                                        Span<sbyte> triggerChannelBuffer;
+                                        switch (cachedHardwareConfig.AdcChannelMode)
+                                        {
+                                            case AdcChannelMode.Single:
+                                                triggerChannelBuffer = shuffleBuffer;
+                                                break;
+                                            case AdcChannelMode.Dual:
+                                                triggerChannelBuffer = shuffleBuffer2Ch_2;
+                                                if (cachedHardwareConfig.DualChannelModeIsTriggerChannelInFirstPosition(processingConfig.TriggerChannel))
+                                                    triggerChannelBuffer = shuffleBuffer2Ch_1;
+                                                break;
+                                            case AdcChannelMode.Quad:
+                                                triggerChannelBuffer = processingConfig.TriggerChannel switch
                                                 {
                                                     TriggerChannel.Channel1 => shuffleBuffer4Ch_1,
                                                     TriggerChannel.Channel2 => shuffleBuffer4Ch_2,
@@ -468,50 +379,49 @@ namespace TS.NET.Engine
                                                     TriggerChannel.Channel4 => shuffleBuffer4Ch_4,
                                                     _ => throw new ArgumentException("Invalid TriggerChannel value")
                                                 };
+                                                break;
+                                            default:
+                                                throw new NotImplementedException();
+                                        }
+                                        edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
 
-                                                edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
+                                        if (captureEndCount > 0)
+                                        {
+                                            for (int i = 0; i < captureEndCount; i++)
+                                            {
+                                                uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
+                                                Capture(triggered: true, cachedHardwareConfig.EnabledChannelsCount(), endOffset);
 
-                                                if (captureEndCount > 0)
+                                                if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
                                                 {
-                                                    for (int i = 0; i < captureEndCount; i++)
-                                                    {
-                                                        uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
-                                                        Capture(triggered: true, cachedHardwareConfig.EnabledChannelsCount(), endOffset);
-
-                                                        if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
-                                                        {
-                                                            singleTriggerLatch = false;
-                                                            runMode = false;
-                                                            break;
-                                                        }
-                                                    }
-                                                    streamSampleCounter = 0;
-                                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
+                                                    singleTriggerLatch = false;
+                                                    runMode = false;
+                                                    break;
                                                 }
                                             }
-                                            if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
-                                            {
-                                                Capture(triggered: false, cachedHardwareConfig.EnabledChannelsCount(), 0);
-
-                                                forceTriggerLatch = false;
-
-                                                streamSampleCounter = 0;
-                                                autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
-                                            }
-                                            else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
-                                            {
-                                                Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
-                                            }
-                                            break;
-                                        case TriggerMode.Stream:
-                                            Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
-                                            break;
+                                            streamSampleCounter = 0;
+                                            autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
+                                        }
                                     }
-                                }
-                                break;
-                        }
+                                    if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
+                                    {
+                                        Capture(triggered: false, cachedHardwareConfig.EnabledChannelsCount(), 0);
 
-                        //bridge.HandleReader();      // This ensures the reader is serviced on every loop iteration
+                                        forceTriggerLatch = false;
+
+                                        streamSampleCounter = 0;
+                                        autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
+                                    }
+                                    else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
+                                    {
+                                        Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
+                                    }
+                                    break;
+                                case TriggerMode.Stream:
+                                    Stream(cachedHardwareConfig.EnabledChannelsCount(), channelLength);
+                                    break;
+                            }
+                        }
 
                         var elapsedTime = periodicUpdateTimer.Elapsed.TotalSeconds;
                         if (elapsedTime >= 10)
