@@ -79,7 +79,7 @@ namespace TS.NET.Engine
                         noCapturesAvailable = false;
                         //logger.LogDebug("Sending waveform...");
                         ulong femtosecondsPerSample = 1000000000000000 / hardwareConfig.SampleRateHz;
-                        logger.LogTrace("{0}", hardwareConfig.SampleRateHz);
+                        //logger.LogTrace("{0}", hardwareConfig.SampleRateHz);
 
                         WaveformHeader header = new()
                         {
