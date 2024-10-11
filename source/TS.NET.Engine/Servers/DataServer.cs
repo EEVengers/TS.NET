@@ -104,28 +104,35 @@ namespace TS.NET.Engine
                     if (triggered)
                     {
                         // To do - trigger interpolation only works on 4 channel mode
-                        var channelData = processing.TriggerChannel switch
+                        ReadOnlySpan<sbyte> channelData = processing.TriggerChannel switch
                         {
                             TriggerChannel.Channel1 => captureBuffer.GetReadBuffer(0),
                             TriggerChannel.Channel2 => captureBuffer.GetReadBuffer(1),
                             TriggerChannel.Channel3 => captureBuffer.GetReadBuffer(2),
                             TriggerChannel.Channel4 => captureBuffer.GetReadBuffer(3),
-                            _ => throw new NotImplementedException()
+                            _ => null
                         };
-                        // Get the trigger index. If it's greater than 0, then do trigger interpolation.
-                        int triggerIndex = (int)(processing.TriggerDelayFs / femtosecondsPerSample);
-                        if (triggerIndex > 0 && triggerIndex < channelData.Length)
+                        if (channelData != null)
                         {
-                            float fa = (chHeader.scale * channelData[triggerIndex - 1]) - chHeader.offset;
-                            float fb = (chHeader.scale * channelData[triggerIndex]) - chHeader.offset;
-                            float triggerLevel = (chHeader.scale * processing.TriggerLevel) + chHeader.offset;
-                            float slope = fb - fa;
-                            float delta = triggerLevel - fa;
-                            float trigphase = delta / slope;
-                            chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
-                            if (!double.IsFinite(chHeader.trigphase))
-                                chHeader.trigphase = 0;
-                            //logger.LogTrace("Trigger phase: {0:F6}, first {1}, second {2}", chHeader.trigphase, fa, fb);
+                            // Get the trigger index. If it's greater than 0, then do trigger interpolation.
+                            int triggerIndex = (int)(processing.TriggerDelayFs / femtosecondsPerSample);
+                            if (triggerIndex > 0 && triggerIndex < channelData.Length)
+                            {
+                                float fa = (chHeader.scale * channelData[triggerIndex - 1]) - chHeader.offset;
+                                float fb = (chHeader.scale * channelData[triggerIndex]) - chHeader.offset;
+                                float triggerLevel = (chHeader.scale * processing.TriggerLevel) + chHeader.offset;
+                                float slope = fb - fa;
+                                float delta = triggerLevel - fa;
+                                float trigphase = delta / slope;
+                                chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
+                                if (!double.IsFinite(chHeader.trigphase))
+                                    chHeader.trigphase = 0;
+                                //logger.LogTrace("Trigger phase: {0:F6}, first {1}, second {2}", chHeader.trigphase, fa, fb);
+                            }
+                        }
+                        else
+                        {
+                            logger.LogError("Capture was triggered but no trigger channel set in struct.");
                         }
                     }
                     unsafe
