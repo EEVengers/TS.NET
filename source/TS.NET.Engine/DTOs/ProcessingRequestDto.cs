@@ -16,6 +16,6 @@ namespace TS.NET.Engine
     public record ProcessingSetTriggerLevelDto(double LevelVolts) : ProcessingRequestDto;
     public record ProcessingSetTriggerTypeDto(TriggerType Type) : ProcessingRequestDto;
 
-    public record ProcessingSetDepthDto(ulong Samples) : ProcessingRequestDto;
-    public record ProcessingSetRateDto(long SamplingHz) : ProcessingRequestDto;
+    public record ProcessingSetDepthDto(int Samples) : ProcessingRequestDto;
+    //public record ProcessingSetRateDto(long SamplingHz) : ProcessingRequestDto;
 }

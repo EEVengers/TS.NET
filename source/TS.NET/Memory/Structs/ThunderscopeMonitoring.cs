@@ -18,6 +18,6 @@ namespace TS.NET
         // If the contents of this struct changes, consider incrementing the BuildVersion on ThunderscopeBridgeHeader
 
         //public ThunderscopeHardwareMonitoring Hardware;
-        public ThunderscopeProcessingMonitoring Processing;
+        //public ThunderscopeProcessingMonitoring Processing;
     }
 }

@@ -147,7 +147,7 @@ namespace TS.NET.Engine
                                 case "DEPTH":
                                     if (argument != null)
                                     {
-                                        ulong depth = Convert.ToUInt64(argument);
+                                        var depth = Convert.ToInt32(argument);
                                         processingRequestChannel.Write(new ProcessingSetDepthDto(depth));
                                         logger.LogDebug($"{nameof(ProcessingSetDepthDto)} sent with argument: {depth}");
                                     }

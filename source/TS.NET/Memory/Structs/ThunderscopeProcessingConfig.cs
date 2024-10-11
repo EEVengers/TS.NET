@@ -7,9 +7,10 @@ namespace TS.NET
     {
         // If the contents of this struct changes, consider incrementing the BuildVersion on ThunderscopeBridgeHeader
 
-        public ushort CurrentChannelCount;      // From 1 to ThunderscopeBridgeHeader.MaxChannelCount
-        public ulong CurrentChannelDataLength;  // From 1 to ThunderscopeBridgeHeader.MaxChannelDataLength
-               
+        public ushort ChannelCount;     // From 1 to ThunderscopeBridgeHeader.MaxChannelCount
+        public int ChannelDataLength;   // From 1 to ThunderscopeBridgeHeader.MaxChannelDataLength
+        public ThunderscopeDataType ChannelDataType;
+
         public TriggerChannel TriggerChannel;   // U8
         public TriggerMode TriggerMode;         // U8
         public TriggerType TriggerType;         // U8
@@ -19,5 +20,10 @@ namespace TS.NET
         public uint TriggerHysteresis;          // U32 (allows for 32-bit processing)
 
         public BoxcarAveraging BoxcarAveraging; // U32
+
+        public int ChannelLengthBytes()
+        {
+            return ChannelDataLength * ChannelDataType.ByteWidth();
+        }
     }
 }
