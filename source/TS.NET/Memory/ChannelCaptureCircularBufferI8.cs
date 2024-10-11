@@ -70,6 +70,10 @@
                 this.channelLengthBytes = channelLengthBytes;
 
                 maxCaptureCount = (int)(buffer.Length / captureLengthBytes);
+                if(maxCaptureCount > 10)
+                {
+                    maxCaptureCount = 10;   // Coerce for now until "stale data" logic implemented where UI is too slow to pull all the data
+                }
                 currentCaptureCount = 0;
                 captureTotal = 0;
                 captureDrops = 0;
