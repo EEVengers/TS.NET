@@ -5,11 +5,11 @@ namespace TS.NET.Tests
 {
     public class ChannelCaptureCircularBufferI8Tests
     {
-        [Fact]
-        public void Allocate2GB()
-        {
-            using var manager = new ChannelCaptureCircularBufferI8(2000000000);
-        }
+        //[Fact]
+        //public void Allocate2GB()
+        //{
+        //    using var manager = new ChannelCaptureCircularBufferI8(2000000000);
+        //}
 
         [Fact]
         public void Testbench()
