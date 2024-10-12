@@ -244,12 +244,17 @@ namespace TS.NET.Driver.LiteX
             tsChannel.volt_offset_mV = (int)(channel.VoltOffset * 1000);
             tsChannel.coupling = (channel.Coupling == ThunderscopeCoupling.DC) ? (byte)0 : (byte)1;
             tsChannel.term = (channel.Termination == ThunderscopeTermination.OneMegaohm) ? (byte)0 : (byte)1;
-            tsChannel.bandwidth = (channel.Bandwidth == ThunderscopeBandwidth.Bw750M) ? (uint)750 :
-                                    (channel.Bandwidth == ThunderscopeBandwidth.Bw650M) ? (uint)650 :
-                                    (channel.Bandwidth == ThunderscopeBandwidth.Bw350M) ? (uint)350 :
-                                    (channel.Bandwidth == ThunderscopeBandwidth.Bw200M) ? (uint)200 :
-                                    (channel.Bandwidth == ThunderscopeBandwidth.Bw100M) ? (uint)100 :
-                                    (channel.Bandwidth == ThunderscopeBandwidth.Bw20M) ? (uint)20 : (uint)0;
+            tsChannel.bandwidth = channel.Bandwidth switch
+            {
+                ThunderscopeBandwidth.BwFull => 900,
+                ThunderscopeBandwidth.Bw750M => 750,
+                ThunderscopeBandwidth.Bw650M => 650,
+                ThunderscopeBandwidth.Bw350M => 350,
+                ThunderscopeBandwidth.Bw200M => 200,
+                ThunderscopeBandwidth.Bw100M => 100,
+                ThunderscopeBandwidth.Bw20M => 20,
+                _ => throw new NotImplementedException()
+            };
 
             retVal = Interop.SetChannelConfig(tsHandle, (uint)channelIndex, in tsChannel);
 
