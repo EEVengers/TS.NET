@@ -122,6 +122,8 @@ namespace TS.NET.Engine
                                 chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
                                 if (!double.IsFinite(chHeader.trigphase))
                                     chHeader.trigphase = 0;
+                                var delay = processingConfig.TriggerDelayFs - ((ulong)triggerIndex * femtosecondsPerSample);
+                                chHeader.trigphase += delay;
                                 //logger.LogTrace("Trigger phase: {0:F6}, first {1}, second {2}", chHeader.trigphase, fa, fb);
                             }
                         }
