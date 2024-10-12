@@ -305,7 +305,7 @@ namespace TS.NET.Engine
                             //    sampleBuffers[i].Reset();
                             //}
                             captureBuffer.Reset();
-                            logger.LogTrace("Hardware sample rate change ({0})", cachedHardwareConfig.SampleRateHz);
+                            logger.LogTrace("Hardware sample rate change ({0})", inputDataDto.HardwareConfig.SampleRateHz);
                         }
 
                         if (inputDataDto.HardwareConfig.EnabledChannelsCount() != cachedHardwareConfig.EnabledChannelsCount())

@@ -178,7 +178,7 @@ namespace TS.NET.Driver.LiteX
                                     AdcChannelMode.Quad;
 
             GetStatus();
-            config.SampleRateHz = tsHealth.AdcSampleRate / (uint)config.AdcChannelMode;
+            config.SampleRateHz = tsHealth.AdcSampleRate;
 
             return config;
         }
