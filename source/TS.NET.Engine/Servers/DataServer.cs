@@ -74,55 +74,55 @@ namespace TS.NET.Engine
 
                 lock (captureBuffer.ReadLock)
                 {
-                    if (captureBuffer.TryStartRead(out var triggered, out var triggerChannelCaptureIndex, out var hardwareConfig, out var processingConfig))      // Add timeout parameter and eliminate Thread.Sleep
+                    if (captureBuffer.TryStartRead(out var captureMetadata))      // Add timeout parameter and eliminate Thread.Sleep
                     {
                         noCapturesAvailable = false;
                         //logger.LogDebug("Sending waveform...");
-                        ulong femtosecondsPerSample = 1000000000000000 / hardwareConfig.SampleRateHz;
+                        ulong femtosecondsPerSample = 1000000000000000 / captureMetadata.HardwareConfig.SampleRateHz;
                         //logger.LogTrace("{0}", hardwareConfig.SampleRateHz);
 
                         WaveformHeader header = new()
                         {
                             seqnum = sequenceNumber,
-                            numChannels = processingConfig.ChannelCount,
+                            numChannels = captureMetadata.ProcessingConfig.ChannelCount,
                             fsPerSample = femtosecondsPerSample,
-                            triggerFs = (long)processingConfig.TriggerDelayFs,
+                            triggerFs = (long)captureMetadata.ProcessingConfig.TriggerDelayFs,
                             hwWaveformsPerSec = 0// bridge.Monitoring.Processing.BridgeWritesPerSec
                         };
 
                         ChannelHeader chHeader = new()
                         {
                             // All other values set later
-                            depth = (ulong)processingConfig.ChannelDataLength,
+                            depth = (ulong)captureMetadata.ProcessingConfig.ChannelDataLength,
                             clipping = 0
                         };
 
                         ulong bytesSent = 0;
 
                         // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
-                        if (triggered)
+                        if (captureMetadata.Triggered)
                         {
                             //logger.LogTrace("triggerChannelCaptureIndex: {0}", triggerChannelCaptureIndex);
-                            ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetReadBuffer(triggerChannelCaptureIndex);
+                            ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetReadBuffer(captureMetadata.TriggerChannelCaptureIndex);
                             // Get the trigger index. If it's greater than 0, then do trigger interpolation.
-                            int triggerIndex = (int)(processingConfig.TriggerDelayFs / femtosecondsPerSample);
+                            int triggerIndex = (int)(captureMetadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
                             if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
                             {
-                                int channelIndex = hardwareConfig.GetChannelIndexByCaptureBufferIndex(triggerChannelCaptureIndex);
-                                ThunderscopeChannelFrontend triggerChannelFrontend = hardwareConfig.Frontend[channelIndex];
+                                int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureMetadata.TriggerChannelCaptureIndex);
+                                ThunderscopeChannelFrontend triggerChannelFrontend = captureMetadata.HardwareConfig.Frontend[channelIndex];
                                 var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 255.0);
                                 var channelOffset = (float)triggerChannelFrontend.VoltOffset;
 
                                 float fa = (channelScale * triggerChannelBuffer[triggerIndex - 1]) - channelOffset;
                                 float fb = (channelScale * triggerChannelBuffer[triggerIndex]) - channelOffset;
-                                float triggerLevel = (channelScale * processingConfig.TriggerLevel) + channelOffset;
+                                float triggerLevel = (channelScale * captureMetadata.ProcessingConfig.TriggerLevel) + channelOffset;
                                 float slope = fb - fa;
                                 float delta = triggerLevel - fa;
                                 float trigphase = delta / slope;
                                 chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
                                 if (!double.IsFinite(chHeader.trigphase))
                                     chHeader.trigphase = 0;
-                                var delay = processingConfig.TriggerDelayFs - ((ulong)triggerIndex * femtosecondsPerSample);
+                                var delay = captureMetadata.ProcessingConfig.TriggerDelayFs - ((ulong)triggerIndex * femtosecondsPerSample);
                                 chHeader.trigphase += delay;
                                 //logger.LogTrace("Trigger phase: {0:F6}, first {1}, second {2}", chHeader.trigphase, fa, fb);
                             }
@@ -136,10 +136,10 @@ namespace TS.NET.Engine
                             for (byte captureBufferIndex = 0; captureBufferIndex < captureBuffer.ChannelCount; captureBufferIndex++)
                             {
                                 // Map captureBufferIndex to channelIndex
-                                int channelIndex = hardwareConfig.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
+                                int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
                                 //logger.LogTrace("channelIndex: {0}", channelIndex);
 
-                                ThunderscopeChannelFrontend thunderscopeChannel = hardwareConfig.Frontend[channelIndex];
+                                ThunderscopeChannelFrontend thunderscopeChannel = captureMetadata.HardwareConfig.Frontend[channelIndex];
                                 chHeader.channelIndex = (byte)channelIndex;
                                 chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
                                 chHeader.offset = (float)thunderscopeChannel.VoltOffset;
@@ -149,7 +149,7 @@ namespace TS.NET.Engine
                                 //logger.LogDebug("ChannelHeader: " + chHeader.ToString());
                                 var channelBuffer = MemoryMarshal.Cast<sbyte, byte>(captureBuffer.GetReadBuffer(captureBufferIndex));
                                 Send(channelBuffer);
-                                bytesSent += (ulong)processingConfig.ChannelDataLength;
+                                bytesSent += (ulong)captureMetadata.ProcessingConfig.ChannelDataLength;
                             }
                             //logger.LogDebug($"Sent waveform ({bytesSent} bytes)");
                         }

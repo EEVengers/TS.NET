@@ -31,11 +31,7 @@
         private long readCaptureOffset;
         private long wraparoundOffset;
 
-        private ThunderscopeHardwareConfig hardwareConfig;
-        private ThunderscopeProcessingConfig processingConfig;
-
-        Dictionary<long, bool> triggered;
-        Dictionary<long, int> triggerChannelCaptureIndex;
+        Dictionary<long, CaptureMetadata> captureMetadata;
         bool writeInProgress = false;
         bool readInProgress = false;
 
@@ -95,8 +91,7 @@
 
                 writeCaptureOffset = 0;
                 readCaptureOffset = 0;
-                triggered = [];
-                triggerChannelCaptureIndex = [];
+                captureMetadata = [];
             }
         }
 
@@ -117,15 +112,11 @@
             return true;
         }
 
-        public void FinishWrite(bool triggered, int triggerChannelCaptureIndex, ThunderscopeHardwareConfig hardwareConfig, ThunderscopeProcessingConfig processingConfig)
+        public void FinishWrite(CaptureMetadata captureMetadata)
         {
             lock (ReadLock)
             {
-                this.triggered[writeCaptureOffset] = triggered;
-                this.triggerChannelCaptureIndex[writeCaptureOffset] = triggerChannelCaptureIndex;
-                this.hardwareConfig = hardwareConfig;
-                this.processingConfig = processingConfig;
-
+                this.captureMetadata[writeCaptureOffset] = captureMetadata;
                 currentCaptureCount++;
                 writeCaptureOffset += captureLengthBytes;
                 if (writeCaptureOffset >= wraparoundOffset)
@@ -142,26 +133,20 @@
             return buffer.AsSpan(writeCaptureOffset + offset, channelLengthBytes);
         }
 
-        public bool TryStartRead(out bool triggered, out int triggerChannelCaptureIndex, out ThunderscopeHardwareConfig hardwareConfig, out ThunderscopeProcessingConfig processingConfig)
+        public bool TryStartRead(out CaptureMetadata captureMetadata)
         {
             if (readInProgress)
                 throw new InvalidOperationException();
 
             if (currentCaptureCount > 0)
             {
-                triggered = this.triggered[readCaptureOffset];
-                triggerChannelCaptureIndex = this.triggerChannelCaptureIndex[readCaptureOffset];
-                hardwareConfig = this.hardwareConfig;
-                processingConfig = this.processingConfig;
+                captureMetadata = this.captureMetadata[readCaptureOffset];
                 readInProgress = true;
                 return true;
             }
             else
             {
-                triggered = false;
-                triggerChannelCaptureIndex = 0;
-                hardwareConfig = default;
-                processingConfig = default;
+                captureMetadata = default;
                 return false;
             }
         }
@@ -191,5 +176,13 @@
             intervalCaptureDrops = 0;
             intervalCaptureReads = 0;
         }
+    }
+
+    public struct CaptureMetadata
+    {
+        public bool Triggered;
+        public int TriggerChannelCaptureIndex;
+        public ThunderscopeHardwareConfig HardwareConfig;
+        public ThunderscopeProcessingConfig ProcessingConfig;
     }
 }
