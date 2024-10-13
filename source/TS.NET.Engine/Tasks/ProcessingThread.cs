@@ -55,7 +55,7 @@ namespace TS.NET.Engine
             ILogger logger,
             ThunderscopeSettings settings,
             ThunderscopeHardwareConfig cachedHardwareConfig,
-            BlockingChannelReader<InputDataDto> processChannel,
+            BlockingChannelReader<InputDataDto> processingDataChannel,
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel,
@@ -171,7 +171,7 @@ namespace TS.NET.Engine
                 {
                     cancelToken.ThrowIfCancellationRequested();
 
-                    if (processingRequestChannel.TryRead(out var request))
+                    if (processingRequestChannel.TryRead(out var request, cancelToken))
                     {
                         switch (request)
                         {
@@ -295,7 +295,7 @@ namespace TS.NET.Engine
                         }
                     }
 
-                    if (processChannel.TryRead(out InputDataDto inputDataDto, 10, cancelToken))
+                    if (processingDataChannel.TryRead(out var inputDataDto, 10, cancelToken))
                     {
                         totalDequeueCount++;
 
@@ -321,37 +321,34 @@ namespace TS.NET.Engine
                             captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
                             logger.LogTrace("Hardware enabled channel change ({0})", processingConfig.ChannelCount);
                         }
+                        
                         cachedHardwareConfig = inputDataDto.HardwareConfig;
 
                         switch (cachedHardwareConfig.AdcChannelMode)
                         {
                             case AdcChannelMode.Single:
-                                // Copy
                                 inputDataDto.Memory.SpanI8.CopyTo(shuffleBuffer);
                                 // Finished with the memory, return it
                                 inputChannel.Write(inputDataDto.Memory);
-                                // Write to circular buffer
+                                // Write to circular sample buffer
                                 sampleBuffers[0].Write(shuffleBuffer);
                                 streamSampleCounter += shuffleBuffer.Length;
                                 break;
                             case AdcChannelMode.Dual:
-                                // Shuffle
                                 ShuffleI8.TwoChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                                 // Finished with the memory, return it
                                 inputChannel.Write(inputDataDto.Memory);
-                                // Write to circular buffer
+                                // Write to circular sample buffers
                                 sampleBuffers[0].Write(shuffleBuffer2Ch_1);
                                 sampleBuffers[1].Write(shuffleBuffer2Ch_2);
                                 streamSampleCounter += shuffleBuffer2Ch_1.Length;
                                 break;
                             case AdcChannelMode.Quad:
-                                // Quad channel mode is a bit different, it's processed as 4 channels but
-                                // stored in the capture buffer as 3 or 4 channels.
-                                // Shuffle
+                                // Quad channel mode is a bit different, it's processed as 4 channels but stored in the capture buffer as 3 or 4 channels.
                                 ShuffleI8.FourChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                                 // Finished with the memory, return it
                                 inputChannel.Write(inputDataDto.Memory);
-                                // Write to circular buffer
+                                // Write to circular sample buffers
                                 sampleBuffers[0].Write(shuffleBuffer4Ch_1);
                                 sampleBuffers[1].Write(shuffleBuffer4Ch_2);
                                 sampleBuffers[2].Write(shuffleBuffer4Ch_3);

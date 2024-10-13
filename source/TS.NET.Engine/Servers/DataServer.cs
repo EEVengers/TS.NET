@@ -53,8 +53,6 @@ namespace TS.NET.Engine
         protected override void OnConnected()
         {
             logger.LogDebug($"Waveform session with Id {Id} connected!");
-            //string message = "Hello from TCP chat! Please send a message or '!' to disconnect the client!";
-            //SendAsync(message);
         }
 
         protected override void OnDisconnected()
@@ -77,9 +75,7 @@ namespace TS.NET.Engine
                     if (captureBuffer.TryStartRead(out var captureMetadata))      // Add timeout parameter and eliminate Thread.Sleep
                     {
                         noCapturesAvailable = false;
-                        //logger.LogDebug("Sending waveform...");
                         ulong femtosecondsPerSample = 1000000000000000 / captureMetadata.HardwareConfig.SampleRateHz;
-                        //logger.LogTrace("{0}", hardwareConfig.SampleRateHz);
 
                         WaveformHeader header = new()
                         {
@@ -102,7 +98,6 @@ namespace TS.NET.Engine
                         // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
                         if (captureMetadata.Triggered)
                         {
-                            //logger.LogTrace("triggerChannelCaptureIndex: {0}", triggerChannelCaptureIndex);
                             ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetReadBuffer(captureMetadata.TriggerChannelCaptureIndex);
                             // Get the trigger index. If it's greater than 0, then do trigger interpolation.
                             int triggerIndex = (int)(captureMetadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
@@ -124,20 +119,17 @@ namespace TS.NET.Engine
                                     chHeader.trigphase = 0;
                                 var delay = captureMetadata.ProcessingConfig.TriggerDelayFs - ((ulong)triggerIndex * femtosecondsPerSample);
                                 chHeader.trigphase += delay;
-                                //logger.LogTrace("Trigger phase: {0:F6}, first {1}, second {2}", chHeader.trigphase, fa, fb);
                             }
                         }
                         unsafe
                         {
                             Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
                             bytesSent += (ulong)sizeof(WaveformHeader);
-                            //logger.LogDebug("WaveformHeader: " + header.ToString());
 
                             for (byte captureBufferIndex = 0; captureBufferIndex < captureBuffer.ChannelCount; captureBufferIndex++)
                             {
                                 // Map captureBufferIndex to channelIndex
                                 int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
-                                //logger.LogTrace("channelIndex: {0}", channelIndex);
 
                                 ThunderscopeChannelFrontend thunderscopeChannel = captureMetadata.HardwareConfig.Frontend[channelIndex];
                                 chHeader.channelIndex = (byte)channelIndex;
@@ -146,12 +138,10 @@ namespace TS.NET.Engine
 
                                 Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
                                 bytesSent += (ulong)sizeof(ChannelHeader);
-                                //logger.LogDebug("ChannelHeader: " + chHeader.ToString());
                                 var channelBuffer = MemoryMarshal.Cast<sbyte, byte>(captureBuffer.GetReadBuffer(captureBufferIndex));
                                 Send(channelBuffer);
                                 bytesSent += (ulong)captureMetadata.ProcessingConfig.ChannelDataLength;
                             }
-                            //logger.LogDebug($"Sent waveform ({bytesSent} bytes)");
                         }
                         sequenceNumber++;
                         captureBuffer.FinishRead();
