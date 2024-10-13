@@ -96,7 +96,7 @@ namespace TS.NET.Engine
                         ulong bytesSent = 0;
 
                         // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
-                        if (captureMetadata.Triggered)
+                        if (captureMetadata.Triggered && captureMetadata.ProcessingConfig.TriggerInterpolation)
                         {
                             ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetReadBuffer(captureMetadata.TriggerChannelCaptureIndex);
                             // Get the trigger index. If it's greater than 0, then do trigger interpolation.

@@ -100,9 +100,10 @@ namespace TS.NET.Engine
                     TriggerMode = TriggerMode.Auto,
                     TriggerType = TriggerType.RisingEdge,
                     TriggerDelayFs = 0,
-                    TriggerHoldoff = 0,
+                    TriggerHoldoffFs = 0,
                     TriggerLevel = 0,
                     TriggerHysteresis = 5,
+                    TriggerInterpolation = true,
                     BoxcarAveraging = BoxcarAveraging.None
                 };
 
@@ -114,25 +115,24 @@ namespace TS.NET.Engine
                 // Various buffers allocated once and reused forevermore.
                 //Memory<byte> hardwareBuffer = new byte[ThunderscopeMemory.Length];
                 // Shuffle buffers. Only needed for 2/4 channel modes.
-                Span<sbyte> shuffleBuffer = new sbyte[ThunderscopeMemory.Length];
+                int memoryLength_1Ch = ThunderscopeMemory.Length;
+                Span<sbyte> shuffleBuffer = new sbyte[memoryLength_1Ch];
                 // --2 channel buffers
-                int blockLength_2Ch = (int)ThunderscopeMemory.Length / 2;
-                Span<sbyte> shuffleBuffer2Ch_1 = shuffleBuffer.Slice(0, blockLength_2Ch);
-                Span<sbyte> shuffleBuffer2Ch_2 = shuffleBuffer.Slice(blockLength_2Ch, blockLength_2Ch);
+                int memoryLength_2Ch = (int)ThunderscopeMemory.Length / 2;
+                Span<sbyte> shuffleBuffer2Ch_1 = shuffleBuffer.Slice(0, memoryLength_2Ch);
+                Span<sbyte> shuffleBuffer2Ch_2 = shuffleBuffer.Slice(memoryLength_2Ch, memoryLength_2Ch);
                 // --4 channel buffers
-                int blockLength_4Ch = (int)ThunderscopeMemory.Length / 4;
-                Span<sbyte> shuffleBuffer4Ch_1 = shuffleBuffer.Slice(0, blockLength_4Ch);
-                Span<sbyte> shuffleBuffer4Ch_2 = shuffleBuffer.Slice(blockLength_4Ch, blockLength_4Ch);
-                Span<sbyte> shuffleBuffer4Ch_3 = shuffleBuffer.Slice(blockLength_4Ch * 2, blockLength_4Ch);
-                Span<sbyte> shuffleBuffer4Ch_4 = shuffleBuffer.Slice(blockLength_4Ch * 3, blockLength_4Ch);
+                int memoryLength_4Ch = (int)ThunderscopeMemory.Length / 4;
+                Span<sbyte> shuffleBuffer4Ch_1 = shuffleBuffer.Slice(0, memoryLength_4Ch);
+                Span<sbyte> shuffleBuffer4Ch_2 = shuffleBuffer.Slice(memoryLength_4Ch, memoryLength_4Ch);
+                Span<sbyte> shuffleBuffer4Ch_3 = shuffleBuffer.Slice(memoryLength_4Ch * 2, memoryLength_4Ch);
+                Span<sbyte> shuffleBuffer4Ch_4 = shuffleBuffer.Slice(memoryLength_4Ch * 3, memoryLength_4Ch);
                 Span<uint> captureEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum window width
 
                 // Periodic debug display variables
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 ulong totalDequeueCount = 0;
                 ulong cachedTotalDequeueCount = 0;
-                //ulong cachedBridgeWrites = 0;
-                //ulong cachedBridgeReads = 0;
 
                 Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
 
@@ -171,7 +171,7 @@ namespace TS.NET.Engine
                 {
                     cancelToken.ThrowIfCancellationRequested();
 
-                    if (processingRequestChannel.TryRead(out var request, cancelToken))
+                    if (processingRequestChannel.TryRead(out var request))
                     {
                         switch (request)
                         {
@@ -209,24 +209,34 @@ namespace TS.NET.Engine
                                 }
                                 captureBuffer.Reset();
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} (mode: {processingConfig.TriggerMode})");
-                                break;
-                            case ProcessingSetDepthDto processingSetDepthDto:
-                                if (processingConfig.ChannelDataLength != processingSetDepthDto.Samples)
-                                {
-                                    processingConfig.ChannelDataLength = processingSetDepthDto.Samples;
-                                    captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
-                                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
-                                    logger.LogDebug($"{nameof(ProcessingSetDepthDto)} ({processingConfig.ChannelDataLength})");
-                                }
-                                else
-                                {
-                                    logger.LogDebug($"{nameof(ProcessingSetDepthDto)} (no change)");
-                                }
-                                break;
+                                break;                           
                             case ProcessingSetTriggerSourceDto processingSetTriggerSourceDto:
                                 processingConfig.TriggerChannel = processingSetTriggerSourceDto.Channel;
                                 captureBuffer.Reset();
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerSourceDto)} (channel: {processingConfig.TriggerChannel})");
+                                break;
+                            case ProcessingSetTriggerTypeDto processingSetTriggerTypeDto:
+                                if (processingConfig.TriggerType != processingSetTriggerTypeDto.Type)
+                                {
+                                    processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
+
+                                    edgeTriggerI8 = processingConfig.TriggerType switch
+                                    {
+                                        TriggerType.RisingEdge => new RisingEdgeTriggerI8(),
+                                        TriggerType.FallingEdge => new FallingEdgeTriggerI8(),
+                                        TriggerType.AnyEdge => new AnyEdgeTriggerI8(),
+                                        _ => throw new NotImplementedException()
+                                    };
+                                    edgeTriggerI8.SetVertical((sbyte)processingConfig.TriggerLevel, (byte)processingConfig.TriggerHysteresis);
+                                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
+
+                                    captureBuffer.Reset();
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (type: {processingConfig.TriggerType})");
+                                }
+                                else
+                                {
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (no change)");
+                                }
                                 break;
                             case ProcessingSetTriggerDelayDto processingSetTriggerDelayDto:
                                 if (processingConfig.TriggerDelayFs != processingSetTriggerDelayDto.Femtoseconds)
@@ -235,6 +245,19 @@ namespace TS.NET.Engine
                                     UpdateTriggerHorizontalPosition(cachedHardwareConfig);
                                     captureBuffer.Reset();
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (femtoseconds: {processingConfig.TriggerDelayFs})");
+                                }
+                                else
+                                {
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (no change)");
+                                }
+                                break;
+                            case ProcessingSetTriggerHoldoffDto processingSetTriggerHoldoffDto:
+                                if (processingConfig.TriggerHoldoffFs != processingSetTriggerHoldoffDto.Femtoseconds)
+                                {
+                                    processingConfig.TriggerHoldoffFs = processingSetTriggerHoldoffDto.Femtoseconds;
+                                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
+                                    captureBuffer.Reset();
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerHoldoffDto)} (femtoseconds: {processingConfig.TriggerHoldoffFs})");
                                 }
                                 else
                                 {
@@ -265,28 +288,22 @@ namespace TS.NET.Engine
                                 {
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (no change)");
                                 }
+                                break;                            
+                            case ProcessingSetTriggerInterpolation processingSetTriggerInterpolation:
+                                processingConfig.TriggerInterpolation = processingSetTriggerInterpolation.Enabled;
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerInterpolation)} (enabled: {processingSetTriggerInterpolation.Enabled})");
                                 break;
-                            case ProcessingSetTriggerTypeDto processingSetTriggerTypeDto:
-                                if (processingConfig.TriggerType != processingSetTriggerTypeDto.Type)
+                            case ProcessingSetDepthDto processingSetDepthDto:
+                                if (processingConfig.ChannelDataLength != processingSetDepthDto.Samples)
                                 {
-                                    processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
-
-                                    edgeTriggerI8 = processingConfig.TriggerType switch
-                                    {
-                                        TriggerType.RisingEdge => new RisingEdgeTriggerI8(),
-                                        TriggerType.FallingEdge => new FallingEdgeTriggerI8(),
-                                        TriggerType.AnyEdge => new AnyEdgeTriggerI8(),
-                                        _ => throw new NotImplementedException()
-                                    };
-                                    edgeTriggerI8.SetVertical((sbyte)processingConfig.TriggerLevel, (byte)processingConfig.TriggerHysteresis);
+                                    processingConfig.ChannelDataLength = processingSetDepthDto.Samples;
+                                    captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
                                     UpdateTriggerHorizontalPosition(cachedHardwareConfig);
-
-                                    captureBuffer.Reset();
-                                    logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (type: {processingConfig.TriggerType})");
+                                    logger.LogDebug($"{nameof(ProcessingSetDepthDto)} ({processingConfig.ChannelDataLength})");
                                 }
                                 else
                                 {
-                                    logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (no change)");
+                                    logger.LogDebug($"{nameof(ProcessingSetDepthDto)} (no change)");
                                 }
                                 break;
                             default:
@@ -332,7 +349,7 @@ namespace TS.NET.Engine
                                 inputChannel.Write(inputDataDto.Memory);
                                 // Write to circular sample buffer
                                 sampleBuffers[0].Write(shuffleBuffer);
-                                streamSampleCounter += shuffleBuffer.Length;
+                                streamSampleCounter += memoryLength_1Ch;
                                 break;
                             case AdcChannelMode.Dual:
                                 ShuffleI8.TwoChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
@@ -341,7 +358,7 @@ namespace TS.NET.Engine
                                 // Write to circular sample buffers
                                 sampleBuffers[0].Write(shuffleBuffer2Ch_1);
                                 sampleBuffers[1].Write(shuffleBuffer2Ch_2);
-                                streamSampleCounter += shuffleBuffer2Ch_1.Length;
+                                streamSampleCounter += memoryLength_2Ch;
                                 break;
                             case AdcChannelMode.Quad:
                                 // Quad channel mode is a bit different, it's processed as 4 channels but stored in the capture buffer as 3 or 4 channels.
@@ -353,7 +370,7 @@ namespace TS.NET.Engine
                                 sampleBuffers[1].Write(shuffleBuffer4Ch_2);
                                 sampleBuffers[2].Write(shuffleBuffer4Ch_3);
                                 sampleBuffers[3].Write(shuffleBuffer4Ch_4);
-                                streamSampleCounter += shuffleBuffer4Ch_1.Length;
+                                streamSampleCounter += memoryLength_4Ch;
                                 break;
                         }
 
@@ -476,7 +493,9 @@ namespace TS.NET.Engine
                 {
                     ulong femtosecondsPerSample = 1000000000000000 / hardwareConfig.SampleRateHz;
                     var windowTriggerPosition = processingConfig.TriggerDelayFs / femtosecondsPerSample;
-                    edgeTriggerI8.SetHorizontal((ulong)processingConfig.ChannelDataLength, windowTriggerPosition, processingConfig.TriggerHoldoff);
+                    var additionalHoldoff = processingConfig.TriggerHoldoffFs / femtosecondsPerSample;
+                    logger.LogTrace($"{additionalHoldoff}");
+                    edgeTriggerI8.SetHorizontal((ulong)processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
                 }
 
                 void TriggerCapture(bool triggered, int triggerChannelCaptureIndex, uint offset)
