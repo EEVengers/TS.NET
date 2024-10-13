@@ -228,7 +228,14 @@ namespace TS.NET.Engine
                                     {
                                         // TRIGger:INTERpolation <arg>
                                         // TRIG:INTER <arg>
-                                        bool enabled = Convert.ToBoolean(argument);
+                                        bool enabled = argument.ToLower() switch
+                                        {
+                                            "true" => true,
+                                            "1" => true,
+                                            "false" => false,
+                                            "0" => false,
+                                            _ => true       // Default to true
+                                        };
                                         logger.LogDebug($"Set trigger interpolation to {enabled}V");
                                         processingRequestChannel.Write(new ProcessingSetTriggerInterpolation(enabled));
                                         return null;
