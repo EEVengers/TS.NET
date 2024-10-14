@@ -27,8 +27,8 @@ public unsafe struct ThunderscopeMemoryRegion
 
 public unsafe struct ThunderscopeMemory
 {
-    public const uint Length = 1 << 23;     // 8388608 bytes
+    public const int Length = 1 << 23;     // 8388608 bytes
     public byte* Pointer;
-    public Span<byte> SpanU8 { get { return new Span<byte>(Pointer, (int)Length); } }
-    public Span<sbyte> SpanI8 { get { return new Span<sbyte>(Pointer, (int)Length); } }
+    public Span<byte> SpanU8 { get { return new Span<byte>(Pointer, Length); } }
+    public Span<sbyte> SpanI8 { get { return new Span<sbyte>(Pointer, Length); } }
 }

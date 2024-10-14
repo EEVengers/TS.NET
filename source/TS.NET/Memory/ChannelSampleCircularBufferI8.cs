@@ -2,17 +2,18 @@
 
 namespace TS.NET
 {
-    public unsafe sealed class ChannelCircularAlignedBufferI8
+    public unsafe sealed class ChannelSampleCircularBufferI8
     {
         private readonly sbyte* buffer;
         private readonly uint capacity;
-        private uint tail = 0;
-        private ulong totalWritten = 0;
+        private uint tail;
+        private ulong totalWritten;
 
-        public ChannelCircularAlignedBufferI8(uint capacity)
+        public ChannelSampleCircularBufferI8(uint capacity)
         {
             this.capacity = capacity;
             buffer = (sbyte*)NativeMemory.AlignedAlloc(capacity, 4096);
+            Reset();
         }
 
         // https://tooslowexception.com/disposable-ref-structs-in-c-8-0/
@@ -38,6 +39,14 @@ namespace TS.NET
         //        tail = 0;
         //    }
         //}
+
+        public void Reset()
+        {
+            tail = 0;
+            totalWritten = 0;
+            var span = new Span<sbyte>(buffer, (int)capacity);
+            span.Clear();
+        }
 
         public void Write(ReadOnlySpan<sbyte> data)
         {

@@ -2,6 +2,7 @@
 using NetCoreServer;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection.Emit;
 using System.Text;
 
 namespace TS.NET.Engine
@@ -147,7 +148,7 @@ namespace TS.NET.Engine
                                 case "DEPTH":
                                     if (argument != null)
                                     {
-                                        ulong depth = Convert.ToUInt64(argument);
+                                        var depth = Convert.ToInt32(argument);
                                         processingRequestChannel.Write(new ProcessingSetDepthDto(depth));
                                         logger.LogDebug($"{nameof(ProcessingSetDepthDto)} sent with argument: {depth}");
                                     }
@@ -223,11 +224,31 @@ namespace TS.NET.Engine
                                         processingRequestChannel.Write(new ProcessingSetTriggerTypeDto(type));
                                         return null;
                                     }
-                                    //case var _ when command.StartsWith("HOLD") && argument != null:
-                                    //    {
-                                    //        // TRIGger:HOLDoff:MODE <OFF|TIME>
-                                    //        // TRIGger:HOLDoff:TIME <arg>
-                                    //    }
+                                case var _ when command.StartsWith("INTER") && argument != null:
+                                    {
+                                        // TRIGger:INTERpolation <arg>
+                                        // TRIG:INTER <arg>
+                                        bool enabled = argument.ToLower() switch
+                                        {
+                                            "true" => true,
+                                            "1" => true,
+                                            "false" => false,
+                                            "0" => false,
+                                            _ => true       // Default to true
+                                        };
+                                        logger.LogDebug($"Set trigger interpolation to {enabled}V");
+                                        processingRequestChannel.Write(new ProcessingSetTriggerInterpolation(enabled));
+                                        return null;
+                                    }
+                                case var _ when command.StartsWith("HOLD") && argument != null:
+                                    {
+                                        // TRIGger:HOLDoff <arg>
+                                        // TRIG:HOLD <arg>
+                                        long holdoff = Convert.ToInt64(argument);
+                                        logger.LogDebug($"Set trigger holdoff to {holdoff}fs");
+                                        processingRequestChannel.Write(new ProcessingSetTriggerHoldoffDto((ulong)holdoff));
+                                        return null;
+                                    }
                             }
                             break;
                         }

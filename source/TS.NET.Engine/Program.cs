@@ -42,13 +42,13 @@ class Program
         //Console.WriteLine("Going to start thunderscope " + indexThunderscope + " revision " + hwRevision + " and SCPI server @ " + controlPort + ":" + dataPort);
 
 #if DEBUG
-        ThunderscopeSettings settings = ThunderscopeSettings.Default();
+        ThunderscopeSettings defaultSettings = ThunderscopeSettings.Default();
         var serializer = new YamlDotNet.Serialization.SerializerBuilder()
             .WithNamingConvention(
                 YamlDotNet.Serialization.NamingConventions.PascalCaseNamingConvention.Instance
             )
             .Build();
-        string yaml = serializer.Serialize(settings);
+        string yaml = serializer.Serialize(defaultSettings);
         File.WriteAllText("thunderscope (defaults).yaml", yaml);
 #endif
 
@@ -172,11 +172,13 @@ class Program
         BlockingChannel<ProcessingRequestDto> processingRequestChannel = new();
         BlockingChannel<ProcessingResponseDto> processingResponseChannel = new();
 
+        var captureBuffer = new ChannelCaptureCircularBufferI8(thunderscopeSettings.MaxChannelDataLength * thunderscopeSettings.MaxChannelCount);
+
         // Start threads
         SemaphoreSlim startSemaphore = new(1);
 
         startSemaphore.Wait();
-        ProcessingThread processingThread = new(loggerFactory, thunderscopeSettings, processChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer, bridgeNamespace);
+        ProcessingThread processingThread = new(loggerFactory, thunderscopeSettings, thunderscope.GetConfiguration(), processChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer, captureBuffer);
         processingThread.Start(startSemaphore);
 
         startSemaphore.Wait();
@@ -187,7 +189,7 @@ class Program
         DataServer? dataServer = null;
         if (thunderscopeSettings.DataPortEnabled)
         {
-            dataServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5026, bridgeNamespace);
+            dataServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5026, captureBuffer);
             dataServer.Start();
         }
 

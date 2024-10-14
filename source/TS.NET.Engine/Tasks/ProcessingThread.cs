@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.ComponentModel;
 using System.Diagnostics;
 
 namespace TS.NET.Engine
@@ -7,11 +8,12 @@ namespace TS.NET.Engine
     {
         private readonly ILogger logger;
         private readonly ThunderscopeSettings settings;
+        private readonly ThunderscopeHardwareConfig hardwareConfig;
         private readonly BlockingChannelReader<InputDataDto> processChannel;
         private readonly BlockingChannelWriter<ThunderscopeMemory> inputChannel;
         private readonly BlockingChannelReader<ProcessingRequestDto> processingRequestChannel;
         private readonly BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel;
-        private readonly string bridgeNamespace;
+        private readonly ChannelCaptureCircularBufferI8 captureBuffer;
 
         private CancellationTokenSource? cancelTokenSource;
         private Task? taskLoop;
@@ -19,25 +21,27 @@ namespace TS.NET.Engine
         public ProcessingThread(
             ILoggerFactory loggerFactory,
             ThunderscopeSettings settings,
+            ThunderscopeHardwareConfig hardwareConfig,
             BlockingChannelReader<InputDataDto> processChannel,
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel,
-            string bridgeNamespace)
+            ChannelCaptureCircularBufferI8 captureBuffer)
         {
             logger = loggerFactory.CreateLogger(nameof(ProcessingThread));
             this.settings = settings;
+            this.hardwareConfig = hardwareConfig;
             this.processChannel = processChannel;
             this.inputChannel = inputChannel;
             this.processingRequestChannel = processingRequestChannel;
             this.processingResponseChannel = processingResponseChannel;
-            this.bridgeNamespace = bridgeNamespace;
+            this.captureBuffer = captureBuffer;
         }
 
         public void Start(SemaphoreSlim startSemaphore)
         {
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, settings, processChannel, inputChannel, processingRequestChannel, processingResponseChannel, startSemaphore, bridgeNamespace, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(logger, settings, hardwareConfig, processChannel, inputChannel, processingRequestChannel, processingResponseChannel, startSemaphore, captureBuffer, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -50,12 +54,13 @@ namespace TS.NET.Engine
         private static void Loop(
             ILogger logger,
             ThunderscopeSettings settings,
-            BlockingChannelReader<InputDataDto> processChannel,
+            ThunderscopeHardwareConfig cachedHardwareConfig,
+            BlockingChannelReader<InputDataDto> processingDataChannel,
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel,
             SemaphoreSlim startSemaphore,
-            string bridgeNamespace,
+            ChannelCaptureCircularBufferI8 captureBuffer,
             CancellationToken cancelToken)
         {
             try
@@ -68,64 +73,75 @@ namespace TS.NET.Engine
                     logger.LogDebug($"{nameof(ProcessingThread)} thread processor affinity set to {settings.ProcessingThreadProcessorAffinity}");
                 }
 
-                ThunderscopeBridgeConfig bridgeConfig = new()
-                {
-                    MaxChannelCount = settings.MaxChannelCount,
-                    MaxChannelDataLength = settings.MaxChannelDataLength,
-                    MaxDataRegionDataByteWidth = ThunderscopeDataType.I8.ByteWidth(),
-                    DataRegionCount = 2
-                };
-                ThunderscopeDataBridgeWriter bridge = new(bridgeNamespace, bridgeConfig);
+                //ThunderscopeBridgeConfig bridgeConfig = new()
+                //{
+                //    MaxChannelCount = settings.MaxChannelCount,
+                //    MaxChannelDataLength = settings.MaxChannelDataLength,
+                //    MaxDataRegionDataByteWidth = ThunderscopeDataType.I8.ByteWidth(),
+                //    DataRegionCount = 2
+                //};
+                //ThunderscopeDataBridgeWriter bridge = new(bridgeNamespace, settings.MaxChannelCount * settings.MaxChannelDataLength * ThunderscopeDataType.I8.ByteWidth());
 
-                ThunderscopeHardwareConfig hardwareConfig = default;        // Updated from the inputDataDto stream
+                bool liteX = settings.HardwareDriver.ToLower() == "litex";
 
                 // Set some sensible defaults
+                ushort initialChannelCount = cachedHardwareConfig.AdcChannelMode switch
+                {
+                    AdcChannelMode.Quad => 4,
+                    AdcChannelMode.Dual => 2,
+                    AdcChannelMode.Single => 1
+                };
                 var processingConfig = new ThunderscopeProcessingConfig
                 {
-                    CurrentChannelCount = settings.MaxChannelCount,
-                    CurrentChannelDataLength = settings.MaxChannelDataLength,
+                    ChannelCount = initialChannelCount,
+                    ChannelDataLength = settings.MaxChannelDataLength,
+                    ChannelDataType = ThunderscopeDataType.I8,
                     TriggerChannel = TriggerChannel.Channel1,
                     TriggerMode = TriggerMode.Auto,
                     TriggerType = TriggerType.RisingEdge,
                     TriggerDelayFs = 0,
+                    TriggerHoldoffFs = 0,
+                    TriggerLevel = 0,
                     TriggerHysteresis = 5,
-                    TriggerHoldoff = 0,
+                    TriggerInterpolation = true,
                     BoxcarAveraging = BoxcarAveraging.None
-
                 };
-                bridge.Processing = processingConfig;
+
+                //bridge.Processing = processingConfig;
 
                 // Reset monitoring
-                bridge.MonitoringReset();
+                //bridge.MonitoringReset();
 
                 // Various buffers allocated once and reused forevermore.
                 //Memory<byte> hardwareBuffer = new byte[ThunderscopeMemory.Length];
                 // Shuffle buffers. Only needed for 2/4 channel modes.
-                Span<sbyte> shuffleBuffer = new sbyte[ThunderscopeMemory.Length];
+                int memoryLength_1Ch = ThunderscopeMemory.Length;
+                Span<sbyte> shuffleBuffer = new sbyte[memoryLength_1Ch];
                 // --2 channel buffers
-                int blockLength_2Ch = (int)ThunderscopeMemory.Length / 2;
-                Span<sbyte> shuffleBuffer2Ch_1 = shuffleBuffer.Slice(0, blockLength_2Ch);
-                Span<sbyte> shuffleBuffer2Ch_2 = shuffleBuffer.Slice(blockLength_2Ch, blockLength_2Ch);
+                int memoryLength_2Ch = (int)ThunderscopeMemory.Length / 2;
+                Span<sbyte> shuffleBuffer2Ch_1 = shuffleBuffer.Slice(0, memoryLength_2Ch);
+                Span<sbyte> shuffleBuffer2Ch_2 = shuffleBuffer.Slice(memoryLength_2Ch, memoryLength_2Ch);
                 // --4 channel buffers
-                int blockLength_4Ch = (int)ThunderscopeMemory.Length / 4;
-                Span<sbyte> shuffleBuffer4Ch_1 = shuffleBuffer.Slice(0, blockLength_4Ch);
-                Span<sbyte> shuffleBuffer4Ch_2 = shuffleBuffer.Slice(blockLength_4Ch, blockLength_4Ch);
-                Span<sbyte> shuffleBuffer4Ch_3 = shuffleBuffer.Slice(blockLength_4Ch * 2, blockLength_4Ch);
-                Span<sbyte> shuffleBuffer4Ch_4 = shuffleBuffer.Slice(blockLength_4Ch * 3, blockLength_4Ch);
+                int memoryLength_4Ch = (int)ThunderscopeMemory.Length / 4;
+                Span<sbyte> shuffleBuffer4Ch_1 = shuffleBuffer.Slice(0, memoryLength_4Ch);
+                Span<sbyte> shuffleBuffer4Ch_2 = shuffleBuffer.Slice(memoryLength_4Ch, memoryLength_4Ch);
+                Span<sbyte> shuffleBuffer4Ch_3 = shuffleBuffer.Slice(memoryLength_4Ch * 2, memoryLength_4Ch);
+                Span<sbyte> shuffleBuffer4Ch_4 = shuffleBuffer.Slice(memoryLength_4Ch * 3, memoryLength_4Ch);
                 Span<uint> captureEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum window width
 
                 // Periodic debug display variables
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
                 ulong totalDequeueCount = 0;
                 ulong cachedTotalDequeueCount = 0;
-                ulong cachedBridgeWrites = 0;
-                ulong cachedBridgeReads = 0;
+
                 Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
 
-                var circularBuffer1 = new ChannelCircularAlignedBufferI8((uint)processingConfig.CurrentChannelDataLength + ThunderscopeMemory.Length);
-                var circularBuffer2 = new ChannelCircularAlignedBufferI8((uint)processingConfig.CurrentChannelDataLength + ThunderscopeMemory.Length);
-                var circularBuffer3 = new ChannelCircularAlignedBufferI8((uint)processingConfig.CurrentChannelDataLength + ThunderscopeMemory.Length);
-                var circularBuffer4 = new ChannelCircularAlignedBufferI8((uint)processingConfig.CurrentChannelDataLength + ThunderscopeMemory.Length);
+                var sampleBuffers = new ChannelSampleCircularBufferI8[4];
+                for (int i = 0; i < 4; i++)
+                {
+                    sampleBuffers[i] = new ChannelSampleCircularBufferI8((uint)(settings.MaxChannelDataLength + ThunderscopeMemory.Length));
+                }
+                captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
 
                 // Triggering:
                 // There are 3 states for Trigger Mode: normal, single, auto.
@@ -138,10 +154,6 @@ namespace TS.NET.Engine
                 // forceTriggerLatch: disregards the Trigger Mode, push update immediately and set forceTrigger to false. If a standard trigger happened at the same time as a force, the force is ignored so the bridge only updates once.
                 // singleTriggerLatch: used in Single mode to stop the trigger subsystem after a trigger.
 
-                // Cached values that need to be compared against hardware channel single-source-of-truth
-                //AdcChannelMode cachedAdcChannelMode = AdcChannelMode.Quad;
-                ulong cachedSampleRateHz = 250000000;
-
                 IEdgeTriggerI8 edgeTriggerI8 = new RisingEdgeTriggerI8();
                 bool runMode = true;
                 bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
@@ -150,7 +162,7 @@ namespace TS.NET.Engine
                 // Variables for Auto triggering
                 Stopwatch autoTimeoutTimer = Stopwatch.StartNew();
                 int streamSampleCounter = 0;
-                long autoTimeout = 500;
+                long autoTimeout = 1000;
 
                 logger.LogInformation("Started");
                 startSemaphore.Release();
@@ -159,21 +171,23 @@ namespace TS.NET.Engine
                 {
                     cancelToken.ThrowIfCancellationRequested();
 
-                    // Check for processing requests
                     if (processingRequestChannel.TryRead(out var request))
                     {
                         switch (request)
                         {
                             case ProcessingRunDto processingStartTriggerDto:
                                 runMode = true;
+                                processingConfig.TriggerMode = TriggerMode.Auto;        // To do: cache the last setting of AUTO/NORMAL/STREAM and use it here
+                                captureBuffer.Reset();
                                 logger.LogDebug($"{nameof(ProcessingRunDto)}");
                                 break;
                             case ProcessingStopDto processingStopTriggerDto:
                                 runMode = false;
                                 logger.LogDebug($"{nameof(ProcessingStopDto)}");
                                 break;
-                            case ProcessingForceTriggerDto processingForceTriggerDto:
+                            case ProcessingForceTriggerDto processingForceTriggerDto:       // Force only works in RUN mode, and finishes in RUN
                                 forceTriggerLatch = true;
+                                captureBuffer.Reset();
                                 logger.LogDebug($"{nameof(ProcessingForceTriggerDto)}");
                                 break;
                             case ProcessingSetTriggerModeDto processingSetTriggerModeDto:
@@ -184,7 +198,8 @@ namespace TS.NET.Engine
                                     case TriggerMode.Stream:
                                         singleTriggerLatch = false;
                                         break;
-                                    case TriggerMode.Single:
+                                    case TriggerMode.Single:                                // Single works in both RUN/STOP, and finishes in STOP
+                                        runMode = true;
                                         singleTriggerLatch = true;
                                         break;
                                     case TriggerMode.Auto:
@@ -192,39 +207,68 @@ namespace TS.NET.Engine
                                         autoTimeoutTimer.Restart();
                                         break;
                                 }
+                                captureBuffer.Reset();
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} (mode: {processingConfig.TriggerMode})");
-                                break;
-                            case ProcessingSetDepthDto processingSetDepthDto:
-                                if (processingConfig.CurrentChannelDataLength != processingSetDepthDto.Samples)
-                                {
-                                    processingConfig.CurrentChannelDataLength = processingSetDepthDto.Samples;
-                                    UpdateTriggerHorizontalPosition();
-                                    logger.LogDebug($"{nameof(ProcessingSetDepthDto)} ({processingConfig.CurrentChannelDataLength})");
-                                }
-                                logger.LogDebug($"{nameof(ProcessingSetDepthDto)} (no change)");
-                                break;
-                            case ProcessingSetRateDto processingSetRateDto:
-                                var rate = processingSetRateDto.SamplingHz;
-                                logger.LogWarning($"{nameof(ProcessingSetRateDto)} [Not implemented]");
-                                break;
+                                break;                           
                             case ProcessingSetTriggerSourceDto processingSetTriggerSourceDto:
                                 processingConfig.TriggerChannel = processingSetTriggerSourceDto.Channel;
+                                captureBuffer.Reset();
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerSourceDto)} (channel: {processingConfig.TriggerChannel})");
+                                break;
+                            case ProcessingSetTriggerTypeDto processingSetTriggerTypeDto:
+                                if (processingConfig.TriggerType != processingSetTriggerTypeDto.Type)
+                                {
+                                    processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
+
+                                    edgeTriggerI8 = processingConfig.TriggerType switch
+                                    {
+                                        TriggerType.RisingEdge => new RisingEdgeTriggerI8(),
+                                        TriggerType.FallingEdge => new FallingEdgeTriggerI8(),
+                                        TriggerType.AnyEdge => new AnyEdgeTriggerI8(),
+                                        _ => throw new NotImplementedException()
+                                    };
+                                    edgeTriggerI8.SetVertical((sbyte)processingConfig.TriggerLevel, (byte)processingConfig.TriggerHysteresis);
+                                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
+
+                                    captureBuffer.Reset();
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (type: {processingConfig.TriggerType})");
+                                }
+                                else
+                                {
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (no change)");
+                                }
                                 break;
                             case ProcessingSetTriggerDelayDto processingSetTriggerDelayDto:
                                 if (processingConfig.TriggerDelayFs != processingSetTriggerDelayDto.Femtoseconds)
                                 {
                                     processingConfig.TriggerDelayFs = processingSetTriggerDelayDto.Femtoseconds;
-                                    UpdateTriggerHorizontalPosition();
+                                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
+                                    captureBuffer.Reset();
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (femtoseconds: {processingConfig.TriggerDelayFs})");
                                 }
-                                logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (no change)");
+                                else
+                                {
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (no change)");
+                                }
+                                break;
+                            case ProcessingSetTriggerHoldoffDto processingSetTriggerHoldoffDto:
+                                if (processingConfig.TriggerHoldoffFs != processingSetTriggerHoldoffDto.Femtoseconds)
+                                {
+                                    processingConfig.TriggerHoldoffFs = processingSetTriggerHoldoffDto.Femtoseconds;
+                                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
+                                    captureBuffer.Reset();
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerHoldoffDto)} (femtoseconds: {processingConfig.TriggerHoldoffFs})");
+                                }
+                                else
+                                {
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (no change)");
+                                }
                                 break;
                             case ProcessingSetTriggerLevelDto processingSetTriggerLevelDto:
                                 var requestedTriggerLevel = processingSetTriggerLevelDto.LevelVolts;
                                 // Convert the voltage to Int8
 
-                                var triggerChannel = hardwareConfig.GetTriggerChannelFrontend(processingConfig.TriggerChannel);
+                                var triggerChannel = cachedHardwareConfig.GetTriggerChannelFrontend(processingConfig.TriggerChannel);
 
                                 if ((requestedTriggerLevel > triggerChannel.ActualVoltFullScale / 2) || (requestedTriggerLevel < -triggerChannel.ActualVoltFullScale / 2))
                                 {
@@ -237,351 +281,286 @@ namespace TS.NET.Engine
                                 {
                                     processingConfig.TriggerLevel = triggerLevel;
                                     edgeTriggerI8.SetVertical(triggerLevel, (byte)processingConfig.TriggerHysteresis);
+                                    captureBuffer.Reset();
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (level: {triggerLevel}, hysteresis: {processingConfig.TriggerHysteresis})");
-                                }
-                                logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (no change)");
-                                break;
-                            case ProcessingSetTriggerTypeDto processingSetTriggerTypeDto:
-                                if (processingConfig.TriggerType != processingSetTriggerTypeDto.Type)
-                                {
-                                    processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
-                                    CreateEdgeTriggerI8();
-                                    logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (type: {processingConfig.TriggerType})");
                                 }
                                 else
                                 {
-                                    logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (no change)");
+                                    logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (no change)");
+                                }
+                                break;                            
+                            case ProcessingSetTriggerInterpolation processingSetTriggerInterpolation:
+                                processingConfig.TriggerInterpolation = processingSetTriggerInterpolation.Enabled;
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerInterpolation)} (enabled: {processingSetTriggerInterpolation.Enabled})");
+                                break;
+                            case ProcessingSetDepthDto processingSetDepthDto:
+                                if (processingConfig.ChannelDataLength != processingSetDepthDto.Samples)
+                                {
+                                    processingConfig.ChannelDataLength = processingSetDepthDto.Samples;
+                                    captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
+                                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
+                                    logger.LogDebug($"{nameof(ProcessingSetDepthDto)} ({processingConfig.ChannelDataLength})");
+                                }
+                                else
+                                {
+                                    logger.LogDebug($"{nameof(ProcessingSetDepthDto)} (no change)");
                                 }
                                 break;
                             default:
                                 logger.LogWarning($"Unknown ProcessingRequestDto: {request}");
                                 break;
                         }
-
-                        bridge.Processing = processingConfig;
                     }
 
-                    if (processChannel.TryRead(out InputDataDto inputDataDto, 10, cancelToken))
+                    if (processingDataChannel.TryRead(out var inputDataDto, 10, cancelToken))
                     {
-                        hardwareConfig = inputDataDto.HardwareConfig;
-                        bridge.Hardware = hardwareConfig;
                         totalDequeueCount++;
 
-                        if (hardwareConfig.SampleRateHz != cachedSampleRateHz)
+                        // Check for any hardware changes that require action
+                        if (inputDataDto.HardwareConfig.SampleRateHz != cachedHardwareConfig.SampleRateHz)
                         {
-                            // If the SampleRateHz changes then update horizontal trigger position
-                            cachedSampleRateHz = hardwareConfig.SampleRateHz;
-                            UpdateTriggerHorizontalPosition();
+                            UpdateTriggerHorizontalPosition(inputDataDto.HardwareConfig);
+                            //for (int i = 0; i < 4; i++)
+                            //{
+                            //    sampleBuffers[i].Reset();
+                            //}
+                            captureBuffer.Reset();
+                            logger.LogTrace("Hardware sample rate change ({0})", inputDataDto.HardwareConfig.SampleRateHz);
                         }
 
-                        int channelLength = (int)processingConfig.CurrentChannelDataLength;
-                        switch (hardwareConfig.AdcChannelMode)
+                        if (inputDataDto.HardwareConfig.EnabledChannelsCount() != cachedHardwareConfig.EnabledChannelsCount())
                         {
-                            // Processing pipeline:
-                            // Shuffle (if needed)
-                            // Horizontal sum (EDIT: triggering should happen _before_ horizontal sum)
-                            // Write to circular buffer
-                            // Trigger
-                            // Data segment on trigger (if needed)
+                            processingConfig.ChannelCount = inputDataDto.HardwareConfig.EnabledChannelsCount();
+                            //for (int i = 0; i < 4; i++)
+                            //{
+                            //    sampleBuffers[i].Reset();
+                            //}
+                            captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
+                            logger.LogTrace("Hardware enabled channel change ({0})", processingConfig.ChannelCount);
+                        }
+                        
+                        cachedHardwareConfig = inputDataDto.HardwareConfig;
+
+                        switch (cachedHardwareConfig.AdcChannelMode)
+                        {
                             case AdcChannelMode.Single:
-                                // Copy
                                 inputDataDto.Memory.SpanI8.CopyTo(shuffleBuffer);
                                 // Finished with the memory, return it
                                 inputChannel.Write(inputDataDto.Memory);
-                                // Write to circular buffer
-                                circularBuffer1.Write(shuffleBuffer);
-                                streamSampleCounter += shuffleBuffer.Length;
-                                // Trigger
-                                if (runMode)
-                                {
-                                    switch (processingConfig.TriggerMode)
-                                    {
-                                        case TriggerMode.Normal:
-                                        case TriggerMode.Single:
-                                        case TriggerMode.Auto:
-                                            if (hardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
-                                            {
-                                                var triggerChannelBuffer = shuffleBuffer;
-
-                                                edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
-
-                                                if (captureEndCount > 0)
-                                                {
-                                                    for (int i = 0; i < captureEndCount; i++)
-                                                    {
-                                                        var bridgeSpan = bridge.AcquiringDataRegionI8;
-                                                        uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
-                                                        circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), endOffset);
-                                                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: true, ThunderscopeDataType.I8);
-                                                        bridge.HandleReader();
-
-                                                        if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
-                                                        {
-                                                            singleTriggerLatch = false;
-                                                            runMode = false;
-                                                            break;
-                                                        }
-                                                    }
-                                                    streamSampleCounter = 0;
-                                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
-                                                }
-                                            }
-                                            if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
-                                            {
-                                                var bridgeSpan = bridge.AcquiringDataRegionI8;
-                                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
-                                                bridge.DataWritten(hardwareConfig, processingConfig, triggered: false, ThunderscopeDataType.I8);
-                                                bridge.HandleReader();
-                                                forceTriggerLatch = false;
-
-                                                streamSampleCounter = 0;
-                                                autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
-                                            }
-                                            if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
-                                            {
-                                                SingleChannelStream(channelLength);
-                                            }
-                                            break;
-                                        case TriggerMode.Stream:
-                                            SingleChannelStream(channelLength);
-                                            break;
-                                    }
-                                }
+                                // Write to circular sample buffer
+                                sampleBuffers[0].Write(shuffleBuffer);
+                                streamSampleCounter += memoryLength_1Ch;
                                 break;
                             case AdcChannelMode.Dual:
-                                // Shuffle
                                 ShuffleI8.TwoChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                                 // Finished with the memory, return it
                                 inputChannel.Write(inputDataDto.Memory);
-                                // Write to circular buffer
-                                circularBuffer1.Write(shuffleBuffer2Ch_1);
-                                circularBuffer2.Write(shuffleBuffer2Ch_2);
-                                streamSampleCounter += shuffleBuffer2Ch_1.Length;
-                                // Trigger
-                                if (runMode)
-                                {
-                                    switch (processingConfig.TriggerMode)
-                                    {
-                                        case TriggerMode.Normal:
-                                        case TriggerMode.Single:
-                                        case TriggerMode.Auto:
-                                            if (hardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
-                                            {
-                                                var triggerChannelBuffer = shuffleBuffer2Ch_2;
-                                                if (hardwareConfig.DualChannelModeIsTriggerChannelInFirstPosition(processingConfig.TriggerChannel))
-                                                    triggerChannelBuffer = shuffleBuffer2Ch_1;
-
-                                                edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
-
-                                                if (captureEndCount > 0)
-                                                {
-                                                    for (int i = 0; i < captureEndCount; i++)
-                                                    {
-                                                        var bridgeSpan = bridge.AcquiringDataRegionI8;
-                                                        uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
-                                                        circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), endOffset);
-                                                        circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), endOffset);
-                                                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: true, ThunderscopeDataType.I8);
-                                                        bridge.HandleReader();
-
-                                                        if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
-                                                        {
-                                                            singleTriggerLatch = false;
-                                                            runMode = false;
-                                                            break;
-                                                        }
-                                                    }
-                                                    streamSampleCounter = 0;
-                                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
-                                                }
-                                            }
-                                            if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
-                                            {
-                                                var bridgeSpan = bridge.AcquiringDataRegionI8;
-                                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
-                                                circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                                                bridge.DataWritten(hardwareConfig, processingConfig, triggered: false, ThunderscopeDataType.I8);
-                                                bridge.HandleReader();
-                                                forceTriggerLatch = false;
-
-                                                streamSampleCounter = 0;
-                                                autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
-                                            }
-                                            if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
-                                            {
-                                                DualChannelStream(channelLength);
-                                            }
-                                            break;
-                                        case TriggerMode.Stream:
-                                            DualChannelStream(channelLength);
-                                            break;
-                                    }
-                                }
+                                // Write to circular sample buffers
+                                sampleBuffers[0].Write(shuffleBuffer2Ch_1);
+                                sampleBuffers[1].Write(shuffleBuffer2Ch_2);
+                                streamSampleCounter += memoryLength_2Ch;
                                 break;
                             case AdcChannelMode.Quad:
-                                // Shuffle
+                                // Quad channel mode is a bit different, it's processed as 4 channels but stored in the capture buffer as 3 or 4 channels.
                                 ShuffleI8.FourChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                                 // Finished with the memory, return it
                                 inputChannel.Write(inputDataDto.Memory);
-                                // Write to circular buffer
-                                circularBuffer1.Write(shuffleBuffer4Ch_1);
-                                circularBuffer2.Write(shuffleBuffer4Ch_2);
-                                circularBuffer3.Write(shuffleBuffer4Ch_3);
-                                circularBuffer4.Write(shuffleBuffer4Ch_4);
-                                streamSampleCounter += shuffleBuffer4Ch_1.Length;
-                                // Trigger
-                                if (runMode)
-                                {
-                                    switch (processingConfig.TriggerMode)
-                                    {
-                                        case TriggerMode.Normal:
-                                        case TriggerMode.Single:
-                                        case TriggerMode.Auto:
-                                            if (processingConfig.TriggerChannel != TriggerChannel.NotSet)
-                                            {
-                                                var triggerChannelBuffer = processingConfig.TriggerChannel switch
-                                                {
-                                                    TriggerChannel.Channel1 => shuffleBuffer4Ch_1,
-                                                    TriggerChannel.Channel2 => shuffleBuffer4Ch_2,
-                                                    TriggerChannel.Channel3 => shuffleBuffer4Ch_3,
-                                                    TriggerChannel.Channel4 => shuffleBuffer4Ch_4,
-                                                    _ => throw new ArgumentException("Invalid TriggerChannel value")
-                                                };
-
-                                                edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
-
-                                                if (captureEndCount > 0)
-                                                {
-                                                    for (int i = 0; i < captureEndCount; i++)
-                                                    {
-                                                        var bridgeSpan = bridge.AcquiringDataRegionI8;
-                                                        uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
-                                                        circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), endOffset);
-                                                        circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), endOffset);
-                                                        circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), endOffset);
-                                                        circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), endOffset);
-                                                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: true, ThunderscopeDataType.I8);
-                                                        bridge.HandleReader();
-
-                                                        if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
-                                                        {
-                                                            singleTriggerLatch = false;
-                                                            runMode = false;
-                                                            break;
-                                                        }
-                                                    }
-                                                    streamSampleCounter = 0;
-                                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
-                                                }
-                                            }
-                                            if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
-                                            {
-                                                var bridgeSpan = bridge.AcquiringDataRegionI8;
-                                                circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);
-                                                circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                                                circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
-                                                circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
-                                                bridge.DataWritten(hardwareConfig, processingConfig, triggered: false, ThunderscopeDataType.I8);
-                                                bridge.HandleReader();
-                                                forceTriggerLatch = false;
-
-                                                streamSampleCounter = 0;
-                                                autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
-                                            }
-                                            if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
-                                            {
-                                                QuadChannelStream(channelLength);
-                                            }
-                                            break;
-                                        case TriggerMode.Stream:
-                                            QuadChannelStream(channelLength);
-                                            break;
-                                    }
-                                }
+                                // Write to circular sample buffers
+                                sampleBuffers[0].Write(shuffleBuffer4Ch_1);
+                                sampleBuffers[1].Write(shuffleBuffer4Ch_2);
+                                sampleBuffers[2].Write(shuffleBuffer4Ch_3);
+                                sampleBuffers[3].Write(shuffleBuffer4Ch_4);
+                                streamSampleCounter += memoryLength_4Ch;
                                 break;
                         }
-                        
-                        bridge.HandleReader();      // This ensures the reader is serviced on every loop iteration
-                        
+
+                        if (runMode)
+                        {
+                            switch (processingConfig.TriggerMode)
+                            {
+                                case TriggerMode.Normal:
+                                case TriggerMode.Single:
+                                case TriggerMode.Auto:
+                                    if (cachedHardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
+                                    {
+                                        // Load in the trigger buffer from the correct shuffle buffer
+                                        Span<sbyte> triggerChannelBuffer;
+                                        int triggerChannelCaptureIndex;
+                                        switch (cachedHardwareConfig.AdcChannelMode)
+                                        {
+                                            case AdcChannelMode.Single:
+                                                triggerChannelCaptureIndex = 0;
+                                                triggerChannelBuffer = shuffleBuffer;
+                                                break;
+                                            case AdcChannelMode.Dual:
+                                                triggerChannelCaptureIndex = cachedHardwareConfig.GetCaptureBufferIndexForTriggerChannel(processingConfig.TriggerChannel);
+                                                triggerChannelBuffer = triggerChannelCaptureIndex switch
+                                                {
+                                                    0 => shuffleBuffer2Ch_1,
+                                                    1 => shuffleBuffer2Ch_2,
+                                                    _ => throw new NotImplementedException()
+                                                };
+                                                break;
+                                            case AdcChannelMode.Quad:
+                                                triggerChannelCaptureIndex = cachedHardwareConfig.GetCaptureBufferIndexForTriggerChannel(processingConfig.TriggerChannel);
+
+                                                // Bodge for mismatch in driver behaviour
+                                                triggerChannelBuffer = liteX switch
+                                                {
+                                                    false => processingConfig.TriggerChannel switch
+                                                    {
+                                                        TriggerChannel.Channel1 => shuffleBuffer4Ch_1,
+                                                        TriggerChannel.Channel2 => shuffleBuffer4Ch_2,
+                                                        TriggerChannel.Channel3 => shuffleBuffer4Ch_3,
+                                                        TriggerChannel.Channel4 => shuffleBuffer4Ch_4,
+                                                        _ => throw new NotImplementedException()
+                                                    },
+                                                    true => triggerChannelCaptureIndex switch
+                                                    {
+                                                        0 => shuffleBuffer4Ch_1,
+                                                        1 => shuffleBuffer4Ch_2,
+                                                        2 => shuffleBuffer4Ch_3,
+                                                        3 => shuffleBuffer4Ch_4,
+                                                        _ => throw new NotImplementedException()
+                                                    }
+                                                };
+                                                break;
+                                            default:
+                                                throw new NotImplementedException();
+                                        }
+
+                                        edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
+
+                                        if (captureEndCount > 0)
+                                        {
+                                            for (int i = 0; i < captureEndCount; i++)
+                                            {
+                                                uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
+                                                TriggerCapture(triggered: true, triggerChannelCaptureIndex, endOffset);
+
+                                                if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
+                                                {
+                                                    singleTriggerLatch = false;
+                                                    runMode = false;
+                                                    break;
+                                                }
+                                            }
+                                            streamSampleCounter = 0;
+                                            autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
+                                        }
+                                    }
+                                    if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
+                                    {
+                                        ForceCapture();
+
+                                        forceTriggerLatch = false;
+
+                                        streamSampleCounter = 0;
+                                        autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
+                                    }
+                                    else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
+                                    {
+                                        StreamCapture();
+                                    }
+                                    break;
+                                case TriggerMode.Stream:
+                                    StreamCapture();
+                                    break;
+                            }
+                        }
+
                         var elapsedTime = periodicUpdateTimer.Elapsed.TotalSeconds;
                         if (elapsedTime >= 10)
                         {
                             var dequeueCount = totalDequeueCount - cachedTotalDequeueCount;
-                            var newBridgeWrites = bridge.Monitoring.Processing.BridgeWrites - cachedBridgeWrites;
-                            var newBridgeReads = bridge.Monitoring.Processing.BridgeReads - cachedBridgeReads;
-                            var uiUpdates = newBridgeWrites - newBridgeReads;
 
-                            // Note there is also bridge.Monitoring.AcquisitionsPerSec available but for the sake of accuracy, calculate it here too.
-                            //logger.LogDebug($"Outstanding frames: {processChannel.PeekAvailable()}, dequeues/sec: {dequeueCount / periodicUpdateTimer.Elapsed.TotalSeconds:F2}, dequeue count: {totalDequeueCount}");
-                            logger.LogDebug($"Bridge writes/sec: {newBridgeWrites / elapsedTime:F2}, Bridge reads/sec: {newBridgeReads / elapsedTime:F2}, total: {bridge.Monitoring.Processing.BridgeWrites}, dropped: {bridge.Monitoring.Processing.BridgeWrites - bridge.Monitoring.Processing.BridgeReads}");
+                            var intervalCaptureTotal = captureBuffer.IntervalCaptureTotal;
+                            var intervalCaptureDrops = captureBuffer.IntervalCaptureDrops;
+                            var intervalCaptureReads = captureBuffer.IntervalCaptureReads;
+
+                            logger.LogDebug($"[Capture stats] total/s: {intervalCaptureTotal / elapsedTime:F2}, drops/s: {intervalCaptureDrops / elapsedTime:F2}, UI reads/s: {intervalCaptureReads / elapsedTime:F2}");
+                            logger.LogDebug($"[Capture buffer] capacity: {captureBuffer.MaxCaptureCount}, current: {captureBuffer.CurrentCaptureCount}, channel count: {captureBuffer.ChannelCount}, total: {captureBuffer.CaptureTotal}, drops: {captureBuffer.CaptureDrops}, reads: {captureBuffer.CaptureReads}");
                             periodicUpdateTimer.Restart();
 
                             cachedTotalDequeueCount = totalDequeueCount;
-                            cachedBridgeWrites = bridge.Monitoring.Processing.BridgeWrites;
-                            cachedBridgeReads = bridge.Monitoring.Processing.BridgeReads;
+                            captureBuffer.ResetIntervalStats();
                         }
                     }
                 }
 
                 // Locally scoped methods for deduplication
-                void UpdateTriggerHorizontalPosition()
+                void UpdateTriggerHorizontalPosition(ThunderscopeHardwareConfig hardwareConfig)
                 {
                     ulong femtosecondsPerSample = 1000000000000000 / hardwareConfig.SampleRateHz;
                     var windowTriggerPosition = processingConfig.TriggerDelayFs / femtosecondsPerSample;
-                    edgeTriggerI8.SetHorizontal(processingConfig.CurrentChannelDataLength, windowTriggerPosition, processingConfig.TriggerHoldoff);
+                    var additionalHoldoff = processingConfig.TriggerHoldoffFs / femtosecondsPerSample;
+                    logger.LogTrace($"{additionalHoldoff}");
+                    edgeTriggerI8.SetHorizontal((ulong)processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
                 }
 
-                void SingleChannelStream(int channelLength)
+                void TriggerCapture(bool triggered, int triggerChannelCaptureIndex, uint offset)
                 {
-                    while (streamSampleCounter > channelLength)
+                    if (captureBuffer.TryStartWrite())
                     {
-                        streamSampleCounter -= channelLength;
-                        var bridgeSpan = bridge.AcquiringDataRegionI8;
-                        circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
-                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: false, ThunderscopeDataType.I8);
-                        bridge.HandleReader();
+                        int channelCount = cachedHardwareConfig.EnabledChannelsCount();
+                        for (int b = 0; b < channelCount; b++)
+                        {
+                            sampleBuffers[b].Read(captureBuffer.GetWriteBuffer(b), offset);
+                        }
+                        var captureMetadata = new CaptureMetadata
+                        {
+                            Triggered = triggered,
+                            TriggerChannelCaptureIndex = triggerChannelCaptureIndex,
+                            HardwareConfig = cachedHardwareConfig,
+                            ProcessingConfig = processingConfig
+                        };
+                        captureBuffer.FinishWrite(captureMetadata);
                     }
                 }
 
-                void DualChannelStream(int channelLength)
+                void ForceCapture()
                 {
-                    while (streamSampleCounter > channelLength)
+                    if (captureBuffer.TryStartWrite())
                     {
-                        streamSampleCounter -= channelLength;
-                        var bridgeSpan = bridge.AcquiringDataRegionI8;
-                        circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
-                        circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: false, ThunderscopeDataType.I8);
-                        bridge.HandleReader();
+                        int channelCount = cachedHardwareConfig.EnabledChannelsCount();
+                        for (int b = 0; b < channelCount; b++)
+                        {
+                            sampleBuffers[b].Read(captureBuffer.GetWriteBuffer(b), 0);
+                        }
+                        var captureMetadata = new CaptureMetadata
+                        {
+                            Triggered = false,
+                            TriggerChannelCaptureIndex = 0,
+                            HardwareConfig = cachedHardwareConfig,
+                            ProcessingConfig = processingConfig
+                        };
+                        captureBuffer.FinishWrite(captureMetadata);
                     }
                 }
 
-                void QuadChannelStream(int channelLength)
+                void StreamCapture()
                 {
+                    int channelCount = cachedHardwareConfig.EnabledChannelsCount();
+                    int channelLength = processingConfig.ChannelDataLength;
                     while (streamSampleCounter > channelLength)
                     {
                         streamSampleCounter -= channelLength;
-                        var bridgeSpan = bridge.AcquiringDataRegionI8;
-                        circularBuffer1.Read(bridgeSpan.Slice(0, channelLength), 0);        // TODO - work out if this should be zero?
-                        circularBuffer2.Read(bridgeSpan.Slice(channelLength, channelLength), 0);
-                        circularBuffer3.Read(bridgeSpan.Slice(channelLength + channelLength, channelLength), 0);
-                        circularBuffer4.Read(bridgeSpan.Slice(channelLength + channelLength + channelLength, channelLength), 0);
-                        bridge.DataWritten(hardwareConfig, processingConfig, triggered: false, ThunderscopeDataType.I8);
-                        bridge.HandleReader();
+                        if (captureBuffer.TryStartWrite())
+                        {
+                            for (int b = 0; b < channelCount; b++)
+                            {
+                                sampleBuffers[b].Read(captureBuffer.GetWriteBuffer(b), 0);
+                            }
+                            var captureMetadata = new CaptureMetadata
+                            {
+                                Triggered = false,
+                                TriggerChannelCaptureIndex = 0,
+                                HardwareConfig = cachedHardwareConfig,
+                                ProcessingConfig = processingConfig
+                            };
+                            captureBuffer.FinishWrite(captureMetadata);
+                        }
                     }
-                }
-
-                void CreateEdgeTriggerI8()
-                {
-                    edgeTriggerI8 = processingConfig.TriggerType switch
-                    {
-                        TriggerType.RisingEdge => new RisingEdgeTriggerI8(),
-                        TriggerType.FallingEdge => new FallingEdgeTriggerI8(),
-                        TriggerType.AnyEdge => new AnyEdgeTriggerI8(),
-                        _ => throw new NotImplementedException()
-                    };
-                    edgeTriggerI8.SetVertical((sbyte)processingConfig.TriggerLevel, (byte)processingConfig.TriggerHysteresis);
-                    UpdateTriggerHorizontalPosition();
                 }
             }
             catch (OperationCanceledException)

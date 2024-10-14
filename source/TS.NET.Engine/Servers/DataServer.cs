@@ -24,7 +24,7 @@ namespace TS.NET.Engine
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal struct ChannelHeader
     {
-        internal byte chNum;
+        internal byte channelIndex;
         internal ulong depth;
         internal float scale;
         internal float offset;
@@ -32,33 +32,27 @@ namespace TS.NET.Engine
         internal byte clipping;
         public override string ToString()
         {
-            return $"chNum: {chNum}, depth: {depth}, scale: {scale}, offset: {offset}, trigphase: {trigphase}, clipping: {clipping}";
+            return $"chNum: {channelIndex}, depth: {depth}, scale: {scale}, offset: {offset}, trigphase: {trigphase}, clipping: {clipping}";
         }
     }
 
     internal class WaveformSession : TcpSession
     {
         private readonly ILogger logger;
-        private readonly ThunderscopeDataBridgeReader bridge;
+        private readonly ChannelCaptureCircularBufferI8 captureBuffer;
         private readonly CancellationToken cancellationToken;
-        uint sequenceNumber = 0;
+        private uint sequenceNumber = 0;
 
-        public WaveformSession(
-            TcpServer server,
-            ILogger logger,
-            ThunderscopeDataBridgeReader bridge,
-            CancellationToken cancellationToken) : base(server)
+        public WaveformSession(TcpServer server, ILogger logger, ChannelCaptureCircularBufferI8 captureBuffer, CancellationToken cancellationToken) : base(server)
         {
             this.logger = logger;
-            this.bridge = bridge;
+            this.captureBuffer = captureBuffer;
             this.cancellationToken = cancellationToken;
         }
 
         protected override void OnConnected()
         {
             logger.LogDebug($"Waveform session with Id {Id} connected!");
-            //string message = "Hello from TCP chat! Please send a message or '!' to disconnect the client!";
-            //SendAsync(message);
         }
 
         protected override void OnDisconnected()
@@ -71,92 +65,96 @@ namespace TS.NET.Engine
             if (size == 0)
                 return;
 
+            bool noCapturesAvailable = false;
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (bridge.RequestAndWaitForData(500))
+                lock (captureBuffer.ReadLock)
                 {
-                    //logger.LogDebug("Sending waveform...");
-                    var dataHeader = bridge.AcquiredDataRegionHeader;
-                    var configuration = dataHeader.Hardware;
-                    var processing = dataHeader.Processing;
-                    var data = bridge.AcquiredDataRegionU8;
-
-                    // Remember AdcChannelMode reflects the hardware reality - user may only have 3 channels enabled but hardware has to capture 4.
-                    ulong femtosecondsPerSample = 1000000000000000/configuration.SampleRateHz;
-
-                    WaveformHeader header = new()
+                    if (captureBuffer.TryStartRead(out var captureMetadata))      // Add timeout parameter and eliminate Thread.Sleep
                     {
-                        seqnum = sequenceNumber,
-                        numChannels = processing.CurrentChannelCount,
-                        fsPerSample = femtosecondsPerSample,
-                        triggerFs = (long)processing.TriggerDelayFs,
-                        hwWaveformsPerSec = bridge.Monitoring.Processing.BridgeWritesPerSec
-                    };
+                        noCapturesAvailable = false;
+                        ulong femtosecondsPerSample = 1000000000000000 / captureMetadata.HardwareConfig.SampleRateHz;
 
-                    ChannelHeader chHeader = new()
-                    {
-                        chNum = 0,
-                        depth = processing.CurrentChannelDataLength,
-                        scale = 1,
-                        offset = 0,
-                        trigphase = 0,
-                        clipping = 0
-                    };
-
-                    ulong bytesSent = 0;
-
-                    // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
-                    if (dataHeader.Triggered)
-                    {
-                        var signedData = bridge.AcquiredDataRegionI8;
-                        // To fix - trigger interpolation only works on 4 channel mode
-                        var channelData = bridge.Processing.TriggerChannel switch
+                        WaveformHeader header = new()
                         {
-                            TriggerChannel.Channel1 => signedData.Slice(0 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
-                            TriggerChannel.Channel2 => signedData.Slice(1 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
-                            TriggerChannel.Channel3 => signedData.Slice(2 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
-                            TriggerChannel.Channel4 => signedData.Slice(3 * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength),
-                            _ => throw new NotImplementedException()
+                            seqnum = sequenceNumber,
+                            numChannels = captureMetadata.ProcessingConfig.ChannelCount,
+                            fsPerSample = femtosecondsPerSample,
+                            triggerFs = (long)captureMetadata.ProcessingConfig.TriggerDelayFs,
+                            hwWaveformsPerSec = 0// bridge.Monitoring.Processing.BridgeWritesPerSec
                         };
-                        // Get the trigger index. If it's greater than 0, then do trigger interpolation.
-                        int triggerIndex = (int)(bridge.Processing.TriggerDelayFs / femtosecondsPerSample);
-                        if (triggerIndex > 0 && triggerIndex < channelData.Length)
-                        {
-                            float fa = (chHeader.scale * channelData[triggerIndex - 1]) - chHeader.offset;
-                            float fb = (chHeader.scale * channelData[triggerIndex]) - chHeader.offset;
-                            float triggerLevel = (chHeader.scale * bridge.Processing.TriggerLevel) + chHeader.offset;
-                            float slope = fb - fa;
-                            float delta = triggerLevel - fa;
-                            float trigphase = delta / slope;
-                            chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
-                            //logger.LogTrace("Trigger phase: {0:F6}, first {1}, second {2}", chHeader.trigphase, fa, fb);
-                        }
-                    }
-                    unsafe
-                    {
-                        Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
-                        bytesSent += (ulong)sizeof(WaveformHeader);
-                        //logger.LogDebug("WaveformHeader: " + header.ToString());
 
-                        for (byte channelIndex = 0; channelIndex < processing.CurrentChannelCount; channelIndex++)
+                        ChannelHeader chHeader = new()
                         {
-                            ThunderscopeChannelFrontend thunderscopeChannel = configuration.Frontend[channelIndex];
-                            chHeader.chNum = channelIndex;
-                            chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
-                            chHeader.offset = (float)thunderscopeChannel.VoltOffset;
-                            
-                            Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
-                            bytesSent += (ulong)sizeof(ChannelHeader);
-                            //logger.LogDebug("ChannelHeader: " + chHeader.ToString());
-                            Send(data.Slice(channelIndex * (int)processing.CurrentChannelDataLength, (int)processing.CurrentChannelDataLength));
-                            bytesSent += processing.CurrentChannelDataLength;
+                            // All other values set later
+                            depth = (ulong)captureMetadata.ProcessingConfig.ChannelDataLength,
+                            clipping = 0
+                        };
+
+                        ulong bytesSent = 0;
+
+                        // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
+                        if (captureMetadata.Triggered && captureMetadata.ProcessingConfig.TriggerInterpolation)
+                        {
+                            ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetReadBuffer(captureMetadata.TriggerChannelCaptureIndex);
+                            // Get the trigger index. If it's greater than 0, then do trigger interpolation.
+                            int triggerIndex = (int)(captureMetadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
+                            if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
+                            {
+                                int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureMetadata.TriggerChannelCaptureIndex);
+                                ThunderscopeChannelFrontend triggerChannelFrontend = captureMetadata.HardwareConfig.Frontend[channelIndex];
+                                var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 255.0);
+                                var channelOffset = (float)triggerChannelFrontend.VoltOffset;
+
+                                float fa = (channelScale * triggerChannelBuffer[triggerIndex - 1]) - channelOffset;
+                                float fb = (channelScale * triggerChannelBuffer[triggerIndex]) - channelOffset;
+                                float triggerLevel = (channelScale * captureMetadata.ProcessingConfig.TriggerLevel) + channelOffset;
+                                float slope = fb - fa;
+                                float delta = triggerLevel - fa;
+                                float trigphase = delta / slope;
+                                chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
+                                if (!double.IsFinite(chHeader.trigphase))
+                                    chHeader.trigphase = 0;
+                                var delay = captureMetadata.ProcessingConfig.TriggerDelayFs - ((ulong)triggerIndex * femtosecondsPerSample);
+                                chHeader.trigphase += delay;
+                            }
                         }
-                        //logger.LogDebug($"Sent waveform ({bytesSent} bytes)");
+                        unsafe
+                        {
+                            Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
+                            bytesSent += (ulong)sizeof(WaveformHeader);
+
+                            for (byte captureBufferIndex = 0; captureBufferIndex < captureBuffer.ChannelCount; captureBufferIndex++)
+                            {
+                                // Map captureBufferIndex to channelIndex
+                                int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
+
+                                ThunderscopeChannelFrontend thunderscopeChannel = captureMetadata.HardwareConfig.Frontend[channelIndex];
+                                chHeader.channelIndex = (byte)channelIndex;
+                                chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
+                                chHeader.offset = (float)thunderscopeChannel.VoltOffset;
+
+                                Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
+                                bytesSent += (ulong)sizeof(ChannelHeader);
+                                var channelBuffer = MemoryMarshal.Cast<sbyte, byte>(captureBuffer.GetReadBuffer(captureBufferIndex));
+                                Send(channelBuffer);
+                                bytesSent += (ulong)captureMetadata.ProcessingConfig.ChannelDataLength;
+                            }
+                        }
+                        sequenceNumber++;
+                        captureBuffer.FinishRead();
+                        break;
                     }
-                    sequenceNumber++;
-                    break;
+                    else
+                    {
+                        noCapturesAvailable = true;
+                    }
+                }
+                if (noCapturesAvailable)
+                {
+                    Thread.Sleep(10);
                 }
             }
         }
@@ -167,24 +165,24 @@ namespace TS.NET.Engine
         }
     }
 
-    class DataServer : TcpServer
+    internal class DataServer : TcpServer
     {
         private readonly ILogger logger;
         private readonly CancellationTokenSource cancellationTokenSource;
-        private readonly ThunderscopeDataBridgeReader bridge;
+        private readonly ChannelCaptureCircularBufferI8 captureBuffer;
 
-        public DataServer(ILoggerFactory loggerFactory, ThunderscopeSettings settings, IPAddress address, int port, string bridgeNamespace) : base(address, port)
+        public DataServer(ILoggerFactory loggerFactory, ThunderscopeSettings settings, IPAddress address, int port, ChannelCaptureCircularBufferI8 captureBuffer) : base(address, port)
         {
             logger = loggerFactory.CreateLogger(nameof(DataServer));
             cancellationTokenSource = new();
-            bridge = new(bridgeNamespace);
+            this.captureBuffer = captureBuffer;
             logger.LogDebug("Started");
         }
 
         protected override TcpSession CreateSession()
         {
             // ThunderscopeBridgeReader isn't thread safe so here be dragons if multiple clients request a waveform concurrently.
-            return new WaveformSession(this, logger, bridge, cancellationTokenSource.Token);
+            return new WaveformSession(this, logger, captureBuffer, cancellationTokenSource.Token);
         }
 
         protected override void OnError(SocketError error)

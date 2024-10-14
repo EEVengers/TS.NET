@@ -11,7 +11,7 @@ namespace TS.NET.Engine
         public string HardwareDriver { get; set; } = "";
         public string HardwareRevision { get; set; } = "";
         public ushort MaxChannelCount { get; set; }
-        public uint MaxChannelDataLength { get; set; }
+        public int MaxChannelDataLength { get; set; }
         public int ScpiPort { get; set; }
         public int DataPort { get; set; }
         public bool DataPortEnabled { get; set; }

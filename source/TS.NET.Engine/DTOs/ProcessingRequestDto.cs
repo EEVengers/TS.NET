@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace TS.NET.Engine
+﻿namespace TS.NET.Engine
 {
     public abstract record ProcessingRequestDto();
 
@@ -12,10 +10,12 @@ namespace TS.NET.Engine
     // Trigger configuration
     public record ProcessingSetTriggerModeDto(TriggerMode Mode) : ProcessingRequestDto;
     public record ProcessingSetTriggerSourceDto(TriggerChannel Channel) : ProcessingRequestDto;
-    public record ProcessingSetTriggerDelayDto(ulong Femtoseconds) : ProcessingRequestDto;
-    public record ProcessingSetTriggerLevelDto(double LevelVolts) : ProcessingRequestDto;
     public record ProcessingSetTriggerTypeDto(TriggerType Type) : ProcessingRequestDto;
+    public record ProcessingSetTriggerDelayDto(ulong Femtoseconds) : ProcessingRequestDto;
+    public record ProcessingSetTriggerHoldoffDto(ulong Femtoseconds) : ProcessingRequestDto;
+    public record ProcessingSetTriggerLevelDto(double LevelVolts) : ProcessingRequestDto;
+    // ProcessingSetTriggerHysteresisDto
+    public record ProcessingSetTriggerInterpolation(bool Enabled) : ProcessingRequestDto;
 
-    public record ProcessingSetDepthDto(ulong Samples) : ProcessingRequestDto;
-    public record ProcessingSetRateDto(long SamplingHz) : ProcessingRequestDto;
+    public record ProcessingSetDepthDto(int Samples) : ProcessingRequestDto;
 }
