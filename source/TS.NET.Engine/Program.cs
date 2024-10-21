@@ -140,7 +140,7 @@ class Program
                 }
             case "litex":
                 {
-                    var ts = new TS.NET.Driver.LiteX.Thunderscope(loggerFactory, 1024 * 256);
+                    var ts = new TS.NET.Driver.LiteX.Thunderscope(loggerFactory, 1024 * 1024);
 
                     var tsCal = new ThunderscopeChannelCalibrationArray();
                     tsCal[0] = thunderscopeSettings.LiteXCalibration.Channel1.ToDriver();
