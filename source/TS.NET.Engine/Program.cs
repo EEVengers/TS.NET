@@ -172,7 +172,7 @@ class Program
         BlockingChannel<ProcessingRequestDto> processingRequestChannel = new();
         BlockingChannel<ProcessingResponseDto> processingResponseChannel = new();
 
-        var captureBuffer = new ChannelCaptureCircularBufferI8(thunderscopeSettings.MaxChannelDataLength * thunderscopeSettings.MaxChannelCount);
+        var captureBuffer = new CaptureCircularBufferI8(thunderscopeSettings.MaxChannelDataLength * thunderscopeSettings.MaxChannelCount);
 
         // Start threads
         SemaphoreSlim startSemaphore = new(1);

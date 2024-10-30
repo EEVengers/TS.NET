@@ -1,6 +1,9 @@
-Avx.LoadVector256 has latency 7, throughput 0.33-0.56 depending on architecture
+Avx.LoadVector256 (_mm256_loadu_si256) has latency 7, throughput 0.33-0.56 depending on architecture
 Avx.LoadAlignedVector256 has latency 7, throughput 0.33-0.56 depending on architecture
 Avx2.Shuffle has latency 1, throughput 0.5-1 depending on architecture
 Avx2.PermuteVar8x32 has latency 3, throughput 1
 Avx2.Blend has latency 1, throughput 0.33
 Avx2.MaskStore has latency 3-6, throughput 1-1.06 depending on architecture
+Avx2.Max (_mm256_max_epi8) has latency 1, throughput 0.5
+Avx2.CompareEqual (_mm256_cmpeq_epi8) has latency 1, throughput 0.5
+Avx2.MoveMask (_mm256_movemask_epi8) has latency 2-4, throughput 1 depending on architecture

@@ -1,14 +1,14 @@
 ﻿namespace TS.NET
 {
-    // Windows are copied out the ChannelSampleCircularBufferI8 into this ChannelCaptureCircularBufferI8 when triggered, streamed or forced.
+    // Windows are copied out of multiple ChannelSampleCircularBufferI8 into this CaptureCircularBufferI8 when triggered, streamed or forced.
     // This allows time for UI consumers to request multiple captures, particularly if the capture length is short (e.g. 1000 samples at ~1M captures/sec).
     // When the user changes the capture length, this buffer will empty, and then configure to allow the maximum number of captures in the given memory.
     // When the user changes various settings, this buffer will empty.
     //
     // Needs to be thread safe for a single writer thread and a single reader thread. Multiple writers or readers not allowed.
-    // The MMF becomes a pure data exchange mechanism
+    // The MMF becomes a pure data exchange mechanism.
 
-    public class ChannelCaptureCircularBufferI8 : IDisposable
+    public class CaptureCircularBufferI8 : IDisposable
     {
         private readonly NativeMemoryAligned<sbyte> buffer;
 
@@ -47,9 +47,10 @@
         public long IntervalCaptureDrops { get { return intervalCaptureDrops; } }
         public long IntervalCaptureReads { get { return intervalCaptureReads; } }
 
-        public ChannelCaptureCircularBufferI8(long totalBufferLength)
+        public CaptureCircularBufferI8(long totalBufferLength)
         {
             buffer = new NativeMemoryAligned<sbyte>(totalBufferLength);
+            captureMetadata = [];
         }
 
         public void Dispose()

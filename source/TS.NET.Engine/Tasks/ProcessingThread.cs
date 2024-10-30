@@ -13,7 +13,7 @@ namespace TS.NET.Engine
         private readonly BlockingChannelWriter<ThunderscopeMemory> inputChannel;
         private readonly BlockingChannelReader<ProcessingRequestDto> processingRequestChannel;
         private readonly BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel;
-        private readonly ChannelCaptureCircularBufferI8 captureBuffer;
+        private readonly CaptureCircularBufferI8 captureBuffer;
 
         private CancellationTokenSource? cancelTokenSource;
         private Task? taskLoop;
@@ -26,7 +26,7 @@ namespace TS.NET.Engine
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel,
-            ChannelCaptureCircularBufferI8 captureBuffer)
+            CaptureCircularBufferI8 captureBuffer)
         {
             logger = loggerFactory.CreateLogger(nameof(ProcessingThread));
             this.settings = settings;
@@ -60,7 +60,7 @@ namespace TS.NET.Engine
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel,
             SemaphoreSlim startSemaphore,
-            ChannelCaptureCircularBufferI8 captureBuffer,
+            CaptureCircularBufferI8 captureBuffer,
             CancellationToken cancelToken)
         {
             try
@@ -107,13 +107,6 @@ namespace TS.NET.Engine
                     BoxcarAveraging = BoxcarAveraging.None
                 };
 
-                //bridge.Processing = processingConfig;
-
-                // Reset monitoring
-                //bridge.MonitoringReset();
-
-                // Various buffers allocated once and reused forevermore.
-                //Memory<byte> hardwareBuffer = new byte[ThunderscopeMemory.Length];
                 // Shuffle buffers. Only needed for 2/4 channel modes.
                 int memoryLength_1Ch = ThunderscopeMemory.Length;
                 Span<sbyte> shuffleBuffer = new sbyte[memoryLength_1Ch];

@@ -9,6 +9,7 @@ namespace TS.NET.Engine
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     internal struct WaveformHeader
     {
+        //internal byte protocolVersion; // <----------- ADDED, initially a breaking change for first implementation, will be smoother in future
         internal uint seqnum;
         internal ushort numChannels;
         internal ulong fsPerSample;
@@ -30,6 +31,7 @@ namespace TS.NET.Engine
         internal float offset;
         internal float trigphase;
         internal byte clipping;
+        //internal byte dataType;        // <------------ ADDED, 1 = u8, 2 = i8, 3 = u16, 4 = i16, etc. Maybe there is already a "standard" set of enum values in the C/Rust world?
         public override string ToString()
         {
             return $"chNum: {channelIndex}, depth: {depth}, scale: {scale}, offset: {offset}, trigphase: {trigphase}, clipping: {clipping}";
@@ -39,11 +41,11 @@ namespace TS.NET.Engine
     internal class WaveformSession : TcpSession
     {
         private readonly ILogger logger;
-        private readonly ChannelCaptureCircularBufferI8 captureBuffer;
+        private readonly CaptureCircularBufferI8 captureBuffer;
         private readonly CancellationToken cancellationToken;
         private uint sequenceNumber = 0;
 
-        public WaveformSession(TcpServer server, ILogger logger, ChannelCaptureCircularBufferI8 captureBuffer, CancellationToken cancellationToken) : base(server)
+        public WaveformSession(TcpServer server, ILogger logger, CaptureCircularBufferI8 captureBuffer, CancellationToken cancellationToken) : base(server)
         {
             this.logger = logger;
             this.captureBuffer = captureBuffer;
@@ -169,9 +171,9 @@ namespace TS.NET.Engine
     {
         private readonly ILogger logger;
         private readonly CancellationTokenSource cancellationTokenSource;
-        private readonly ChannelCaptureCircularBufferI8 captureBuffer;
+        private readonly CaptureCircularBufferI8 captureBuffer;
 
-        public DataServer(ILoggerFactory loggerFactory, ThunderscopeSettings settings, IPAddress address, int port, ChannelCaptureCircularBufferI8 captureBuffer) : base(address, port)
+        public DataServer(ILoggerFactory loggerFactory, ThunderscopeSettings settings, IPAddress address, int port, CaptureCircularBufferI8 captureBuffer) : base(address, port)
         {
             logger = loggerFactory.CreateLogger(nameof(DataServer));
             cancellationTokenSource = new();
