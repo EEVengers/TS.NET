@@ -217,11 +217,13 @@ namespace TS.NET.Engine
                                         {
                                             case HardwareSetOffsetVoltageLowGainRequest hardwareSetOffsetVoltageLowGainRequest:
                                                 logger.LogDebug($"{nameof(HardwareSetOffsetVoltageLowGainRequest)} (channel: {channelIndex})");
-                                                channelCalibration.HardwareOffsetVoltageLowGain = hardwareSetOffsetVoltageLowGainRequest.OffsetVoltage;
+                                                channelCalibration.HardwareOffsetVoltageLowGain = hardwareSetOffsetVoltageLowGainRequest.OffsetVoltage;     // XDMA, example value: 2.501
+                                                channelCalibration.PgaLowOffsetVoltage = hardwareSetOffsetVoltageLowGainRequest.OffsetVoltage;              // LiteX
                                                 break;
                                             case HardwareSetOffsetVoltageHighGainRequest hardwareSetOffsetVoltageHighGainRequest:
                                                 logger.LogDebug($"{nameof(HardwareSetOffsetVoltageHighGainRequest)} (channel: {channelIndex})");
-                                                channelCalibration.HardwareOffsetVoltageHighGain = hardwareSetOffsetVoltageHighGainRequest.OffsetVoltage;
+                                                channelCalibration.HardwareOffsetVoltageHighGain = hardwareSetOffsetVoltageHighGainRequest.OffsetVoltage;   // XMDA, example value: 2.501
+                                                channelCalibration.PgaHighOffsetVoltage = hardwareSetOffsetVoltageHighGainRequest.OffsetVoltage;            // LiteX
                                                 break;
                                         }
                                         thunderscope.SetChannelCalibration(channelIndex, channelCalibration);

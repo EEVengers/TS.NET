@@ -373,7 +373,7 @@ namespace TS.NET.Engine
                                         }
                                         int channelIndex = channelNumber - 1;
                                         double voltage = Convert.ToDouble(args[1]);
-                                        voltage = Math.Clamp(voltage, 0, 5);
+                                        voltage = Math.Clamp(voltage, -5, 5);
                                         hardwareRequestChannel.Write(new HardwareSetOffsetVoltageLowGainRequest(channelIndex, voltage));
                                         return null;
                                     }
