@@ -318,7 +318,7 @@ namespace TS.NET.Engine
                     // Something like "while(thunderscope.BytesAvailable() > ThunderscopeMemory.Length) { thunderscope.Read(...); }"
                     // In this hypothetical case, the sleep should be longer (something like 20ms; longer than 8.39ms to ensure next thread iteration has data).
                     // For now, do 4ms to reduce the reported CPU usage a bit, without falling behind (hopefully, not guaranteed).
-                    Thread.Sleep(4);    // At 1GSPS, the Read will return every 8.39ms. (1000/(1000000000/8388608))
+                    //Thread.Sleep(4);    // At 1GSPS, the Read will return every 8.39ms. (1000/(1000000000/8388608))
                 }
             }
             catch (OperationCanceledException)
