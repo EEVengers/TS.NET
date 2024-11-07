@@ -22,12 +22,12 @@ namespace TS.NET.Driver.LiteX
         public struct tsDeviceInfo_t
         {
             public uint deviceID;
-            // [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
-            // public string devicePath;
-            // [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
-            // public string identity;
-            // [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
-            // public string serialNumber;
+            [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
+            public string devicePath;
+            [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
+            public string identity;
+            [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
+            public string serialNumber;
         }
 
         
@@ -57,8 +57,8 @@ namespace TS.NET.Driver.LiteX
             public int preampLowGainError_mdB;
             public int preampHighGainError_mdB;
 
-            // [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
-            // public int[] preampAttenuatorGain_mdB;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
+            public int[] preampAttenuatorGain_mdB;
             public int preampOutputGainError_mdB;
             public int preampLowOffset_mV;
             public int preampHighOffset_mV;
@@ -71,8 +71,8 @@ namespace TS.NET.Driver.LiteX
         [LibraryImport(library, EntryPoint = "thunderscopeClose")]
         public static partial int Close(nint ts);
 
-        [LibraryImport(library, EntryPoint = "thunderscopeListDevices", StringMarshalling = StringMarshalling.Utf8)]
-        public static partial int ListDevices(uint devIndex, out tsDeviceInfo_t devInfo);
+        [DllImport(library, EntryPoint = "thunderscopeListDevices")]        // Use runtime marshalling for now. Custom marshalling later.
+        public static extern int ListDevices(uint devIndex, out tsDeviceInfo_t devInfo);
 
         [LibraryImport(library, EntryPoint = "thunderscopeChannelConfigGet")]
         public static partial int GetChannelConfig(nint ts, uint channel, out tsChannelParam_t conf);
@@ -86,8 +86,8 @@ namespace TS.NET.Driver.LiteX
         [LibraryImport(library, EntryPoint = "thunderscopeSampleModeSet")]
         public static partial int SetSampleMode(nint ts, uint rate, uint resolution);
 
-        [LibraryImport(library, EntryPoint = "thunderscopeCalibrationSet")]
-        public static partial int SetCalibration(nint ts, uint channel, in tsChannelCalibration_t cal);
+        [DllImport(library, EntryPoint = "thunderscopeCalibrationSet")]     // Use runtime marshalling for now. Custom marshalling later.
+        public static extern int SetCalibration(nint ts, uint channel, in tsChannelCalibration_t cal);
 
         [LibraryImport(library, EntryPoint = "thunderscopeDataEnable")]
         public static partial int DataEnable(nint ts, byte enable);
