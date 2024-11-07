@@ -32,7 +32,7 @@ namespace TS.NET.Driver.LiteX
                 Close();
         }
 
-        public void Open(uint devIndex, ThunderscopeChannelCalibrationArray calibration)
+        public void Open(uint devIndex, ThunderscopeHardwareConfig initialHardwareConfiguration)
         {
             if (open)
                 Close();
@@ -44,11 +44,14 @@ namespace TS.NET.Driver.LiteX
                 throw new Exception($"Thunderscope failed to open device {devIndex} ({tsHandle})");
             open = true;
 
-            //Send Calibration to libtslitex
             for (int chan = 0; chan < 4; chan++)
             {
-                SetChannelCalibration(chan, calibration[chan]);
+                SetChannelCalibration(chan, initialHardwareConfiguration.Calibration[chan]);
+                SetChannelFrontend(chan, initialHardwareConfiguration.Frontend[chan]);
+                SetChannelEnable(chan, ((initialHardwareConfiguration.EnabledChannels >> chan) & 0x01) > 0);
             }
+            GetStatus();        // Required to make SetRate work
+            SetRate(initialHardwareConfiguration.SampleRateHz);
 
             GetStatus();
         }

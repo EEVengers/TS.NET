@@ -141,14 +141,19 @@ class Program
             case "litex":
                 {
                     var ts = new TS.NET.Driver.LiteX.Thunderscope(loggerFactory, 1024 * 1024);
-
-                    var tsCal = new ThunderscopeChannelCalibrationArray();
-                    tsCal[0] = thunderscopeSettings.LiteXCalibration.Channel1.ToDriver();
-                    tsCal[1] = thunderscopeSettings.LiteXCalibration.Channel2.ToDriver();
-                    tsCal[2] = thunderscopeSettings.LiteXCalibration.Channel3.ToDriver();
-                    tsCal[3] = thunderscopeSettings.LiteXCalibration.Channel4.ToDriver();
-
-                    ts.Open((uint)deviceIndex, tsCal);
+                    ThunderscopeHardwareConfig initialHardwareConfiguration = new();
+                    initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Quad;
+                    initialHardwareConfiguration.EnabledChannels = 0x0F;
+                    initialHardwareConfiguration.SampleRateHz = 250000000;
+                    initialHardwareConfiguration.Frontend[0] = ThunderscopeChannelFrontend.Default();
+                    initialHardwareConfiguration.Frontend[1] = ThunderscopeChannelFrontend.Default();
+                    initialHardwareConfiguration.Frontend[2] = ThunderscopeChannelFrontend.Default();
+                    initialHardwareConfiguration.Frontend[3] = ThunderscopeChannelFrontend.Default();
+                    initialHardwareConfiguration.Calibration[0] = thunderscopeSettings.LiteXCalibration.Channel1.ToDriver();
+                    initialHardwareConfiguration.Calibration[1] = thunderscopeSettings.LiteXCalibration.Channel2.ToDriver();
+                    initialHardwareConfiguration.Calibration[2] = thunderscopeSettings.LiteXCalibration.Channel3.ToDriver();
+                    initialHardwareConfiguration.Calibration[3] = thunderscopeSettings.LiteXCalibration.Channel4.ToDriver();
+                    ts.Open((uint)deviceIndex, initialHardwareConfiguration);
                     thunderscope = ts;
                     bufferLength = 3;
                     break;
