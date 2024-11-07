@@ -65,7 +65,7 @@ namespace TS.NET.Engine
         {
             try
             {
-                Thread.CurrentThread.Name = nameof(ProcessingThread);
+                Thread.CurrentThread.Name = "Processing";
                 if (settings.ProcessingThreadProcessorAffinity > -1)
                 {
                     Thread.BeginThreadAffinity();
@@ -202,7 +202,7 @@ namespace TS.NET.Engine
                                 }
                                 captureBuffer.Reset();
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} (mode: {processingConfig.TriggerMode})");
-                                break;                           
+                                break;
                             case ProcessingSetTriggerSourceDto processingSetTriggerSourceDto:
                                 processingConfig.TriggerChannel = processingSetTriggerSourceDto.Channel;
                                 captureBuffer.Reset();
@@ -281,7 +281,7 @@ namespace TS.NET.Engine
                                 {
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (no change)");
                                 }
-                                break;                            
+                                break;
                             case ProcessingSetTriggerInterpolation processingSetTriggerInterpolation:
                                 processingConfig.TriggerInterpolation = processingSetTriggerInterpolation.Enabled;
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerInterpolation)} (enabled: {processingSetTriggerInterpolation.Enabled})");
@@ -331,7 +331,7 @@ namespace TS.NET.Engine
                             captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
                             logger.LogTrace("Hardware enabled channel change ({0})", processingConfig.ChannelCount);
                         }
-                        
+
                         cachedHardwareConfig = inputDataDto.HardwareConfig;
 
                         switch (cachedHardwareConfig.AdcChannelMode)
