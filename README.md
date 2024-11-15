@@ -8,9 +8,9 @@
 
 ## Build on Windows
 
-- Install .NET 8 SDK using downloaded installer or winget
+- Install .NET 9 SDK using downloaded installer or winget
 ```
-winget install Microsoft.DotNet.SDK.8
+winget install Microsoft.DotNet.SDK.9
 ```
 - Run build script using command prompt in `build-scripts` directory
 
@@ -19,13 +19,18 @@ powershell -ExecutionPolicy Bypass -File "TS.NET.Engine (win-x64).ps1"
 ```
 - Build output can be found at `builds\win-x64\TS.NET.Engine`
 
-## Build on Linux
+## Build on Linux (Ubuntu)
 
-- Install .NET 8 SDK
+- Install .NET 9 SDK
+
+Optionally (depending on Ubuntu version):
+```
+sudo add-apt-repository ppa:dotnet/backports
+```
 
 ```
 sudo apt-get update
-sudo apt-get install -y dotnet-sdk-8.0
+sudo apt-get install -y dotnet-sdk-9.0
 ```
 
 - Run build script
