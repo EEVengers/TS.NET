@@ -143,8 +143,11 @@ class Program
                     var ts = new TS.NET.Driver.LiteX.Thunderscope(loggerFactory, 1024 * 1024);
                     ThunderscopeHardwareConfig initialHardwareConfiguration = new();
                     initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Quad;
-                    initialHardwareConfiguration.EnabledChannels = 0x0F;
-                    initialHardwareConfiguration.SampleRateHz = 250000000;
+                    //initialHardwareConfiguration.EnabledChannels = 0x0F;
+                    //initialHardwareConfiguration.SampleRateHz = 250000000;
+                    initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Single;
+                    initialHardwareConfiguration.EnabledChannels = 0x01;
+                    initialHardwareConfiguration.SampleRateHz = 1000000000;
                     initialHardwareConfiguration.Frontend[0] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Frontend[1] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Frontend[2] = ThunderscopeChannelFrontend.Default();
