@@ -586,6 +586,7 @@ namespace TS.NET
             }
         }
 
+        // This is the baseline 4-channel run length 32 algorithm for comparison purposes
         public static void FourChannelsRunLength32(ReadOnlySpan<sbyte> input, Span<sbyte> output)
         {
             if (input.Length % 128 != 0)
@@ -621,6 +622,51 @@ namespace TS.NET
 
                         inputPtr += 128;
                         outputPtr += 32;
+                    }
+                }
+            }
+        }
+
+        public static void FourChannelsRunLength32VariantA(ReadOnlySpan<sbyte> input, Span<sbyte> output)
+        {
+            if (input.Length % 256 != 0)
+                throw new ArgumentException($"Input length must be multiple of 256");
+            if (input.Length != output.Length)
+                throw new ArgumentException("Array lengths must match");
+
+            int loopIterations = input.Length / 256;
+            int channelBlockSize = output.Length / 4;
+            int ch2Offset = channelBlockSize;
+            int ch3Offset = (channelBlockSize * 2);
+            int ch4Offset = (channelBlockSize * 3);
+            unsafe
+            {
+                fixed (sbyte* inputP = input)
+                fixed (sbyte* outputP = output)
+                {
+                    sbyte* inputPtr = inputP;
+                    sbyte* outputPtr = outputP;
+                    for (int i = 0; i < loopIterations; i++)
+                    {
+                        Vector256<sbyte> inputVector1 = Avx.LoadVector256(inputPtr);
+                        Vector256<sbyte> inputVector2 = Avx.LoadVector256(inputPtr + 32);
+                        Vector256<sbyte> inputVector3 = Avx.LoadVector256(inputPtr + 64);
+                        Vector256<sbyte> inputVector4 = Avx.LoadVector256(inputPtr + 96);
+                        Vector256<sbyte> inputVector5 = Avx.LoadVector256(inputPtr + 128);
+                        Vector256<sbyte> inputVector6 = Avx.LoadVector256(inputPtr + 160);
+                        Vector256<sbyte> inputVector7 = Avx.LoadVector256(inputPtr + 192);
+                        Vector256<sbyte> inputVector8 = Avx.LoadVector256(inputPtr + 224);
+                        Avx.Store(outputPtr, inputVector1);
+                        Avx.Store(outputPtr + ch2Offset, inputVector2);
+                        Avx.Store(outputPtr + ch3Offset, inputVector3);
+                        Avx.Store(outputPtr + ch4Offset, inputVector4);
+                        Avx.Store(outputPtr + 32, inputVector5);
+                        Avx.Store(outputPtr + ch2Offset + 32, inputVector6);
+                        Avx.Store(outputPtr + ch3Offset + 32, inputVector7);
+                        Avx.Store(outputPtr + ch4Offset + 32, inputVector8);
+
+                        inputPtr += 256;
+                        outputPtr += 64;
                     }
                 }
             }
@@ -779,6 +825,88 @@ namespace TS.NET
                         outputPtr[ch4Offset + 31] = inputPtr[96 + 31];
                         inputPtr += 128;
                         outputPtr += 32;
+                    }
+                }
+            }
+        }
+
+        public static void FourChannelsRunLength32NoSimd2(ReadOnlySpan<sbyte> input, Span<sbyte> output)
+        {
+            if (input.Length != output.Length)
+                throw new ArgumentException("Array lengths must match");
+
+            int channelBlockSize = output.Length / 4 / 8;
+            int ch2Offset = channelBlockSize;
+            int ch3Offset = (channelBlockSize * 2);
+            int ch4Offset = (channelBlockSize * 3);
+
+            unsafe
+            {
+                fixed (sbyte* inputP = input)
+                fixed (sbyte* outputP = output)
+                {
+                    ulong* inputPtr = (ulong*)inputP;
+                    ulong* outputPtr = (ulong*)outputP;
+                    ulong* finishPtr = inputPtr + (input.Length / 8);
+                    while (inputPtr < finishPtr)
+                    {
+                        outputPtr[0] = inputPtr[0];
+                        outputPtr[1] = inputPtr[1];
+                        outputPtr[2] = inputPtr[2];
+                        outputPtr[3] = inputPtr[3];
+
+                        outputPtr[ch2Offset + 0] = inputPtr[4];
+                        outputPtr[ch2Offset + 1] = inputPtr[5];
+                        outputPtr[ch2Offset + 2] = inputPtr[6];
+                        outputPtr[ch2Offset + 3] = inputPtr[7];
+
+                        outputPtr[ch3Offset + 0] = inputPtr[8];
+                        outputPtr[ch3Offset + 1] = inputPtr[9];
+                        outputPtr[ch3Offset + 2] = inputPtr[10];
+                        outputPtr[ch3Offset + 3] = inputPtr[11];
+
+                        outputPtr[ch4Offset + 0] = inputPtr[12];
+                        outputPtr[ch4Offset + 1] = inputPtr[13];
+                        outputPtr[ch4Offset + 2] = inputPtr[14];
+                        outputPtr[ch4Offset + 3] = inputPtr[15];
+                        inputPtr += 16;
+                        outputPtr += 4;
+                    }
+                }
+            }
+        }
+
+        public static void FourChannelsRunLength32NoSimd3(ReadOnlySpan<sbyte> input, Span<sbyte> output)
+        {
+            if (input.Length != output.Length)
+                throw new ArgumentException("Array lengths must match");
+
+            int channelBlockSize = output.Length / 4 / 8;
+            int ch2Offset = channelBlockSize;
+            int ch3Offset = (channelBlockSize * 2);
+            int ch4Offset = (channelBlockSize * 3);
+
+            unsafe
+            {
+                fixed (sbyte* inputP = input)
+                fixed (sbyte* outputP = output)
+                {
+                    ulong* inputPtr = (ulong*)inputP;
+                    ulong* outputPtr = (ulong*)outputP;
+                    ulong* finishPtr = inputPtr + (input.Length / 8);
+                    while (inputPtr < finishPtr)
+                    {
+                        outputPtr[0] = inputPtr[0];
+                        outputPtr[1] = inputPtr[1];
+                        outputPtr[ch2Offset + 0] = inputPtr[2];
+                        outputPtr[ch2Offset + 1] = inputPtr[3];
+                        outputPtr[ch3Offset + 0] = inputPtr[4];
+                        outputPtr[ch3Offset + 1] = inputPtr[5];
+                        outputPtr[ch4Offset + 0] = inputPtr[6];
+                        outputPtr[ch4Offset + 1] = inputPtr[7];
+
+                        inputPtr += 8;
+                        outputPtr += 2;
                     }
                 }
             }
