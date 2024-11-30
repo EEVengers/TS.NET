@@ -27,18 +27,20 @@ class Program
         // To do: have something better than array index. Hardware serial?
         var deviceIndexOption = new Option<int>(name: "-i", description: "The ThunderScope to use if there are multiple connected to the host.", getDefaultValue: () => { return 0; });
         var configurationFilePathOption = new Option<string>(name: "-config", description: "Configuration file to use.", getDefaultValue: () => { return "thunderscope.yaml"; });
+        var secondsOption = new Option<int>(name: "-seconds", description: "Run for an integer number of seconds. Useful for profiling.", getDefaultValue: () => { return 0; });
 
         var rootCommand = new RootCommand("TS.NET.Engine")
         {
             deviceIndexOption,
-            configurationFilePathOption
+            configurationFilePathOption,
+            secondsOption
         };
 
-        rootCommand.SetHandler(Start, deviceIndexOption, configurationFilePathOption);
+        rootCommand.SetHandler(Start, deviceIndexOption, configurationFilePathOption, secondsOption);
         return await rootCommand.InvokeAsync(args);
     }
 
-    static void Start(int deviceIndex, string configurationFilePath)
+    static void Start(int deviceIndex, string configurationFilePath, int seconds)
     {
         // In future; change this to lock per-device instead of a single global lock.
         var lockFileName = $"TS.NET.lock";
@@ -46,7 +48,8 @@ class Program
 
         try
         {
-            using FileStream fs = new(lockFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            // Commented out for now, more testing needed on Windows
+            //using FileStream fs = new(lockFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
 
 #if DEBUG
             ThunderscopeSettings defaultSettings = ThunderscopeSettings.Default();
@@ -211,15 +214,28 @@ class Program
             ScpiServer scpiServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
             scpiServer.Start();
 
+            DateTimeOffset startTime = DateTimeOffset.UtcNow;
             bool loop = true;
             while (loop)
             {
-                var key = Console.ReadKey();
-                switch (key.Key)
+                if (Console.KeyAvailable)
                 {
-                    case ConsoleKey.Escape:
-                        loop = false;
-                        break;
+                    var key = Console.ReadKey();
+                    switch (key.Key)
+                    {
+                        case ConsoleKey.Escape:
+                            loop = false;
+                            break;
+                    }
+                }
+                else
+                {
+                    if(seconds > 0)
+                    {
+                        if (DateTimeOffset.UtcNow.Subtract(startTime).TotalSeconds >= seconds)
+                            break;
+                    }
+                    Thread.Sleep(100);
                 }
             }
 
