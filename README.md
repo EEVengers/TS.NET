@@ -38,3 +38,15 @@ sudo apt-get install -y dotnet-sdk-9.0
 ./build-scripts/TS.NET.Engine (linux-x64).bash
 ```
 - Build output can be found at `builds/linux-x64/TS.NET.Engine`, run with `sudo`
+
+## Profiling on Windows
+
+- Install profiling tool
+```
+dotnet tool install -g Ultra
+```
+- Run profiling tool from build directory
+```
+ultra.exe profile -- TS.NET.Engine.exe -seconds 10
+```
+- Use the generated json.gz on https://profiler.firefox.com
