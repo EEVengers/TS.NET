@@ -8,11 +8,20 @@
     // Needs to be thread safe for a single writer thread and a single reader thread. Multiple writers or readers not allowed.
     // The MMF becomes a pure data exchange mechanism.
 
-    public class CaptureCircularBufferI8 : IDisposable
+    public interface ICaptureBufferConsumer<T>
+    {
+        Lock ReadLock { get; }
+        int ChannelCount { get; }
+        bool TryStartRead(out CaptureMetadata captureMetadata);
+        ReadOnlySpan<T> GetReadBuffer(int channelIndex);
+        void FinishRead();
+    }
+
+    public class CaptureCircularBufferI8 : IDisposable, ICaptureBufferConsumer<sbyte>
     {
         private readonly NativeMemoryAligned<sbyte> buffer;
-
-        public object ReadLock = new();     // Configure/Reset/TryStartWrite/ResetIntervalStats happen on the same thread, so no need for a WriteLock
+        private readonly Lock readLock = new();     // Configure/Reset/TryStartWrite/ResetIntervalStats happen on the same thread, so no need for a WriteLock
+        public Lock ReadLock { get { return readLock; } }
 
         private long captureLengthBytes;
         private int channelCount;
@@ -65,7 +74,7 @@
             if (potentialCaptureLengthBytes > buffer.Length)
                 throw new ArgumentOutOfRangeException("Requested configuration exceeds memory size.");
 
-            lock (ReadLock)
+            lock (readLock)
             {
                 captureLengthBytes = potentialCaptureLengthBytes;
                 this.channelCount = channelCount;
@@ -83,7 +92,7 @@
 
         public void Reset()
         {
-            lock (ReadLock)
+            lock (readLock)
             {
                 currentCaptureCount = 0;
                 captureTotal = 0;
@@ -115,7 +124,7 @@
 
         public void FinishWrite(CaptureMetadata captureMetadata)
         {
-            lock (ReadLock)
+            lock (readLock)
             {
                 this.captureMetadata[writeCaptureOffset] = captureMetadata;
                 currentCaptureCount++;

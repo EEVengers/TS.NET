@@ -41,11 +41,11 @@ namespace TS.NET.Engine
     internal class WaveformSession : TcpSession
     {
         private readonly ILogger logger;
-        private readonly CaptureCircularBufferI8 captureBuffer;
+        private readonly ICaptureBufferConsumer<sbyte> captureBuffer;
         private readonly CancellationToken cancellationToken;
         private uint sequenceNumber = 0;
 
-        public WaveformSession(TcpServer server, ILogger logger, CaptureCircularBufferI8 captureBuffer, CancellationToken cancellationToken) : base(server)
+        public WaveformSession(TcpServer server, ILogger logger, ICaptureBufferConsumer<sbyte> captureBuffer, CancellationToken cancellationToken) : base(server)
         {
             this.logger = logger;
             this.captureBuffer = captureBuffer;
