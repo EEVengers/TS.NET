@@ -1,4 +1,4 @@
 ﻿namespace TS.NET.Engine
 {
-    public record InputDataDto(ThunderscopeHardwareConfig HardwareConfig, ThunderscopeMemory Memory);
+    public record struct InputDataDto(ThunderscopeHardwareConfig HardwareConfig, ThunderscopeMemory Memory);
 }
