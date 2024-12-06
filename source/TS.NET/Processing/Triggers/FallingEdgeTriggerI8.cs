@@ -3,10 +3,11 @@ using System.Runtime.Intrinsics.X86;
 
 namespace TS.NET;
 
-public class FallingEdgeTriggerI8 : IEdgeTriggerI8
+public class FallingEdgeTriggerI8 : ITriggerI8
 {
     enum TriggerState { Unarmed, Armed, InCapture, InHoldoff }
     private TriggerState triggerState = TriggerState.Unarmed;
+
     private sbyte triggerLevel;
     private sbyte armLevel;
 
@@ -16,30 +17,23 @@ public class FallingEdgeTriggerI8 : IEdgeTriggerI8
     private ulong holdoffSamples;
     private ulong holdoffRemaining;
 
-    private Vector256<sbyte> triggerLevelVector;
-    private Vector256<sbyte> armLevelVector;
-
-    public FallingEdgeTriggerI8()
+    public FallingEdgeTriggerI8(EdgeTriggerParameters parameters)
     {
-        SetVertical(0, 5);
+        SetParameters(parameters);
         SetHorizontal(1000000, 0, 0);
     }
 
-    public void SetVertical(sbyte triggerLevel, byte triggerHysteresis)
+    public void SetParameters(EdgeTriggerParameters parameters)
     {
-        if (triggerLevel == sbyte.MaxValue)
-            triggerLevel -= (sbyte)triggerHysteresis;   // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
-        if (triggerLevel == sbyte.MinValue)
-            triggerLevel += 1;                          // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
+        if (parameters.Level == sbyte.MaxValue)
+            parameters.Level -= (sbyte)parameters.Hysteresis;   // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
+        if (parameters.Level == sbyte.MinValue)
+            parameters.Level += 1;                          // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
 
         triggerState = TriggerState.Unarmed;
-
-        this.triggerLevel = triggerLevel;
-        armLevel = triggerLevel;
-        armLevel += (sbyte)triggerHysteresis;
-
-        triggerLevelVector = Vector256.Create(triggerLevel);
-        armLevelVector = Vector256.Create(armLevel);
+        triggerLevel = (sbyte)parameters.Level;
+        armLevel = (sbyte)parameters.Level;
+        armLevel += (sbyte)parameters.Hysteresis;
     }
 
     public void SetHorizontal(ulong windowWidth, ulong windowTriggerPosition, ulong additionalHoldoff)
@@ -65,6 +59,9 @@ public class FallingEdgeTriggerI8 : IEdgeTriggerI8
         uint simdLength = inputLength - 32;
         windowEndCount = 0;
         uint i = 0;
+
+        Vector256<sbyte> triggerLevelVector = Vector256.Create(triggerLevel);
+        Vector256<sbyte> armLevelVector = Vector256.Create(armLevel);
 
         windowEndIndices.Clear();
         unsafe

@@ -3,14 +3,13 @@ using System.Runtime.Intrinsics.X86;
 
 namespace TS.NET;
 
-public class AnyEdgeTriggerI8 : ITriggerI8
+public class BurstTriggerI8 : ITriggerI8
 {
-    enum TriggerState { Unarmed, ArmedRisingEdge, ArmedFallingEdge, InCapture, InHoldoff }
+    enum TriggerState { Unarmed, Armed, InCapture, InHoldoff }
     private TriggerState triggerState = TriggerState.Unarmed;
 
-    private sbyte triggerLevel;
-    private sbyte upperArmLevel;
-    private sbyte lowerArmLevel;
+    private sbyte windowHighLevel;
+    private sbyte windowLowLevel;
 
     private ulong captureSamples;
     private ulong captureRemaining;
@@ -18,25 +17,20 @@ public class AnyEdgeTriggerI8 : ITriggerI8
     private ulong holdoffSamples;
     private ulong holdoffRemaining;
 
-    public AnyEdgeTriggerI8(EdgeTriggerParameters parameters)
+    private ulong quietPeriod;
+    private ulong quietPeriodRemaining;
+
+    public BurstTriggerI8(BurstTriggerParameters parameters)
     {
         SetParameters(parameters);
-        SetHorizontal(1000000, 0, 0);
+        SetHorizontal(1000000, 500000, 0);
     }
 
-    public void SetParameters(EdgeTriggerParameters parameters)
+    public void SetParameters(BurstTriggerParameters parameters)
     {
-        if (parameters.Level == sbyte.MinValue)
-            parameters.Level += (sbyte)parameters.Hysteresis;  // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
-        if (parameters.Level == sbyte.MaxValue)
-            parameters.Level -= (sbyte)parameters.Hysteresis;  // Coerce so that the trigger arm level is sbyte.MaxValue, ensuring a non-zero chance of seeing some waveforms
-
-        triggerState = TriggerState.Unarmed;
-        triggerLevel = (sbyte)parameters.Level;
-        upperArmLevel = (sbyte)parameters.Level;
-        upperArmLevel -= (sbyte)parameters.Hysteresis;
-        lowerArmLevel = (sbyte)parameters.Level;
-        lowerArmLevel += (sbyte)parameters.Hysteresis;
+        windowHighLevel = (sbyte)parameters.WindowHighLevel;
+        windowLowLevel = (sbyte)parameters.WindowLowLevel;
+        quietPeriod = parameters.MinimumQuietPeriod;
     }
 
     public void SetHorizontal(ulong windowWidth, ulong windowTriggerPosition, ulong additionalHoldoff)
@@ -55,7 +49,6 @@ public class AnyEdgeTriggerI8 : ITriggerI8
         holdoffRemaining = 0;
     }
 
-    //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Process(ReadOnlySpan<sbyte> input, Span<uint> windowEndIndices, out uint windowEndCount)
     {
         uint inputLength = (uint)input.Length;
@@ -63,9 +56,8 @@ public class AnyEdgeTriggerI8 : ITriggerI8
         windowEndCount = 0;
         uint i = 0;
 
-        Vector256<sbyte> triggerLevelVector = Vector256.Create(triggerLevel);
-        Vector256<sbyte> upperArmLevelVector = Vector256.Create(upperArmLevel);
-        Vector256<sbyte> lowerArmLevelVector = Vector256.Create(lowerArmLevel);
+        Vector256<sbyte> unarmedHighLevelVector = Vector256.Create(windowHighLevel);
+        Vector256<sbyte> unarmedLowLevelVector = Vector256.Create(windowLowLevel);
 
         windowEndIndices.Clear();
         unsafe
@@ -76,79 +68,57 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                 {
                     switch (triggerState)
                     {
+                        // Scan samples to unsure that it's within window
                         case TriggerState.Unarmed:
-                            // The arming code has rising-edge-priority.
                             if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
-                                while (i < simdLength)
-                                {
-                                    uint resultCount = 0;
-                                    var lowerArmRegion = Avx2.CompareEqual(Avx2.Max(lowerArmLevelVector, Avx.LoadVector256(samplesPtr + i)), lowerArmLevelVector);
-                                    resultCount = (uint)Avx2.MoveMask(lowerArmRegion);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
-                                        break;
-                                    var upperArmRegion = Avx2.CompareEqual(Avx2.Min(upperArmLevelVector, Avx.LoadVector256(samplesPtr + i)), upperArmLevelVector);
-                                    resultCount = (uint)Avx2.MoveMask(lowerArmRegion);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
-                                        break;
-                                    i += 32;
-                                }
-                            }
-                            while (i < inputLength)
-                            {
-                                if (samplesPtr[(int)i] <= lowerArmLevel)
-                                {
-                                    triggerState = TriggerState.ArmedRisingEdge;
-                                    break;
-                                }
-                                if (samplesPtr[(int)i] >= upperArmLevel)
-                                {
-                                    triggerState = TriggerState.ArmedFallingEdge;
-                                    break;
-                                }
-                                i++;
-                            }
-                            break;
-                        case TriggerState.ArmedRisingEdge:
-                            if (Avx2.IsSupported)       // Const after JIT/AOT
-                            {
-                                while (i < simdLength)
+                                while (i < simdLength && quietPeriodRemaining > 32)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector, inputVector), triggerLevelVector);
-                                    uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
-                                        break;
+                                    var greaterThanLowerLimit = Avx2.CompareGreaterThan(inputVector, unarmedLowLevelVector).AsByte();    // 0xFFFF....
+                                    var lowerThanHighLimit = Avx2.CompareGreaterThan(unarmedHighLevelVector, inputVector).AsByte();      // 0xFFFF
+
+                                    var gtLowLimit = (uint)Avx2.MoveMask(greaterThanLowerLimit) != 0;
+                                    var ltHighLimit = (uint)Avx2.MoveMask(lowerThanHighLimit) != 0;
+                                    if (gtLowLimit && ltHighLimit)
+                                        quietPeriodRemaining -= 32;
+                                    else
+                                        quietPeriodRemaining = quietPeriod;
                                     i += 32;
                                 }
                             }
                             while (i < inputLength)
                             {
-                                if (samplesPtr[(int)i] > triggerLevel)
+                                if (samplesPtr[(int)i] < windowLowLevel || samplesPtr[(int)i] > windowHighLevel)
+                                    quietPeriodRemaining = quietPeriod;
+                                else
+                                    quietPeriodRemaining--;
+                                i++;
+
+                                if (quietPeriodRemaining == 0)
                                 {
-                                    triggerState = TriggerState.InCapture;
-                                    captureRemaining = captureSamples;
+                                    triggerState = TriggerState.Armed;
                                     break;
                                 }
-                                i++;
                             }
                             break;
-                        case TriggerState.ArmedFallingEdge:
-                            if (Avx2.IsSupported)       // Const after JIT/AOT
-                            {
-                                while (i < simdLength)
-                                {
-                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector, inputVector), triggerLevelVector);
-                                    uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
-                                        break;
-                                    i += 32;
-                                }
-                            }
+                        case TriggerState.Armed:
+                            // To do: window trigger SIMD scan. Make a note of which window edge, for trigger interpolation calculation.
+                            //if (Avx2.IsSupported)       // Const after JIT/AOT
+                            //{
+                            //    while (i < simdLength)
+                            //    {
+                            //        var inputVector = Avx.LoadVector256(samplesPtr + i);
+                            //        var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector, inputVector), triggerLevelVector);
+                            //        uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
+                            //        if (resultCount != 0)
+                            //            break;
+                            //        i += 32;
+                            //    }
+                            //}
                             while (i < inputLength)
                             {
-                                if (samplesPtr[(int)i] < triggerLevel)
+                                if (samplesPtr[(int)i] < windowLowLevel || samplesPtr[(int)i] > windowHighLevel)
                                 {
                                     triggerState = TriggerState.InCapture;
                                     captureRemaining = captureSamples;

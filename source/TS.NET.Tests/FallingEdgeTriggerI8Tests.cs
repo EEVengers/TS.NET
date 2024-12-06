@@ -42,9 +42,8 @@ namespace TS.NET.Tests
 
         private static void RunSituation(EdgeTriggerSituation situation)
         {
-            FallingEdgeTriggerI8 trigger = new();
+            FallingEdgeTriggerI8 trigger = new(new EdgeTriggerParameters() { Level = situation.TriggerLevel, Hysteresis = situation.TriggerHysteresis, Direction = EdgeDirection.Falling });
             trigger.SetHorizontal(situation.WindowWidth, situation.WindowTriggerPosition, situation.AdditionalHoldoff);
-            trigger.SetVertical(situation.TriggerLevel, situation.TriggerHysteresis);
 
             Span<uint> captureEndIndices = new uint[10000];
             var currentWindowEndIndices = captureEndIndices;

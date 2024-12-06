@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using System.ComponentModel;
 using System.Diagnostics;
 
 namespace TS.NET.Engine
@@ -68,9 +67,12 @@ namespace TS.NET.Engine
                 Thread.CurrentThread.Name = "Processing";
                 if (settings.ProcessingThreadProcessorAffinity > -1)
                 {
-                    Thread.BeginThreadAffinity();
-                    OsThread.SetThreadAffinity(settings.ProcessingThreadProcessorAffinity);
-                    logger.LogDebug($"{nameof(ProcessingThread)} thread processor affinity set to {settings.ProcessingThreadProcessorAffinity}");
+                    if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux())
+                    {
+                        Thread.BeginThreadAffinity();
+                        OsThread.SetThreadAffinity(settings.ProcessingThreadProcessorAffinity);
+                        logger.LogDebug($"{nameof(ProcessingThread)} thread processor affinity set to {settings.ProcessingThreadProcessorAffinity}");
+                    }
                 }
 
                 //ThunderscopeBridgeConfig bridgeConfig = new()
@@ -89,7 +91,8 @@ namespace TS.NET.Engine
                 {
                     AdcChannelMode.Quad => 4,
                     AdcChannelMode.Dual => 2,
-                    AdcChannelMode.Single => 1
+                    AdcChannelMode.Single => 1,
+                    _ => throw new NotImplementedException()
                 };
                 var processingConfig = new ThunderscopeProcessingConfig
                 {
@@ -98,12 +101,12 @@ namespace TS.NET.Engine
                     ChannelDataType = ThunderscopeDataType.I8,
                     TriggerChannel = TriggerChannel.Channel1,
                     TriggerMode = TriggerMode.Auto,
-                    TriggerType = TriggerType.RisingEdge,
+                    TriggerType = TriggerType.Edge,
                     TriggerDelayFs = 0,
                     TriggerHoldoffFs = 0,
-                    TriggerLevel = 0,
-                    TriggerHysteresis = 5,
                     TriggerInterpolation = true,
+                    EdgeTriggerParameters = new EdgeTriggerParameters() { Level = 0, Hysteresis = 5, Direction = EdgeDirection.Rising },
+                    BurstTriggerParameters = new BurstTriggerParameters() { WindowHighLevel = 64, WindowLowLevel = -64, MinimumQuietPeriod = 450000 },
                     BoxcarAveraging = BoxcarAveraging.None
                 };
 
@@ -147,7 +150,7 @@ namespace TS.NET.Engine
                 // forceTriggerLatch: disregards the Trigger Mode, push update immediately and set forceTrigger to false. If a standard trigger happened at the same time as a force, the force is ignored so the bridge only updates once.
                 // singleTriggerLatch: used in Single mode to stop the trigger subsystem after a trigger.
 
-                IEdgeTriggerI8 edgeTriggerI8 = new RisingEdgeTriggerI8();
+                ITriggerI8 triggerI8 = new RisingEdgeTriggerI8(processingConfig.EdgeTriggerParameters);
                 bool runMode = true;
                 bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
                 bool singleTriggerLatch = false;    // "Latch" because it will reset state back to false. When reset, runTrigger will be set to false.
@@ -213,15 +216,8 @@ namespace TS.NET.Engine
                                 {
                                     processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
 
-                                    edgeTriggerI8 = processingConfig.TriggerType switch
-                                    {
-                                        TriggerType.RisingEdge => new RisingEdgeTriggerI8(),
-                                        TriggerType.FallingEdge => new FallingEdgeTriggerI8(),
-                                        TriggerType.AnyEdge => new AnyEdgeTriggerI8(),
-                                        _ => throw new NotImplementedException()
-                                    };
-                                    edgeTriggerI8.SetVertical((sbyte)processingConfig.TriggerLevel, (byte)processingConfig.TriggerHysteresis);
-                                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
+                                    SwitchTrigger();
+                                    UpdateTriggerHorizontal(cachedHardwareConfig);
 
                                     captureBuffer.Reset();
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (type: {processingConfig.TriggerType})");
@@ -235,7 +231,7 @@ namespace TS.NET.Engine
                                 if (processingConfig.TriggerDelayFs != processingSetTriggerDelayDto.Femtoseconds)
                                 {
                                     processingConfig.TriggerDelayFs = processingSetTriggerDelayDto.Femtoseconds;
-                                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
+                                    UpdateTriggerHorizontal(cachedHardwareConfig);
                                     captureBuffer.Reset();
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (femtoseconds: {processingConfig.TriggerDelayFs})");
                                 }
@@ -248,7 +244,7 @@ namespace TS.NET.Engine
                                 if (processingConfig.TriggerHoldoffFs != processingSetTriggerHoldoffDto.Femtoseconds)
                                 {
                                     processingConfig.TriggerHoldoffFs = processingSetTriggerHoldoffDto.Femtoseconds;
-                                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
+                                    UpdateTriggerHorizontal(cachedHardwareConfig);
                                     captureBuffer.Reset();
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerHoldoffDto)} (femtoseconds: {processingConfig.TriggerHoldoffFs})");
                                 }
@@ -257,7 +253,7 @@ namespace TS.NET.Engine
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (no change)");
                                 }
                                 break;
-                            case ProcessingSetTriggerLevelDto processingSetTriggerLevelDto:
+                            case ProcessingSetEdgeTriggerLevelDto processingSetTriggerLevelDto:
                                 var requestedTriggerLevel = processingSetTriggerLevelDto.LevelVolts;
                                 // Convert the voltage to Int8
 
@@ -270,28 +266,47 @@ namespace TS.NET.Engine
                                 }
 
                                 sbyte triggerLevel = (sbyte)((requestedTriggerLevel / (triggerChannel.ActualVoltFullScale / 2)) * 127f);
-                                if (triggerLevel != processingConfig.TriggerLevel)
+                                if (triggerLevel != processingConfig.EdgeTriggerParameters.Level)
                                 {
-                                    processingConfig.TriggerLevel = triggerLevel;
-                                    edgeTriggerI8.SetVertical(triggerLevel, (byte)processingConfig.TriggerHysteresis);
+                                    processingConfig.EdgeTriggerParameters.Level = triggerLevel;
+                                    UpdateTriggerParameters();
+
                                     captureBuffer.Reset();
-                                    logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (level: {triggerLevel}, hysteresis: {processingConfig.TriggerHysteresis})");
+                                    logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerLevelDto)} (level: {triggerLevel}, hysteresis: {processingConfig.EdgeTriggerParameters.Hysteresis})");
                                 }
                                 else
                                 {
-                                    logger.LogDebug($"{nameof(ProcessingSetTriggerLevelDto)} (no change)");
+                                    logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerLevelDto)} (no change)");
                                 }
                                 break;
-                            case ProcessingSetTriggerInterpolation processingSetTriggerInterpolation:
+                            case ProcessingSetTriggerInterpolationDto processingSetTriggerInterpolation:
                                 processingConfig.TriggerInterpolation = processingSetTriggerInterpolation.Enabled;
-                                logger.LogDebug($"{nameof(ProcessingSetTriggerInterpolation)} (enabled: {processingSetTriggerInterpolation.Enabled})");
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerInterpolationDto)} (enabled: {processingSetTriggerInterpolation.Enabled})");
+                                break;
+                            case ProcessingSetEdgeTriggerDirectionDto processingSetEdgeTriggerDirection:
+                                if(processingConfig.EdgeTriggerParameters.Direction != processingSetEdgeTriggerDirection.Edge)
+                                {
+                                    processingConfig.EdgeTriggerParameters.Direction = processingSetEdgeTriggerDirection.Edge;
+
+                                    if (processingConfig.TriggerType == TriggerType.Edge)
+                                    {
+                                        // Normally a trigger parameter update would call "UpdateTriggerParameters()" but this is a special case where "SwitchTrigger()" is needed as the edge changed.
+                                        SwitchTrigger();
+                                        UpdateTriggerHorizontal(cachedHardwareConfig);
+                                    }
+                                    logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerDirectionDto)} (direction: {processingSetEdgeTriggerDirection.Edge})");
+                                }
+                                else
+                                {
+                                    logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerDirectionDto)} (no change)");
+                                }
                                 break;
                             case ProcessingSetDepthDto processingSetDepthDto:
                                 if (processingConfig.ChannelDataLength != processingSetDepthDto.Samples)
                                 {
                                     processingConfig.ChannelDataLength = processingSetDepthDto.Samples;
                                     captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
-                                    UpdateTriggerHorizontalPosition(cachedHardwareConfig);
+                                    UpdateTriggerHorizontal(cachedHardwareConfig);
                                     logger.LogDebug($"{nameof(ProcessingSetDepthDto)} ({processingConfig.ChannelDataLength})");
                                 }
                                 else
@@ -312,13 +327,13 @@ namespace TS.NET.Engine
                         // Check for any hardware changes that require action
                         if (inputDataDto.HardwareConfig.SampleRateHz != cachedHardwareConfig.SampleRateHz)
                         {
-                            UpdateTriggerHorizontalPosition(inputDataDto.HardwareConfig);
+                            UpdateTriggerHorizontal(inputDataDto.HardwareConfig);
                             //for (int i = 0; i < 4; i++)
                             //{
                             //    sampleBuffers[i].Reset();
                             //}
                             captureBuffer.Reset();
-                            logger.LogTrace("Hardware sample rate change ({0})", inputDataDto.HardwareConfig.SampleRateHz);
+                            logger.LogTrace("Hardware sample rate change ({sampleRateHz})", inputDataDto.HardwareConfig.SampleRateHz);
                         }
 
                         if (inputDataDto.HardwareConfig.EnabledChannelsCount() != cachedHardwareConfig.EnabledChannelsCount())
@@ -329,7 +344,7 @@ namespace TS.NET.Engine
                             //    sampleBuffers[i].Reset();
                             //}
                             captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
-                            logger.LogTrace("Hardware enabled channel change ({0})", processingConfig.ChannelCount);
+                            logger.LogTrace("Hardware enabled channel change ({channelCount})", processingConfig.ChannelCount);
                         }
 
                         cachedHardwareConfig = inputDataDto.HardwareConfig;
@@ -422,7 +437,7 @@ namespace TS.NET.Engine
                                                 throw new NotImplementedException();
                                         }
 
-                                        edgeTriggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
+                                        triggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
 
                                         if (captureEndCount > 0)
                                         {
@@ -481,14 +496,49 @@ namespace TS.NET.Engine
                     }
                 }
 
+                void SwitchTrigger()
+                {
+                    triggerI8 = processingConfig.TriggerType switch
+                    {
+                        TriggerType.Edge => processingConfig.EdgeTriggerParameters.Direction switch
+                        {
+                            EdgeDirection.Rising => new RisingEdgeTriggerI8(processingConfig.EdgeTriggerParameters),
+                            EdgeDirection.Falling => new FallingEdgeTriggerI8(processingConfig.EdgeTriggerParameters),
+                            EdgeDirection.Any => new AnyEdgeTriggerI8(processingConfig.EdgeTriggerParameters),
+                            _ => throw new NotImplementedException()
+                        },
+                        TriggerType.Burst => new BurstTriggerI8(processingConfig.BurstTriggerParameters),
+                        _ => throw new NotImplementedException()
+                    };
+                }
+
                 // Locally scoped methods for deduplication
-                void UpdateTriggerHorizontalPosition(ThunderscopeHardwareConfig hardwareConfig)
+                void UpdateTriggerHorizontal(ThunderscopeHardwareConfig hardwareConfig)
                 {
                     ulong femtosecondsPerSample = 1000000000000000 / hardwareConfig.SampleRateHz;
                     var windowTriggerPosition = processingConfig.TriggerDelayFs / femtosecondsPerSample;
                     var additionalHoldoff = processingConfig.TriggerHoldoffFs / femtosecondsPerSample;
                     logger.LogTrace($"{additionalHoldoff}");
-                    edgeTriggerI8.SetHorizontal((ulong)processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
+                    triggerI8.SetHorizontal((ulong)processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
+                }
+
+                void UpdateTriggerParameters()
+                {
+                    switch (triggerI8)
+                    {
+                        case RisingEdgeTriggerI8 risingEdgeTriggerI8:
+                            risingEdgeTriggerI8.SetParameters(processingConfig.EdgeTriggerParameters);
+                            break;
+                        case FallingEdgeTriggerI8 fallingEdgeTriggerI8:
+                            fallingEdgeTriggerI8.SetParameters(processingConfig.EdgeTriggerParameters);
+                            break;
+                        case AnyEdgeTriggerI8 anyEdgeTriggerI8:
+                            anyEdgeTriggerI8.SetParameters(processingConfig.EdgeTriggerParameters);
+                            break;
+                        case BurstTriggerI8 burstTriggerI8:
+                            burstTriggerI8.SetParameters(processingConfig.BurstTriggerParameters);
+                            break;
+                    }
                 }
 
                 void TriggerCapture(bool triggered, int triggerChannelCaptureIndex, uint offset)

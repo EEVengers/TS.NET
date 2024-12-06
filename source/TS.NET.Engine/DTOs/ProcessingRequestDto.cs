@@ -13,9 +13,12 @@
     public record ProcessingSetTriggerTypeDto(TriggerType Type) : ProcessingRequestDto;
     public record ProcessingSetTriggerDelayDto(ulong Femtoseconds) : ProcessingRequestDto;
     public record ProcessingSetTriggerHoldoffDto(ulong Femtoseconds) : ProcessingRequestDto;
-    public record ProcessingSetTriggerLevelDto(double LevelVolts) : ProcessingRequestDto;
-    // ProcessingSetTriggerHysteresisDto
-    public record ProcessingSetTriggerInterpolation(bool Enabled) : ProcessingRequestDto;
+    public record ProcessingSetTriggerInterpolationDto(bool Enabled) : ProcessingRequestDto;
+
+    // Edge trigger parameters
+    public record ProcessingSetEdgeTriggerLevelDto(double LevelVolts) : ProcessingRequestDto;
+    // ProcessingSetEdgeTriggerHysteresisDto;
+    public record ProcessingSetEdgeTriggerDirectionDto(EdgeDirection Edge) : ProcessingRequestDto;
 
     public record ProcessingSetDepthDto(int Samples) : ProcessingRequestDto;
 }

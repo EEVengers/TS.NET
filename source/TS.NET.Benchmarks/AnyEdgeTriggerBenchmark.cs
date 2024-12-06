@@ -18,7 +18,7 @@ namespace TS.NET.Benchmarks
         private readonly Memory<sbyte> buffer1MHz = new sbyte[byteBufferSize];
         private readonly Memory<sbyte> buffer1KHz = new sbyte[byteBufferSize];
         private readonly Memory<uint> captureEndIndicesU64 = new uint[byteBufferSize / 64];
-        private readonly AnyEdgeTriggerI8 trigger = new();
+        private readonly AnyEdgeTriggerI8 trigger = new(new EdgeTriggerParameters());
 
         [GlobalSetup]
         public void Setup()
@@ -32,7 +32,7 @@ namespace TS.NET.Benchmarks
         [Benchmark(Description = "Any edge (hysteresis: 10), width: 1us, signal: DC (0), run length: 125 x 8M")]
         public void AnyEdge1()
         {
-            trigger.SetVertical(0, 10);
+            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Any });
             trigger.SetHorizontal(1000, 0, 0);
             for (int i = 0; i < 125; i++)
                 trigger.Process(input: bufferDC0.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
@@ -41,7 +41,7 @@ namespace TS.NET.Benchmarks
         [Benchmark(Description = "Any edge (hysteresis: 10), width: 1us, signal: DC (50), run length: 125 x 8M")]
         public void AnyEdge2()
         {
-            trigger.SetVertical(0, 10);
+            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Any });
             trigger.SetHorizontal(1000, 0, 0);
             for (int i = 0; i < 125; i++)
                 trigger.Process(input: bufferDC50.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
@@ -50,7 +50,7 @@ namespace TS.NET.Benchmarks
         [Benchmark(Description = "Any edge (hysteresis: 10), width: 1us, signal: 1KHz sine, run length: 125 x 8M")]
         public void AnyEdge3()
         {
-            trigger.SetVertical(0, 10);
+            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Any });
             trigger.SetHorizontal(1000, 0, 0);
             for (int i = 0; i < 125; i++)
                 trigger.Process(input: buffer1KHz.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
@@ -60,7 +60,7 @@ namespace TS.NET.Benchmarks
         [Benchmark(Description = "Any edge (hysteresis: 10), width: 1us, signal: 1MHz sine, run length: 125 x 8M")]
         public void AnyEdge4()
         {
-            trigger.SetVertical(0, 10);
+            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Any });
             trigger.SetHorizontal(1000, 0, 0);
             for (int i = 0; i < 125; i++)
                 trigger.Process(input: buffer1MHz.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
@@ -69,7 +69,7 @@ namespace TS.NET.Benchmarks
         [Benchmark(Description = "Any edge (hysteresis: 10), width: 1ms, signal: DC (0), run length: 125 x 8M")]
         public void AnyEdge5()
         {
-            trigger.SetVertical(0, 10);
+            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Any });
             trigger.SetHorizontal(1000000, 0, 0);
             for (int i = 0; i < 125; i++)
                 trigger.Process(input: bufferDC0.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
@@ -78,7 +78,7 @@ namespace TS.NET.Benchmarks
         [Benchmark(Description = "Any edge (hysteresis: 10), width: 1ms, signal: DC (50), run length: 125 x 8M")]
         public void AnyEdge6()
         {
-            trigger.SetVertical(0, 10);
+            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Any });
             trigger.SetHorizontal(1000000, 0, 0);
             for (int i = 0; i < 125; i++)
                 trigger.Process(input: bufferDC50.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
@@ -87,7 +87,7 @@ namespace TS.NET.Benchmarks
         [Benchmark(Description = "Any edge (hysteresis: 10), width: 1ms, signal: 1KHz sine, run length: 125 x 8M")]
         public void AnyEdge7()
         {
-            trigger.SetVertical(0, 10);
+            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Any });
             trigger.SetHorizontal(1000000, 0, 0);
             for (int i = 0; i < 125; i++)
                 trigger.Process(input: buffer1KHz.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
@@ -96,7 +96,7 @@ namespace TS.NET.Benchmarks
         [Benchmark(Description = "Any edge (hysteresis: 10), width: 1ms, signal: 1MHz sine, run length: 125 x 8M")]
         public void AnyEdge8()
         {
-            trigger.SetVertical(0, 10);
+            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Any });
             trigger.SetHorizontal(1000000, 0, 0);
             for (int i = 0; i < 125; i++)
                 trigger.Process(input: buffer1MHz.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);

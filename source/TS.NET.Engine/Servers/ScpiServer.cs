@@ -174,15 +174,6 @@ namespace TS.NET.Engine
                             // TRIG:
                             switch (command)
                             {
-                                case var _ when command.StartsWith("LEV") && argument != null:
-                                    {
-                                        // TRIGger:LEVel <arg>
-                                        // TRIG:LEV <arg>
-                                        double level = Convert.ToDouble(argument);
-                                        logger.LogDebug($"Set trigger level to {level}V");
-                                        processingRequestChannel.Write(new ProcessingSetTriggerLevelDto(level));
-                                        return null;
-                                    }
                                 case var _ when command.StartsWith("SOU") && argument != null:
                                     {
                                         // TRIGger:SOUrce <arg>
@@ -208,20 +199,13 @@ namespace TS.NET.Engine
                                         processingRequestChannel.Write(new ProcessingSetTriggerDelayDto((ulong)delay));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("EDGE") && argument != null:
+                                case var _ when command.StartsWith("HOLD") && argument != null:
                                     {
-                                        // TRIGger:EDGE:SLOPe <arg>
-                                        // TRIG:EDGE:SLOP <arg>
-                                        string dir = argument ?? throw new NullReferenceException();
-                                        logger.LogDebug($"Set [edge] trigger direction to {dir}");
-                                        var type = dir.ToUpper() switch
-                                        {
-                                            "RISING" => TriggerType.RisingEdge,
-                                            "FALLING" => TriggerType.FallingEdge,
-                                            "ANY" => TriggerType.AnyEdge,
-                                            _ => throw new NotImplementedException()
-                                        };
-                                        processingRequestChannel.Write(new ProcessingSetTriggerTypeDto(type));
+                                        // TRIGger:HOLDoff <arg>
+                                        // TRIG:HOLD <arg>
+                                        long holdoff = Convert.ToInt64(argument);
+                                        logger.LogDebug($"Set trigger holdoff to {holdoff}fs");
+                                        processingRequestChannel.Write(new ProcessingSetTriggerHoldoffDto((ulong)holdoff));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("INTER") && argument != null:
@@ -237,16 +221,34 @@ namespace TS.NET.Engine
                                             _ => true       // Default to true
                                         };
                                         logger.LogDebug($"Set trigger interpolation to {enabled}V");
-                                        processingRequestChannel.Write(new ProcessingSetTriggerInterpolation(enabled));
+                                        processingRequestChannel.Write(new ProcessingSetTriggerInterpolationDto(enabled));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("HOLD") && argument != null:
+                                // Deprecated, keep until March 2025. Replaced with TRIG:EDGE:LEV.
+                                case var _ when command.StartsWith("LEV") && argument != null:
+                                //case var _ when command.StartsWith("EDGE:LEV") && argument != null:
                                     {
-                                        // TRIGger:HOLDoff <arg>
-                                        // TRIG:HOLD <arg>
-                                        long holdoff = Convert.ToInt64(argument);
-                                        logger.LogDebug($"Set trigger holdoff to {holdoff}fs");
-                                        processingRequestChannel.Write(new ProcessingSetTriggerHoldoffDto((ulong)holdoff));
+                                        // TRIGger:EDGE:LEVel <arg>
+                                        // TRIG:EDGE:LEV <arg>
+                                        double level = Convert.ToDouble(argument);
+                                        logger.LogDebug($"Set trigger level to {level}V");
+                                        processingRequestChannel.Write(new ProcessingSetEdgeTriggerLevelDto(level));
+                                        return null;
+                                    }
+                                case var _ when command.StartsWith("EDGE:DIR") && argument != null:
+                                    {
+                                        // TRIGger:EDGE:DIRection <arg>
+                                        // TRIG:EDGE:DIR <arg>
+                                        string dir = argument ?? throw new NullReferenceException();
+                                        logger.LogDebug($"Set [edge] trigger direction to {dir}");
+                                        var type = dir.ToUpper() switch
+                                        {
+                                            "RISING" => EdgeDirection.Rising,
+                                            "FALLING" => EdgeDirection.Falling,
+                                            "ANY" => EdgeDirection.Any,
+                                            _ => throw new NotImplementedException()
+                                        };
+                                        processingRequestChannel.Write(new ProcessingSetEdgeTriggerDirectionDto(type));
                                         return null;
                                     }
                             }

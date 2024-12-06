@@ -112,7 +112,7 @@ namespace TS.NET.Engine
 
                                 float fa = (channelScale * triggerChannelBuffer[triggerIndex - 1]) - channelOffset;
                                 float fb = (channelScale * triggerChannelBuffer[triggerIndex]) - channelOffset;
-                                float triggerLevel = (channelScale * captureMetadata.ProcessingConfig.TriggerLevel) + channelOffset;
+                                float triggerLevel = (channelScale * captureMetadata.ProcessingConfig.EdgeTriggerParameters.Level) + channelOffset;
                                 float slope = fb - fa;
                                 float delta = triggerLevel - fa;
                                 float trigphase = delta / slope;

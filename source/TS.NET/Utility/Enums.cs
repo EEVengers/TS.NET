@@ -27,17 +27,17 @@ public enum TriggerMode : byte
 
 public enum TriggerType : byte
 {
-    RisingEdge = 1,
-    FallingEdge = 2,
-    AnyEdge = 3
+    Edge = 1,
+    Window = 2,
+    Burst = 3
 }
 
-    // 9 bit =     4x sum, 1x >>
-    // 10 bit =   16x sum, 2x >>
-    // 11 bit =   64x sum, 3x >>
-    // 12 bit =  256x sum, 4x >>
-    // 13 bit = 1024x sum, 5x >>
-    // 14 bit = 4096x sum, 6x >>
+// 9 bit =     4x sum, 1x >>
+// 10 bit =   16x sum, 2x >>
+// 11 bit =   64x sum, 3x >>
+// 12 bit =  256x sum, 4x >>
+// 13 bit = 1024x sum, 5x >>
+// 14 bit = 4096x sum, 6x >>
 public enum BoxcarAveraging : uint
 {
     None = 0,
