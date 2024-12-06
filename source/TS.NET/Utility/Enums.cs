@@ -27,9 +27,16 @@ public enum TriggerMode : byte
 
 public enum TriggerType : byte
 {
+    // Triggers with only vertical parameter(s)
     Edge = 1,
     Window = 2,
-    Burst = 3
+    Runt = 3,
+    // Triggers with time parameter(s)
+    Width = 4,
+    Interval = 5,
+    Burst = 6,
+    Dropout = 7,
+    SlewRate = 8
 }
 
 // 9 bit =     4x sum, 1x >>
