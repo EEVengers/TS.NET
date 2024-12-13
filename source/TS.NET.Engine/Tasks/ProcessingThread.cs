@@ -443,8 +443,8 @@ namespace TS.NET.Engine
                                         {
                                             for (int i = 0; i < captureEndCount; i++)
                                             {
-                                                uint endOffset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
-                                                TriggerCapture(triggered: true, triggerChannelCaptureIndex, endOffset);
+                                                uint offset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
+                                                Capture(triggered: true, triggerChannelCaptureIndex, offset);
 
                                                 if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
                                                 {
@@ -459,7 +459,7 @@ namespace TS.NET.Engine
                                     }
                                     if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
                                     {
-                                        ForceCapture();
+                                        Capture(triggered: false, triggerChannelCaptureIndex: 0, offset: 0);
 
                                         forceTriggerLatch = false;
 
@@ -496,6 +496,7 @@ namespace TS.NET.Engine
                     }
                 }
 
+                // Locally scoped methods for deduplication
                 void SwitchTrigger()
                 {
                     triggerI8 = processingConfig.TriggerType switch
@@ -512,7 +513,6 @@ namespace TS.NET.Engine
                     };
                 }
 
-                // Locally scoped methods for deduplication
                 void UpdateTriggerHorizontal(ThunderscopeHardwareConfig hardwareConfig)
                 {
                     ulong femtosecondsPerSample = 1000000000000000 / hardwareConfig.SampleRateHz;
@@ -541,7 +541,7 @@ namespace TS.NET.Engine
                     }
                 }
 
-                void TriggerCapture(bool triggered, int triggerChannelCaptureIndex, uint offset)
+                void Capture(bool triggered, int triggerChannelCaptureIndex, uint offset)
                 {
                     if (captureBuffer.TryStartWrite())
                     {
@@ -561,48 +561,13 @@ namespace TS.NET.Engine
                     }
                 }
 
-                void ForceCapture()
-                {
-                    if (captureBuffer.TryStartWrite())
-                    {
-                        int channelCount = cachedHardwareConfig.EnabledChannelsCount();
-                        for (int b = 0; b < channelCount; b++)
-                        {
-                            sampleBuffers[b].Read(captureBuffer.GetWriteBuffer(b), 0);
-                        }
-                        var captureMetadata = new CaptureMetadata
-                        {
-                            Triggered = false,
-                            TriggerChannelCaptureIndex = 0,
-                            HardwareConfig = cachedHardwareConfig,
-                            ProcessingConfig = processingConfig
-                        };
-                        captureBuffer.FinishWrite(captureMetadata);
-                    }
-                }
-
                 void StreamCapture()
-                {
-                    int channelCount = cachedHardwareConfig.EnabledChannelsCount();
+                {                   
                     int channelLength = processingConfig.ChannelDataLength;
                     while (streamSampleCounter > channelLength)
                     {
                         streamSampleCounter -= channelLength;
-                        if (captureBuffer.TryStartWrite())
-                        {
-                            for (int b = 0; b < channelCount; b++)
-                            {
-                                sampleBuffers[b].Read(captureBuffer.GetWriteBuffer(b), 0);
-                            }
-                            var captureMetadata = new CaptureMetadata
-                            {
-                                Triggered = false,
-                                TriggerChannelCaptureIndex = 0,
-                                HardwareConfig = cachedHardwareConfig,
-                                ProcessingConfig = processingConfig
-                            };
-                            captureBuffer.FinishWrite(captureMetadata);
-                        }
+                        Capture(triggered: false, triggerChannelCaptureIndex: 0, offset: 0);
                     }
                 }
             }
