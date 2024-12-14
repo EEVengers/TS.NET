@@ -136,7 +136,7 @@ namespace TS.NET.Engine
                                                     }
                                                     break;
                                                 }
-                                            case Driver.LiteX.Thunderscope liteXThunderscope:
+                                            case Driver.Libtslitex.Thunderscope liteXThunderscope:
                                                 {
                                                     switch (config.AdcChannelMode)
                                                     {
@@ -306,7 +306,7 @@ namespace TS.NET.Engine
                         var oneSecondEnqueueCount = periodicEnqueueCount / periodicUpdateTimer.Elapsed.TotalSeconds;
                         logger.LogDebug($"[Stream] MB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.Length / 1000 / 1000):F3}, MiB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.Length / 1024 / 1024):F3}");
 
-                        if (thunderscope is Driver.LiteX.Thunderscope liteXThunderscope)
+                        if (thunderscope is Driver.Libtslitex.Thunderscope liteXThunderscope)
                         {
                             var status = liteXThunderscope.GetStatus();
                             logger.LogDebug($"[LiteX] lost buffers: {status.AdcSamplesLost}, temp: {status.FpgaTemp:F2}, VCC int: {status.VccInt:F3}, VCC aux: {status.VccAux:F3}, VCC BRAM: {status.VccBram:F3}");
