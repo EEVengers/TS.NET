@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using TS.NET.Hardware;
 
-namespace TS.NET.Drivers.LiteX
+namespace TS.NET.Driver.LiteX
 {
     internal enum Hmcad15xxPowerMode { Active = 0, Sleep = 1, PowerDown = 2 }
     internal record struct Hmcad15xxChannelConfiguration(bool Active, byte Input, bool Coarse, bool Fine, bool Invert);
@@ -186,9 +186,9 @@ namespace TS.NET.Drivers.LiteX
         private void RegisterWrite(Hmcad15xxRegister register, ushort data)
         {
             byte[] bytes = [(byte)((data >> 8) & 0xFF), (byte)(data & 0xFF)];
-            spiDevice.WaitForIdle();
+            spiDevice.WaitForBusIdle();
             spiDevice.Write((byte)register, bytes);
-            logger.LogTrace("HMCAD SPI R: 0x{register:X2} D: 0x{data:X4}", (byte)register, data);
+            logger.LogTrace("SPI write register: 0x{register:X2}, data: 0x{data:X4}", (byte)register, data);
         }
 
         private void ApplyLvdsMode()
