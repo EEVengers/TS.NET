@@ -148,9 +148,10 @@ class Program
                         bufferLength = 60;
                         break;
                     }
-                case "litex":
+                case "litex":       // Use libtslitex for now
+                case "libtslitex":
                     {
-                        var ts = new TS.NET.Driver.LiteX.Thunderscope(loggerFactory, 1024 * 1024);
+                        var ts = new TS.NET.Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
                         ThunderscopeHardwareConfig initialHardwareConfiguration = new();
                         //initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Quad;
                         //initialHardwareConfiguration.EnabledChannels = 0x0F;

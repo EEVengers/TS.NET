@@ -2,7 +2,7 @@
 # General configuration
 #
 # Key: HardwareDriver
-# Value: String, with possible values of XDMA/LiteX/Simulator.
+# Value: String, with possible values of XDMA/LiteX/libtslitex/Simulator.
 # Selects the hardware driver to use.
 #
 # Key: HardwareRevision

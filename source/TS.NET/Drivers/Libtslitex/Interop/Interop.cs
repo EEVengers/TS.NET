@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace TS.NET.Driver.LiteX
+namespace TS.NET.Driver.Libtslitex
 {
     internal static partial class Interop
     {

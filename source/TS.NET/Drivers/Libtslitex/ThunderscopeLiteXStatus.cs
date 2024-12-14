@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace TS.NET.Driver.LiteX
+namespace TS.NET.Driver.Libtslitex
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]     // Struct packing allows the use of this datatype in ThunderscopeBridge header as it's consistent with the other datatypes
     public struct ThunderscopeLiteXStatus

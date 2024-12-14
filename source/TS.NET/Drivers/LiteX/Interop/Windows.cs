@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-// [assembly: DisableRuntimeMarshalling]    // Coming in .NET 7 with a source analyzer. This will guarantee interop has zero performance penalty.
-namespace TS.NET.Driver.XMDA.Interop.Windows
+
+namespace TS.NET.Driver.LiteX.Windows
 {
     // https://docs.microsoft.com/en-us/dotnet/standard/native-interop/best-practices#blittable-types
     // CharSet = CharSet.Unicode helps ensure blitability
@@ -106,10 +106,22 @@ namespace TS.NET.Driver.XMDA.Interop.Windows
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static unsafe extern bool ReadFile(
-            IntPtr hFile, 
+            IntPtr hFile,
             byte* lpBuffer,
-            uint nNumberOfBytesToRead, 
-            out uint lpNumberOfBytesRead, 
+            uint nNumberOfBytesToRead,
+            out uint lpNumberOfBytesRead,
+            IntPtr lpOverlapped);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static unsafe extern bool DeviceIoControl(
+            IntPtr hDevice,
+            uint dwIoControlCode,
+            byte* lpInBuffer,
+            uint nInBufferSize,
+            byte* lpOutBuffer,
+            uint nOutBufferSize,
+            ref uint lpBytesReturned,
             IntPtr lpOverlapped);
     }
 }
+
