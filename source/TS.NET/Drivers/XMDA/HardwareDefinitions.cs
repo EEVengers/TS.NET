@@ -1,4 +1,4 @@
-﻿namespace TS.NET;
+﻿namespace TS.NET.Driver.XMDA;
 
 internal struct ThunderscopeHardwareState
 {
@@ -28,21 +28,4 @@ internal enum BarRegister : uint
     SERIAL_FIFO_TDFV_ADDRESS = 0x2000C,     // read 0x1FC when the transmission is done
     SERIAL_FIFO_TLR_ADDRESS = 0x20014,      // (in bytes) This byte tells the thing to transfer
     SERIAL_FIFO_ISR_ADDRESS = 0x20000,
-}
-
-internal enum AdcRegister : byte
-{
-    THUNDERSCOPEHW_ADC_REG_RESET = 0x00,
-    THUNDERSCOPEHW_ADC_REG_POWER = 0x0F,
-    THUNDERSCOPEHW_ADC_REG_INVERT = 0x24,
-    THUNDERSCOPEHW_ADC_REG_QUAD_GAIN = 0x2A,
-    THUNDERSCOPEHW_ADC_REG_DUAL_GAIN = 0x2B,
-    THUNDERSCOPEHW_ADC_REG_CHNUM_CLKDIV = 0x31,
-    THUNDERSCOPEHW_ADC_REG_GAIN_CFG = 0x33,
-    THUNDERSCOPEHW_ADC_REG_INSEL12 = 0x3A,
-    THUNDERSCOPEHW_ADC_REG_INSEL34 = 0x3B,
-    THUNDERSCOPEHW_ADC_REG_FS_CNTRL = 0x55,
-    THUNDERSCOPEHW_ADC_REG_RES_SEL = 0x53,
-    THUNDERSCOPEHW_ADC_REG_LVDS_PHASE = 0x42,
-    THUNDERSCOPEHW_ADC_REG_LVDS_DRIVE = 0x11
 }

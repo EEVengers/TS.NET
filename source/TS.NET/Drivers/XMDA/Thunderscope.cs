@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Buffers.Binary;
 using TS.NET.Driver.XMDA.Interop;
+using TS.NET.Hardware;
 
 namespace TS.NET.Driver.XMDA
 {
@@ -284,30 +285,30 @@ namespace TS.NET.Driver.XMDA
         private void ConfigureAdc()
         {
             // Reset ADC
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_RESET, 0x0001);
+            SetAdcRegister(Hmcad15xxRegister.SW_RST, 0x0001);
             // Power Down ADC
             AdcPower(false);
             // Invert channels
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INVERT, 0x007F);
+            SetAdcRegister(Hmcad15xxRegister.CHAN_INVERT, 0x007F);
             // Adjust full scale value
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_FS_CNTRL, 0x0020);
+            SetAdcRegister(Hmcad15xxRegister.ADC_FULL_SCALE, 0x0020);
             // Course Gain On
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_GAIN_CFG, 0x0000);
+            SetAdcRegister(Hmcad15xxRegister.GAIN_SEL, 0x0000);
             // Course Gain 4-CH set
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_QUAD_GAIN, 0x9999);
+            SetAdcRegister(Hmcad15xxRegister.COARSE_GAIN_1, 0x9999);
             // Course Gain 1-CH & 2-CH set
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_DUAL_GAIN, 0x0A99);
+            SetAdcRegister(Hmcad15xxRegister.COARSE_GAIN_2, 0x0A99);
             //Set adc into active mode
             //currentBoardState.num_ch_on++;
             //currentBoardState.ch_is_on[0] = true;
             //_FIFO_WRITE(user_handle,currentBoardState.adc_chnum_clkdiv,sizeof(currentBoardState.adc_chnum_clkdiv));
 
             // Set 8-bit mode (for HMCAD1520, won't do anything for HMCAD1511)
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_RES_SEL, 0x0000);
+            SetAdcRegister(Hmcad15xxRegister.LVDS_MISC, 0x0000);
 
             //Set LVDS phase to 0 Deg & Drive Strength to RSDS
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_LVDS_PHASE, 0x0060);
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_LVDS_DRIVE, 0x0222);
+            SetAdcRegister(Hmcad15xxRegister.LCLK_PHASE, 0x0060);
+            SetAdcRegister(Hmcad15xxRegister.LVDS_DRIVE, 0x0222);
 
             AdcPower(true);
             //_FIFO_WRITE(user_handle,currentBoardState.adc_in_sel_12,sizeof(currentBoardState.adc_in_sel_12));
@@ -318,7 +319,7 @@ namespace TS.NET.Driver.XMDA
         }
 
         const byte SPI_BYTE_ADC = 0xFD;
-        private void SetAdcRegister(AdcRegister register, ushort value)
+        private void SetAdcRegister(Hmcad15xxRegister register, ushort value)
         {
             Span<byte> fifo = new byte[4];
             fifo[0] = SPI_BYTE_ADC;
@@ -330,7 +331,7 @@ namespace TS.NET.Driver.XMDA
 
         private void AdcPower(bool on)
         {
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_POWER, (ushort)(on ? 0x0000 : 0x0200));
+            SetAdcRegister(Hmcad15xxRegister.POWER_CTRL, (ushort)(on ? 0x0000 : 0x0200));
         }
 
         private void UpdateAdc()
@@ -396,10 +397,10 @@ namespace TS.NET.Driver.XMDA
             }
 
             AdcPower(false);
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_CHNUM_CLKDIV, (ushort)(clkdiv << 8 | num_channels_on));
+            SetAdcRegister(Hmcad15xxRegister.CHAN_MODE, (ushort)(clkdiv << 8 | num_channels_on));
             AdcPower(true);
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL12, (ushort)(2 << insel[0] | 512 << insel[1]));
-            SetAdcRegister(AdcRegister.THUNDERSCOPEHW_ADC_REG_INSEL34, (ushort)(2 << insel[2] | 512 << insel[3]));
+            SetAdcRegister(Hmcad15xxRegister.IN_SEL_1_2, (ushort)(2 << insel[0] | 512 << insel[1]));
+            SetAdcRegister(Hmcad15xxRegister.IN_SEL_3_4, (ushort)(2 << insel[2] | 512 << insel[3]));
 
             ThunderscopeHardwareState temporaryState = hardwareState;
             temporaryState.DatamoverEnabled = false;
