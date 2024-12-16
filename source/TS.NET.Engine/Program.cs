@@ -28,20 +28,30 @@ class Program
         var deviceIndexOption = new Option<int>(name: "-i", description: "The ThunderScope to use if there are multiple connected to the host.", getDefaultValue: () => { return 0; });
         var configurationFilePathOption = new Option<string>(name: "-config", description: "Configuration file to use.", getDefaultValue: () => { return "thunderscope.yaml"; });
         var secondsOption = new Option<int>(name: "-seconds", description: "Run for an integer number of seconds. Useful for profiling.", getDefaultValue: () => { return 0; });
+        var membenchOption = new Option<bool>(name: "-membench", description: "Run memory benchmark.", getDefaultValue: () => { return false; });
 
         var rootCommand = new RootCommand("TS.NET.Engine")
         {
             deviceIndexOption,
             configurationFilePathOption,
-            secondsOption
+            secondsOption,
+            membenchOption
         };
 
-        rootCommand.SetHandler(Start, deviceIndexOption, configurationFilePathOption, secondsOption);
+        rootCommand.SetHandler(Start, deviceIndexOption, configurationFilePathOption, secondsOption, membenchOption);
         return await rootCommand.InvokeAsync(args);
     }
 
-    static void Start(int deviceIndex, string configurationFilePath, int seconds)
+    static void Start(int deviceIndex, string configurationFilePath, int seconds, bool membench)
     {
+        if (membench)
+        {
+            Utility.MemoryBenchmark();
+            Console.WriteLine("Press any key to exit.");
+            Console.ReadKey();
+            return;
+        }
+
         // In future; change this to lock per-device instead of a single global lock.
         var lockFileName = $"TS.NET.lock";
         var lockFilePath = Path.Combine(Path.GetTempPath(), lockFileName);
