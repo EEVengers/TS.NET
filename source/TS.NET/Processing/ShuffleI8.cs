@@ -63,8 +63,6 @@ public static class ShuffleI8
             if (input.Length % 16 != 0)
                 throw new ArgumentException($"Input length must be multiple of 16");
 
-            var tableLookup01 = Vector64.Create(0,4,8,12,1,5,9,13).AsSByte();
-            var tableLookup23 = Vector64.Create(2,6,10,14,3,7,11,15).AsSByte();
             int ch2Offset8b = channelBlockSizeBytes / 4;
             int ch3Offset8b = (channelBlockSizeBytes * 2) / 4;
             int ch4Offset8b = (channelBlockSizeBytes * 3) / 4;
@@ -79,12 +77,11 @@ public static class ShuffleI8
                     while (inputPtr < finishPtr)
                     {
                         var loaded1 = AdvSimd.LoadVector128(inputPtr);  // 0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3
-                        var shuffled01 = AdvSimd.VectorTableLookup(loaded1, tableLookup01).AsUInt32(); // 0,0,0,0,1,1,1,1
-                        var shuffled23 = AdvSimd.VectorTableLookup(loaded1, tableLookup23).AsUInt32(); // 2,2,2,2,3,3,3,3
-                        outputPtr[0] = shuffled01[0];
-                        outputPtr[0 + ch2Offset8b] = shuffled01[1];
-                        outputPtr[0 + ch3Offset8b] = shuffled23[0];
-                        outputPtr[0 + ch4Offset8b] = shuffled23[1];
+                        var shuffled = AdvSimd.Arm64.VectorTableLookup(loaded1, Vector128.Create(0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15).AsSByte()).AsUInt32();  // 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3
+                        outputPtr[0] = shuffled[0];
+                        outputPtr[0 + ch2Offset8b] = shuffled[1];
+                        outputPtr[0 + ch3Offset8b] = shuffled[2];
+                        outputPtr[0 + ch4Offset8b] = shuffled[3];
 
                         inputPtr += Vector128<sbyte>.Count;
                         outputPtr += 1;
