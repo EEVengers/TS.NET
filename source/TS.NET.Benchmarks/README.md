@@ -1,4 +1,4 @@
-## Four channel shuffle I8 run length 1
+## Four channel shuffle I8, run length 1, 1e9 samples
 
 | Platform                       | Mean      | Error    | StdDev   |
 |------------------------------- |----------:|---------:|---------:|
