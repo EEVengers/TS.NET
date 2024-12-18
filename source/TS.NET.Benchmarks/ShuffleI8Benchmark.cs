@@ -19,25 +19,32 @@ namespace TS.NET.Benchmarks
             Waveforms.FourChannelCountSignedByte(input.Span);
         }
 
-        [Benchmark(Description = "Four channel shuffle, run-length 1 (SIMD, baseline, 125 x 8MS)")]
-        public void FourChannels()
-        {
-            for (int i = 0; i < 125; i++)
-                ShuffleI8Benchmarks.FourChannelsRunLength1(input.Span, output.Span);
-        }
+        // [Benchmark(Description = "Four channel shuffle, run-length 1 (SIMD, baseline, 125 x 8MS)")]
+        // public void FourChannels()
+        // {
+        //     for (int i = 0; i < 125; i++)
+        //         ShuffleI8Benchmarks.FourChannelsRunLength1(input.Span, output.Span);
+        // }
 
         [Benchmark(Description = "Four channel shuffle, run-length 1 (SIMD, optimised, 125 x 8MS)")]
-        public void FourChannelsOptimised()
+        public void FourChannelsSimdOptimised()
         {
             for (int i = 0; i < 125; i++)
                 ShuffleI8.FourChannels(input.Span, output.Span);
         }
 
-        [Benchmark(Description = "Four channel shuffle, run-length 32 (SIMD, baseline, 125 x 8MS)")]
-        public void FourChannelsRunLength32()
+        // [Benchmark(Description = "Four channel shuffle, run-length 32 (SIMD, baseline, 125 x 8MS)")]
+        // public void FourChannelsRunLength32()
+        // {
+        //     for (int i = 0; i < 125; i++)
+        //         ShuffleI8Benchmarks.FourChannelsRunLength32(input.Span, output.Span);
+        // }
+
+        [Benchmark(Description = "Four channel shuffle, run-length 1 (no SIMD, optimised, 125 x 8MS)")]
+        public void FourChannelsNoSimdOptimised()
         {
             for (int i = 0; i < 125; i++)
-                ShuffleI8Benchmarks.FourChannelsRunLength32(input.Span, output.Span);
+                ShuffleI8Benchmarks.FourChannelsNoSimd(input.Span, output.Span);
         }
 
         [Benchmark(Description = "Four channel shuffle, run-length 32 (SIMD, optimised, 125 x 8MS)")]
@@ -47,12 +54,12 @@ namespace TS.NET.Benchmarks
                 ShuffleI8Benchmarks.FourChannelsRunLength32VariantA(input.Span, output.Span);
         }
 
-        [Benchmark(Description = "Four channel shuffle, run-length 32 (no SIMD, baseline, 125 x 8MS)")]
-        public void FourChannelsRunLength32NoSimd()
-        {
-            for (int i = 0; i < 125; i++)
-                ShuffleI8Benchmarks.FourChannelsRunLength32NoSimd(input.Span, output.Span);
-        }
+        // [Benchmark(Description = "Four channel shuffle, run-length 32 (no SIMD, baseline, 125 x 8MS)")]
+        // public void FourChannelsRunLength32NoSimd()
+        // {
+        //     for (int i = 0; i < 125; i++)
+        //         ShuffleI8Benchmarks.FourChannelsRunLength32NoSimd(input.Span, output.Span);
+        // }
 
         [Benchmark(Description = "Four channel shuffle, run-length 32 (no SIMD, optimised, 125 x 8MS)")]
         public void FourChannelsRunLength32NoSimd2()
