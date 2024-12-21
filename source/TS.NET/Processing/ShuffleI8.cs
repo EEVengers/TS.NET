@@ -64,8 +64,8 @@ public static class ShuffleI8
                 throw new ArgumentException($"Input length must be multiple of 64");
 
             int ch2Offset8b = channelBlockSizeBytes;
-            int ch3Offset8b = (channelBlockSizeBytes * 2);
-            int ch4Offset8b = (channelBlockSizeBytes * 3);
+            int ch3Offset8b = channelBlockSizeBytes * 2;
+            int ch4Offset8b = channelBlockSizeBytes * 3;
             unsafe
             {
                 fixed (sbyte* inputP = input)
@@ -80,6 +80,7 @@ public static class ShuffleI8
                     byte* finishPtr = (byte*)inputP + input.Length;
                     while (inputPtr < finishPtr)
                     {
+                        // Loop unrolling (naively, or using StorePair) doesn't improve performance on Apple M4.
                         var loaded = AdvSimd.Arm64.Load4xVector128AndUnzip(inputPtr);
                         AdvSimd.Store(outputPtr, loaded.Value1);
                         AdvSimd.Store(outputPtr + ch2Offset8b, loaded.Value2);
