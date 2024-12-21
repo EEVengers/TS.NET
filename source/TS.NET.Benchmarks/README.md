@@ -1,11 +1,12 @@
 ## Four channel shuffle I8, run length 1, 1e9 samples
 
-| Platform                       | Mean      | Error    | StdDev   |
-|------------------------------- |----------:|---------:|---------:|
-| x64 i7-13700H 16GB [scalar]    | 224.23 ms | 0.258 ms | 0.216 ms |
-| x64 i7-13700H 16GB [AVX2]      |  35.16 ms | 0.151 ms | 0.118 ms |
-| ARM64 M4 10C 10G 16GB [scalar] | 127.49 ms | 0.755 ms | 0.706 ms |
-| ARM64 M4 10C 10G 16GB [Neon]   |  37.65 ms | 0.220 ms | 0.206 ms |
+| Platform                         | Mean      | Error    | StdDev   |
+|--------------------------------- |----------:|---------:|---------:|
+| x64 i7-13700H 16GB [scalar]      | 224.23 ms | 0.258 ms | 0.216 ms |
+| x64 i7-13700H 16GB [AVX2]        |  35.16 ms | 0.151 ms | 0.118 ms |
+| ARM64 M4 10C 10G 16GB [scalar]   | 127.49 ms | 0.755 ms | 0.706 ms |
+| ARM64 M4 10C 10G 16GB [Neon TBL] |  37.65 ms | 0.220 ms | 0.206 ms |
+| ARM64 M4 10C 10G 16GB [Neon LD4] |  18.67 ms | 0.108 ms | 0.101 ms |
 
 ## ShuffleI8
 

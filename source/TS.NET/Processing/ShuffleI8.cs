@@ -60,31 +60,34 @@ public static class ShuffleI8
         }
         else if (AdvSimd.Arm64.IsSupported)
         {
-            if (input.Length % 16 != 0)
-                throw new ArgumentException($"Input length must be multiple of 16");
+            if (input.Length % 64 != 0)     // 64 = 512 bits
+                throw new ArgumentException($"Input length must be multiple of 64");
 
-            int ch2Offset8b = channelBlockSizeBytes / 4;
-            int ch3Offset8b = (channelBlockSizeBytes * 2) / 4;
-            int ch4Offset8b = (channelBlockSizeBytes * 3) / 4;
+            int ch2Offset8b = channelBlockSizeBytes;
+            int ch3Offset8b = (channelBlockSizeBytes * 2);
+            int ch4Offset8b = (channelBlockSizeBytes * 3);
             unsafe
             {
                 fixed (sbyte* inputP = input)
                 fixed (sbyte* outputP = output)
                 {
-                    sbyte* inputPtr = inputP;
-                    uint* outputPtr = (uint*)outputP;
-                    sbyte* finishPtr = inputP + input.Length;
+                    // Naive way
+                    // var loaded1 = AdvSimd.LoadVector128(inputPtr);  // 0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3
+                    // var shuffled = AdvSimd.Arm64.VectorTableLookup(loaded1, Vector128.Create(0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15).AsSByte()).AsUInt32();  // 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3
+
+                    byte* inputPtr = (byte*)inputP;
+                    byte* outputPtr = (byte*)outputP;
+                    byte* finishPtr = (byte*)inputP + input.Length;
                     while (inputPtr < finishPtr)
                     {
-                        var loaded1 = AdvSimd.LoadVector128(inputPtr);  // 0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3
-                        var shuffled = AdvSimd.Arm64.VectorTableLookup(loaded1, Vector128.Create(0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15).AsSByte()).AsUInt32();  // 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3
-                        outputPtr[0] = shuffled[0];
-                        outputPtr[0 + ch2Offset8b] = shuffled[1];
-                        outputPtr[0 + ch3Offset8b] = shuffled[2];
-                        outputPtr[0 + ch4Offset8b] = shuffled[3];
+                        var loaded = AdvSimd.Arm64.Load4xVector128AndUnzip(inputPtr);
+                        AdvSimd.Store(outputPtr, loaded.Value1);
+                        AdvSimd.Store(outputPtr + ch2Offset8b, loaded.Value2);
+                        AdvSimd.Store(outputPtr + ch3Offset8b, loaded.Value3);
+                        AdvSimd.Store(outputPtr + ch4Offset8b, loaded.Value4);
 
-                        inputPtr += Vector128<sbyte>.Count;
-                        outputPtr += 1;
+                        inputPtr += Vector128<sbyte>.Count * 4;
+                        outputPtr += Vector128<sbyte>.Count;
                     }
                 }
             }   
