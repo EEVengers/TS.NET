@@ -32,5 +32,19 @@ namespace TS.NET.Benchmarks
             for (int i = 0; i < 125; i++)
                 ShuffleI8Benchmarks.FourChannelsNoSimd(input.Span, output.Span);
         }
+
+        [Benchmark(Description = "Two channel shuffle, run-length 1 (SIMD, optimised, 125 x 8MS)")]
+        public void TwoChannelsSimdOptimised1G()
+        {
+            for (int i = 0; i < 125; i++)
+                ShuffleI8.TwoChannels(input.Span, output.Span);
+        }
+
+        [Benchmark(Description = "Two channel shuffle, run-length 1 (no SIMD, optimised, 125 x 8MS)")]
+        public void TwoChannelsNoSimdOptimised1G()
+        {
+            for (int i = 0; i < 125; i++)
+                ShuffleI8Benchmarks.TwoChannelsNoSimd(input.Span, output.Span);
+        }
     }
 }

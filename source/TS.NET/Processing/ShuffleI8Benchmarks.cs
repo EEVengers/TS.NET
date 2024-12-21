@@ -80,6 +80,32 @@ namespace TS.NET
             }
         }
 
+        public static void TwoChannelsNoSimd(ReadOnlySpan<sbyte> input, Span<sbyte> output)
+        {
+            if (input.Length % 2 != 0)
+                throw new ArgumentException($"Input length must be multiple of 2");
+
+            int channelBlockSizeBytes = output.Length / 2;
+            int ch2Offset8b = channelBlockSizeBytes;
+            unsafe
+            {
+                fixed (sbyte* inputP = input)
+                fixed (sbyte* outputP = output)
+                {
+                    sbyte* inputPtr = inputP;
+                    sbyte* outputPtr = outputP;
+                    sbyte* finishPtr = inputP + input.Length;
+                    while (inputPtr < finishPtr)
+                    {
+                        outputPtr[0] = inputPtr[0];
+                        outputPtr[0 + ch2Offset8b] = inputPtr[1];
+                        inputPtr += 2;
+                        outputPtr++;
+                    }
+                }
+            }
+        }
+
         // This is the baseline 4-channel run length 1 algorithm for comparison purposes
         public static void FourChannelsRunLength1(ReadOnlySpan<sbyte> input, Span<sbyte> output)
         {
