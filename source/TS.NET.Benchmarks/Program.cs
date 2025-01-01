@@ -5,10 +5,9 @@ using BenchmarkDotNet.Running;
 using Perfolizer.Horology;
 using TS.NET.Benchmarks;
 
-var config = ManualConfig.CreateMinimumViable().AddJob(Job.Default)
+var config = ManualConfig.CreateMinimumViable().AddJob(Job.Default.WithEnvironmentVariable("COMPlus_EnableAVX", "0"))
     .WithSummaryStyle(SummaryStyle.Default.WithTimeUnit(TimeUnit.Millisecond));
 
-//var config = ManualConfig.CreateMinimumViable().AddJob(Job.Default.WithEnvironmentVariable("COMPlus_EnableAVX", "0"));
 //DefaultConfig.Instance.WithOptions(ConfigOptions.JoinSummary);
 
 //_ = BenchmarkRunner.Run(typeof(Program).Assembly);
