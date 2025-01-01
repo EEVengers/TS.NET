@@ -1,105 +1,78 @@
-﻿using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Diagnosers;
-using BenchmarkDotNet.Jobs;
+﻿using System.Runtime.InteropServices;
+using BenchmarkDotNet.Attributes;
 
 namespace TS.NET.Benchmarks
 {
-    [SimpleJob(RuntimeMoniker.Net80)]
-    [MemoryDiagnoser]
-    //[CpuDiagnoser]
-    //[InProcess]
-    //[HardwareCounters(HardwareCounter.TotalIssues)]
-    public class RisingEdgeTriggerI8Benchmark
+    public unsafe class RisingEdgeTriggerI8Benchmark
     {
-        private const int samplingRate = 1000000000;
-        private const int byteBufferSize = 8000000;
-        private readonly Memory<sbyte> bufferDC0 = new sbyte[byteBufferSize];
-        private readonly Memory<sbyte> bufferDC50 = new sbyte[byteBufferSize];
-        private readonly Memory<sbyte> buffer1MHz = new sbyte[byteBufferSize];
-        private readonly Memory<sbyte> buffer1KHz = new sbyte[byteBufferSize];
+        private const int byteBufferSize = 1 << 23;
+        private void* inputP_DC;
+        private void* inputP_500MHz;
+        private void* inputP_50percent;
+
         private readonly Memory<uint> captureEndIndicesU64 = new uint[byteBufferSize / 64];
         private readonly RisingEdgeTriggerI8 trigger = new(new EdgeTriggerParameters());
 
         [GlobalSetup]
         public void Setup()
         {
-            bufferDC0.Span.Fill(50);
-            bufferDC50.Span.Fill(50);
-            Waveforms.SineI8(buffer1MHz.Span, samplingRate, 1000000);
-            Waveforms.SineI8(buffer1KHz.Span, samplingRate, 1000);
+            inputP_DC = NativeMemory.AlignedAlloc(byteBufferSize, 32);           
+            var input_DC = new Span<sbyte>((sbyte*)inputP_DC, byteBufferSize); 
+            input_DC.Fill(127);
+
+            inputP_500MHz = NativeMemory.AlignedAlloc(byteBufferSize, 32);
+            var input_500MHz = new Span<sbyte>((sbyte*)inputP_500MHz, byteBufferSize); 
+            input_500MHz.Fill(127);
+            for(int i = 0; i < input_500MHz.Length; i+=2)
+            {
+                input_500MHz[i] = -128;
+            }
+
+            inputP_50percent = NativeMemory.AlignedAlloc(byteBufferSize, 32);
+            var input_50percent = new Span<sbyte>((sbyte*)inputP_50percent, byteBufferSize); 
+            input_50percent.Fill(127);
+            for(int i = 0; i < input_50percent.Length; i+=2097152)
+            {
+                input_50percent[i] = -128;
+            }
         }
 
-        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1us, signal: DC (0), run length: 125 x 8M")]
+        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: DC (127), 1006632960 samples")]
         public void RisingEdge1()
         {
+            var input = new Span<sbyte>((sbyte*)inputP_DC, byteBufferSize); 
             trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Rising });
-            trigger.SetHorizontal(1000, 0, 0);
-            for (int i = 0; i < 125; i++)
-                trigger.Process(input: bufferDC0.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
+            trigger.SetHorizontal(1000000, 0, 0);
+            for (int i = 0; i < 120; i++)
+                trigger.Process(input: input, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
         }
 
-        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1us, signal: DC (50), run length: 125 x 8M")]
+        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: 500MHz, 1006632960 samples")]
         public void RisingEdge2()
         {
+            var input = new Span<sbyte>((sbyte*)inputP_500MHz, byteBufferSize); 
             trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Rising });
-            trigger.SetHorizontal(1000, 0, 0);
-            for (int i = 0; i < 125; i++)
-                trigger.Process(input: bufferDC50.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
+            trigger.SetHorizontal(1000000, 0, 0);
+            for (int i = 0; i < 120; i++)
+                trigger.Process(input: input, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
         }
 
-        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1us, signal: 1KHz sine, run length: 125 x 8M")]
+        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: 476.8Hz, 1006632960 samples")]
         public void RisingEdge3()
         {
-            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Rising });
-            trigger.SetHorizontal(1000, 0, 0);
-            for (int i = 0; i < 125; i++)
-                trigger.Process(input: buffer1KHz.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
-        }
-
-        // 0.18 CPU cycles per sample
-        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1us, signal: 1MHz sine, run length: 125 x 8M")]
-        public void RisingEdge4()
-        {
-            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Rising });
-            trigger.SetHorizontal(1000, 0, 0);
-            for (int i = 0; i < 125; i++)
-                trigger.Process(input: buffer1MHz.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
-        }
-
-        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: DC (0), run length: 125 x 8M")]
-        public void RisingEdge5()
-        {
+            var input = new Span<sbyte>((sbyte*)inputP_50percent, byteBufferSize); 
             trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Rising });
             trigger.SetHorizontal(1000000, 0, 0);
-            for (int i = 0; i < 125; i++)
-                trigger.Process(input: bufferDC0.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
+            for (int i = 0; i < 120; i++)
+                trigger.Process(input: input, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
         }
 
-        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: DC (50), run length: 125 x 8M")]
-        public void RisingEdge6()
+        [GlobalCleanup]
+        public void Cleanup()
         {
-            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Rising });
-            trigger.SetHorizontal(1000000, 0, 0);
-            for (int i = 0; i < 125; i++)
-                trigger.Process(input: bufferDC50.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
-        }
-
-        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: 1KHz sine, run length: 125 x 8M")]
-        public void RisingEdge7()
-        {
-            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Rising });
-            trigger.SetHorizontal(1000000, 0, 0);
-            for (int i = 0; i < 125; i++)
-                trigger.Process(input: buffer1KHz.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
-        }
-
-        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: 1MHz sine, run length: 125 x 8M")]
-        public void RisingEdge8()
-        {
-            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Rising });
-            trigger.SetHorizontal(1000000, 0, 0);
-            for (int i = 0; i < 125; i++)
-                trigger.Process(input: buffer1MHz.Span, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
+            NativeMemory.Free(inputP_DC);
+            NativeMemory.Free(inputP_500MHz);
+            NativeMemory.Free(inputP_50percent);
         }
     }
 }

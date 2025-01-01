@@ -3,7 +3,6 @@ using BenchmarkDotNet.Attributes;
 
 namespace TS.NET.Benchmarks
 {
-    [MemoryDiagnoser]
     public unsafe class ShuffleI8Benchmark
     {
         private const int byteBufferSize = 1 << 23;

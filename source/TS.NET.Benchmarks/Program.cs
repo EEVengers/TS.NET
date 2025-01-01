@@ -1,14 +1,21 @@
 ﻿using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
+using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
+using Perfolizer.Horology;
 using TS.NET.Benchmarks;
 
-var config = ManualConfig.CreateMinimumViable().AddJob(Job.Default);
+var config = ManualConfig.CreateMinimumViable().AddJob(Job.Default)
+    .WithSummaryStyle(SummaryStyle.Default.WithTimeUnit(TimeUnit.Millisecond));
+
 //var config = ManualConfig.CreateMinimumViable().AddJob(Job.Default.WithEnvironmentVariable("COMPlus_EnableAVX", "0"));
 //DefaultConfig.Instance.WithOptions(ConfigOptions.JoinSummary);
+
 //_ = BenchmarkRunner.Run(typeof(Program).Assembly);
-_ = BenchmarkRunner.Run<ShuffleI8Benchmark>(config);
-//_ = BenchmarkRunner.Run<RisingEdgeTriggerBenchmark>();
+//_ = BenchmarkRunner.Run<MemoryBenchmark>(config);
+//_ = BenchmarkRunner.Run<ShuffleI8Benchmark>(config);
+_ = BenchmarkRunner.Run<RisingEdgeTriggerI8Benchmark>(config);
+
 //_ = BenchmarkRunner.Run<FallingEdgeTriggerBenchmark>();
 //_ = BenchmarkRunner.Run<AnyEdgeTriggerBenchmark>();
 //_ = BenchmarkRunner.Run<PipelineBenchmark>();
