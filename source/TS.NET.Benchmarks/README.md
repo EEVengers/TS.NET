@@ -1,109 +1,50 @@
-## Four channel shuffle I8, run length 1, 1e9 samples
+## ShuffleI8.FourChannels (1006632960 samples)
 
-| Platform                         | Mean      | Error    | StdDev   |
-|--------------------------------- |----------:|---------:|---------:|
-| x64 i7-13700H 16GB [scalar]      | 224.23 ms | 0.258 ms | 0.216 ms |
-| x64 i7-13700H 16GB [AVX2]        |  35.16 ms | 0.151 ms | 0.118 ms |
-| ARM64 M4 10C 10G 16GB [scalar]   | 127.49 ms | 0.755 ms | 0.706 ms |
-| ARM64 M4 10C 10G 16GB [Neon TBL] |  37.65 ms | 0.220 ms | 0.206 ms |
-| ARM64 M4 10C 10G 16GB [Neon LD4] |  18.67 ms | 0.108 ms | 0.101 ms |
+| Platform                      | Mean      | Error    | StdDev   |
+|------------------------------ |----------:|---------:|---------:|
+| x64 i7-13700H 16GB [scalar]   | 232.36 ms | 0.100 ms | 0.089 ms |
+| x64 i7-13700H 16GB [AVX2]     |  38.86 ms | 0.086 ms | 0.080 ms |
+| ARM64 M4 4P6E 16GB [scalar]   | 127.49 ms | 0.755 ms | 0.706 ms |
+| ARM64 M4 4P6E 16GB [Neon TBL] |  37.65 ms | 0.220 ms | 0.206 ms |
+| ARM64 M4 4P6E 16GB [Neon LD4] |  18.67 ms | 0.108 ms | 0.101 ms |
 
-## ShuffleI8
+## ShuffleI8.TwoChannels (1006632960 samples)
 
-Scalar processing
+| Platform                      | Mean      | Error    | StdDev   |
+|------------------------------ |----------:|---------:|---------:|
+| x64 i7-13700H 16GB [scalar]   | 239.20 ms | 0.139 ms | 0.130 ms |
+| x64 i7-13700H 16GB [AVX2]     |  39.21 ms | 0.137 ms | 0.128 ms |
+| ARM64 M4 4P6E 16GB [scalar]   | 128.47 ms | 0.548 ms | 0.486 ms |
+| ARM64 M4 4P6E 16GB [Neon]     |  17.03 ms | 0.065 ms | 0.058 ms |
 
-| Method                             | Mean     | Error   | StdDev  | Allocated |
-|----------------------------------- |---------:|--------:|--------:|----------:|
-| 'Four channel shuffle (125 x 8MS)' | 226.7 ms | 0.37 ms | 0.31 ms |     133 B |
-| 'Two channel shuffle (125 x 8MS)'  | 238.2 ms | 0.12 ms | 0.10 ms |      21 B |
+## RisingEdgeTriggerI8 - 0% trigger throughput (1006632960 samples)
 
-AVX2 processing
+| Platform                      | Mean      | Error    | StdDev   |
+|------------------------------ |----------:|---------:|---------:|
+| x64 i7-13700H 16GB [scalar]   | 283.18 ms | 0.334 ms | 0.313 ms |
+| x64 i7-13700H 16GB [AVX2]     |  15.66 ms | 0.014 ms | 0.013 ms |
+| ARM64 M4 4P6E 16GB [scalar]   | 233.63 ms | 1.485 ms | 1.389 ms |
+| ARM64 M4 4P6E 16GB [Neon]     |  ms |  ms |  ms |
 
-| Method                             | Mean     | Error    | StdDev   | Allocated |
-|----------------------------------- |---------:|---------:|---------:|----------:|
-| 'Four channel shuffle (125 x 8MS)' | 34.85 ms | 0.052 ms | 0.047 ms |       7 B |
-| 'Two channel shuffle (125 x 8MS)'  | 37.77 ms | 0.099 ms | 0.092 ms |      29 B |
+## RisingEdgeTriggerI8 - 48% trigger throughput (1006632960 samples)
 
-## RisingEdgeTriggerI8
+| Platform                      | Mean      | Error    | StdDev   |
+|------------------------------ |----------:|---------:|---------:|
+| x64 i7-13700H 16GB [scalar]   | 149.93 ms | 0.182 ms | 0.170 ms |
+| x64 i7-13700H 16GB [AVX2]     |   9.56 ms | 0.022 ms | 0.020 ms |
+| ARM64 M4 4P6E 16GB [scalar]   | 123.59 ms | 0.458 ms | 0.406 ms |
+| ARM64 M4 4P6E 16GB [Neon]     |  ms |  ms |  ms |
 
-Scalar processing
+## RisingEdgeTriggerI8 - 100% trigger throughput (1006632960 samples)
 
-| Method                                                                              | Mean       | Error     | StdDev    | Allocated |
-|------------------------------------------------------------------------------------ |-----------:|----------:|----------:|----------:|
-| 'Rising edge (hysteresis: 10), width: 1us, signal: DC (0), run length: 125 x 8M'    | 268.701 ms | 1.8045 ms | 1.6879 ms |      32 B |
-| 'Rising edge (hysteresis: 10), width: 1us, signal: DC (50), run length: 125 x 8M'   | 265.516 ms | 1.3546 ms | 1.1311 ms |     200 B |
-| 'Rising edge (hysteresis: 10), width: 1us, signal: 1KHz sine, run length: 125 x 8M' | 263.654 ms | 1.4123 ms | 1.3211 ms |     200 B |
-| 'Rising edge (hysteresis: 10), width: 1us, signal: 1MHz sine, run length: 125 x 8M' | 138.792 ms | 1.2891 ms | 1.2058 ms |      16 B |
-| 'Rising edge (hysteresis: 10), width: 1ms, signal: DC (0), run length: 125 x 8M'    | 264.236 ms | 1.2231 ms | 1.1441 ms |      32 B |
-| 'Rising edge (hysteresis: 10), width: 1ms, signal: DC (50), run length: 125 x 8M'   | 264.919 ms | 2.3736 ms | 2.2203 ms |      32 B |
-| 'Rising edge (hysteresis: 10), width: 1ms, signal: 1KHz sine, run length: 125 x 8M' | 132.259 ms | 0.5868 ms | 0.5489 ms |     100 B |
-| 'Rising edge (hysteresis: 10), width: 1ms, signal: 1MHz sine, run length: 125 x 8M' |   1.028 ms | 0.0066 ms | 0.0062 ms |       1 B |
+| Platform                      | Mean      | Error    | StdDev   |
+|------------------------------ |----------:|---------:|---------:|
+| x64 i7-13700H 16GB [scalar]   |   0.77 ms | 0.000 ms | 0.000 ms |
+| x64 i7-13700H 16GB [AVX2]     |   0.77 ms | 0.000 ms | 0.000 ms |
+| ARM64 M4 4P6E 16GB [scalar]   |   0.87 ms | 0.024 ms | 0.070 ms |
+| ARM64 M4 4P6E 16GB [Neon]     |  ms |  ms |  ms |
 
-AVX2 processing
+## Links
 
-| Method                                                                              | Mean        | Error     | StdDev    | Allocated |
-|------------------------------------------------------------------------------------ |------------:|----------:|----------:|----------:|
-| 'Rising edge (hysteresis: 10), width: 1us, signal: DC (0), run length: 125 x 8M'    | 17,805.4 us | 134.66 us | 125.96 us |      12 B |
-| 'Rising edge (hysteresis: 10), width: 1us, signal: DC (50), run length: 125 x 8M'   | 17,419.0 us | 139.13 us | 130.14 us |      12 B |
-| 'Rising edge (hysteresis: 10), width: 1us, signal: 1KHz sine, run length: 125 x 8M' | 18,567.1 us |  83.83 us |  74.32 us |      12 B |
-| 'Rising edge (hysteresis: 10), width: 1us, signal: 1MHz sine, run length: 125 x 8M' | 18,423.6 us | 199.72 us | 166.77 us |      12 B |
-| 'Rising edge (hysteresis: 10), width: 1ms, signal: DC (0), run length: 125 x 8M'    | 17,332.0 us | 126.19 us | 111.87 us |      12 B |
-| 'Rising edge (hysteresis: 10), width: 1ms, signal: DC (50), run length: 125 x 8M'   | 17,268.6 us | 101.62 us |  95.06 us |      12 B |
-| 'Rising edge (hysteresis: 10), width: 1ms, signal: 1KHz sine, run length: 125 x 8M' |  9,537.0 us |  37.05 us |  34.65 us |       6 B |
-| 'Rising edge (hysteresis: 10), width: 1ms, signal: 1MHz sine, run length: 125 x 8M' |    815.0 us |   3.61 us |   3.20 us |         - |
-
-## FallingEdgeI8Trigger
-
-Scalar processing
-
-| Method                                                                               | Mean       | Error     | StdDev    | Allocated |
-|------------------------------------------------------------------------------------- |-----------:|----------:|----------:|----------:|
-| 'Falling edge (hysteresis: 10), width: 1us, signal: DC (0), run length: 125 x 8M'    | 273.406 ms | 2.0984 ms | 1.9629 ms |     200 B |
-| 'Falling edge (hysteresis: 10), width: 1us, signal: DC (50), run length: 125 x 8M'   | 266.990 ms | 2.4998 ms | 2.3383 ms |     200 B |
-| 'Falling edge (hysteresis: 10), width: 1us, signal: 1KHz sine, run length: 125 x 8M' | 263.267 ms | 1.1823 ms | 1.0481 ms |      56 B |
-| 'Falling edge (hysteresis: 10), width: 1us, signal: 1MHz sine, run length: 125 x 8M' | 141.185 ms | 0.4615 ms | 0.4316 ms |     100 B |
-| 'Falling edge (hysteresis: 10), width: 1ms, signal: DC (0), run length: 125 x 8M'    | 263.917 ms | 0.8668 ms | 0.8108 ms |     200 B |
-| 'Falling edge (hysteresis: 10), width: 1ms, signal: DC (50), run length: 125 x 8M'   | 264.022 ms | 1.1193 ms | 1.0470 ms |     200 B |
-| 'Falling edge (hysteresis: 10), width: 1ms, signal: 1KHz sine, run length: 125 x 8M' | 132.400 ms | 0.4703 ms | 0.4399 ms |      16 B |
-| 'Falling edge (hysteresis: 10), width: 1ms, signal: 1MHz sine, run length: 125 x 8M' |   1.025 ms | 0.0086 ms | 0.0067 ms |       1 B |
-
-AVX2 processing
-
-| Method                                                                               | Mean        | Error     | StdDev    | Allocated |
-|------------------------------------------------------------------------------------- |------------:|----------:|----------:|----------:|
-| 'Falling edge (hysteresis: 10), width: 1us, signal: DC (0), run length: 125 x 8M'    | 18,352.7 us | 226.13 us | 188.83 us |      12 B |
-| 'Falling edge (hysteresis: 10), width: 1us, signal: DC (50), run length: 125 x 8M'   | 17,660.1 us | 106.32 us |  88.78 us |      12 B |
-| 'Falling edge (hysteresis: 10), width: 1us, signal: 1KHz sine, run length: 125 x 8M' | 18,748.8 us | 186.44 us | 174.40 us |      12 B |
-| 'Falling edge (hysteresis: 10), width: 1us, signal: 1MHz sine, run length: 125 x 8M' | 18,273.9 us | 164.83 us | 146.12 us |      12 B |
-| 'Falling edge (hysteresis: 10), width: 1ms, signal: DC (0), run length: 125 x 8M'    | 17,362.2 us | 164.68 us | 145.98 us |      12 B |
-| 'Falling edge (hysteresis: 10), width: 1ms, signal: DC (50), run length: 125 x 8M'   | 17,197.7 us |  66.53 us |  51.94 us |      12 B |
-| 'Falling edge (hysteresis: 10), width: 1ms, signal: 1KHz sine, run length: 125 x 8M' |  9,495.0 us |  37.35 us |  34.94 us |       6 B |
-| 'Falling edge (hysteresis: 10), width: 1ms, signal: 1MHz sine, run length: 125 x 8M' |    811.7 us |   3.62 us |   3.39 us |         - |
-
-## AnyEdgeI8Trigger
-
-Scalar processing
-
-| Method                                                                           | Mean         | Error       | StdDev      | Allocated |
-|--------------------------------------------------------------------------------- |-------------:|------------:|------------:|----------:|
-| 'Any edge (hysteresis: 10), width: 1us, signal: DC (0), run length: 125 x 8M'    | 268,632.7 us | 1,693.87 us | 1,584.45 us |     200 B |
-| 'Any edge (hysteresis: 10), width: 1us, signal: DC (50), run length: 125 x 8M'   | 269,505.9 us | 2,489.15 us | 2,328.35 us |     200 B |
-| 'Any edge (hysteresis: 10), width: 1us, signal: 1KHz sine, run length: 125 x 8M' | 265,351.6 us | 1,046.32 us |   873.72 us |     200 B |
-| 'Any edge (hysteresis: 10), width: 1us, signal: 1MHz sine, run length: 125 x 8M' |   3,027.9 us |    30.86 us |    28.86 us |       2 B |
-| 'Any edge (hysteresis: 10), width: 1ms, signal: DC (0), run length: 125 x 8M'    | 266,232.0 us | 1,694.59 us | 1,415.06 us |     200 B |
-| 'Any edge (hysteresis: 10), width: 1ms, signal: DC (50), run length: 125 x 8M'   | 265,793.0 us | 1,799.20 us | 1,682.97 us |     200 B |
-| 'Any edge (hysteresis: 10), width: 1ms, signal: 1KHz sine, run length: 125 x 8M' |     777.8 us |     4.02 us |     3.76 us |         - |
-| 'Any edge (hysteresis: 10), width: 1ms, signal: 1MHz sine, run length: 125 x 8M' |     778.4 us |     4.73 us |     4.42 us |         - |
-
-AVX2 processing
-
-| Method                                                                           | Mean        | Error     | StdDev    | Allocated |
-|--------------------------------------------------------------------------------- |------------:|----------:|----------:|----------:|
-| 'Any edge (hysteresis: 10), width: 1us, signal: DC (0), run length: 125 x 8M'    | 18,017.8 us | 353.40 us | 347.08 us |      12 B |
-| 'Any edge (hysteresis: 10), width: 1us, signal: DC (50), run length: 125 x 8M'   | 17,488.2 us | 284.37 us | 369.76 us |       2 B |
-| 'Any edge (hysteresis: 10), width: 1us, signal: 1KHz sine, run length: 125 x 8M' | 18,821.4 us | 235.44 us | 208.71 us |      12 B |
-| 'Any edge (hysteresis: 10), width: 1us, signal: 1MHz sine, run length: 125 x 8M' |  4,109.1 us |  63.19 us |  52.76 us |       3 B |
-| 'Any edge (hysteresis: 10), width: 1ms, signal: DC (0), run length: 125 x 8M'    | 17,157.8 us | 114.11 us | 101.16 us |      12 B |
-| 'Any edge (hysteresis: 10), width: 1ms, signal: DC (50), run length: 125 x 8M'   | 17,391.9 us | 287.89 us | 308.04 us |      12 B |
-| 'Any edge (hysteresis: 10), width: 1ms, signal: 1KHz sine, run length: 125 x 8M' |    777.0 us |   3.17 us |   2.97 us |         - |
-| 'Any edge (hysteresis: 10), width: 1ms, signal: 1MHz sine, run length: 125 x 8M' |    773.8 us |   1.51 us |   1.18 us |         - |
+https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/jit/viewing-jit-dumps.md
+https://github.com/dotnet/runtime/blob/main/src/coreclr/inc/clrconfigvalues.h#L718

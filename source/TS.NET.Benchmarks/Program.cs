@@ -5,20 +5,18 @@ using BenchmarkDotNet.Running;
 using Perfolizer.Horology;
 using TS.NET.Benchmarks;
 
-var config = ManualConfig.CreateMinimumViable().AddJob(Job.Default.WithEnvironmentVariable("COMPlus_EnableAVX", "0"))
+bool simd = false;
+var config = ManualConfig.CreateMinimumViable().AddJob(Job.Default
+        .WithEnvironmentVariable("DOTNET_EnableAVX", simd ? "1" : "0")
+        .WithEnvironmentVariable("DOTNET_EnableArm64AdvSimd", simd ? "1" : "0"))
+    .WithOptions(ConfigOptions.JoinSummary)
     .WithSummaryStyle(SummaryStyle.Default.WithTimeUnit(TimeUnit.Millisecond));
 
-//DefaultConfig.Instance.WithOptions(ConfigOptions.JoinSummary);
-
+BenchmarkRunner.Run([
+    BenchmarkConverter.TypeToBenchmarks(typeof(ShuffleI8Benchmark), config),
+    BenchmarkConverter.TypeToBenchmarks(typeof(RisingEdgeTriggerI8Benchmark), config) 
+    ]);
 //_ = BenchmarkRunner.Run(typeof(Program).Assembly);
 //_ = BenchmarkRunner.Run<MemoryBenchmark>(config);
-//_ = BenchmarkRunner.Run<ShuffleI8Benchmark>(config);
-_ = BenchmarkRunner.Run<RisingEdgeTriggerI8Benchmark>(config);
 
-//_ = BenchmarkRunner.Run<FallingEdgeTriggerBenchmark>();
-//_ = BenchmarkRunner.Run<AnyEdgeTriggerBenchmark>();
-//_ = BenchmarkRunner.Run<PipelineBenchmark>();
-//_ = BenchmarkRunner.Run<BoxcarAverageI8Benchmark>();
-//_ = BenchmarkRunner.Run<SumU8toI32Benchmark>();
-//_ = BenchmarkRunner.Run<DecimationI8Benchmark>();
 Console.ReadKey();
