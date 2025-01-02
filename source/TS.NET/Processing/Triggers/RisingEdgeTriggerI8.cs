@@ -1,4 +1,5 @@
 ﻿using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace TS.NET;
@@ -60,8 +61,10 @@ public class RisingEdgeTriggerI8 : ITriggerI8
         windowEndCount = 0;
         uint i = 0;
 
-        Vector256<sbyte> triggerLevelVector = Vector256.Create(triggerLevel);
-        Vector256<sbyte> armLevelVector = Vector256.Create(armLevel);
+        Vector256<sbyte> triggerLevelVector256 = Vector256.Create(triggerLevel);
+        Vector256<sbyte> armLevelVector256 = Vector256.Create(armLevel);
+        Vector128<sbyte> triggerLevelVector128 = Vector128.Create(triggerLevel);
+        Vector128<sbyte> armLevelVector128 = Vector128.Create(armLevel);
 
         windowEndIndices.Clear();
         unsafe
@@ -78,11 +81,23 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                                 while (i < simdLength)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector, inputVector), armLevelVector);
-                                    uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
+                                    var resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector256, inputVector), armLevelVector256);
+                                    var conditionFound = Avx2.MoveMask(resultVector) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
+                                    if (conditionFound)
                                         break;
                                     i += 32;
+                                }
+                            }
+                            else if(AdvSimd.Arm64.IsSupported)
+                            {
+                                while (i < simdLength)
+                                {
+                                    var inputVector = AdvSimd.LoadVector128(samplesPtr + i);
+                                    var resultVector = AdvSimd.CompareLessThanOrEqual(inputVector, armLevelVector128);                                 
+                                    var conditionFound = resultVector != Vector128<sbyte>.Zero;
+                                    if (conditionFound)
+                                        break;
+                                    i += 16;
                                 }
                             }
                             while (i < inputLength)
@@ -101,11 +116,23 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                                 while (i < simdLength)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector, inputVector), triggerLevelVector);
-                                    uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
+                                    var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector256, inputVector), triggerLevelVector256);
+                                    var conditionFound = Avx2.MoveMask(resultVector) != 0;     // Quick way to do horizontal vector scan of byte[n] != 0
+                                    if (conditionFound)
                                         break;
                                     i += 32;
+                                }
+                            }
+                            else if(AdvSimd.Arm64.IsSupported)
+                            {
+                                while (i < simdLength)
+                                {
+                                    var inputVector = AdvSimd.LoadVector128(samplesPtr + i);
+                                    var resultVector = AdvSimd.CompareGreaterThan(inputVector, triggerLevelVector128);                                 
+                                    var conditionFound = resultVector != Vector128<sbyte>.Zero;
+                                    if (conditionFound)
+                                        break;
+                                    i += 16;
                                 }
                             }
                             while (i < inputLength)

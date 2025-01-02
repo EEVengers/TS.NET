@@ -24,7 +24,7 @@
 | x64 i7-13700H 16GB [scalar]   | 283.18 ms | 0.334 ms | 0.313 ms |
 | x64 i7-13700H 16GB [AVX2]     |  15.66 ms | 0.014 ms | 0.013 ms |
 | ARM64 M4 4P6E 16GB [scalar]   | 233.63 ms | 1.485 ms | 1.389 ms |
-| ARM64 M4 4P6E 16GB [Neon]     |  ms |  ms |  ms |
+| ARM64 M4 4P6E 16GB [Neon]     |  17.10 ms | 0.169 ms | 0.142 ms |
 
 ## RisingEdgeTriggerI8 - 48% trigger throughput (1006632960 samples)
 
@@ -33,7 +33,7 @@
 | x64 i7-13700H 16GB [scalar]   | 149.93 ms | 0.182 ms | 0.170 ms |
 | x64 i7-13700H 16GB [AVX2]     |   9.56 ms | 0.022 ms | 0.020 ms |
 | ARM64 M4 4P6E 16GB [scalar]   | 123.59 ms | 0.458 ms | 0.406 ms |
-| ARM64 M4 4P6E 16GB [Neon]     |  ms |  ms |  ms |
+| ARM64 M4 4P6E 16GB [Neon]     |   9.42 ms | 0.056 ms | 0.500 ms |
 
 ## RisingEdgeTriggerI8 - 100% trigger throughput (1006632960 samples)
 
@@ -42,9 +42,11 @@
 | x64 i7-13700H 16GB [scalar]   |   0.77 ms | 0.000 ms | 0.000 ms |
 | x64 i7-13700H 16GB [AVX2]     |   0.77 ms | 0.000 ms | 0.000 ms |
 | ARM64 M4 4P6E 16GB [scalar]   |   0.87 ms | 0.024 ms | 0.070 ms |
-| ARM64 M4 4P6E 16GB [Neon]     |  ms |  ms |  ms |
+| ARM64 M4 4P6E 16GB [Neon]     |   0.88 ms | 0.022 ms | 0.066 ms |
 
 ## Links
 
 https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/jit/viewing-jit-dumps.md
 https://github.com/dotnet/runtime/blob/main/src/coreclr/inc/clrconfigvalues.h#L718
+https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html
+https://developer.arm.com/architectures/instruction-sets/intrinsics/

@@ -48,10 +48,10 @@ namespace TS.NET.Benchmarks
                 trigger.Process(input: input, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
         }
 
-        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: 500MHz, 1006632960 samples")]
+        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: 476.8Hz, 1006632960 samples")]
         public void RisingEdge2()
         {
-            var input = new Span<sbyte>((sbyte*)inputP_500MHz, byteBufferSize); 
+            var input = new Span<sbyte>((sbyte*)inputP_50percent, byteBufferSize); 
             trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Rising });
             trigger.SetHorizontal(1000000, 0, 0);
             // Processing 120 blocks of 8MiB is an approximation of 1 second of production usage
@@ -59,10 +59,10 @@ namespace TS.NET.Benchmarks
                 trigger.Process(input: input, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
         }
 
-        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: 476.8Hz, 1006632960 samples")]
+        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: 500MHz, 1006632960 samples")]
         public void RisingEdge3()
         {
-            var input = new Span<sbyte>((sbyte*)inputP_50percent, byteBufferSize); 
+            var input = new Span<sbyte>((sbyte*)inputP_500MHz, byteBufferSize); 
             trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Rising });
             trigger.SetHorizontal(1000000, 0, 0);
             // Processing 120 blocks of 8MiB is an approximation of 1 second of production usage
