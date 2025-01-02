@@ -88,15 +88,20 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                                     i += 32;
                                 }
                             }
-                            else if(AdvSimd.Arm64.IsSupported)
+                            else if (AdvSimd.Arm64.IsSupported)
                             {
                                 while (i < simdLength)
                                 {
                                     var inputVector = AdvSimd.LoadVector128(samplesPtr + i);
-                                    var resultVector = AdvSimd.CompareLessThanOrEqual(inputVector, armLevelVector128);                                 
+                                    var resultVector = AdvSimd.CompareLessThanOrEqual(inputVector, armLevelVector128);
                                     var conditionFound = resultVector != Vector128<sbyte>.Zero;
                                     if (conditionFound)
                                         break;
+                                    // ldr     q16, [x0, x1]
+                                    // cmge    v16.16b, v9.16b, v16.16b
+                                    // umaxp   v16.4s, v16.4s, v16.4s
+                                    // umov    x1, v16.d[0]
+                                    // cmp     x1, #0
                                     i += 16;
                                 }
                             }
@@ -123,15 +128,20 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                                     i += 32;
                                 }
                             }
-                            else if(AdvSimd.Arm64.IsSupported)
+                            else if (AdvSimd.Arm64.IsSupported)
                             {
                                 while (i < simdLength)
                                 {
                                     var inputVector = AdvSimd.LoadVector128(samplesPtr + i);
-                                    var resultVector = AdvSimd.CompareGreaterThan(inputVector, triggerLevelVector128);                                 
+                                    var resultVector = AdvSimd.CompareGreaterThan(inputVector, triggerLevelVector128);
                                     var conditionFound = resultVector != Vector128<sbyte>.Zero;
                                     if (conditionFound)
                                         break;
+                                    // ldr     q16, [x0, x1]
+                                    // cmgt    v16.16b, v16.16b, v8.16b
+                                    // umaxp   v16.4s, v16.4s, v16.4s
+                                    // umov    x1, v16.d[0]
+                                    // cmp     x1, #0
                                     i += 16;
                                 }
                             }
