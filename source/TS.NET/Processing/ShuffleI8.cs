@@ -118,7 +118,7 @@ public static class ShuffleI8
                         outputPtr[0 + ch3Offset8b] = inputPtr[2];
                         outputPtr[0 + ch4Offset8b] = inputPtr[3];
                         inputPtr += processingLength;
-                        outputPtr++; // processingLength / 4
+                        outputPtr+= processingLength / 4;
                     }
                 }
             }
@@ -223,7 +223,7 @@ public static class ShuffleI8
                         outputPtr[0] = inputPtr[0];
                         outputPtr[0 + ch2Offset8b] = inputPtr[1];
                         inputPtr += processingLength;
-                        outputPtr++; // processingLength / 2
+                        outputPtr+= processingLength / 2;
                     }
                 }
             }
