@@ -1,4 +1,5 @@
 ﻿using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace TS.NET;
@@ -60,8 +61,10 @@ public class FallingEdgeTriggerI8 : ITriggerI8
         windowEndCount = 0;
         uint i = 0;
 
-        Vector256<sbyte> triggerLevelVector = Vector256.Create(triggerLevel);
-        Vector256<sbyte> armLevelVector = Vector256.Create(armLevel);
+        Vector256<sbyte> triggerLevelVector256 = Vector256.Create(triggerLevel);
+        Vector256<sbyte> armLevelVector256 = Vector256.Create(armLevel);
+        Vector128<sbyte> triggerLevelVector128 = Vector128.Create(triggerLevel);
+        Vector128<sbyte> armLevelVector128 = Vector128.Create(armLevel);
 
         windowEndIndices.Clear();
         unsafe
@@ -78,9 +81,24 @@ public class FallingEdgeTriggerI8 : ITriggerI8
                                 while (i < simdLength)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Min(armLevelVector, inputVector), armLevelVector);
-                                    uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
+                                    var resultVector = Avx2.CompareEqual(Avx2.Min(armLevelVector256, inputVector), armLevelVector256);
+                                    var conditionFound = Avx2.MoveMask(resultVector) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
+                                    if (conditionFound)
+                                        break;
+                                    i += 32;
+                                }
+                            }
+                            else if(AdvSimd.Arm64.IsSupported)
+                            {
+                                while (i < simdLength)
+                                {
+                                    var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
+                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + 16);
+                                    var resultVector1 = AdvSimd.CompareGreaterThanOrEqual(armLevelVector128, inputVector1);
+                                    var resultVector2 = AdvSimd.CompareGreaterThanOrEqual(armLevelVector128, inputVector2);
+                                    var conditionFound = resultVector1 == Vector128<sbyte>.Zero;
+                                    conditionFound |= resultVector2 == Vector128<sbyte>.Zero;
+                                    if (conditionFound)
                                         break;
                                     i += 32;
                                 }
@@ -101,9 +119,24 @@ public class FallingEdgeTriggerI8 : ITriggerI8
                                 while (i < simdLength)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector, inputVector), triggerLevelVector);
-                                    uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
+                                    var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector256, inputVector), triggerLevelVector256);
+                                    var conditionFound = Avx2.MoveMask(resultVector) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
+                                    if (conditionFound)
+                                        break;
+                                    i += 32;
+                                }
+                            }
+                            else if (AdvSimd.Arm64.IsSupported)
+                            {
+                                while (i < simdLength)
+                                {
+                                    var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
+                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + 16);
+                                    var resultVector1 = AdvSimd.CompareLessThan(inputVector1, triggerLevelVector128);
+                                    var resultVector2 = AdvSimd.CompareLessThan(inputVector2, triggerLevelVector128);
+                                    var conditionFound = resultVector1 != Vector128<sbyte>.Zero;
+                                    conditionFound |= resultVector2 != Vector128<sbyte>.Zero;
+                                    if (conditionFound)
                                         break;
                                     i += 32;
                                 }
