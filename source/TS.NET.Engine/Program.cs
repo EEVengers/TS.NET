@@ -98,6 +98,10 @@ class Program
                 {
                     logger?.LogWarning("x86/x64 CPU without AVX2. CPU load will be high.");
                 }
+                else
+                {
+                    logger?.LogInformation("x86/x64 CPU with AVX2.");
+                }
             }
             if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
             {
@@ -107,7 +111,7 @@ class Program
                 }
                 else
                 {
-                    logger?.LogWarning("AArch64 CPU with Neon. Neon hot paths not implemented. CPU load will be high.");
+                    logger?.LogInformation("AArch64 CPU with Neon.");
                 }
             }
 
