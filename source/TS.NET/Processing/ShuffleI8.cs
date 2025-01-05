@@ -15,8 +15,8 @@ public static class ShuffleI8
 
         if (Avx2.IsSupported)       // Const after JIT/AOT
         {
-            if (input.Length % (Vector256<sbyte>.Count * 2) != 0)
-                throw new ArgumentException($"Input length must be multiple of {Vector256<sbyte>.Count * 2}");
+            var processingLength = Vector256<sbyte>.Count * 2;
+            if (input.Length % processingLength != 0) throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
             int ch2Offset64b = channelBlockSizeBytes / 8;
             int ch3Offset64b = (channelBlockSizeBytes * 2) / 8;
@@ -51,17 +51,18 @@ public static class ShuffleI8
                         Vector128.Store(unpackLow.GetUpper(), outputPtr + ch3Offset64b);
                         Vector128.Store(unpackHigh.GetUpper(), outputPtr + ch4Offset64b);
 
-                        inputPtr += Vector256<sbyte>.Count * 2;
-                        inputPtr2 += Vector256<sbyte>.Count * 2;
-                        outputPtr += 2;
+                        inputPtr += processingLength;
+                        inputPtr2 += processingLength;
+                        outputPtr += processingLength / 4 / sizeof(ulong);
                     }
                 }
             }
         }
         else if (AdvSimd.Arm64.IsSupported)
         {
-            if (input.Length % (Vector128<sbyte>.Count * 4) != 0)
-                throw new ArgumentException($"Input length must be multiple of {Vector128<sbyte>.Count * 4}");
+            var processingLength = Vector128<sbyte>.Count * 4;
+            if (input.Length % processingLength != 0)
+                throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
             int ch2Offset8b = channelBlockSizeBytes;
             int ch3Offset8b = channelBlockSizeBytes * 2;
@@ -87,16 +88,17 @@ public static class ShuffleI8
                         AdvSimd.Store(outputPtr + ch3Offset8b, loaded.Value3);
                         AdvSimd.Store(outputPtr + ch4Offset8b, loaded.Value4);
 
-                        inputPtr += Vector128<sbyte>.Count * 4;
-                        outputPtr += Vector128<sbyte>.Count;
+                        inputPtr += processingLength;
+                        outputPtr += processingLength / 4;
                     }
                 }
-            }   
+            }
         }
         else
         {
-            if (input.Length % 4 != 0)
-                throw new ArgumentException($"Input length must be multiple of 4");
+            var processingLength = 4;
+            if (input.Length % processingLength != 0)
+                throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
             int ch2Offset8b = channelBlockSizeBytes;
             int ch3Offset8b = channelBlockSizeBytes * 2;
@@ -115,8 +117,8 @@ public static class ShuffleI8
                         outputPtr[0 + ch2Offset8b] = inputPtr[1];
                         outputPtr[0 + ch3Offset8b] = inputPtr[2];
                         outputPtr[0 + ch4Offset8b] = inputPtr[3];
-                        inputPtr += 4;
-                        outputPtr++;
+                        inputPtr += processingLength;
+                        outputPtr++; // processingLength / 4
                     }
                 }
             }
@@ -132,8 +134,9 @@ public static class ShuffleI8
 
         if (Avx2.IsSupported)       // Const after JIT/AOT
         {
-            if (input.Length % Vector256<sbyte>.Count != 0)
-                throw new ArgumentException($"Input length must be multiple of {Vector256<sbyte>.Count}");
+            var processingLength = Vector256<sbyte>.Count;
+            if (input.Length % processingLength != 0)
+                throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
             int ch2Offset64b = channelBlockSizeBytes / 8;
             Vector256<sbyte> shuffleMask = Vector256.Create(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15, 0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15).AsSByte();
@@ -155,16 +158,17 @@ public static class ShuffleI8
                         outputPtr[1] = permuted1_64[1];
                         outputPtr[0 + ch2Offset64b] = permuted1_64[2];
                         outputPtr[1 + ch2Offset64b] = permuted1_64[3];
-                        inputPtr += 32;
-                        outputPtr += 2;
+                        inputPtr += processingLength;
+                        outputPtr += processingLength / 2 / sizeof(ulong);
                     }
                 }
             }
         }
         else if (AdvSimd.Arm64.IsSupported)
         {
-            if (input.Length % (Vector128<sbyte>.Count * 8) != 0)
-                throw new ArgumentException($"Input length must be multiple of {Vector128<sbyte>.Count * 8}");
+            var processingLength = Vector128<sbyte>.Count * 8;
+            if (input.Length % processingLength != 0)
+                throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
             int ch2Offset8b = channelBlockSizeBytes;
             unsafe
@@ -187,24 +191,23 @@ public static class ShuffleI8
                         AdvSimd.Store(outputPtr + Vector128<sbyte>.Count, loaded2.Value1);
                         AdvSimd.Store(outputPtr + (Vector128<sbyte>.Count * 2), loaded3.Value1);
                         AdvSimd.Store(outputPtr + (Vector128<sbyte>.Count * 3), loaded4.Value1);
-                        //AdvSimd.Arm64.StorePair(outputPtr, loaded1.Value1, loaded2.Value1);
 
                         AdvSimd.Store(outputPtr + ch2Offset8b, loaded1.Value2);
                         AdvSimd.Store(outputPtr + ch2Offset8b + Vector128<sbyte>.Count, loaded2.Value2);
                         AdvSimd.Store(outputPtr + ch2Offset8b + (Vector128<sbyte>.Count * 2), loaded3.Value2);
                         AdvSimd.Store(outputPtr + ch2Offset8b + (Vector128<sbyte>.Count * 3), loaded4.Value2);
-                        //AdvSimd.Arm64.StorePair(outputPtr + ch2Offset8b, loaded1.Value2, loaded2.Value2);
 
-                        inputPtr += Vector128<sbyte>.Count * 8;
-                        outputPtr += Vector128<sbyte>.Count * 4;
+                        inputPtr += processingLength;
+                        outputPtr += processingLength / 2;
                     }
                 }
-            }   
+            }
         }
         else
         {
-            if (input.Length % 2 != 0)
-                throw new ArgumentException($"Input length must be multiple of 2");
+            var processingLength = 2;
+            if (input.Length % processingLength != 0)
+                throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
             int ch2Offset8b = channelBlockSizeBytes;
             unsafe
@@ -219,8 +222,8 @@ public static class ShuffleI8
                     {
                         outputPtr[0] = inputPtr[0];
                         outputPtr[0 + ch2Offset8b] = inputPtr[1];
-                        inputPtr += 2;
-                        outputPtr++;
+                        inputPtr += processingLength;
+                        outputPtr++; // processingLength / 2
                     }
                 }
             }
