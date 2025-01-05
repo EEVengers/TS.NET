@@ -94,10 +94,10 @@ public class FallingEdgeTriggerI8 : ITriggerI8
                                 {
                                     var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
                                     var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + 16);
-                                    var resultVector1 = AdvSimd.CompareGreaterThanOrEqual(armLevelVector128, inputVector1);
-                                    var resultVector2 = AdvSimd.CompareGreaterThanOrEqual(armLevelVector128, inputVector2);
-                                    var conditionFound = resultVector1 == Vector128<sbyte>.Zero;
-                                    conditionFound |= resultVector2 == Vector128<sbyte>.Zero;
+                                    var resultVector1 = AdvSimd.CompareGreaterThanOrEqual(inputVector1, armLevelVector128);
+                                    var resultVector2 = AdvSimd.CompareGreaterThanOrEqual(inputVector2, armLevelVector128);
+                                    var conditionFound = resultVector1 != Vector128<sbyte>.Zero;
+                                    conditionFound |= resultVector2 != Vector128<sbyte>.Zero;
                                     if (conditionFound)
                                         break;
                                     i += 32;

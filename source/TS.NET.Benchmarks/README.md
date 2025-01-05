@@ -44,6 +44,33 @@
 | ARM64 M4 4P6E 16GB [scalar]   |   0.87 ms | 0.024 ms | 0.070 ms |
 | ARM64 M4 4P6E 16GB [Neon]     |   0.88 ms | 0.022 ms | 0.066 ms |
 
+## FallingEdgeTriggerI8 - 0% trigger throughput (1006632960 samples)
+
+| Platform                      | Mean      | Error    | StdDev   |
+|------------------------------ |----------:|---------:|---------:|
+| x64 i7-13700H 16GB [scalar]   |   ms |  ms |  ms |
+| x64 i7-13700H 16GB [AVX2]     |   ms |  ms |  ms |
+| ARM64 M4 4P6E 16GB [scalar]   | 231.36 ms | 1.308 ms | 1.160 ms |
+| ARM64 M4 4P6E 16GB [Neon]     |  15.70 ms | 0.057 ms | 0.044 ms |
+
+## FallingEdgeTriggerI8 - 48% trigger throughput (1006632960 samples)
+
+| Platform                      | Mean      | Error    | StdDev   |
+|------------------------------ |----------:|---------:|---------:|
+| x64 i7-13700H 16GB [scalar]   |   ms |  ms |  ms |
+| x64 i7-13700H 16GB [AVX2]     |   ms |  ms |  ms |
+| ARM64 M4 4P6E 16GB [scalar]   | 122.49 ms | 0.742 ms | 0.694 ms |
+| ARM64 M4 4P6E 16GB [Neon]     |   8.50 ms | 0.040 ms | 0.037 ms |
+
+## FallingEdgeTriggerI8 - 100% trigger throughput (1006632960 samples)
+
+| Platform                      | Mean      | Error    | StdDev   |
+|------------------------------ |----------:|---------:|---------:|
+| x64 i7-13700H 16GB [scalar]   |    ms |  ms |  ms |
+| x64 i7-13700H 16GB [AVX2]     |    ms |  ms |  ms |
+| ARM64 M4 4P6E 16GB [scalar]   |   0.78 ms | 0.022 ms | 0.065 ms |
+| ARM64 M4 4P6E 16GB [Neon]     |   0.83 ms | 0.020 ms | 0.058 ms |
+
 ## Links
 
 https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/jit/viewing-jit-dumps.md  
