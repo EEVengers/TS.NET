@@ -2,22 +2,21 @@
 
 namespace TS.NET.Tests
 {
-    public class EdgeTriggerSituation
+    internal class EdgeTriggerSituation
     {
-        public sbyte TriggerLevel { get; set; }
-        public byte TriggerHysteresis { get; set; }
-        public uint WindowWidth { get; set; }
-        public uint WindowTriggerPosition { get; set; }
-        public uint AdditionalHoldoff { get; set; }
+        public EdgeTriggerParameters Parameters;
+        public uint WindowWidth;
+        public uint WindowTriggerPosition;
+        public uint AdditionalHoldoff;
 
-        public int ChunkSize { get; set; }
-        public int ChunkCount { get; set; }
+        public int ChunkSize;
+        public int ChunkCount;
 
-        public Memory<sbyte> Input { get; set; }
-        public Memory<uint> ExpectedWindowEndIndices { get; set; }
+        public Memory<sbyte> Input;
+        public Memory<uint> ExpectedWindowEndIndices;
     }
 
-    public class RisingEdgeTriggerSituations
+    internal class RisingEdgeTriggerSituations
     {
         /// <summary>
         /// 100 samples idle, 100 sample wide positive pulse
@@ -26,8 +25,7 @@ namespace TS.NET.Tests
         {
             var situation = new EdgeTriggerSituation()
             {
-                TriggerLevel = 50,
-                TriggerHysteresis = 10,
+                Parameters = new EdgeTriggerParameters(Level: 20, Hysteresis: 10, EdgeDirection.Rising),
                 WindowWidth = 10000,
                 WindowTriggerPosition = 0,
                 AdditionalHoldoff = 0,
@@ -37,15 +35,9 @@ namespace TS.NET.Tests
             };
             situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
             situation.ExpectedWindowEndIndices = new uint[1];
-
             situation.Input.Span.Fill(0);
-            for (int i = 100; i <= 200; i++)
-            {
-                situation.Input.Span[i] = sbyte.MaxValue;
-            }
-
+            situation.Input.Span.Slice(100, 100).Fill(sbyte.MaxValue);
             situation.ExpectedWindowEndIndices.Span[0] = 10100;
-
             return situation;
         }
 
@@ -56,8 +48,7 @@ namespace TS.NET.Tests
         {
             var situation = new EdgeTriggerSituation()
             {
-                TriggerLevel = 50,
-                TriggerHysteresis = 10,
+                Parameters = new EdgeTriggerParameters(Level: 20, Hysteresis: 10, EdgeDirection.Rising),
                 WindowWidth = 10000,
                 WindowTriggerPosition = 0,
                 AdditionalHoldoff = 0,
@@ -67,20 +58,10 @@ namespace TS.NET.Tests
             };
             situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
             situation.ExpectedWindowEndIndices = new uint[1];
-
             situation.Input.Span.Fill(0);
-            for (int i = 100; i <= 200; i++)
-            {
-                situation.Input.Span[i] = sbyte.MaxValue;
-            }
-            // This pulse should be ignored
-            for (int i = 300; i <= 400; i++)
-            {
-                situation.Input.Span[i] = sbyte.MaxValue;
-            }
-
+            situation.Input.Span.Slice(100, 100).Fill(sbyte.MaxValue);
+            situation.Input.Span.Slice(300, 100).Fill(sbyte.MaxValue);  // This pulse should be ignored
             situation.ExpectedWindowEndIndices.Span[0] = 10100;
-
             return situation;
         }
 
@@ -91,8 +72,7 @@ namespace TS.NET.Tests
         {
             var situation = new EdgeTriggerSituation()
             {
-                TriggerLevel = 50,
-                TriggerHysteresis = 10,
+                Parameters = new EdgeTriggerParameters(Level: 20, Hysteresis: 10, EdgeDirection.Rising),
                 WindowWidth = 10000,
                 WindowTriggerPosition = 0,
                 AdditionalHoldoff = 0,
@@ -102,20 +82,11 @@ namespace TS.NET.Tests
             };
             situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
             situation.ExpectedWindowEndIndices = new uint[2];
-
             situation.Input.Span.Fill(0);
-            for (int i = 100; i <= 200; i++)
-            {
-                situation.Input.Span[i] = sbyte.MaxValue;
-            }
-            for (int i = 10200; i <= 10300; i++)
-            {
-                situation.Input.Span[i] = sbyte.MaxValue;
-            }
-
+            situation.Input.Span.Slice(100, 100).Fill(sbyte.MaxValue);
+            situation.Input.Span.Slice(10200, 100).Fill(sbyte.MaxValue);
             situation.ExpectedWindowEndIndices.Span[0] = 10100;
             situation.ExpectedWindowEndIndices.Span[1] = 20200;
-
             return situation;
         }
 
@@ -126,8 +97,7 @@ namespace TS.NET.Tests
         {
             var situation = new EdgeTriggerSituation()
             {
-                TriggerLevel = 50,
-                TriggerHysteresis = 10,
+                Parameters = new EdgeTriggerParameters(Level: 20, Hysteresis: 10, EdgeDirection.Rising),
                 WindowWidth = 10000,
                 WindowTriggerPosition = 0,
                 AdditionalHoldoff = 0,
@@ -137,15 +107,9 @@ namespace TS.NET.Tests
             };
             situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
             situation.ExpectedWindowEndIndices = new uint[1];
-
             situation.Input.Span.Fill(0);
-            for (int i = 0; i <= 100; i++)
-            {
-                situation.Input.Span[i] = sbyte.MaxValue;
-            }
-
+            situation.Input.Span.Slice(0, 100).Fill(sbyte.MaxValue);
             situation.ExpectedWindowEndIndices.Span[0] = 0;
-
             return situation;
         }
 
@@ -156,8 +120,7 @@ namespace TS.NET.Tests
         {
             var situation = new EdgeTriggerSituation()
             {
-                TriggerLevel = 50,
-                TriggerHysteresis = 10,
+                Parameters = new EdgeTriggerParameters(Level: 20, Hysteresis: 10, EdgeDirection.Rising),
                 WindowWidth = 10000,
                 WindowTriggerPosition = 0,
                 AdditionalHoldoff = 0,
@@ -167,83 +130,10 @@ namespace TS.NET.Tests
             };
             situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
             situation.ExpectedWindowEndIndices = new uint[1];
-
             situation.Input.Span.Fill(0);
             situation.Input.Span[100] = sbyte.MaxValue;
-
             situation.ExpectedWindowEndIndices.Span[0] = 10100;
-
             return situation;
         }
-
-        ////4 sample wide 1 hz pulse at sample 0
-        //public static EdgeTriggerSituation SituationC()
-        //{
-        //    const int chunkCount = 120;
-        //    EdgeTriggerSituation situation = new EdgeTriggerSituation()
-        //    {
-        //        TriggerLevel = 127,
-        //        TriggerHysteresis = 10,
-        //        WindowWidth = 50 * 1000000,
-        //        WindowTriggerPosition = 0,
-        //        AdditionalHoldoff = 0,
-
-        //        ChunkSize = 8388608,
-        //        ChunkCount = chunkCount,
-        //    };
-        //    situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
-        //    situation.ExpectedWindowEndIndices = new uint[1];
-
-        //    situation.Input.Span.Fill(sbyte.MinValue);
-        //    situation.Input.Span[0] = sbyte.MaxValue;
-        //    situation.Input.Span[1] = sbyte.MaxValue;
-        //    situation.Input.Span[2] = sbyte.MaxValue;
-        //    situation.Input.Span[3] = sbyte.MaxValue;
-
-        //    //situation.ExpectedWindowEndIndices[0] = new uint[1];
-        //    //var quotient = situation.HoldoffSamples / situation.ChunkSize;
-        //    //var remainder = situation.HoldoffSamples % situation.ChunkSize;
-        //    //situation.ExpectedHoldoffEndIndices[quotient] = new uint[1];
-        //    //situation.ExpectedHoldoffEndIndices[quotient].Span[0] = remainder;
-
-        //    return situation;
-        //}
-
-        ////4 sample wide 51hz pulse repeated 3 times
-        //public static EdgeTriggerSituation SituationD()
-        //{
-        //    const int chunkCount = 120;
-        //    EdgeTriggerSituation situation = new EdgeTriggerSituation()
-        //    {
-        //        TriggerLevel = 127,
-        //        TriggerHysteresis = 10,
-        //        WindowWidth = 5 * 1000000,
-        //        WindowTriggerPosition = 0,
-        //        AdditionalHoldoff = 0,
-
-        //        ChunkSize = 8388608,
-        //        ChunkCount = chunkCount,
-        //    };
-        //    situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
-        //    situation.ExpectedWindowEndIndices = new uint[1];
-
-        //    // Every 4901960, a pulse
-        //    situation.Input.Span.Fill(sbyte.MinValue);
-        //    for(int i = 0; i < situation.Input.Length; i+= 4901960)
-        //    {
-        //        situation.Input.Span[i] = sbyte.MaxValue;
-        //        situation.Input.Span[i+1] = sbyte.MaxValue;
-        //        situation.Input.Span[i+2] = sbyte.MaxValue;
-        //        situation.Input.Span[i+3] = sbyte.MaxValue;
-        //    }    
-
-        //    //situation.ExpectedWindowEndIndices[0] = new uint[1];
-        //    //var quotient = situation.HoldoffSamples / situation.ChunkSize;
-        //    //var remainder = situation.HoldoffSamples % situation.ChunkSize;
-        //    //situation.ExpectedHoldoffEndIndices[quotient] = new uint[1];
-        //    //situation.ExpectedHoldoffEndIndices[quotient].Span[0] = remainder;
-
-        //    return situation;
-        //}
     }
 }
