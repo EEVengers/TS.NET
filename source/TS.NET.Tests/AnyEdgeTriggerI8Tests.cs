@@ -77,7 +77,7 @@ namespace TS.NET.Tests
 
         private static void RunSituation(EdgeTriggerSituation situation)
         {
-            RisingEdgeTriggerI8 trigger = new(new EdgeTriggerParameters() { Level = situation.TriggerLevel, Hysteresis = situation.TriggerHysteresis, Direction = EdgeDirection.Any });
+            RisingEdgeTriggerI8 trigger = new(situation.Parameters);
             trigger.SetHorizontal(situation.WindowWidth, situation.WindowTriggerPosition, situation.AdditionalHoldoff);
 
             Span<uint> captureEndIndices = new uint[10000];

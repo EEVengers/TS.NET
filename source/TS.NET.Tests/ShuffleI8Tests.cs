@@ -23,6 +23,31 @@ namespace TS.NET.Tests
         }
 
         [Fact]
+        public void ShuffleI8_FourChannels_Samples64_Alt()
+        {
+            const int length = 64;
+            Span<sbyte> input = new sbyte[length];
+            Span<sbyte> output = new sbyte[length];
+
+            int n = 0;
+            for(int i = 0; i < length; i+=4)
+            {
+                input[i] = (sbyte)n;
+                input[i + 1] = (sbyte)(n + 16);
+                input[i + 2] = (sbyte)(n + 32);
+                input[i + 3] = (sbyte)(n + 48);
+                n++;
+            }
+
+            ShuffleI8.FourChannels(input, output);
+
+            for (int i = 0; i < length; i++)
+            {
+                Assert.Equal(i, output[i]);
+            }
+        }
+
+        [Fact]
         public void ShuffleI8_FourChannels_Samples128()
         {
             const int length = 128;
@@ -48,6 +73,31 @@ namespace TS.NET.Tests
             for (int i = 0; i < length; i++)
             {
                 Assert.Equal(expectedOutput[i], output[i]);
+            }
+        }
+
+        [Fact]
+        public void ShuffleI8_FourChannels_Samples128_Alt()
+        {
+            const int length = 128;
+            Span<sbyte> input = new sbyte[length];
+            Span<sbyte> output = new sbyte[length];
+
+            int n = 0;
+            for (int i = 0; i < length; i += 4)
+            {
+                input[i] = (sbyte)n;
+                input[i + 1] = (sbyte)(n + 32);
+                input[i + 2] = (sbyte)(n + 64);
+                input[i + 3] = (sbyte)(n + 96);
+                n++;
+            }
+
+            ShuffleI8.FourChannels(input, output);
+
+            for (int i = 0; i < length; i++)
+            {
+                Assert.Equal(i, output[i]);
             }
         }
 
@@ -102,6 +152,29 @@ namespace TS.NET.Tests
             for (int i = 0; i < length; i++)
             {
                 Assert.Equal(expectedOutput[i], output[i]);
+            }
+        }
+
+        [Fact]
+        public void ShuffleI8_TwoChannels_Samples128_Alt()
+        {
+            const int length = 128;
+            Span<sbyte> input = new sbyte[length];
+            Span<sbyte> output = new sbyte[length];
+
+            int n = 0;
+            for (int i = 0; i < length; i += 2)
+            {
+                input[i] = (sbyte)n;
+                input[i + 1] = (sbyte)(n + 64);
+                n++;
+            }
+
+            ShuffleI8.TwoChannels(input, output);
+
+            for (int i = 0; i < length; i++)
+            {
+                Assert.Equal(i, output[i]);
             }
         }
 
