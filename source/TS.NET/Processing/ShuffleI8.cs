@@ -71,15 +71,14 @@ public static class ShuffleI8
                 fixed (sbyte* outputP = output)
                 {
                     sbyte* inputPtr = inputP;
-                    sbyte* inputPtr2 = inputP + Vector128<sbyte>.Count;
                     uint* outputPtr_32 = (uint*)outputP;
                     sbyte* finishPtr = inputP + input.Length;
                     while (inputPtr < finishPtr)
                     {
-                        var loaded1 = Sse2.LoadVector128(inputPtr);             // 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3
-                        var loaded2 = Sse2.LoadVector128(inputPtr2);            // 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3
-                        var shuffled1 = Ssse3.Shuffle(loaded1, shuffleMask);    // 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3
-                        var shuffled2 = Ssse3.Shuffle(loaded2, shuffleMask);    // 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3
+                        var loaded1 = Sse2.LoadVector128(inputPtr);
+                        var loaded2 = Sse2.LoadVector128(inputPtr + Vector128<sbyte>.Count);
+                        var shuffled1 = Ssse3.Shuffle(loaded1, shuffleMask);
+                        var shuffled2 = Ssse3.Shuffle(loaded2, shuffleMask);
 
                         var shuffled1_32 = shuffled1.AsUInt32();
                         var shuffled2_32 = shuffled2.AsUInt32();
@@ -93,7 +92,6 @@ public static class ShuffleI8
                         outputPtr_32[1 + ch4Offset_32] = shuffled2_32[3];
 
                         inputPtr += processingLength;
-                        inputPtr2 += processingLength;
                         outputPtr_32 += 2;
                     }
                 }
@@ -201,6 +199,34 @@ public static class ShuffleI8
                         outputPtr_64[1 + ch2Offset_64] = permuted1_64[3];
                         inputPtr += processingLength;
                         outputPtr_64 += 2;
+                    }
+                }
+            }
+        }
+        else if (Ssse3.IsSupported)
+        {
+            var processingLength = Vector128<sbyte>.Count;
+            if (input.Length % processingLength != 0)
+                throw new ArgumentException($"Input length must be multiple of {processingLength}");
+
+            int ch2Offset_64 = channelBlockSizeBytes / 8;
+            Vector128<sbyte> shuffleMask = Vector128.Create(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15).AsSByte();
+            unsafe
+            {
+                fixed (sbyte* inputP = input)
+                fixed (sbyte* outputP = output)
+                {
+                    sbyte* inputPtr = inputP;
+                    ulong* outputPtr_64 = (ulong*)outputP;
+                    sbyte* finishPtr = inputP + input.Length;
+                    while (inputPtr < finishPtr)
+                    {
+                        var shuffled1 = Ssse3.Shuffle(Sse2.LoadVector128(inputPtr), shuffleMask);
+                        var shuffled1_64 = shuffled1.AsUInt64();
+                        outputPtr_64[0] = shuffled1_64[0];
+                        outputPtr_64[0 + ch2Offset_64] = shuffled1_64[1];
+                        inputPtr += processingLength;
+                        outputPtr_64 += 1;
                     }
                 }
             }
