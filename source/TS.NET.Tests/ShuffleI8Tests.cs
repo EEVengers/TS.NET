@@ -6,48 +6,6 @@ namespace TS.NET.Tests
     public class ShuffleI8Tests
     {
         [Fact]
-        public void ShuffleI8_FourChannels_Samples64()
-        {
-            const int length = 64;
-            ReadOnlySpan<sbyte> input = [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4];
-            Span<sbyte> output = new sbyte[length];
-
-            ShuffleI8.FourChannels(input, output);
-
-            Span<sbyte> expectedOutput = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4];
-
-            for (int i = 0; i < length; i++)
-            {
-                Assert.Equal(expectedOutput[i], output[i]);
-            }
-        }
-
-        [Fact]
-        public void ShuffleI8_FourChannels_Samples64_Alt()
-        {
-            const int length = 64;
-            Span<sbyte> input = new sbyte[length];
-            Span<sbyte> output = new sbyte[length];
-
-            int n = 0;
-            for(int i = 0; i < length; i+=4)
-            {
-                input[i] = (sbyte)n;
-                input[i + 1] = (sbyte)(n + 16);
-                input[i + 2] = (sbyte)(n + 32);
-                input[i + 3] = (sbyte)(n + 48);
-                n++;
-            }
-
-            ShuffleI8.FourChannels(input, output);
-
-            for (int i = 0; i < length; i++)
-            {
-                Assert.Equal(i, output[i]);
-            }
-        }
-
-        [Fact]
         public void ShuffleI8_FourChannels_Samples128()
         {
             const int length = 128;
