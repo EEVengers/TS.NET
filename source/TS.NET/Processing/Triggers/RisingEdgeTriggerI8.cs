@@ -83,7 +83,7 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
                                     var resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector256, inputVector), armLevelVector256);
                                     var conditionFound = Avx2.MoveMask(resultVector) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (conditionFound)
+                                    if (conditionFound)     // Alternatively, use BitOperations.TrailingZeroCount and add the offset
                                         break;
                                     i += 32;
                                 }
@@ -101,6 +101,39 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                                     if (conditionFound)
                                         break;
                                     i += 32;
+
+                                    // https://branchfree.org/2019/04/01/fitting-my-head-through-the-arm-holes-or-two-sequences-to-substitute-for-the-missing-pmovmskb-instruction-on-arm-neon/
+                                    // var inputVector = AdvSimd.Arm64.Load4xVector128AndUnzip(samplesPtr + i);
+                                    // var resultVector1 = AdvSimd.CompareLessThanOrEqual(inputVector.Value1, armLevelVector128);
+                                    // var resultVector2 = AdvSimd.CompareLessThanOrEqual(inputVector.Value2, armLevelVector128);
+                                    // var resultVector3 = AdvSimd.CompareLessThanOrEqual(inputVector.Value3, armLevelVector128);
+                                    // var resultVector4 = AdvSimd.CompareLessThanOrEqual(inputVector.Value4, armLevelVector128);
+                                    // var t0 = AdvSimd.ShiftRightAndInsert(resultVector2, resultVector1, 1);
+                                    // var t1 = AdvSimd.ShiftRightAndInsert(resultVector4, resultVector3, 1);
+                                    // var t2 = AdvSimd.ShiftRightAndInsert(t1,t0, 2);
+                                    // var t3 = AdvSimd.ShiftRightAndInsert(t2,t2, 4);
+                                    // var t4 = AdvSimd.ShiftRightLogicalNarrowingLower(t3.AsUInt16(), 4);
+                                    // var result = t4.AsUInt64()[0];
+                                    // if(result != 0)
+                                    // {
+                                    //     var offset = BitOperations.TrailingZeroCount(result);
+                                    //     i += (uint)offset;
+                                    //     break;
+                                    // }
+                                    // i += 64;
+
+                                    // var inputVector = AdvSimd.Arm64.Load4xVector128(samplesPtr + i);
+                                    // var resultVector1 = AdvSimd.CompareLessThanOrEqual(inputVector.Value1, armLevelVector128);
+                                    // var resultVector2 = AdvSimd.CompareLessThanOrEqual(inputVector.Value2, armLevelVector128);
+                                    // var resultVector3 = AdvSimd.CompareLessThanOrEqual(inputVector.Value3, armLevelVector128);
+                                    // var resultVector4 = AdvSimd.CompareLessThanOrEqual(inputVector.Value4, armLevelVector128);
+                                    // var conditionFound = resultVector1 != Vector128<sbyte>.Zero;
+                                    // conditionFound |= resultVector2 != Vector128<sbyte>.Zero;
+                                    // conditionFound |= resultVector3 != Vector128<sbyte>.Zero;
+                                    // conditionFound |= resultVector4 != Vector128<sbyte>.Zero;
+                                    // if (conditionFound)
+                                    //     break;
+                                    // i += 64;
                                 }
                             }
                             while (i < inputLength)
@@ -121,7 +154,7 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
                                     var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector256, inputVector), triggerLevelVector256);
                                     var conditionFound = Avx2.MoveMask(resultVector) != 0;     // Quick way to do horizontal vector scan of byte[n] != 0
-                                    if (conditionFound)
+                                    if (conditionFound)     // Alternatively, use BitOperations.TrailingZeroCount and add the offset
                                         break;
                                     i += 32;
                                 }
