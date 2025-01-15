@@ -58,12 +58,12 @@ public static class ShuffleI8
         }
         else if (Ssse3.IsSupported)
         {
-            var processingLength = Vector128<sbyte>.Count * 2;  // 32
+            var processingLength = Vector128<sbyte>.Count * 4;  // 64
             if (input.Length % processingLength != 0) throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
-            int ch2Offset_32 = channelBlockSizeBytes / 4;
-            int ch3Offset_32 = (channelBlockSizeBytes * 2) / 4;
-            int ch4Offset_32 = (channelBlockSizeBytes * 3) / 4;
+            int ch2Offset = channelBlockSizeBytes;
+            int ch3Offset = channelBlockSizeBytes * 2;
+            int ch4Offset = channelBlockSizeBytes * 3;
             Vector128<sbyte> shuffleMask = Vector128.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15).AsSByte();
             unsafe
             {
@@ -71,28 +71,32 @@ public static class ShuffleI8
                 fixed (sbyte* outputP = output)
                 {
                     sbyte* inputPtr = inputP;
-                    uint* outputPtr_32 = (uint*)outputP;
+                    sbyte* outputPtr = outputP;
                     sbyte* finishPtr = inputP + input.Length;
                     while (inputPtr < finishPtr)
                     {
                         var loaded1 = Sse2.LoadVector128(inputPtr);
                         var loaded2 = Sse2.LoadVector128(inputPtr + Vector128<sbyte>.Count);
+                        var loaded3 = Sse2.LoadVector128(inputPtr + Vector128<sbyte>.Count * 2);
+                        var loaded4 = Sse2.LoadVector128(inputPtr + Vector128<sbyte>.Count * 3);
                         var shuffled1 = Ssse3.Shuffle(loaded1, shuffleMask);
                         var shuffled2 = Ssse3.Shuffle(loaded2, shuffleMask);
-
-                        var shuffled1_32 = shuffled1.AsUInt32();
-                        var shuffled2_32 = shuffled2.AsUInt32();
-                        outputPtr_32[0] = shuffled1_32[0];
-                        outputPtr_32[1] = shuffled2_32[0];
-                        outputPtr_32[0 + ch2Offset_32] = shuffled1_32[1];
-                        outputPtr_32[1 + ch2Offset_32] = shuffled2_32[1];
-                        outputPtr_32[0 + ch3Offset_32] = shuffled1_32[2];
-                        outputPtr_32[1 + ch3Offset_32] = shuffled2_32[2];
-                        outputPtr_32[0 + ch4Offset_32] = shuffled1_32[3];
-                        outputPtr_32[1 + ch4Offset_32] = shuffled2_32[3];
-
+                        var shuffled3 = Ssse3.Shuffle(loaded3, shuffleMask);
+                        var shuffled4 = Ssse3.Shuffle(loaded4, shuffleMask);
+                        var unpackLow = Sse2.UnpackLow(shuffled1.AsUInt32(), shuffled2.AsUInt32()).AsUInt64();
+                        var unpackLow2 = Sse2.UnpackLow(shuffled3.AsUInt32(), shuffled4.AsUInt32()).AsUInt64();
+                        var channel1 = Sse2.UnpackLow(unpackLow.AsUInt64(), unpackLow2.AsUInt64()).AsSByte();
+                        var channel2 = Sse2.UnpackHigh(unpackLow.AsUInt64(), unpackLow2.AsUInt64()).AsSByte();
+                        var unpackHigh = Sse2.UnpackHigh(shuffled1.AsUInt32(), shuffled2.AsUInt32()).AsUInt64();
+                        var unpackHigh2 = Sse2.UnpackHigh(shuffled3.AsUInt32(), shuffled4.AsUInt32()).AsUInt64();
+                        var channel3 = Sse2.UnpackLow(unpackHigh.AsUInt64(), unpackHigh2.AsUInt64()).AsSByte();
+                        var channel4 = Sse2.UnpackHigh(unpackHigh.AsUInt64(), unpackHigh2.AsUInt64()).AsSByte();
+                        Vector128.Store(channel1, outputPtr);
+                        Vector128.Store(channel2, outputPtr + ch2Offset);
+                        Vector128.Store(channel3, outputPtr + ch3Offset);
+                        Vector128.Store(channel4, outputPtr + ch4Offset);
                         inputPtr += processingLength;
-                        outputPtr_32 += 2;
+                        outputPtr += 16;
                     }
                 }
             }
@@ -205,11 +209,11 @@ public static class ShuffleI8
         }
         else if (Ssse3.IsSupported)
         {
-            var processingLength = Vector128<sbyte>.Count;  // 16
+            var processingLength = Vector128<sbyte>.Count * 2;  // 32
             if (input.Length % processingLength != 0)
                 throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
-            int ch2Offset_64 = channelBlockSizeBytes / 8;
+            int ch2Offset = channelBlockSizeBytes;
             Vector128<sbyte> shuffleMask = Vector128.Create(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15).AsSByte();
             unsafe
             {
@@ -217,16 +221,20 @@ public static class ShuffleI8
                 fixed (sbyte* outputP = output)
                 {
                     sbyte* inputPtr = inputP;
-                    ulong* outputPtr_64 = (ulong*)outputP;
+                    sbyte* outputPtr = outputP;
                     sbyte* finishPtr = inputP + input.Length;
                     while (inputPtr < finishPtr)
                     {
-                        var shuffled1 = Ssse3.Shuffle(Sse2.LoadVector128(inputPtr), shuffleMask);
-                        var shuffled1_64 = shuffled1.AsUInt64();
-                        outputPtr_64[0] = shuffled1_64[0];
-                        outputPtr_64[0 + ch2Offset_64] = shuffled1_64[1];
+                        var loaded1 = Sse2.LoadVector128(inputPtr);
+                        var loaded2 = Sse2.LoadVector128(inputPtr + Vector128<sbyte>.Count);
+                        var shuffled1 = Ssse3.Shuffle(loaded1, shuffleMask);
+                        var shuffled2 = Ssse3.Shuffle(loaded2, shuffleMask);
+                        var channel1 = Sse2.UnpackLow(shuffled1.AsUInt64(), shuffled2.AsUInt64()).AsSByte();
+                        var channel2 = Sse2.UnpackHigh(shuffled1.AsUInt64(), shuffled2.AsUInt64()).AsSByte();
+                        Vector128.Store(channel1, outputPtr);
+                        Vector128.Store(channel2, outputPtr + ch2Offset);
                         inputPtr += processingLength;
-                        outputPtr_64 += 1;
+                        outputPtr += 16;
                     }
                 }
             }
