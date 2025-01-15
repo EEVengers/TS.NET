@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+      <EnvironmentVariables>
+          <DOTNET_EnableAVX>0</DOTNET_EnableAVX>
+          <DOTNET_EnableSSSE3>0</DOTNET_EnableSSSE3>
+          <DOTNET_EnableArm64AdvSimd>0</DOTNET_EnableArm64AdvSimd>
+      </EnvironmentVariables>
+  </RunConfiguration>
+</RunSettings>
