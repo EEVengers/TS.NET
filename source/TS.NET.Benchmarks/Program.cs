@@ -14,10 +14,7 @@ var scalarConfig = ManualConfig.CreateMinimumViable().AddJob(Job.Default
     .WithOptions(ConfigOptions.JoinSummary)
     .WithSummaryStyle(SummaryStyle.Default.WithTimeUnit(TimeUnit.Millisecond));
 
-var simdConfig = ManualConfig.CreateMinimumViable().AddJob(Job.Default
-        .WithEnvironmentVariable("DOTNET_EnableAVX", "1")
-        .WithEnvironmentVariable("DOTNET_EnableSSSE3", "1")
-        .WithEnvironmentVariable("DOTNET_EnableArm64AdvSimd", "1"))
+var simdConfig = ManualConfig.CreateMinimumViable().AddJob(Job.Default)
     .WithOptions(ConfigOptions.JoinSummary)
     .WithSummaryStyle(SummaryStyle.Default.WithTimeUnit(TimeUnit.Millisecond));
 
@@ -29,7 +26,7 @@ var x64Ssse3Config = ManualConfig.CreateMinimumViable().AddJob(Job.Default
 
 BenchmarkRunner.Run([
     BenchmarkConverter.TypeToBenchmarks(typeof(ShuffleI8Benchmark), scalarConfig),
-    BenchmarkConverter.TypeToBenchmarks(typeof(ShuffleI8Benchmark), x64Ssse3Config),
+    //BenchmarkConverter.TypeToBenchmarks(typeof(ShuffleI8Benchmark), x64Ssse3Config),
     BenchmarkConverter.TypeToBenchmarks(typeof(ShuffleI8Benchmark), simdConfig),
     //BenchmarkConverter.TypeToBenchmarks(typeof(RisingEdgeTriggerI8Benchmark), scalarConfig) 
     ]);
