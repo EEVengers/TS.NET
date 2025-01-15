@@ -15,7 +15,7 @@ public static class ShuffleI8
 
         if (Avx2.IsSupported)       // Const after JIT/AOT
         {
-            var processingLength = Vector256<sbyte>.Count * 2;
+            var processingLength = Vector256<sbyte>.Count * 2;  // 64
             if (input.Length % processingLength != 0) throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
             int ch2Offset_64 = channelBlockSizeBytes / 8;
@@ -58,12 +58,12 @@ public static class ShuffleI8
         }
         else if (Ssse3.IsSupported)
         {
-            var processingLength = Vector128<sbyte>.Count * 2;
+            var processingLength = Vector128<sbyte>.Count * 2;  // 32
             if (input.Length % processingLength != 0) throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
-            int ch2Offset_32 = channelBlockSizeBytes / sizeof(uint);
-            int ch3Offset_32 = (channelBlockSizeBytes * 2) / sizeof(uint);
-            int ch4Offset_32 = (channelBlockSizeBytes * 3) / sizeof(uint);
+            int ch2Offset_32 = channelBlockSizeBytes / 4;
+            int ch3Offset_32 = (channelBlockSizeBytes * 2) / 4;
+            int ch4Offset_32 = (channelBlockSizeBytes * 3) / 4;
             Vector128<sbyte> shuffleMask = Vector128.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15).AsSByte();
             unsafe
             {
@@ -99,7 +99,7 @@ public static class ShuffleI8
         }
         else if (AdvSimd.Arm64.IsSupported)
         {
-            var processingLength = Vector128<sbyte>.Count * 4;
+            var processingLength = Vector128<sbyte>.Count * 4;  // 64
             if (input.Length % processingLength != 0)
                 throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
@@ -173,7 +173,7 @@ public static class ShuffleI8
 
         if (Avx2.IsSupported)       // Const after JIT/AOT
         {
-            var processingLength = Vector256<sbyte>.Count;
+            var processingLength = Vector256<sbyte>.Count;  // 32
             if (input.Length % processingLength != 0)
                 throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
@@ -205,7 +205,7 @@ public static class ShuffleI8
         }
         else if (Ssse3.IsSupported)
         {
-            var processingLength = Vector128<sbyte>.Count;
+            var processingLength = Vector128<sbyte>.Count;  // 16
             if (input.Length % processingLength != 0)
                 throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
@@ -233,7 +233,7 @@ public static class ShuffleI8
         }
         else if (AdvSimd.Arm64.IsSupported)
         {
-            var processingLength = Vector128<sbyte>.Count * 8;
+            var processingLength = Vector128<sbyte>.Count * 2;  // 32
             if (input.Length % processingLength != 0)
                 throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
@@ -248,24 +248,12 @@ public static class ShuffleI8
                     byte* finishPtr = (byte*)inputP + input.Length;
                     while (inputPtr < finishPtr)
                     {
-                        // x4 loop unroll seems optimal for Apple M4
+                        // Loop unrolling doesn't improve performance on Apple M4.
                         var loaded1 = AdvSimd.Arm64.Load2xVector128AndUnzip(inputPtr);
-                        var loaded2 = AdvSimd.Arm64.Load2xVector128AndUnzip(inputPtr + Vector128<sbyte>.Count * 2);
-                        var loaded3 = AdvSimd.Arm64.Load2xVector128AndUnzip(inputPtr + Vector128<sbyte>.Count * 4);
-                        var loaded4 = AdvSimd.Arm64.Load2xVector128AndUnzip(inputPtr + Vector128<sbyte>.Count * 6);
-
                         AdvSimd.Store(outputPtr, loaded1.Value1);
-                        AdvSimd.Store(outputPtr + Vector128<sbyte>.Count, loaded2.Value1);
-                        AdvSimd.Store(outputPtr + (Vector128<sbyte>.Count * 2), loaded3.Value1);
-                        AdvSimd.Store(outputPtr + (Vector128<sbyte>.Count * 3), loaded4.Value1);
-
                         AdvSimd.Store(outputPtr + ch2Offset, loaded1.Value2);
-                        AdvSimd.Store(outputPtr + ch2Offset + Vector128<sbyte>.Count, loaded2.Value2);
-                        AdvSimd.Store(outputPtr + ch2Offset + (Vector128<sbyte>.Count * 2), loaded3.Value2);
-                        AdvSimd.Store(outputPtr + ch2Offset + (Vector128<sbyte>.Count * 3), loaded4.Value2);
-
                         inputPtr += processingLength;
-                        outputPtr += 64;
+                        outputPtr += 16;
                     }
                 }
             }
