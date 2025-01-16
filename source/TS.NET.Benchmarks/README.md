@@ -1,34 +1,38 @@
 ## ShuffleI8.FourChannels (1006632960 samples)
 
-| Platform                                   | Mean      | Error    | StdDev   |
-|------------------------------------------- |----------:|---------:|---------:|
-| x64 i7-13700H 2x8GB DDR5 4800MT/s [scalar] | 232.36 ms | 0.100 ms | 0.089 ms |
-| x64 i7-13700H 2x8GB DDR5 4800MT/s [SSSE3]  |  41.67 ms | 0.459 ms | 0.430 ms |
-| x64 i7-13700H 2x8GB DDR5 4800MT/s [AVX2]   |  36.39 ms | 0.388 ms | 0.344 ms |
-| x64 5800X 2x32GB DDR4 3200MT/s [scalar]    | 384.34 ms | 0.523 ms | 0.489 ms |
-| x64 5800X 2x32GB DDR4 3200MT/s [SSSE3]     |  21.93 ms | 0.437 ms | 0.680 ms |
-| x64 5800X 2x32GB DDR4 3200MT/s [AVX2]      |  16.90 ms | 0.153 ms | 0.128 ms |
-| x64 7800X3D 2x32GB DDR5 5200MT/s [scalar]  | 203.18 ms | 0.937 ms | 1.590 ms |
-| x64 7800X3D 2x32GB DDR5 5200MT/s [SSSE3]   |  17.91 ms | 0.091 ms | 0.081 ms |
-| x64 7800X3D 2x32GB DDR5 5200MT/s [AVX2]    |  18.04 ms | 0.079 ms | 0.070 ms |
-| ARM64 M4 4P6E 16GB [scalar]                | 127.49 ms | 0.755 ms | 0.706 ms |
-| ARM64 M4 4P6E 16GB [Neon]                  |  18.67 ms | 0.108 ms | 0.101 ms |
+| Platform                                      | Mean      | Error    | StdDev   |
+|---------------------------------------------- |----------:|---------:|---------:|
+| x64 i7-13700H 2x8GB DDR5 4800MT/s [scalar]    | 232.36 ms | 0.100 ms | 0.089 ms |
+| x64 i7-13700H 2x8GB DDR5 4800MT/s [SSSE3]     |  41.67 ms | 0.459 ms | 0.430 ms |
+| x64 i7-13700H 2x8GB DDR5 4800MT/s [AVX2]      |  36.39 ms | 0.388 ms | 0.344 ms |
+| x64 5800X 2x32GB DDR4 3200MT/s [scalar]       | 384.34 ms | 0.523 ms | 0.489 ms |
+| x64 5800X 2x32GB DDR4 3200MT/s [SSSE3]        |  21.93 ms | 0.437 ms | 0.680 ms |
+| x64 5800X 2x32GB DDR4 3200MT/s [AVX2]         |  16.90 ms | 0.153 ms | 0.128 ms |
+| x64 7800X3D 2x32GB DDR5 5200MT/s [scalar]     | 203.18 ms | 0.937 ms | 1.590 ms |
+| x64 7800X3D 2x32GB DDR5 5200MT/s [SSSE3]      |  17.91 ms | 0.091 ms | 0.081 ms |
+| x64 7800X3D 2x32GB DDR5 5200MT/s [AVX2]       |  18.04 ms | 0.079 ms | 0.070 ms |
+| ARM64 M4 4P6E 2x8GB LPDDR5X 7500MT/s [scalar] | 127.49 ms | 0.755 ms | 0.706 ms |
+| ARM64 M4 4P6E 2x8GB LPDDR5X 7500MT/s [Neon]   |  18.67 ms | 0.108 ms | 0.101 ms |
+| ARM64 M2 Air 2x12GB LPDDR5 6400MT/s [scalar]  | 282.80 ms | 0.704 ms | 0.624 ms |
+| ARM64 M2 Air 2x12GB LPDDR5 6400MT/s [Neon]    |  41.77 ms | 0.119 ms | 0.105 ms |
 
 ## ShuffleI8.TwoChannels (1006632960 samples)
 
-| Platform                                   | Mean      | Error    | StdDev   |
-|------------------------------------------- |----------:|---------:|---------:|
-| x64 i7-13700H 2x8GB DDR5 4800MT/s [scalar] | 239.20 ms | 0.139 ms | 0.130 ms |
-| x64 i7-13700H 2x8GB DDR5 4800MT/s [SSSE3]  |  38.80 ms | 0.235 ms | 0.220 ms |
-| x64 i7-13700H 2x8GB DDR5 4800MT/s [AVX2]   |  35.54 ms | 0.302 ms | 0.268 ms |
-| x64 5800X 2x32GB DDR4 3200MT/s [scalar]    | 479.38 ms | 1.066 ms | 0.890 ms |
-| x64 5800X 2x32GB DDR4 3200MT/s [SSSE3]     |  18.07 ms | 0.341 ms | 0.511 ms |
-| x64 5800X 2x32GB DDR4 3200MT/s [AVX2]      |  15.53 ms | 0.294 ms | 0.315 ms |
-| x64 7800X3D 2x32GB DDR5 5200MT/s [scalar]  | 209.88 ms | 3.152 ms | 3.372 ms |
-| x64 7800X3D 2x32GB DDR5 5200MT/s [SSSE3]   |  16.99 ms | 0.086 ms | 0.080 ms |
-| x64 7800X3D 2x32GB DDR5 5200MT/s [AVX2]    |  16.05 ms | 0.085 ms | 0.075 ms |
-| ARM64 M4 4P6E 16GB [scalar]                | 128.47 ms | 0.548 ms | 0.486 ms |
-| ARM64 M4 4P6E 16GB [Neon]                  |  17.03 ms | 0.065 ms | 0.058 ms |
+| Platform                                      | Mean      | Error    | StdDev   |
+|---------------------------------------------- |----------:|---------:|---------:|
+| x64 i7-13700H 2x8GB DDR5 4800MT/s [scalar]    | 239.20 ms | 0.139 ms | 0.130 ms |
+| x64 i7-13700H 2x8GB DDR5 4800MT/s [SSSE3]     |  38.80 ms | 0.235 ms | 0.220 ms |
+| x64 i7-13700H 2x8GB DDR5 4800MT/s [AVX2]      |  35.54 ms | 0.302 ms | 0.268 ms |
+| x64 5800X 2x32GB DDR4 3200MT/s [scalar]       | 479.38 ms | 1.066 ms | 0.890 ms |
+| x64 5800X 2x32GB DDR4 3200MT/s [SSSE3]        |  18.07 ms | 0.341 ms | 0.511 ms |
+| x64 5800X 2x32GB DDR4 3200MT/s [AVX2]         |  15.53 ms | 0.294 ms | 0.315 ms |
+| x64 7800X3D 2x32GB DDR5 5200MT/s [scalar]     | 209.88 ms | 3.152 ms | 3.372 ms |
+| x64 7800X3D 2x32GB DDR5 5200MT/s [SSSE3]      |  16.99 ms | 0.086 ms | 0.080 ms |
+| x64 7800X3D 2x32GB DDR5 5200MT/s [AVX2]       |  16.05 ms | 0.085 ms | 0.075 ms |
+| ARM64 M4 4P6E 2x8GB LPDDR5X 7500MT/s [scalar] | 128.47 ms | 0.548 ms | 0.486 ms |
+| ARM64 M4 4P6E 2x8GB LPDDR5X 7500MT/s [Neon]   |  17.03 ms | 0.065 ms | 0.058 ms |
+| ARM64 M2 Air 2x12GB LPDDR5 6400MT/s [scalar]  | 275.43 ms | 0.890 ms | 0.789 ms |
+| ARM64 M2 Air 2x12GB LPDDR5 6400MT/s [Neon]    |  60.83 ms | 1.177 ms | 1.401 ms |
 
 ## RisingEdgeTriggerI8 - 0% trigger throughput (1006632960 samples)
 
