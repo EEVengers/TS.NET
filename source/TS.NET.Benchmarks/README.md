@@ -1,57 +1,62 @@
 ## ShuffleI8.FourChannels (1006632960 samples)
 
-| Platform                      | Mean      | Error    | StdDev   |
-|------------------------------ |----------:|---------:|---------:|
-| x64 i7-13700H 16GB [scalar]   | 232.36 ms | 0.100 ms | 0.089 ms |
-| x64 i7-13700H 16GB [AVX2]     |  36.39 ms | 0.388 ms | 0.344 ms |
-| x64 i7-13700H 16GB [SSSE3]    |  41.67 ms | 0.459 ms | 0.430 ms |
-| ARM64 M4 4P6E 16GB [scalar]   | 127.49 ms | 0.755 ms | 0.706 ms |
-| ARM64 M4 4P6E 16GB [Neon TBL] |  37.65 ms | 0.220 ms | 0.206 ms |
-| ARM64 M4 4P6E 16GB [Neon LD4] |  18.67 ms | 0.108 ms | 0.101 ms |
+| Platform                     | Mean      | Error    | StdDev   |
+|----------------------------- |----------:|---------:|---------:|
+| x64 i7-13700H 2x8GB [scalar] | 232.36 ms | 0.100 ms | 0.089 ms |
+| x64 i7-13700H 2x8GB [SSSE3]  |  41.67 ms | 0.459 ms | 0.430 ms |
+| x64 i7-13700H 2x8GB [AVX2]   |  36.39 ms | 0.388 ms | 0.344 ms |
+| x64 5800X 2x32GB [scalar]    | 384.34 ms | 0.523 ms | 0.489 ms |
+| x64 5800X 2x32GB [SSSE3]     |  21.93 ms | 0.437 ms | 0.680 ms |
+| x64 5800X 2x32GB [AVX2]      |  16.90 ms | 0.153 ms | 0.128 ms |
+| ARM64 M4 4P6E 16GB [scalar]  | 127.49 ms | 0.755 ms | 0.706 ms |
+| ARM64 M4 4P6E 16GB [Neon]    |  18.67 ms | 0.108 ms | 0.101 ms |
 
 ## ShuffleI8.TwoChannels (1006632960 samples)
 
-| Platform                      | Mean      | Error    | StdDev   |
-|------------------------------ |----------:|---------:|---------:|
-| x64 i7-13700H 16GB [scalar]   | 239.20 ms | 0.139 ms | 0.130 ms |
-| x64 i7-13700H 16GB [AVX2]     |  35.54 ms | 0.302 ms | 0.268 ms |
-| x64 i7-13700H 16GB [SSSE3]    |  38.80 ms | 0.235 ms | 0.220 ms |
-| ARM64 M4 4P6E 16GB [scalar]   | 128.47 ms | 0.548 ms | 0.486 ms |
-| ARM64 M4 4P6E 16GB [Neon]     |  17.03 ms | 0.065 ms | 0.058 ms |
+| Platform                     | Mean      | Error    | StdDev   |
+|----------------------------- |----------:|---------:|---------:|
+| x64 i7-13700H 2x8GB [scalar] | 239.20 ms | 0.139 ms | 0.130 ms |
+| x64 i7-13700H 2x8GB [SSSE3]  |  38.80 ms | 0.235 ms | 0.220 ms |
+| x64 i7-13700H 2x8GB [AVX2]   |  35.54 ms | 0.302 ms | 0.268 ms |
+| x64 5800X 2x32GB [scalar]    | 479.38 ms | 1.066 ms | 0.890 ms |
+| x64 5800X 2x32GB [SSSE3]     |  18.07 ms | 0.341 ms | 0.511 ms |
+| x64 5800X 2x32GB [AVX2]      |  15.53 ms | 0.294 ms | 0.315 ms |
+| ARM64 M4 4P6E 16GB [scalar]  | 128.47 ms | 0.548 ms | 0.486 ms |
+| ARM64 M4 4P6E 16GB [Neon]    |  17.03 ms | 0.065 ms | 0.058 ms |
 
 ## RisingEdgeTriggerI8 - 0% trigger throughput (1006632960 samples)
 
-| Platform                      | Mean      | Error    | StdDev   |
-|------------------------------ |----------:|---------:|---------:|
-| x64 i7-13700H 16GB [scalar]   | 283.18 ms | 0.334 ms | 0.313 ms |
-| x64 i7-13700H 16GB [AVX2]     |  15.66 ms | 0.014 ms | 0.013 ms |
-| ARM64 M4 4P6E 16GB [scalar]   | 233.63 ms | 1.485 ms | 1.389 ms |
-| ARM64 M4 4P6E 16GB [Neon]     |  15.77 ms | 0.045 ms | 0.040 ms |
+| Platform                     | Mean      | Error    | StdDev   |
+|----------------------------- |----------:|---------:|---------:|
+| x64 i7-13700H 2x8GB [scalar] | 283.18 ms | 0.334 ms | 0.313 ms |
+| x64 i7-13700H 2x8GB [AVX2]   |  15.66 ms | 0.014 ms | 0.013 ms |
+| ARM64 M4 4P6E 16GB [scalar]  | 233.63 ms | 1.485 ms | 1.389 ms |
+| ARM64 M4 4P6E 16GB [Neon]    |  15.77 ms | 0.045 ms | 0.040 ms |
 
 ## RisingEdgeTriggerI8 - 48% trigger throughput (1006632960 samples)
 
-| Platform                      | Mean      | Error    | StdDev   |
-|------------------------------ |----------:|---------:|---------:|
-| x64 i7-13700H 16GB [scalar]   | 149.93 ms | 0.182 ms | 0.170 ms |
-| x64 i7-13700H 16GB [AVX2]     |   9.56 ms | 0.022 ms | 0.020 ms |
-| ARM64 M4 4P6E 16GB [scalar]   | 123.59 ms | 0.458 ms | 0.406 ms |
-| ARM64 M4 4P6E 16GB [Neon]     |   8.90 ms | 0.054 ms | 0.051 ms |
+| Platform                     | Mean      | Error    | StdDev   |
+|----------------------------- |----------:|---------:|---------:|
+| x64 i7-13700H 2x8GB [scalar] | 149.93 ms | 0.182 ms | 0.170 ms |
+| x64 i7-13700H 2x8GB [AVX2]   |   9.56 ms | 0.022 ms | 0.020 ms |
+| ARM64 M4 4P6E 16GB [scalar]  | 123.59 ms | 0.458 ms | 0.406 ms |
+| ARM64 M4 4P6E 16GB [Neon]    |   8.90 ms | 0.054 ms | 0.051 ms |
 
 ## RisingEdgeTriggerI8 - 100% trigger throughput (1006632960 samples)
 
-| Platform                      | Mean      | Error    | StdDev   |
-|------------------------------ |----------:|---------:|---------:|
-| x64 i7-13700H 16GB [scalar]   |   0.77 ms | 0.000 ms | 0.000 ms |
-| x64 i7-13700H 16GB [AVX2]     |   0.77 ms | 0.000 ms | 0.000 ms |
-| ARM64 M4 4P6E 16GB [scalar]   |   0.87 ms | 0.024 ms | 0.070 ms |
-| ARM64 M4 4P6E 16GB [Neon]     |   0.88 ms | 0.022 ms | 0.066 ms |
+| Platform                     | Mean      | Error    | StdDev   |
+|----------------------------- |----------:|---------:|---------:|
+| x64 i7-13700H 2x8GB [scalar] |   0.77 ms | 0.000 ms | 0.000 ms |
+| x64 i7-13700H 2x8GB [AVX2]   |   0.77 ms | 0.000 ms | 0.000 ms |
+| ARM64 M4 4P6E 16GB [scalar]  |   0.87 ms | 0.024 ms | 0.070 ms |
+| ARM64 M4 4P6E 16GB [Neon]    |   0.88 ms | 0.022 ms | 0.066 ms |
 
 ## FallingEdgeTriggerI8 - 0% trigger throughput (1006632960 samples)
 
 | Platform                      | Mean      | Error    | StdDev   |
 |------------------------------ |----------:|---------:|---------:|
-| x64 i7-13700H 16GB [scalar]   |   ms |  ms |  ms |
-| x64 i7-13700H 16GB [AVX2]     |   ms |  ms |  ms |
+| x64 i7-13700H 2x8GB [scalar]  |   ms |  ms |  ms |
+| x64 i7-13700H 2x8GB [AVX2]    |   ms |  ms |  ms |
 | ARM64 M4 4P6E 16GB [scalar]   | 231.36 ms | 1.308 ms | 1.160 ms |
 | ARM64 M4 4P6E 16GB [Neon]     |  15.70 ms | 0.057 ms | 0.044 ms |
 
@@ -59,8 +64,8 @@
 
 | Platform                      | Mean      | Error    | StdDev   |
 |------------------------------ |----------:|---------:|---------:|
-| x64 i7-13700H 16GB [scalar]   |   ms |  ms |  ms |
-| x64 i7-13700H 16GB [AVX2]     |   ms |  ms |  ms |
+| x64 i7-13700H 2x8GB [scalar]  |   ms |  ms |  ms |
+| x64 i7-13700H 2x8GB [AVX2]    |   ms |  ms |  ms |
 | ARM64 M4 4P6E 16GB [scalar]   | 122.49 ms | 0.742 ms | 0.694 ms |
 | ARM64 M4 4P6E 16GB [Neon]     |   8.50 ms | 0.040 ms | 0.037 ms |
 
@@ -68,8 +73,8 @@
 
 | Platform                      | Mean      | Error    | StdDev   |
 |------------------------------ |----------:|---------:|---------:|
-| x64 i7-13700H 16GB [scalar]   |    ms |  ms |  ms |
-| x64 i7-13700H 16GB [AVX2]     |    ms |  ms |  ms |
+| x64 i7-13700H 2x8GB [scalar]  |    ms |  ms |  ms |
+| x64 i7-13700H 2x8GB [AVX2]    |    ms |  ms |  ms |
 | ARM64 M4 4P6E 16GB [scalar]   |   0.78 ms | 0.022 ms | 0.065 ms |
 | ARM64 M4 4P6E 16GB [Neon]     |   0.83 ms | 0.020 ms | 0.058 ms |
 
