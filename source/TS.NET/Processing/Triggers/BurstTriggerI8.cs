@@ -10,6 +10,8 @@ public class BurstTriggerI8 : ITriggerI8
 
     private sbyte windowHighLevel;
     private sbyte windowLowLevel;
+    Vector256<sbyte> windowHighLevelVector;
+    Vector256<sbyte> windowLowLevelVector;
 
     private ulong captureSamples;
     private ulong captureRemaining;
@@ -30,7 +32,10 @@ public class BurstTriggerI8 : ITriggerI8
     {
         windowHighLevel = (sbyte)parameters.WindowHighLevel;
         windowLowLevel = (sbyte)parameters.WindowLowLevel;
+        windowHighLevelVector = Vector256.Create(windowHighLevel);
+        windowLowLevelVector = Vector256.Create(windowLowLevel);
         quietPeriod = parameters.MinimumQuietPeriod;
+        quietPeriodRemaining = quietPeriod;
     }
 
     public void SetHorizontal(ulong windowWidth, ulong windowTriggerPosition, ulong additionalHoldoff)
@@ -56,9 +61,6 @@ public class BurstTriggerI8 : ITriggerI8
         windowEndCount = 0;
         uint i = 0;
 
-        Vector256<sbyte> unarmedHighLevelVector = Vector256.Create(windowHighLevel);
-        Vector256<sbyte> unarmedLowLevelVector = Vector256.Create(windowLowLevel);
-
         windowEndIndices.Clear();
         unsafe
         {
@@ -72,14 +74,17 @@ public class BurstTriggerI8 : ITriggerI8
                         case TriggerState.Unarmed:
                             if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
+                                // AVX2 fast path to scan through the quiet period then fall back to scalar near the end
                                 while (i < simdLength && quietPeriodRemaining > 32)
                                 {
-                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var greaterThanLowerLimit = Avx2.CompareGreaterThan(inputVector, unarmedLowLevelVector).AsByte();    // 0xFFFF....
-                                    var lowerThanHighLimit = Avx2.CompareGreaterThan(unarmedHighLevelVector, inputVector).AsByte();      // 0xFFFF
-
-                                    var gtLowLimit = (uint)Avx2.MoveMask(greaterThanLowerLimit) != 0;
-                                    var ltHighLimit = (uint)Avx2.MoveMask(lowerThanHighLimit) != 0;
+                                    var inputVector = Vector256.Load(samplesPtr + i);
+                                    // The quiet window excludes the high/low level. e.g. if Low = -20 and High = 20, then values must be in -19 to 19 range.
+                                    var gt = Vector256.GreaterThan(inputVector, windowLowLevelVector);
+                                    var lt = Vector256.LessThan(inputVector, windowHighLevelVector);
+                                    //var gtLowLimit = Avx2.MoveMask(gt) != 0;      // vpmovmskb
+                                    //var ltHighLimit = Avx2.MoveMask(lt) != 0;
+                                    var gtLowLimit = gt != Vector256<sbyte>.Zero;   // vptest  (better than vpmovmskb on most architectures)
+                                    var ltHighLimit = lt != Vector256<sbyte>.Zero;
                                     if (gtLowLimit && ltHighLimit)
                                         quietPeriodRemaining -= 32;
                                     else
@@ -89,10 +94,10 @@ public class BurstTriggerI8 : ITriggerI8
                             }
                             while (i < inputLength)
                             {
-                                if (samplesPtr[(int)i] < windowLowLevel || samplesPtr[(int)i] > windowHighLevel)
-                                    quietPeriodRemaining = quietPeriod;
-                                else
+                                if (samplesPtr[(int)i] > windowLowLevel && samplesPtr[(int)i] < windowHighLevel)
                                     quietPeriodRemaining--;
+                                else
+                                    quietPeriodRemaining = quietPeriod;
                                 i++;
 
                                 if (quietPeriodRemaining == 0)
@@ -118,7 +123,7 @@ public class BurstTriggerI8 : ITriggerI8
                             //}
                             while (i < inputLength)
                             {
-                                if (samplesPtr[(int)i] < windowLowLevel || samplesPtr[(int)i] > windowHighLevel)
+                                if (samplesPtr[(int)i] <= windowLowLevel || samplesPtr[(int)i] >= windowHighLevel)
                                 {
                                     triggerState = TriggerState.InCapture;
                                     captureRemaining = captureSamples;
@@ -151,6 +156,7 @@ public class BurstTriggerI8 : ITriggerI8
                                     else
                                     {
                                         triggerState = TriggerState.Unarmed;
+                                        quietPeriodRemaining = quietPeriod;
                                     }
                                 }
                             }
@@ -172,6 +178,7 @@ public class BurstTriggerI8 : ITriggerI8
                                 if (holdoffRemaining == 0)
                                 {
                                     triggerState = TriggerState.Unarmed;
+                                    quietPeriodRemaining = quietPeriod;
                                 }
                             }
                             break;
