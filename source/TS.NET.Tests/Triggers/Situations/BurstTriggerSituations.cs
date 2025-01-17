@@ -37,8 +37,8 @@ namespace TS.NET.Tests
             situation.ExpectedWindowEndIndices = new uint[1];
             situation.Input.Span.Fill(sbyte.MaxValue);
             situation.Input.Span.Slice(100, 100).Fill(0);   // Should be ignored
-            situation.Input.Span.Slice(2000, 100).Fill(0);
-            situation.ExpectedWindowEndIndices.Span[0] = 12000;
+            situation.Input.Span.Slice(2000, 1000).Fill(0);
+            situation.ExpectedWindowEndIndices.Span[0] = 13000;
             return situation;
         }
     }

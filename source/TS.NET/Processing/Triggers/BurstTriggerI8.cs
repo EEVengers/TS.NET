@@ -19,8 +19,8 @@ public class BurstTriggerI8 : ITriggerI8
     private ulong holdoffSamples;
     private ulong holdoffRemaining;
 
-    private ulong quietPeriod;
-    private ulong quietPeriodRemaining;
+    private ulong windowInRangePeriod;
+    private ulong windowInRangePeriodRemaining;
 
     public BurstTriggerI8(BurstTriggerParameters parameters)
     {
@@ -34,8 +34,8 @@ public class BurstTriggerI8 : ITriggerI8
         windowLowLevel = (sbyte)parameters.WindowLowLevel;
         windowHighLevelVector = Vector256.Create(windowHighLevel);
         windowLowLevelVector = Vector256.Create(windowLowLevel);
-        quietPeriod = parameters.MinimumQuietPeriod;
-        quietPeriodRemaining = quietPeriod;
+        windowInRangePeriod = parameters.MinimumQuietPeriod;
+        windowInRangePeriodRemaining = 0;
     }
 
     public void SetHorizontal(ulong windowWidth, ulong windowTriggerPosition, ulong additionalHoldoff)
@@ -72,10 +72,15 @@ public class BurstTriggerI8 : ITriggerI8
                     {
                         // Scan samples to unsure that it's within window
                         case TriggerState.Unarmed:
+                            // Look for a period where the samples remain within the window for windowInRangePeriod length
+
+                            if (windowInRangePeriodRemaining == 0)  // Assign variables if initial condition
+                                windowInRangePeriodRemaining = windowInRangePeriod;
+
                             if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
                                 // AVX2 fast path to scan through the quiet period then fall back to scalar near the end
-                                while (i < simdLength && quietPeriodRemaining > 32)
+                                while (i < simdLength && windowInRangePeriodRemaining > 32)
                                 {
                                     var inputVector = Vector256.Load(samplesPtr + i);
                                     // The quiet window excludes the high/low level. e.g. if Low = -20 and High = 20, then values must be in -19 to 19 range.
@@ -86,21 +91,21 @@ public class BurstTriggerI8 : ITriggerI8
                                     var gtLowLimit = gt != Vector256<sbyte>.Zero;   // vptest  (better than vpmovmskb on most architectures)
                                     var ltHighLimit = lt != Vector256<sbyte>.Zero;
                                     if (gtLowLimit && ltHighLimit)
-                                        quietPeriodRemaining -= 32;
+                                        windowInRangePeriodRemaining -= 32;
                                     else
-                                        quietPeriodRemaining = quietPeriod;
+                                        windowInRangePeriodRemaining = windowInRangePeriod;
                                     i += 32;
                                 }
                             }
                             while (i < inputLength)
                             {
                                 if (samplesPtr[(int)i] > windowLowLevel && samplesPtr[(int)i] < windowHighLevel)
-                                    quietPeriodRemaining--;
+                                    windowInRangePeriodRemaining--;
                                 else
-                                    quietPeriodRemaining = quietPeriod;
+                                    windowInRangePeriodRemaining = windowInRangePeriod;
                                 i++;
 
-                                if (quietPeriodRemaining == 0)
+                                if (windowInRangePeriodRemaining == 0)
                                 {
                                     triggerState = TriggerState.Armed;
                                     break;
@@ -109,24 +114,26 @@ public class BurstTriggerI8 : ITriggerI8
                             break;
                         case TriggerState.Armed:
                             // To do: window trigger SIMD scan. Make a note of which window edge, for trigger interpolation calculation.
-                            //if (Avx2.IsSupported)       // Const after JIT/AOT
-                            //{
-                            //    while (i < simdLength)
-                            //    {
-                            //        var inputVector = Avx.LoadVector256(samplesPtr + i);
-                            //        var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector, inputVector), triggerLevelVector);
-                            //        uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
-                            //        if (resultCount != 0)
-                            //            break;
-                            //        i += 32;
-                            //    }
-                            //}
+                            if (Avx2.IsSupported)       // Const after JIT/AOT
+                            {
+                                while (i < simdLength)
+                                {
+                                    var inputVector = Vector256.Load(samplesPtr + i);
+                                    var lte = Vector256.LessThanOrEqual(inputVector, windowLowLevelVector);
+                                    var gte = Vector256.GreaterThanOrEqual(inputVector, windowHighLevelVector);
+                                    var lteLowLimit = lte != Vector256<sbyte>.Zero;
+                                    var gteHighLimit = gte != Vector256<sbyte>.Zero;
+                                    var conditionFound = lteLowLimit || gteHighLimit;
+                                    if (conditionFound)
+                                        break;
+                                    i += 32;
+                                }
+                            }
                             while (i < inputLength)
                             {
                                 if (samplesPtr[(int)i] <= windowLowLevel || samplesPtr[(int)i] >= windowHighLevel)
                                 {
                                     triggerState = TriggerState.InCapture;
-                                    captureRemaining = captureSamples;
                                     break;
                                 }
                                 i++;
@@ -134,6 +141,9 @@ public class BurstTriggerI8 : ITriggerI8
                             break;
                         case TriggerState.InCapture:
                             {
+                                if (captureRemaining == 0)  // Assign variables if initial condition
+                                    captureRemaining = captureSamples;
+
                                 uint remainingSamples = inputLength - i;
                                 if (remainingSamples > captureRemaining)
                                 {
@@ -151,12 +161,10 @@ public class BurstTriggerI8 : ITriggerI8
                                     if (holdoffSamples > 0)
                                     {
                                         triggerState = TriggerState.InHoldoff;
-                                        holdoffRemaining = holdoffSamples;
                                     }
                                     else
                                     {
                                         triggerState = TriggerState.Unarmed;
-                                        quietPeriodRemaining = quietPeriod;
                                     }
                                 }
                             }
@@ -164,6 +172,9 @@ public class BurstTriggerI8 : ITriggerI8
                             break;
                         case TriggerState.InHoldoff:
                             {
+                                if (holdoffRemaining == 0)  // Assign variables if initial condition
+                                    holdoffRemaining = holdoffSamples;
+
                                 uint remainingSamples = inputLength - i;
                                 if (remainingSamples > holdoffRemaining)
                                 {
@@ -178,7 +189,6 @@ public class BurstTriggerI8 : ITriggerI8
                                 if (holdoffRemaining == 0)
                                 {
                                     triggerState = TriggerState.Unarmed;
-                                    quietPeriodRemaining = quietPeriod;
                                 }
                             }
                             break;
