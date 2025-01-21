@@ -33,10 +33,10 @@ public static class ShuffleI8
                     sbyte* finishPtr = inputP + input.Length;
                     while (inputPtr < finishPtr)
                     {
-                        var loaded1 = Vector256.Load(inputPtr);
-                        var loaded2 = Vector256.Load(inputPtr + Vector256<sbyte>.Count);
-                        var loaded3 = Vector256.Load(inputPtr + Vector256<sbyte>.Count * 2);
-                        var loaded4 = Vector256.Load(inputPtr + Vector256<sbyte>.Count * 3);
+                        var loaded1 = Vector256.LoadAlignedNonTemporal(inputPtr);
+                        var loaded2 = Vector256.LoadAlignedNonTemporal(inputPtr + Vector256<sbyte>.Count);
+                        var loaded3 = Vector256.LoadAlignedNonTemporal(inputPtr + Vector256<sbyte>.Count * 2);
+                        var loaded4 = Vector256.LoadAlignedNonTemporal(inputPtr + Vector256<sbyte>.Count * 3);
                         var shuffled1 = Avx2.Shuffle(loaded1, shuffleMask);
                         var shuffled2 = Avx2.Shuffle(loaded2, shuffleMask);
                         var shuffled3 = Avx2.Shuffle(loaded3, shuffleMask);
@@ -53,10 +53,10 @@ public static class ShuffleI8
                         var unpackHigh2 = Avx2.UnpackHigh(permuted3, permuted4);
                         var channel2 = Avx2.Permute2x128(unpackHigh, unpackHigh2, 0x20).AsSByte();
                         var channel4 = Avx2.Permute2x128(unpackHigh, unpackHigh2, 0x31).AsSByte();
-                        Vector256.Store(channel1, outputPtr);
-                        Vector256.Store(channel2, outputPtr + ch2Offset);
-                        Vector256.Store(channel3, outputPtr + ch3Offset);
-                        Vector256.Store(channel4, outputPtr + ch4Offset);
+                        Vector256.StoreAlignedNonTemporal(channel1, outputPtr);
+                        Vector256.StoreAlignedNonTemporal(channel2, outputPtr + ch2Offset);
+                        Vector256.StoreAlignedNonTemporal(channel3, outputPtr + ch3Offset);
+                        Vector256.StoreAlignedNonTemporal(channel4, outputPtr + ch4Offset);
                         inputPtr += processingLength;
                         outputPtr += Vector256<sbyte>.Count;
                     }
@@ -82,10 +82,10 @@ public static class ShuffleI8
                     sbyte* finishPtr = inputP + input.Length;
                     while (inputPtr < finishPtr)
                     {
-                        var loaded1 = Vector128.Load(inputPtr);
-                        var loaded2 = Vector128.Load(inputPtr + Vector128<sbyte>.Count);
-                        var loaded3 = Vector128.Load(inputPtr + Vector128<sbyte>.Count * 2);
-                        var loaded4 = Vector128.Load(inputPtr + Vector128<sbyte>.Count * 3);
+                        var loaded1 = Vector128.LoadAlignedNonTemporal(inputPtr);
+                        var loaded2 = Vector128.LoadAlignedNonTemporal(inputPtr + Vector128<sbyte>.Count);
+                        var loaded3 = Vector128.LoadAlignedNonTemporal(inputPtr + Vector128<sbyte>.Count * 2);
+                        var loaded4 = Vector128.LoadAlignedNonTemporal(inputPtr + Vector128<sbyte>.Count * 3);
                         var shuffled1 = Ssse3.Shuffle(loaded1, shuffleMask);
                         var shuffled2 = Ssse3.Shuffle(loaded2, shuffleMask);
                         var shuffled3 = Ssse3.Shuffle(loaded3, shuffleMask);
@@ -98,10 +98,10 @@ public static class ShuffleI8
                         var unpackHigh2 = Sse2.UnpackHigh(shuffled3.AsUInt32(), shuffled4.AsUInt32()).AsUInt64();
                         var channel3 = Sse2.UnpackLow(unpackHigh.AsUInt64(), unpackHigh2.AsUInt64()).AsSByte();
                         var channel4 = Sse2.UnpackHigh(unpackHigh.AsUInt64(), unpackHigh2.AsUInt64()).AsSByte();
-                        Vector128.Store(channel1, outputPtr);
-                        Vector128.Store(channel2, outputPtr + ch2Offset);
-                        Vector128.Store(channel3, outputPtr + ch3Offset);
-                        Vector128.Store(channel4, outputPtr + ch4Offset);
+                        Vector128.StoreAlignedNonTemporal(channel1, outputPtr);
+                        Vector128.StoreAlignedNonTemporal(channel2, outputPtr + ch2Offset);
+                        Vector128.StoreAlignedNonTemporal(channel3, outputPtr + ch3Offset);
+                        Vector128.StoreAlignedNonTemporal(channel4, outputPtr + ch4Offset);
                         inputPtr += processingLength;
                         outputPtr += Vector128<sbyte>.Count;
                     }
@@ -200,16 +200,16 @@ public static class ShuffleI8
                     sbyte* finishPtr = inputP + input.Length;
                     while (inputPtr < finishPtr)
                     {
-                        var loaded1 = Vector256.Load(inputPtr);
-                        var loaded2 = Vector256.Load(inputPtr + Vector256<sbyte>.Count);
+                        var loaded1 = Vector256.LoadAlignedNonTemporal(inputPtr);
+                        var loaded2 = Vector256.LoadAlignedNonTemporal(inputPtr + Vector256<sbyte>.Count);
                         var shuffled1 = Avx2.Shuffle(loaded1, shuffleMask);
                         var shuffled2 = Avx2.Shuffle(loaded2, shuffleMask);
                         var permuted1 = Avx2.PermuteVar8x32(shuffled1.AsInt32(), permuteMask);
                         var permuted2 = Avx2.PermuteVar8x32(shuffled2.AsInt32(), permuteMask);
                         var channel1 = Avx2.Permute2x128(permuted1, permuted2, 0x20).AsSByte();
                         var channel2 = Avx2.Permute2x128(permuted1, permuted2, 0x31).AsSByte();
-                        Vector256.Store(channel1, outputPtr);
-                        Vector256.Store(channel2, outputPtr + ch2Offset);
+                        Vector256.StoreAlignedNonTemporal(channel1, outputPtr);
+                        Vector256.StoreAlignedNonTemporal(channel2, outputPtr + ch2Offset);
                         inputPtr += processingLength;
                         outputPtr += Vector256<sbyte>.Count;
                     }
@@ -234,14 +234,14 @@ public static class ShuffleI8
                     sbyte* finishPtr = inputP + input.Length;
                     while (inputPtr < finishPtr)
                     {
-                        var loaded1 = Vector128.Load(inputPtr);
-                        var loaded2 = Vector128.Load(inputPtr + Vector128<sbyte>.Count);
+                        var loaded1 = Vector128.LoadAlignedNonTemporal(inputPtr);
+                        var loaded2 = Vector128.LoadAlignedNonTemporal(inputPtr + Vector128<sbyte>.Count);
                         var shuffled1 = Ssse3.Shuffle(loaded1, shuffleMask);
                         var shuffled2 = Ssse3.Shuffle(loaded2, shuffleMask);
                         var channel1 = Sse2.UnpackLow(shuffled1.AsUInt64(), shuffled2.AsUInt64()).AsSByte();
                         var channel2 = Sse2.UnpackHigh(shuffled1.AsUInt64(), shuffled2.AsUInt64()).AsSByte();
-                        Vector128.Store(channel1, outputPtr);
-                        Vector128.Store(channel2, outputPtr + ch2Offset);
+                        Vector128.StoreAlignedNonTemporal(channel1, outputPtr);
+                        Vector128.StoreAlignedNonTemporal(channel2, outputPtr + ch2Offset);
                         inputPtr += processingLength;
                         outputPtr += Vector128<sbyte>.Count;
                     }
