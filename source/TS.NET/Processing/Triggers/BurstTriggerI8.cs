@@ -13,14 +13,14 @@ public class BurstTriggerI8 : ITriggerI8
     Vector256<sbyte> windowHighLevelVector;
     Vector256<sbyte> windowLowLevelVector;
 
-    private ulong captureSamples;
-    private ulong captureRemaining;
+    private long captureSamples;
+    private long captureRemaining;
 
-    private ulong holdoffSamples;
-    private ulong holdoffRemaining;
+    private long holdoffSamples;
+    private long holdoffRemaining;
 
-    private ulong windowInRangePeriod;
-    private ulong windowInRangePeriodRemaining;
+    private long windowInRangePeriod;
+    private long windowInRangePeriodRemaining;
 
     public BurstTriggerI8(BurstTriggerParameters parameters)
     {
@@ -34,11 +34,11 @@ public class BurstTriggerI8 : ITriggerI8
         windowLowLevel = (sbyte)parameters.WindowLowLevel;
         windowHighLevelVector = Vector256.Create(windowHighLevel);
         windowLowLevelVector = Vector256.Create(windowLowLevel);
-        windowInRangePeriod = parameters.MinimumQuietPeriod;
+        windowInRangePeriod = parameters.MinimumInRangePeriod;
         windowInRangePeriodRemaining = 0;
     }
 
-    public void SetHorizontal(ulong windowWidth, ulong windowTriggerPosition, ulong additionalHoldoff)
+    public void SetHorizontal(long windowWidth, long windowTriggerPosition, long additionalHoldoff)
     {
         if (windowWidth < 1000)
             throw new ArgumentException($"windowWidth cannot be less than 1000");
@@ -54,12 +54,13 @@ public class BurstTriggerI8 : ITriggerI8
         holdoffRemaining = 0;
     }
 
-    public void Process(ReadOnlySpan<sbyte> input, Span<uint> windowEndIndices, out uint windowEndCount)
+    public void Process(ReadOnlySpan<sbyte> input, Span<int> windowEndIndices, out int windowEndCount)
     {
-        uint inputLength = (uint)input.Length;
-        uint simdLength = inputLength - 32;
+        int inputLength = input.Length;
+        int simdLength = inputLength - 32;
         windowEndCount = 0;
-        uint i = 0;
+        int i = 0;
+        int simdBlock = 0;
 
         windowEndIndices.Clear();
         unsafe
@@ -77,33 +78,50 @@ public class BurstTriggerI8 : ITriggerI8
                             if (windowInRangePeriodRemaining == 0)  // Assign variables if initial condition
                                 windowInRangePeriodRemaining = windowInRangePeriod;
 
-                            if (Avx2.IsSupported)       // Const after JIT/AOT
-                            {
-                                // AVX2 fast path to scan through the quiet period then fall back to scalar near the end
-                                while (i < simdLength && windowInRangePeriodRemaining > 32)
-                                {
-                                    var inputVector = Vector256.Load(samplesPtr + i);
-                                    // The quiet window excludes the high/low level. e.g. if Low = -20 and High = 20, then values must be in -19 to 19 range.
-                                    var gt = Vector256.GreaterThan(inputVector, windowLowLevelVector);
-                                    var lt = Vector256.LessThan(inputVector, windowHighLevelVector);
-                                    //var gtLowLimit = Avx2.MoveMask(gt) != 0;      // vpmovmskb
-                                    //var ltHighLimit = Avx2.MoveMask(lt) != 0;
-                                    var gtLowLimit = gt != Vector256<sbyte>.Zero;   // vptest  (better than vpmovmskb on most architectures)
-                                    var ltHighLimit = lt != Vector256<sbyte>.Zero;
-                                    if (gtLowLimit && ltHighLimit)
-                                        windowInRangePeriodRemaining -= 32;
-                                    else
-                                        windowInRangePeriodRemaining = windowInRangePeriod;
-                                    i += 32;
-                                }
-                            }
                             while (i < inputLength)
                             {
-                                if (samplesPtr[(int)i] > windowLowLevel && samplesPtr[(int)i] < windowHighLevel)
+                                // The in-range window excludes the high/low level.
+                                // e.g. if windowLowLevel = -20 and windowHighLevel = 20, then values must be in -19 to 19 range.
+                                if (Avx2.IsSupported)
+                                {
+                                    while (i < simdLength && windowInRangePeriodRemaining > 32 && simdBlock == 0)
+                                    {
+                                        var inputVector = Vector256.Load(samplesPtr + i);
+                                        var gt = Vector256.GreaterThan(inputVector, windowLowLevelVector);
+                                        var lt = Vector256.LessThan(inputVector, windowHighLevelVector);
+                                        var fullyGt = gt == Vector256<sbyte>.AllBitsSet;   // vptest  (better than vpmovmskb on most architectures)
+                                        var fullyLt = lt == Vector256<sbyte>.AllBitsSet;
+
+                                        if (fullyGt && fullyLt)
+                                        {
+                                            windowInRangePeriodRemaining -= 32;
+                                        }
+                                        else
+                                        {
+                                            var partialGt = fullyGt ^ (gt != Vector256<sbyte>.Zero);
+                                            var partialLt = fullyLt ^ (lt != Vector256<sbyte>.Zero);
+                                            if (partialGt || partialLt)      // Window transition in SIMD block, fallback to scalar.
+                                            {
+                                                simdBlock = 32;
+                                                break;
+                                            }
+                                            else
+                                            {
+                                                windowInRangePeriodRemaining = windowInRangePeriod;
+                                            }
+                                        }
+                                        i += 32;
+                                    }
+                                }
+                                // Note, by this point SIMD logic should ensure windowInRangePeriodRemaining > 0.
+                                if (samplesPtr[i] > windowLowLevel && samplesPtr[i] < windowHighLevel)
                                     windowInRangePeriodRemaining--;
                                 else
                                     windowInRangePeriodRemaining = windowInRangePeriod;
                                 i++;
+
+                                if (simdBlock > 0)
+                                    simdBlock--;
 
                                 if (windowInRangePeriodRemaining == 0)
                                 {
@@ -114,24 +132,24 @@ public class BurstTriggerI8 : ITriggerI8
                             break;
                         case TriggerState.Armed:
                             // To do: window trigger SIMD scan. Make a note of which window edge, for trigger interpolation calculation.
-                            if (Avx2.IsSupported)       // Const after JIT/AOT
-                            {
-                                while (i < simdLength)
-                                {
-                                    var inputVector = Vector256.Load(samplesPtr + i);
-                                    var lte = Vector256.LessThanOrEqual(inputVector, windowLowLevelVector);
-                                    var gte = Vector256.GreaterThanOrEqual(inputVector, windowHighLevelVector);
-                                    var lteLowLimit = lte != Vector256<sbyte>.Zero;
-                                    var gteHighLimit = gte != Vector256<sbyte>.Zero;
-                                    var conditionFound = lteLowLimit || gteHighLimit;
-                                    if (conditionFound)
-                                        break;
-                                    i += 32;
-                                }
-                            }
+                            //if (Avx2.IsSupported)       // Const after JIT/AOT
+                            //{
+                            //    while (i < simdLength)
+                            //    {
+                            //        var inputVector = Vector256.Load(samplesPtr + i);
+                            //        var lte = Vector256.LessThanOrEqual(inputVector, windowLowLevelVector);
+                            //        var gte = Vector256.GreaterThanOrEqual(inputVector, windowHighLevelVector);
+                            //        var lteLowLimit = lte != Vector256<sbyte>.Zero;
+                            //        var gteHighLimit = gte != Vector256<sbyte>.Zero;
+                            //        var conditionFound = lteLowLimit || gteHighLimit;
+                            //        if (conditionFound)
+                            //            break;
+                            //        i += 32;
+                            //    }
+                            //}
                             while (i < inputLength)
                             {
-                                if (samplesPtr[(int)i] <= windowLowLevel || samplesPtr[(int)i] >= windowHighLevel)
+                                if (samplesPtr[i] <= windowLowLevel || samplesPtr[i] >= windowHighLevel)
                                 {
                                     triggerState = TriggerState.InCapture;
                                     break;
@@ -144,10 +162,10 @@ public class BurstTriggerI8 : ITriggerI8
                                 if (captureRemaining == 0)  // Assign variables if initial condition
                                     captureRemaining = captureSamples;
 
-                                uint remainingSamples = inputLength - i;
+                                int remainingSamples = inputLength - i;
                                 if (remainingSamples > captureRemaining)
                                 {
-                                    i += (uint)captureRemaining;    // Cast is ok because remainingSamples (in the conditional expression) is uint
+                                    i += (int)captureRemaining;
                                     captureRemaining = 0;
                                 }
                                 else
@@ -157,7 +175,7 @@ public class BurstTriggerI8 : ITriggerI8
                                 }
                                 if (captureRemaining == 0)
                                 {
-                                    windowEndIndices[(int)windowEndCount++] = i;
+                                    windowEndIndices[windowEndCount++] = i;
                                     if (holdoffSamples > 0)
                                     {
                                         triggerState = TriggerState.InHoldoff;
@@ -175,10 +193,10 @@ public class BurstTriggerI8 : ITriggerI8
                                 if (holdoffRemaining == 0)  // Assign variables if initial condition
                                     holdoffRemaining = holdoffSamples;
 
-                                uint remainingSamples = inputLength - i;
+                                int remainingSamples = inputLength - i;
                                 if (remainingSamples > holdoffRemaining)
                                 {
-                                    i += (uint)holdoffRemaining;    // Cast is ok because remainingSamples (in the conditional expression) is uint
+                                    i += (int)holdoffRemaining;
                                     holdoffRemaining = 0;
                                 }
                                 else

@@ -2,7 +2,7 @@
 {
     public interface ITriggerI8
     {
-        void SetHorizontal(ulong windowWidth, ulong windowTriggerPosition, ulong additionalHoldoff);
-        void Process(ReadOnlySpan<sbyte> input, Span<uint> captureEndIndices, out uint captureEndCount);
+        void SetHorizontal(long windowWidth, long windowTriggerPosition, long additionalHoldoff);
+        void Process(ReadOnlySpan<sbyte> input, Span<int> captureEndIndices, out int captureEndCount);
     }
 }

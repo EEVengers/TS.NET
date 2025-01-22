@@ -5,27 +5,27 @@ namespace TS.NET.Tests
     internal class BurstTriggerSituation
     {
         public BurstTriggerParameters Parameters;
-        public uint WindowWidth;
-        public uint WindowTriggerPosition;
-        public uint AdditionalHoldoff;
+        public long WindowWidth;
+        public long WindowTriggerPosition;
+        public long AdditionalHoldoff;
 
         public int ChunkSize;
         public int ChunkCount;
 
         public Memory<sbyte> Input;
-        public Memory<uint> ExpectedWindowEndIndices;
+        public Memory<int> ExpectedWindowEndIndices;
     }
 
     internal class BurstTriggerSituations
     {
         /// <summary>
-        /// 100 samples idle, 100 sample wide positive pulse
+        /// 1000 sample waveform at index 1000
         /// </summary>
         public static BurstTriggerSituation SituationA()
         {
             var situation = new BurstTriggerSituation()
             {
-                Parameters = new BurstTriggerParameters(WindowHighLevel: 20, WindowLowLevel: -20, 1000),
+                Parameters = new BurstTriggerParameters(WindowHighLevel: 20, WindowLowLevel: -20, MinimumInRangePeriod: 1000),
                 WindowWidth = 10000,
                 WindowTriggerPosition = 0,
                 AdditionalHoldoff = 0,
@@ -34,11 +34,34 @@ namespace TS.NET.Tests
                 ChunkCount = 1
             };
             situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
-            situation.ExpectedWindowEndIndices = new uint[1];
+            situation.ExpectedWindowEndIndices = new int[1];
             situation.Input.Span.Fill(sbyte.MaxValue);
-            situation.Input.Span.Slice(100, 100).Fill(0);   // Should be ignored
-            situation.Input.Span.Slice(2000, 1000).Fill(0);
-            situation.ExpectedWindowEndIndices.Span[0] = 13000;
+            situation.Input.Span.Slice(1000, 1000).Fill(0);
+            situation.ExpectedWindowEndIndices.Span[0] = 12000;
+            return situation;
+        }
+
+        /// <summary>
+        /// 999 sample waveform at index 1000, to be ignored, 1000 wide waveform at index 10000
+        /// </summary>
+        public static BurstTriggerSituation SituationB()
+        {
+            var situation = new BurstTriggerSituation()
+            {
+                Parameters = new BurstTriggerParameters(WindowHighLevel: 20, WindowLowLevel: -20, MinimumInRangePeriod: 1000),
+                WindowWidth = 10000,
+                WindowTriggerPosition = 0,
+                AdditionalHoldoff = 0,
+
+                ChunkSize = 8388608,
+                ChunkCount = 1
+            };
+            situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
+            situation.ExpectedWindowEndIndices = new int[1];
+            situation.Input.Span.Fill(sbyte.MaxValue);
+            situation.Input.Span.Slice(1000, 995).Fill(0);       // Should be ignored
+            situation.Input.Span.Slice(10000, 1000).Fill(0);
+            situation.ExpectedWindowEndIndices.Span[0] = 21000;
             return situation;
         }
     }

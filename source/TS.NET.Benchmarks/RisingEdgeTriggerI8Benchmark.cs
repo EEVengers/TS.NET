@@ -10,7 +10,7 @@ namespace TS.NET.Benchmarks
         private void* inputP_500MHz;
         private void* inputP_50percent;
 
-        private readonly Memory<uint> captureEndIndicesU64 = new uint[byteBufferSize / 64];
+        private readonly Memory<int> captureEndIndicesU64 = new int[byteBufferSize / 64];
         private readonly RisingEdgeTriggerI8 trigger = new(new EdgeTriggerParameters());
 
         [GlobalSetup]
@@ -45,7 +45,7 @@ namespace TS.NET.Benchmarks
             trigger.SetHorizontal(1000000, 0, 0);
             // Processing 120 blocks of 8MiB is an approximation of 1 second of production usage
             for (int i = 0; i < 120; i++)
-                trigger.Process(input: input, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
+                trigger.Process(input: input, windowEndIndices: captureEndIndicesU64.Span, out int captureEndCount);
         }
 
         [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: 476.8Hz, 1006632960 samples")]
@@ -56,7 +56,7 @@ namespace TS.NET.Benchmarks
             trigger.SetHorizontal(1000000, 0, 0);
             // Processing 120 blocks of 8MiB is an approximation of 1 second of production usage
             for (int i = 0; i < 120; i++)
-                trigger.Process(input: input, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
+                trigger.Process(input: input, windowEndIndices: captureEndIndicesU64.Span, out int captureEndCount);
         }
 
         [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: 500MHz, 1006632960 samples")]
@@ -67,7 +67,7 @@ namespace TS.NET.Benchmarks
             trigger.SetHorizontal(1000000, 0, 0);
             // Processing 120 blocks of 8MiB is an approximation of 1 second of production usage
             for (int i = 0; i < 120; i++)
-                trigger.Process(input: input, windowEndIndices: captureEndIndicesU64.Span, out uint captureEndCount);
+                trigger.Process(input: input, windowEndIndices: captureEndIndicesU64.Span, out int captureEndCount);
         }
 
         [GlobalCleanup]

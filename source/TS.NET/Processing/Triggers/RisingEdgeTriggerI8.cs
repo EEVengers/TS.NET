@@ -12,11 +12,11 @@ public class RisingEdgeTriggerI8 : ITriggerI8
     private sbyte triggerLevel;
     private sbyte armLevel;
 
-    private ulong captureSamples;
-    private ulong captureRemaining;
+    private long captureSamples;
+    private long captureRemaining;
 
-    private ulong holdoffSamples;
-    private ulong holdoffRemaining;
+    private long holdoffSamples;
+    private long holdoffRemaining;
 
     public RisingEdgeTriggerI8(EdgeTriggerParameters parameters)
     {
@@ -37,7 +37,7 @@ public class RisingEdgeTriggerI8 : ITriggerI8
         armLevel -= (sbyte)parameters.Hysteresis;
     }
 
-    public void SetHorizontal(ulong windowWidth, ulong windowTriggerPosition, ulong additionalHoldoff)
+    public void SetHorizontal(long windowWidth, long windowTriggerPosition, long additionalHoldoff)
     {
         if (windowWidth < 1000)
             throw new ArgumentException($"windowWidth cannot be less than 1000");
@@ -54,12 +54,12 @@ public class RisingEdgeTriggerI8 : ITriggerI8
     }
 
     //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Process(ReadOnlySpan<sbyte> input, Span<uint> windowEndIndices, out uint windowEndCount)
+    public void Process(ReadOnlySpan<sbyte> input, Span<int> windowEndIndices, out int windowEndCount)
     {
-        uint inputLength = (uint)input.Length;
-        uint simdLength = inputLength - 32;
+        int inputLength = input.Length;
+        int simdLength = inputLength - 32;
         windowEndCount = 0;
-        uint i = 0;
+        int i = 0;
 
         Vector256<sbyte> triggerLevelVector256 = Vector256.Create(triggerLevel);
         Vector256<sbyte> armLevelVector256 = Vector256.Create(armLevel);
@@ -138,7 +138,7 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                             }
                             while (i < inputLength)
                             {
-                                if (samplesPtr[(int)i] <= armLevel)
+                                if (samplesPtr[i] <= armLevel)
                                 {
                                     triggerState = TriggerState.Armed;
                                     break;
@@ -176,7 +176,7 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                             }
                             while (i < inputLength)
                             {
-                                if (samplesPtr[(int)i] > triggerLevel)
+                                if (samplesPtr[i] > triggerLevel)
                                 {
                                     triggerState = TriggerState.InCapture;
                                     captureRemaining = captureSamples;
@@ -187,10 +187,10 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                             break;
                         case TriggerState.InCapture:
                             {
-                                uint remainingSamples = inputLength - i;
+                                int remainingSamples = inputLength - i;
                                 if (remainingSamples > captureRemaining)
                                 {
-                                    i += (uint)captureRemaining;    // Cast is ok because remainingSamples (in the conditional expression) is uint
+                                    i += (int)captureRemaining;    // Cast is ok because remainingSamples (in the conditional expression) is uint
                                     captureRemaining = 0;
                                 }
                                 else
@@ -200,7 +200,7 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                                 }
                                 if (captureRemaining == 0)
                                 {
-                                    windowEndIndices[(int)windowEndCount++] = i;
+                                    windowEndIndices[windowEndCount++] = i;
                                     if (holdoffSamples > 0)
                                     {
                                         triggerState = TriggerState.InHoldoff;
@@ -212,14 +212,13 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                                     }
                                 }
                             }
-
                             break;
                         case TriggerState.InHoldoff:
                             {
-                                uint remainingSamples = inputLength - i;
+                                int remainingSamples = inputLength - i;
                                 if (remainingSamples > holdoffRemaining)
                                 {
-                                    i += (uint)holdoffRemaining;    // Cast is ok because remainingSamples (in the conditional expression) is uint
+                                    i += (int)holdoffRemaining;    // Cast is ok because remainingSamples (in the conditional expression) is uint
                                     holdoffRemaining = 0;
                                 }
                                 else

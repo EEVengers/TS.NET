@@ -106,7 +106,7 @@ namespace TS.NET.Engine
                     TriggerHoldoffFs = 0,
                     TriggerInterpolation = true,
                     EdgeTriggerParameters = new EdgeTriggerParameters() { Level = 0, Hysteresis = 5, Direction = EdgeDirection.Rising },
-                    BurstTriggerParameters = new BurstTriggerParameters() { WindowHighLevel = 64, WindowLowLevel = -64, MinimumQuietPeriod = 450000 },
+                    BurstTriggerParameters = new BurstTriggerParameters() { WindowHighLevel = 64, WindowLowLevel = -64, MinimumInRangePeriod = 450000 },
                     BoxcarAveraging = BoxcarAveraging.None
                 };
 
@@ -123,7 +123,7 @@ namespace TS.NET.Engine
                 Span<sbyte> shuffleBuffer4Ch_2 = shuffleBuffer.Slice(memoryLength_4Ch, memoryLength_4Ch);
                 Span<sbyte> shuffleBuffer4Ch_3 = shuffleBuffer.Slice(memoryLength_4Ch * 2, memoryLength_4Ch);
                 Span<sbyte> shuffleBuffer4Ch_4 = shuffleBuffer.Slice(memoryLength_4Ch * 3, memoryLength_4Ch);
-                Span<uint> captureEndIndices = new uint[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum window width
+                Span<int> captureEndIndices = new int[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum window width
 
                 // Periodic debug display variables
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
@@ -437,13 +437,13 @@ namespace TS.NET.Engine
                                                 throw new NotImplementedException();
                                         }
 
-                                        triggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out uint captureEndCount);
+                                        triggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out int captureEndCount);
 
                                         if (captureEndCount > 0)
                                         {
                                             for (int i = 0; i < captureEndCount; i++)
                                             {
-                                                uint offset = (uint)triggerChannelBuffer.Length - captureEndIndices[i];
+                                                int offset = triggerChannelBuffer.Length - captureEndIndices[i];
                                                 Capture(triggered: true, triggerChannelCaptureIndex, offset);
 
                                                 if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
@@ -516,10 +516,10 @@ namespace TS.NET.Engine
                 void UpdateTriggerHorizontal(ThunderscopeHardwareConfig hardwareConfig)
                 {
                     ulong femtosecondsPerSample = 1000000000000000 / hardwareConfig.SampleRateHz;
-                    var windowTriggerPosition = processingConfig.TriggerDelayFs / femtosecondsPerSample;
-                    var additionalHoldoff = processingConfig.TriggerHoldoffFs / femtosecondsPerSample;
+                    long windowTriggerPosition = (long)(processingConfig.TriggerDelayFs / femtosecondsPerSample);
+                    long additionalHoldoff = (long)(processingConfig.TriggerHoldoffFs / femtosecondsPerSample);
                     logger.LogTrace($"{additionalHoldoff}");
-                    triggerI8.SetHorizontal((ulong)processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
+                    triggerI8.SetHorizontal(processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
                 }
 
                 void UpdateTriggerParameters()
@@ -541,14 +541,14 @@ namespace TS.NET.Engine
                     }
                 }
 
-                void Capture(bool triggered, int triggerChannelCaptureIndex, uint offset)
+                void Capture(bool triggered, int triggerChannelCaptureIndex, int offset)
                 {
                     if (captureBuffer.TryStartWrite())
                     {
                         int channelCount = cachedHardwareConfig.EnabledChannelsCount();
                         for (int b = 0; b < channelCount; b++)
                         {
-                            sampleBuffers[b].Read(captureBuffer.GetWriteBuffer(b), offset);
+                            sampleBuffers[b].Read(captureBuffer.GetWriteBuffer(b), (uint)offset);
                         }
                         var captureMetadata = new CaptureMetadata
                         {
