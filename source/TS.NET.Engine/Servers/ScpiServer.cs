@@ -434,7 +434,7 @@ namespace TS.NET.Engine
                         case "RATES?":
                             {
                                 hardwareRequestChannel.Write(new HardwareGetRatesRequest());
-                                if (hardwareResponseChannel.TryRead(out var response, 100))
+                                if (hardwareResponseChannel.TryRead(out var response, 500))
                                 {
                                     switch (response)
                                     {
@@ -451,7 +451,7 @@ namespace TS.NET.Engine
                         case "RATE?":
                             {
                                 hardwareRequestChannel.Write(new HardwareGetRateRequest());
-                                if (hardwareResponseChannel.TryRead(out var response, 100))
+                                if (hardwareResponseChannel.TryRead(out var response, 500))
                                 {
                                     switch (response)
                                     {
