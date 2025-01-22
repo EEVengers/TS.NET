@@ -22,7 +22,7 @@ public static class ShuffleI8
             int ch3Offset = channelBlockSizeBytes * 2;
             int ch4Offset = channelBlockSizeBytes * 3;
             Vector256<sbyte> shuffleMask = Vector256.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15).AsSByte();
-            Vector256<int> permuteMask = Vector256.Create(0, 4, 1, 5, 2, 6, 3, 7);
+            Vector256<int> permuteMask = Vector256.Create(0, 4, 2, 6, 1, 5, 3, 7);
             unsafe
             {
                 fixed (sbyte* inputP = input)
@@ -37,22 +37,22 @@ public static class ShuffleI8
                         var loaded2 = Vector256.LoadAlignedNonTemporal(inputPtr + Vector256<sbyte>.Count);
                         var loaded3 = Vector256.LoadAlignedNonTemporal(inputPtr + Vector256<sbyte>.Count * 2);
                         var loaded4 = Vector256.LoadAlignedNonTemporal(inputPtr + Vector256<sbyte>.Count * 3);
-                        var shuffled1 = Avx2.Shuffle(loaded1, shuffleMask);
-                        var shuffled2 = Avx2.Shuffle(loaded2, shuffleMask);
-                        var shuffled3 = Avx2.Shuffle(loaded3, shuffleMask);
-                        var shuffled4 = Avx2.Shuffle(loaded4, shuffleMask);
-                        var permuted1 = Avx2.PermuteVar8x32(shuffled1.AsInt32(), permuteMask).AsUInt64();
-                        var permuted2 = Avx2.PermuteVar8x32(shuffled2.AsInt32(), permuteMask).AsUInt64();
-                        var permuted3 = Avx2.PermuteVar8x32(shuffled3.AsInt32(), permuteMask).AsUInt64();
-                        var permuted4 = Avx2.PermuteVar8x32(shuffled4.AsInt32(), permuteMask).AsUInt64();
-                        var unpackLow = Avx2.UnpackLow(permuted1, permuted2);
-                        var unpackLow2 = Avx2.UnpackLow(permuted3, permuted4);
-                        var channel1 = Avx2.Permute2x128(unpackLow, unpackLow2, 0x20).AsSByte();
-                        var channel3 = Avx2.Permute2x128(unpackLow, unpackLow2, 0x31).AsSByte();
-                        var unpackHigh = Avx2.UnpackHigh(permuted1, permuted2);
-                        var unpackHigh2 = Avx2.UnpackHigh(permuted3, permuted4);
-                        var channel2 = Avx2.Permute2x128(unpackHigh, unpackHigh2, 0x20).AsSByte();
-                        var channel4 = Avx2.Permute2x128(unpackHigh, unpackHigh2, 0x31).AsSByte();
+                        var shuffle1 = Avx2.Shuffle(loaded1, shuffleMask).AsInt32();
+                        var shuffle2 = Avx2.Shuffle(loaded2, shuffleMask).AsInt32();
+                        var shuffle3 = Avx2.Shuffle(loaded3, shuffleMask).AsInt32();
+                        var shuffle4 = Avx2.Shuffle(loaded4, shuffleMask).AsInt32();
+                        var unpackLow1 = Avx2.UnpackLow(shuffle1, shuffle2);
+                        var unpackHigh1 = Avx2.UnpackHigh(shuffle1, shuffle2);
+                        var unpackLow2 = Avx2.UnpackLow(shuffle3, shuffle4);
+                        var unpackHigh2 = Avx2.UnpackHigh(shuffle3, shuffle4);
+                        var unpackLow3 = Avx2.UnpackLow(unpackLow1, unpackLow2);
+                        var unpackHigh3 = Avx2.UnpackHigh(unpackLow1, unpackLow2);
+                        var unpackLow4 = Avx2.UnpackLow(unpackHigh1, unpackHigh2);
+                        var unpackHigh4 = Avx2.UnpackHigh(unpackHigh1, unpackHigh2);
+                        var channel1 = Avx2.PermuteVar8x32(unpackLow3, permuteMask).AsSByte();
+                        var channel2 = Avx2.PermuteVar8x32(unpackHigh3, permuteMask).AsSByte();
+                        var channel3 = Avx2.PermuteVar8x32(unpackLow4, permuteMask).AsSByte();
+                        var channel4 = Avx2.PermuteVar8x32(unpackHigh4, permuteMask).AsSByte();
                         Vector256.StoreAlignedNonTemporal(channel1, outputPtr);
                         Vector256.StoreAlignedNonTemporal(channel2, outputPtr + ch2Offset);
                         Vector256.StoreAlignedNonTemporal(channel3, outputPtr + ch3Offset);
