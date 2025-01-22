@@ -41,8 +41,8 @@ namespace TS.NET.Benchmarks
         [GlobalCleanup]
         public void Cleanup()
         {
-            NativeMemory.Free(inputP);
-            NativeMemory.Free(outputP);
+            NativeMemory.AlignedFree(inputP);
+            NativeMemory.AlignedFree(outputP);
         }
     }
 }

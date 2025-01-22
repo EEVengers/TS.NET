@@ -170,7 +170,7 @@ namespace TS.NET
             {
                 isDisposed = true;
                 if (Unsafe.IsNullRef(ref Unsafe.AsRef<byte>(buffer))) return;
-                NativeMemory.Free(buffer);
+                NativeMemory.AlignedFree(buffer);
                 if (addMemoryPressure)
                 {
                     GC.RemoveMemoryPressure(length * Unsafe.SizeOf<T>());

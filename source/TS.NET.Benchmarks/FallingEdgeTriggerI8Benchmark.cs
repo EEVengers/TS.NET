@@ -73,9 +73,9 @@ namespace TS.NET.Benchmarks
         [GlobalCleanup]
         public void Cleanup()
         {
-            NativeMemory.Free(inputP_DC);
-            NativeMemory.Free(inputP_500MHz);
-            NativeMemory.Free(inputP_50percent);
+            NativeMemory.AlignedFree(inputP_DC);
+            NativeMemory.AlignedFree(inputP_500MHz);
+            NativeMemory.AlignedFree(inputP_50percent);
         }
     }
 }
