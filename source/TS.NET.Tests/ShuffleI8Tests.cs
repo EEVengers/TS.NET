@@ -37,8 +37,8 @@ namespace TS.NET.Tests
                 Assert.Equal(expectedOutput[i], output[i]);
             }
 
-            NativeMemory.Free(inputP);
-            NativeMemory.Free(outputP);
+            NativeMemory.AlignedFree(inputP);
+            NativeMemory.AlignedFree(outputP);
         }
 
         [Fact]
@@ -67,8 +67,8 @@ namespace TS.NET.Tests
                 Assert.Equal(i, output[i]);
             }
 
-            NativeMemory.Free(inputP);
-            NativeMemory.Free(outputP);
+            NativeMemory.AlignedFree(inputP);
+            NativeMemory.AlignedFree(outputP);
         }
 
         [Fact]
@@ -102,8 +102,8 @@ namespace TS.NET.Tests
                 Assert.Equal(expectedOutput[i], output[i]);
             }
 
-            NativeMemory.Free(inputP);
-            NativeMemory.Free(outputP);
+            NativeMemory.AlignedFree(inputP);
+            NativeMemory.AlignedFree(outputP);
         }
 
         [Fact]
@@ -133,8 +133,8 @@ namespace TS.NET.Tests
                 Assert.Equal(expectedOutput[i], output[i]);
             }
 
-            NativeMemory.Free(inputP);
-            NativeMemory.Free(outputP);
+            NativeMemory.AlignedFree(inputP);
+            NativeMemory.AlignedFree(outputP);
         }
 
         [Fact]
@@ -161,8 +161,8 @@ namespace TS.NET.Tests
                 Assert.Equal(i, output[i]);
             }
 
-            NativeMemory.Free(inputP);
-            NativeMemory.Free(outputP);
+            NativeMemory.AlignedFree(inputP);
+            NativeMemory.AlignedFree(outputP);
         }
 
         [Fact]
@@ -192,8 +192,8 @@ namespace TS.NET.Tests
                 Assert.Equal(expectedOutput[i], output[i]);
             }
 
-            NativeMemory.Free(inputP);
-            NativeMemory.Free(outputP);
+            NativeMemory.AlignedFree(inputP);
+            NativeMemory.AlignedFree(outputP);
         }
     }
 }
