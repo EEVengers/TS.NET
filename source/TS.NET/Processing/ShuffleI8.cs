@@ -61,6 +61,7 @@ public static class ShuffleI8
                         outputPtr += Vector256<sbyte>.Count;
                     }
                 }
+                Sse2.MemoryFence();
             }
         }
         else if (Ssse3.IsSupported)
@@ -106,6 +107,7 @@ public static class ShuffleI8
                         outputPtr += Vector128<sbyte>.Count;
                     }
                 }
+                Sse2.MemoryFence();
             }
         }
         else if (AdvSimd.Arm64.IsSupported)
@@ -214,6 +216,7 @@ public static class ShuffleI8
                         outputPtr += Vector256<sbyte>.Count;
                     }
                 }
+                Sse2.MemoryFence();
             }
         }
         else if (Ssse3.IsSupported)
@@ -246,6 +249,7 @@ public static class ShuffleI8
                         outputPtr += Vector128<sbyte>.Count;
                     }
                 }
+                Sse2.MemoryFence();
             }
         }
         else if (AdvSimd.Arm64.IsSupported)
