@@ -96,47 +96,57 @@ https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/jit/viewing-jit-
 https://github.com/dotnet/runtime/blob/main/src/coreclr/inc/clrconfigvalues.h#L718  
 https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html  
 https://developer.arm.com/architectures/instruction-sets/intrinsics/  
+https://lwn.net/Articles/255364/  
 
 ## ASM
 
 ### ShuffleI8.FourChannels x64 [AVX2] hot loop
 ```
-vmovups  ymm2, ymmword ptr [rax]
-vmovups  ymm3, ymmword ptr [r11]
-vpshufb  ymm3, ymm3, ymm0
+vmovntdqa ymm2, ymmword ptr [rax]
+vmovntdqa ymm3, ymmword ptr [rax+0x20]
+vmovntdqa ymm4, ymmword ptr [rax+0x40]
+vmovntdqa ymm5, ymmword ptr [rax+0x60]
 vpshufb  ymm2, ymm2, ymm0
+vpshufb  ymm3, ymm3, ymm0
+vpshufb  ymm5, ymm5, ymm0
+vpunpckldq ymm6, ymm2, ymm3
+vpunpckhdq ymm2, ymm2, ymm3
+vpshufb  ymm3, ymm4, ymm0
+vpunpckldq ymm4, ymm3, ymm5
+vpunpckhdq ymm3, ymm3, ymm5
+vpunpckldq ymm5, ymm6, ymm4
+vpunpckldq ymm7, ymm2, ymm3
+vpunpckhdq ymm2, ymm2, ymm3
+vpermd   ymm3, ymm1, ymm5
+vpunpckhdq ymm4, ymm6, ymm4
+vpermd   ymm4, ymm1, ymm4
+vpermd   ymm5, ymm1, ymm7
+vmovntdq ymmword ptr [r8], ymm3
+movsxd   r11, ecx
+vmovntdq ymmword ptr [r8+r11], ymm4
+movsxd   r11, r10d
+vmovntdq ymmword ptr [r8+r11], ymm5
+movsxd   r11, r9d
 vpermd   ymm2, ymm1, ymm2
-vpermd   ymm3, ymm1, ymm3
-vpunpckhqdq ymm4, ymm2, ymm3
-vpunpcklqdq ymm2, ymm2, ymm3
-vmovaps  ymm3, ymm2
-vmovups  xmmword ptr [r8], xmm3
-vmovaps  ymm3, ymm4
-vmovups  xmmword ptr [r8+8*r10], xmm3
-vextracti128 xmm2, ymm2, 1
-vmovups  xmmword ptr [r8+8*r9], xmm2
-vextracti128 xmm2, ymm4, 1
-vmovups  xmmword ptr [r8+8*rcx], xmm2
-add      rax, 64
-add      r11, 64
-add      r8, 16
+vmovntdq ymmword ptr [r8+r11], ymm2
+add      rax, 128
+add      r8, 32
 cmp      rax, rdx
 ```
 
 ### ShuffleI8.TwoChannels x64 [AVX2] hot loop
 ```
-vmovups  ymm0, ymmword ptr [rax]
-vpshufb  ymm0, ymm0, ymmword ptr [reloc @RWD00]
-vmovups  ymm1, ymmword ptr [reloc @RWD32]
-vpermd   ymm0, ymm1, ymm0
-vmovd    qword ptr [r8], xmm0
-vmovaps  ymm1, ymm0
-vpextrq  qword ptr [r8+0x08], xmm1, 1
-vextracti128 xmm1, ymm0, 1
-vmovd    qword ptr [r8+8*r10], xmm1
-vextracti128 xmm0, ymm0, 1
-vpextrq  qword ptr [r8+8*rcx], xmm0, 1
-add      rax, 32
-add      r8, 16
+vmovntdqa ymm2, ymmword ptr [rax]
+vpshufb  ymm2, ymm2, ymm0
+vpermd   ymm2, ymm1, ymm2
+vmovntdqa ymm3, ymmword ptr [rax+0x20]
+vpshufb  ymm3, ymm3, ymm0
+vpermd   ymm3, ymm1, ymm3
+vperm2i128 ymm4, ymm2, ymm3, 32
+vmovntdq ymmword ptr [r8], ymm4
+vperm2i128 ymm2, ymm2, ymm3, 49
+vmovntdq ymmword ptr [r8+rcx], ymm2
+add      rax, 64
+add      r8, 32
 cmp      rax, rdx
 ```
