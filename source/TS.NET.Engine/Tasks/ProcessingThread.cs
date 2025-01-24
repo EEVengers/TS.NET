@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace TS.NET.Engine
 {
@@ -50,7 +51,7 @@ namespace TS.NET.Engine
         }
 
         // The job of this task - pull data from scope driver/simulator, shuffle if 2/4 channels, horizontal sum, trigger, and produce window segments.
-        private static void Loop(
+        private static unsafe void Loop(
             ILogger logger,
             ThunderscopeSettings settings,
             ThunderscopeHardwareConfig cachedHardwareConfig,
@@ -62,6 +63,9 @@ namespace TS.NET.Engine
             CaptureCircularBufferI8 captureBuffer,
             CancellationToken cancelToken)
         {
+
+            const int memoryLength_1Ch = ThunderscopeMemory.Length;
+            var shuffleBufferP = NativeMemory.AlignedAlloc(memoryLength_1Ch, 32);
             try
             {
                 Thread.CurrentThread.Name = "Processing";
@@ -111,14 +115,14 @@ namespace TS.NET.Engine
                 };
 
                 // Shuffle buffers. Only needed for 2/4 channel modes.
-                int memoryLength_1Ch = ThunderscopeMemory.Length;
-                Span<sbyte> shuffleBuffer = new sbyte[memoryLength_1Ch];
+                Span<sbyte> shuffleBuffer = new Span<sbyte>((sbyte*)shuffleBufferP, memoryLength_1Ch);              
+                //Span<sbyte> shuffleBuffer = new sbyte[memoryLength_1Ch];
                 // --2 channel buffers
-                int memoryLength_2Ch = (int)ThunderscopeMemory.Length / 2;
+                const int memoryLength_2Ch = (int)ThunderscopeMemory.Length / 2;
                 Span<sbyte> shuffleBuffer2Ch_1 = shuffleBuffer.Slice(0, memoryLength_2Ch);
                 Span<sbyte> shuffleBuffer2Ch_2 = shuffleBuffer.Slice(memoryLength_2Ch, memoryLength_2Ch);
                 // --4 channel buffers
-                int memoryLength_4Ch = (int)ThunderscopeMemory.Length / 4;
+                const int memoryLength_4Ch = (int)ThunderscopeMemory.Length / 4;
                 Span<sbyte> shuffleBuffer4Ch_1 = shuffleBuffer.Slice(0, memoryLength_4Ch);
                 Span<sbyte> shuffleBuffer4Ch_2 = shuffleBuffer.Slice(memoryLength_4Ch, memoryLength_4Ch);
                 Span<sbyte> shuffleBuffer4Ch_3 = shuffleBuffer.Slice(memoryLength_4Ch * 2, memoryLength_4Ch);
@@ -583,6 +587,7 @@ namespace TS.NET.Engine
             finally
             {
                 logger.LogDebug("Stopped");
+                NativeMemory.AlignedFree(shuffleBufferP);
             }
         }
     }
