@@ -3,19 +3,27 @@ using System.Runtime.InteropServices;
 
 namespace TS.NET.Driver.LiteX
 {
-    internal class LitePcieFile
+    internal unsafe class LitePcieFile
     {
         private const string USER_DEVICE_PATH = "user";
         private const int FILE_BEGIN = 0;
         private static nint NULL = nint.Zero;
+        public const uint GENERIC_READ = (0x80000000);
+        public const uint GENERIC_WRITE = (0x40000000);
+        public const uint FILE_ATTRIBUTE_NORMAL = 0x00000080;
+        public const uint OPEN_EXISTING = 3;
 
         private nint fileHandle;
 
-        public void Open(string devicePath)
+        public unsafe void Open(string devicePath)
         {
             if (OperatingSystem.IsWindows())
             {
-                fileHandle = Windows.Interop.CreateFile($"{devicePath}\\{USER_DEVICE_PATH}", FileAccess.ReadWrite, FileShare.None, NULL, FileMode.Open, FileAttributes.Normal, NULL);
+                fileHandle = Windows.Interop.CreateFile($"{devicePath}\\CTRL", FileAccess.ReadWrite, FileShare.None, NULL, FileMode.Open, FileAttributes.Normal, NULL);                
+                if ((nuint)fileHandle == nuint.MaxValue)
+                {
+                    throw new ThunderscopeException($"CreateFile - failed ({Marshal.GetLastSystemError()})");                   
+                }
             }
             if (OperatingSystem.IsLinux())
             {
@@ -120,8 +128,7 @@ namespace TS.NET.Driver.LiteX
 
                         if (!success)
                         {
-                            int errorCode = Marshal.GetLastWin32Error();
-                            // Log it...
+                            throw new ThunderscopeException($"DeviceIoControl - failed ({Marshal.GetLastSystemError()})");
                         }
                     }
                 }
@@ -140,7 +147,7 @@ namespace TS.NET.Driver.LiteX
         {
             if (OperatingSystem.IsWindows())
             {
-                throw new NotImplementedException();
+                Windows.Interop.CloseHandle(fileHandle);
             }
             if (OperatingSystem.IsLinux())
             {

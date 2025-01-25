@@ -4,12 +4,11 @@ using TS.NET.Hardware;
 namespace TS.NET.Driver.LiteX
 {
     internal enum Hmcad15xxPowerMode { Active = 0, Sleep = 1, PowerDown = 2 }
-    internal record struct Hmcad15xxChannelConfiguration(bool Active, byte Input, bool Coarse, bool Fine, bool Invert);
+    internal record struct Hmcad15xxChannelConfiguration(bool Active, byte Input, byte Coarse, byte Fine, bool Invert);
 
-    internal class Hmcad15xx
+    internal class Hmcad15xxSpiDevice : LiteSpiDevice
     {
         private readonly ILogger logger;
-        private readonly LiteSpiDevice spiDevice;
 
         private Hmcad15xxLvdsOutputDriveStrength lvdsDrive = Hmcad15xxLvdsOutputDriveStrength.Strength1_5mA;
         private Hmcad15xxLvdsPhase lvdsPhase = Hmcad15xxLvdsPhase.Phase0Deg;
@@ -20,20 +19,19 @@ namespace TS.NET.Driver.LiteX
         private Hmcad15xxMode mode = Hmcad15xxMode.SingleChannel;
         private Hmcad15xxClockDiv clockDiv = Hmcad15xxClockDiv.Div1;
 
-        private Hmcad15xxChannelConfiguration[] channelConfiguration =
+        public Hmcad15xxChannelConfiguration[] ChannelConfiguration =
         [
-            new Hmcad15xxChannelConfiguration(Active: true, Input: 1, Coarse: false, Fine: false, Invert: true),
-            new Hmcad15xxChannelConfiguration(Active: false, Input: 2, Coarse: false, Fine: false, Invert: true),
-            new Hmcad15xxChannelConfiguration(Active: false, Input: 4, Coarse: false, Fine: false, Invert: true),
-            new Hmcad15xxChannelConfiguration(Active: false, Input: 8, Coarse: false, Fine: false, Invert: true)
+            new Hmcad15xxChannelConfiguration(Active: true, Input: 1, Coarse: 0, Fine: 0, Invert: true),
+            new Hmcad15xxChannelConfiguration(Active: false, Input: 2, Coarse: 0, Fine: 0, Invert: true),
+            new Hmcad15xxChannelConfiguration(Active: false, Input: 4, Coarse: 0, Fine: 0, Invert: true),
+            new Hmcad15xxChannelConfiguration(Active: false, Input: 8, Coarse: 0, Fine: 0, Invert: true)
         ];
 
         private sbyte fullScaleAdjust = 0;
 
-        public Hmcad15xx(ILoggerFactory loggerFactory, LiteSpiDevice spiDevice)
+        public Hmcad15xxSpiDevice(ILoggerFactory loggerFactory, LiteSpiBus spiBus, uint csIndex) : base(loggerFactory, spiBus, csIndex)
         {
-            logger = loggerFactory.CreateLogger(nameof(Hmcad15xx));
-            this.spiDevice = spiDevice;
+            logger = loggerFactory.CreateLogger(nameof(Hmcad15xxSpiDevice));
         }
 
         /// <summary>
@@ -89,17 +87,17 @@ namespace TS.NET.Driver.LiteX
                     switch (mode)
                     {
                         case Hmcad15xxMode.SingleChannel:
-                            data |= channelConfiguration[0].Active ? HMCAD15_SINGLE_CH_SLP : (ushort)0;
+                            data |= ChannelConfiguration[0].Active ? HMCAD15_SINGLE_CH_SLP : (ushort)0;
                             break;
                         case Hmcad15xxMode.DualChannel:
-                            data |= channelConfiguration[0].Active ? HMCAD15_DUAL_CH_0_SLP : (ushort)0;
-                            data |= channelConfiguration[1].Active ? HMCAD15_DUAL_CH_1_SLP : (ushort)0;
+                            data |= ChannelConfiguration[0].Active ? HMCAD15_DUAL_CH_0_SLP : (ushort)0;
+                            data |= ChannelConfiguration[1].Active ? HMCAD15_DUAL_CH_1_SLP : (ushort)0;
                             break;
                         case Hmcad15xxMode.QuadChannel:
-                            data |= channelConfiguration[0].Active ? HMCAD15_QUAD_CH_0_SLP : (ushort)0;
-                            data |= channelConfiguration[1].Active ? HMCAD15_QUAD_CH_1_SLP : (ushort)0;
-                            data |= channelConfiguration[2].Active ? HMCAD15_QUAD_CH_2_SLP : (ushort)0;
-                            data |= channelConfiguration[3].Active ? HMCAD15_QUAD_CH_3_SLP : (ushort)0;
+                            data |= ChannelConfiguration[0].Active ? HMCAD15_QUAD_CH_0_SLP : (ushort)0;
+                            data |= ChannelConfiguration[1].Active ? HMCAD15_QUAD_CH_1_SLP : (ushort)0;
+                            data |= ChannelConfiguration[2].Active ? HMCAD15_QUAD_CH_2_SLP : (ushort)0;
+                            data |= ChannelConfiguration[3].Active ? HMCAD15_QUAD_CH_3_SLP : (ushort)0;
                             break;
                         default:
                             break;
@@ -186,8 +184,8 @@ namespace TS.NET.Driver.LiteX
         private void RegisterWrite(Hmcad15xxRegister register, ushort data)
         {
             byte[] bytes = [(byte)((data >> 8) & 0xFF), (byte)(data & 0xFF)];
-            spiDevice.WaitForBusIdle();
-            spiDevice.Write((byte)register, bytes);
+            WaitForBusIdle();
+            Write((byte)register, bytes);
             logger.LogTrace("SPI write register: 0x{register:X2}, data: 0x{data:X4}", (byte)register, data);
         }
 
@@ -251,29 +249,29 @@ namespace TS.NET.Driver.LiteX
             switch (mode)
             {
                 case Hmcad15xxMode.SingleChannel:
-                    in12 = HMCAD15_SEL_CH_1(channelConfiguration[0].Input);
-                    in12 |= HMCAD15_SEL_CH_2(channelConfiguration[0].Input);
-                    in34 = HMCAD15_SEL_CH_3(channelConfiguration[0].Input);
-                    in34 |= HMCAD15_SEL_CH_4(channelConfiguration[0].Input);
-                    inv = HMCAD15_CH_INVERT_S1(channelConfiguration[0].Invert);
+                    in12 = HMCAD15_SEL_CH_1(ChannelConfiguration[0].Input);
+                    in12 |= HMCAD15_SEL_CH_2(ChannelConfiguration[0].Input);
+                    in34 = HMCAD15_SEL_CH_3(ChannelConfiguration[0].Input);
+                    in34 |= HMCAD15_SEL_CH_4(ChannelConfiguration[0].Input);
+                    inv = HMCAD15_CH_INVERT_S1(ChannelConfiguration[0].Invert);
                     break;
                 case Hmcad15xxMode.DualChannel:
-                    in12 = HMCAD15_SEL_CH_1(channelConfiguration[0].Input);
-                    in12 |= HMCAD15_SEL_CH_2(channelConfiguration[0].Input);
-                    in34 = HMCAD15_SEL_CH_3(channelConfiguration[1].Input);
-                    in34 |= HMCAD15_SEL_CH_4(channelConfiguration[1].Input);
-                    inv = HMCAD15_CH_INVERT_D1(channelConfiguration[0].Invert);
-                    inv |= HMCAD15_CH_INVERT_D2(channelConfiguration[1].Invert);
+                    in12 = HMCAD15_SEL_CH_1(ChannelConfiguration[0].Input);
+                    in12 |= HMCAD15_SEL_CH_2(ChannelConfiguration[0].Input);
+                    in34 = HMCAD15_SEL_CH_3(ChannelConfiguration[1].Input);
+                    in34 |= HMCAD15_SEL_CH_4(ChannelConfiguration[1].Input);
+                    inv = HMCAD15_CH_INVERT_D1(ChannelConfiguration[0].Invert);
+                    inv |= HMCAD15_CH_INVERT_D2(ChannelConfiguration[1].Invert);
                     break;
                 case Hmcad15xxMode.QuadChannel:
-                    in12 = HMCAD15_SEL_CH_1(channelConfiguration[0].Input);
-                    in12 |= HMCAD15_SEL_CH_2(channelConfiguration[1].Input);
-                    in34 = HMCAD15_SEL_CH_3(channelConfiguration[2].Input);
-                    in34 |= HMCAD15_SEL_CH_4(channelConfiguration[3].Input);
-                    inv = HMCAD15_CH_INVERT_Q1(channelConfiguration[0].Invert);
-                    inv |= HMCAD15_CH_INVERT_Q2(channelConfiguration[1].Invert);
-                    inv |= HMCAD15_CH_INVERT_Q3(channelConfiguration[2].Invert);
-                    inv |= HMCAD15_CH_INVERT_Q4(channelConfiguration[3].Invert);
+                    in12 = HMCAD15_SEL_CH_1(ChannelConfiguration[0].Input);
+                    in12 |= HMCAD15_SEL_CH_2(ChannelConfiguration[1].Input);
+                    in34 = HMCAD15_SEL_CH_3(ChannelConfiguration[2].Input);
+                    in34 |= HMCAD15_SEL_CH_4(ChannelConfiguration[3].Input);
+                    inv = HMCAD15_CH_INVERT_Q1(ChannelConfiguration[0].Invert);
+                    inv |= HMCAD15_CH_INVERT_Q2(ChannelConfiguration[1].Invert);
+                    inv |= HMCAD15_CH_INVERT_Q3(ChannelConfiguration[2].Invert);
+                    inv |= HMCAD15_CH_INVERT_Q4(ChannelConfiguration[3].Invert);
                     break;
             }
 
@@ -286,30 +284,31 @@ namespace TS.NET.Driver.LiteX
         {
             ushort cgain;
 
-            ushort HMCAD15_CGAIN_Q1(bool x) { return (ushort)((x ? 1 : 0) & 0xF); }
-            ushort HMCAD15_CGAIN_Q2(bool x) { return (ushort)(((x ? 1 : 0) & 0xF) << 4); }
-            ushort HMCAD15_CGAIN_Q3(bool x) { return (ushort)(((x ? 1 : 0) & 0xF) << 8); }
-            ushort HMCAD15_CGAIN_Q4(bool x) { return (ushort)(((x ? 1 : 0) & 0xF) << 12); }
-            ushort HMCAD15_CGAIN_D1(bool x) { return (ushort)((x ? 1 : 0) & 0xF); }
-            ushort HMCAD15_CGAIN_D2(bool x) { return (ushort)(((x ? 1 : 0) & 0xF) << 4); }
-            ushort HMCAD15_CGAIN_S1(bool x) { return (ushort)(((x ? 1 : 0) & 0xF) << 8); }
+            // Coarse gain - sets 4 bits per channel in 16 bit register. 0 to 12dB in 1dB steps.
+            ushort HMCAD15_CGAIN_Q1(byte x) { return (ushort)(x & 0xF); }
+            ushort HMCAD15_CGAIN_Q2(byte x) { return (ushort)((x & 0xF) << 4); }
+            ushort HMCAD15_CGAIN_Q3(byte x) { return (ushort)((x & 0xF) << 8); }
+            ushort HMCAD15_CGAIN_Q4(byte x) { return (ushort)((x & 0xF) << 12); }
+            ushort HMCAD15_CGAIN_D1(byte x) { return (ushort)(x & 0xF); }
+            ushort HMCAD15_CGAIN_D2(byte x) { return (ushort)((x & 0xF) << 4); }
+            ushort HMCAD15_CGAIN_S1(byte x) { return (ushort)((x & 0xF) << 8); }
 
             switch (mode)
             {
                 case Hmcad15xxMode.SingleChannel:
-                    cgain = HMCAD15_CGAIN_S1(channelConfiguration[0].Coarse);
+                    cgain = HMCAD15_CGAIN_S1(ChannelConfiguration[0].Coarse);
                     RegisterWrite(Hmcad15xxRegister.COARSE_GAIN_2, cgain);
                     break;
                 case Hmcad15xxMode.DualChannel:
-                    cgain = HMCAD15_CGAIN_D1(channelConfiguration[0].Coarse);
-                    cgain |= HMCAD15_CGAIN_D2(channelConfiguration[1].Coarse);
+                    cgain = HMCAD15_CGAIN_D1(ChannelConfiguration[0].Coarse);
+                    cgain |= HMCAD15_CGAIN_D2(ChannelConfiguration[1].Coarse);
                     RegisterWrite(Hmcad15xxRegister.COARSE_GAIN_2, cgain);
                     break;
                 case Hmcad15xxMode.QuadChannel:
-                    cgain = HMCAD15_CGAIN_Q1(channelConfiguration[0].Coarse);
-                    cgain |= HMCAD15_CGAIN_Q2(channelConfiguration[1].Coarse);
-                    cgain |= HMCAD15_CGAIN_Q3(channelConfiguration[2].Coarse);
-                    cgain |= HMCAD15_CGAIN_Q4(channelConfiguration[3].Coarse);
+                    cgain = HMCAD15_CGAIN_Q1(ChannelConfiguration[0].Coarse);
+                    cgain |= HMCAD15_CGAIN_Q2(ChannelConfiguration[1].Coarse);
+                    cgain |= HMCAD15_CGAIN_Q3(ChannelConfiguration[2].Coarse);
+                    cgain |= HMCAD15_CGAIN_Q4(ChannelConfiguration[3].Coarse);
                     RegisterWrite(Hmcad15xxRegister.COARSE_GAIN_1, cgain);
                     break;
             }

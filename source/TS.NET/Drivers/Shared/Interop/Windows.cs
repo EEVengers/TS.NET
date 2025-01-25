@@ -1,7 +1,6 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
-namespace TS.NET.Driver.LiteX.Windows
+namespace TS.NET.Driver.Shared.Windows
 {
     // https://docs.microsoft.com/en-us/dotnet/standard/native-interop/best-practices#blittable-types
     // CharSet = CharSet.Unicode helps ensure blitability
@@ -13,15 +12,6 @@ namespace TS.NET.Driver.LiteX.Windows
         DIGCF_ALLCLASSES = 0x00000004,
         DIGCF_PROFILE = 0x00000008,
         DIGCF_DEVICEINTERFACE = 0x00000010,
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    struct SP_DEVINFO_DATA
-    {
-        public uint CbSize;
-        public Guid ClassGuid;
-        public uint DevInst;
-        public IntPtr Reserved;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -51,11 +41,28 @@ namespace TS.NET.Driver.LiteX.Windows
             IntPtr hwndParent,
             DiGetClassFlags flags);
 
+        // Delete me
+        [DllImport("setupapi.dll", CharSet = CharSet.Unicode)]
+        public static extern IntPtr SetupDiGetClassDevs(
+            IntPtr classGuid,
+            IntPtr enumerator,
+            IntPtr hwndParent,
+            DiGetClassFlags flags);
+
         [DllImport("setupapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern bool SetupDiEnumDeviceInterfaces(
             IntPtr hDevInfo,
             IntPtr devInfo,
             ref Guid interfaceClassGuid,
+            uint memberIndex,
+            ref SP_DEVICE_INTERFACE_DATA deviceInterfaceData);
+
+        // Delete me
+        [DllImport("setupapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern bool SetupDiEnumDeviceInterfaces(
+            IntPtr hDevInfo,
+            IntPtr devInfo,
+            IntPtr interfaceClassGuid,
             uint memberIndex,
             ref SP_DEVICE_INTERFACE_DATA deviceInterfaceData);
 
@@ -77,53 +84,5 @@ namespace TS.NET.Driver.LiteX.Windows
             uint deviceInterfaceDetailDataSize,
             IntPtr requiredSize,                    // NULL
             IntPtr deviceInfoData);                 // NULL
-
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern IntPtr CreateFile(
-            [MarshalAs(UnmanagedType.LPTStr)] string filename,
-            [MarshalAs(UnmanagedType.U4)] FileAccess access,
-            [MarshalAs(UnmanagedType.U4)] FileShare share,
-            IntPtr securityAttributes, // optional SECURITY_ATTRIBUTES struct or IntPtr.Zero
-            [MarshalAs(UnmanagedType.U4)] FileMode creationDisposition,
-            [MarshalAs(UnmanagedType.U4)] FileAttributes flagsAndAttributes,
-            IntPtr templateFile);
-
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        public static extern bool CloseHandle(IntPtr handle);
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern bool SetFilePointerEx(
-            IntPtr hFile,
-            ulong liDistanceToMove,
-            IntPtr lpNewFilePointer,
-            uint dwMoveMethod);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static unsafe extern bool WriteFile(
-            IntPtr hFile,
-            byte* lpBuffer,
-            uint nNumberOfBytesToWrite,
-            out uint lpNumberOfBytesWritten,
-            IntPtr lpOverlapped); // [In] ref NativeOverlapped lpOverlapped);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static unsafe extern bool ReadFile(
-            IntPtr hFile,
-            byte* lpBuffer,
-            uint nNumberOfBytesToRead,
-            out uint lpNumberOfBytesRead,
-            IntPtr lpOverlapped);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static unsafe extern bool DeviceIoControl(
-            IntPtr hDevice,
-            uint dwIoControlCode,
-            byte* lpInBuffer,
-            uint nInBufferSize,
-            byte* lpOutBuffer,
-            uint nOutBufferSize,
-            ref uint lpBytesReturned,
-            IntPtr lpOverlapped);
     }
 }
-

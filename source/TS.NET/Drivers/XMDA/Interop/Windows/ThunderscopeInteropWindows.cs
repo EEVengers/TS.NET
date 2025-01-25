@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using TS.NET.Driver.Shared;
 
 namespace TS.NET.Driver.XMDA.Interop.Windows
 {

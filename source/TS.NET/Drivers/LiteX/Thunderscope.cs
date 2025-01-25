@@ -1,73 +1,86 @@
-﻿//using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
+using TS.NET.Driver.Shared;
+using TS.NET.Driver.XMDA.Interop;
 
-//namespace TS.NET.Driver.LiteX
-//{
-//    public class Thunderscope : IThunderscope
-//    {
-//        private readonly ILogger logger;
-//        private readonly uint readSegmentLengthBytes;
+namespace TS.NET.Driver.LiteX
+{
+    public class Thunderscope : IThunderscope
+    {
+        private readonly ILogger logger;
+        private readonly uint readSegmentLengthBytes;
 
-//        private bool open = false;
+        private bool open = false;
 
-//        public Thunderscope(ILoggerFactory loggerFactory, int readSegmentLengthBytes)
-//        {
-//            logger = loggerFactory.CreateLogger("Driver.LiteX");
-//            if (ThunderscopeMemory.Length % readSegmentLengthBytes != 0)
-//                throw new ArgumentException("ThunderscopeMemory.Length % readSegmentLengthBytes != 0");
-//            this.readSegmentLengthBytes = (uint)readSegmentLengthBytes;
-//        }
+        public Thunderscope(ILoggerFactory loggerFactory, int readSegmentLengthBytes)
+        {
+            logger = loggerFactory.CreateLogger("Driver.LiteX");
+            if (ThunderscopeMemory.Length % readSegmentLengthBytes != 0)
+                throw new ArgumentException("ThunderscopeMemory.Length % readSegmentLengthBytes != 0");
+            this.readSegmentLengthBytes = (uint)readSegmentLengthBytes;
+        }
 
-//        public void Open(ThunderscopeHardwareConfig initialHardwareConfig)
-//        {
-//            if (open)
-//                Close();
+        public static List<ThunderscopeDevice> IterateDevices()
+        {
+            return ThunderscopeInterop.IterateDevices();
+        }
 
-//            //interop = ThunderscopeInterop.CreateInterop(device);
-//            //this.configuration = initialHardwareConfig;
-//            //this.revision = revision;
+        public void Open(ThunderscopeHardwareConfig initialHardwareConfig)
+        {
+            if (open)
+                Close();
 
-//            //Initialise();
-//            open = true;
-//        }
+            //interop = ThunderscopeInterop.CreateInterop(device);
+            //this.configuration = initialHardwareConfig;
+            //this.revision = revision;
 
-//        public void Close()
-//        {
-//            if (!open)
-//                throw new Exception("Thunderscope not open");
-//            open = false;
+            //Initialise();
+            open = true;
+        }
 
-//            // Disable data
-//        }
+        public void Close()
+        {
+            if (!open)
+                throw new Exception("Thunderscope not open");
+            open = false;
 
-//        public void Start()
-//        { 
-//        }
+            // Disable data
+        }
 
-//        public void Stop()
-//        { }
+        public void Start()
+        {
+        }
 
-//        public ThunderscopeChannelFrontend GetChannelFrontend(int channelIndex)
-//        { }
+        public void Stop()
+        { }
 
-//        public ThunderscopeChannelCalibration GetChannelCalibration(int channelIndex)
-//        { }
+        public ThunderscopeChannelFrontend GetChannelFrontend(int channelIndex)
+        {
+            return default;
+        }
 
-//        public void SetChannelEnable(int channelIndex, bool enabled)
-//        { }
+        public ThunderscopeChannelCalibration GetChannelCalibration(int channelIndex)
+        {
+            return default;
+        }
 
-//        public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)
-//        { }
+        public void SetChannelEnable(int channelIndex, bool enabled)
+        { }
 
-//        public void SetChannelCalibration(int channelIndex, ThunderscopeChannelCalibration channelCalibration)
-//        { }
+        public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)
+        { }
 
-//        public void Read(ThunderscopeMemory data, CancellationToken cancellationToken)
-//        { }
+        public void SetChannelCalibration(int channelIndex, ThunderscopeChannelCalibration channelCalibration)
+        { }
 
-//        public ThunderscopeHardwareConfig GetConfiguration()
-//        { }
+        public void Read(ThunderscopeMemory data, CancellationToken cancellationToken)
+        { }
 
-//        public void SetRate(ulong sampleRateHz)
-//        { }
-//    }
-//}
+        public ThunderscopeHardwareConfig GetConfiguration()
+        {
+            return default;
+        }
+
+        public void SetRate(ulong sampleRateHz)
+        { }
+    }
+}

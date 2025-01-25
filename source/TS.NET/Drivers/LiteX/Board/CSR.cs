@@ -1,4 +1,7 @@
-﻿namespace TS.NET.Driver.LiteX
+﻿using System.Runtime.CompilerServices;
+[assembly: InternalsVisibleTo("Testbench")]
+
+namespace TS.NET.Driver.LiteX
 {
     internal class CSR
     {

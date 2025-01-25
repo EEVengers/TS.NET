@@ -1,12 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Buffers.Binary;
+using TS.NET.Driver.Shared;
 using TS.NET.Driver.XMDA.Interop;
 using TS.NET.Hardware;
 
 namespace TS.NET.Driver.XMDA
 {
-    public record ThunderscopeDevice(string DevicePath);
-
     public class Thunderscope : IThunderscope
     {
         private readonly ILogger logger;
@@ -19,7 +18,7 @@ namespace TS.NET.Driver.XMDA
 
         public Thunderscope(ILoggerFactory loggerFactory)
         {
-            logger = loggerFactory.CreateLogger(nameof(ThunderscopeDevice));
+            logger = loggerFactory.CreateLogger(nameof(Thunderscope));
         }
 
         public static List<ThunderscopeDevice> IterateDevices()

@@ -4,22 +4,20 @@ namespace TS.NET.Driver.LiteX
 {
     internal class LiteSpiBus
     {
+        private readonly ILogger logger;
         private readonly LitePcie litePci;
         private readonly uint spiBase;
         private uint numCs;
-        //private uint csMask;
 
         const uint SPI_CS_MODE_NORMAL = 0;
         const uint SPI_CTRL_START = (1 << 0);
 
-        public LiteSpiBus(LitePcie litePci, uint spiBase, uint numCs)
+        public LiteSpiBus(ILoggerFactory loggerFactory, LitePcie litePci, uint spiBase, uint numCs)
         {
-            //uint SPI_CS_SEL_MASK(uint n) { return (uint)((1 << (int)(n)) - 1); }
-
+            logger = loggerFactory.CreateLogger(nameof(LiteSpiBus));
             this.litePci = litePci;
             this.spiBase = spiBase;
             this.numCs = numCs;
-            //csMask = SPI_CS_SEL_MASK(numCs);
         }
 
         public void Write(byte register, ReadOnlySpan<byte> data, uint csIndex)
@@ -74,27 +72,5 @@ namespace TS.NET.Driver.LiteX
 
         private uint SPI_CS_SEL(uint n) => (uint)(1 << (int)(n));
         private uint SPI_CTRL_LENGTH(int x) => (uint)((8 * (x)) << 8);
-    }
-
-    internal class LiteSpiDevice
-    {
-        private readonly LiteSpiBus bus;
-        private readonly uint csIndex;
-
-        public LiteSpiDevice(LiteSpiBus bus, uint csIndex)
-        {
-            this.bus = bus;
-            this.csIndex = csIndex;
-        }
-
-        public void Write(byte register, ReadOnlySpan<byte> data)
-        {
-            bus.Write(register, data, csIndex);
-        }
-
-        public void WaitForBusIdle(double timeoutSec = 0.1)
-        {
-            bus.WaitForIdle(timeoutSec);
-        }
     }
 }

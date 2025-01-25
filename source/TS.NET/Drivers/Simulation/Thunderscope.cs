@@ -9,7 +9,6 @@
         private float scaleRelativeToFull = 1.0f;
         private float sampleRateHz = 1e9f;
         private float frequencyHz = 1e6f;
-        private float phase = 0;
         private int nextIterationCopy = 0;
 
         public ThunderscopeChannelFrontend GetChannelFrontend(int channelIndex)

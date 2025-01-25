@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using TS.NET.Driver.Shared;
 using TS.NET.Driver.XMDA.Interop.Linux;
 using TS.NET.Driver.XMDA.Interop.Windows;
 

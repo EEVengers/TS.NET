@@ -180,15 +180,4 @@ namespace TS.NET.Driver.LiteX
             }
         }
     }
-
-    internal class LiteI2cDevice
-    {
-        private readonly LiteI2cBus bus;
-        private readonly ushort address;
-
-        public LiteI2cDevice(LiteI2cBus bus, ushort address)
-        {
-            this.bus = bus;
-        }
-    }
 }
