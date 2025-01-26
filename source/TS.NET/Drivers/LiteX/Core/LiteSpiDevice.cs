@@ -10,7 +10,7 @@ namespace TS.NET.Driver.LiteX
 
         public LiteSpiDevice(ILoggerFactory loggerFactory, LiteSpiBus spiBus, uint csIndex)
         {
-            logger = loggerFactory.CreateLogger(nameof(LiteSpiDevice));
+            logger = loggerFactory.CreateLogger($"{nameof(LiteSpiDevice)} [cs: {csIndex}]");
             this.spiBus = spiBus;
             this.csIndex = csIndex;
         }

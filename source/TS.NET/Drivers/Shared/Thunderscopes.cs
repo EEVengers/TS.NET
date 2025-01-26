@@ -36,10 +36,10 @@ namespace TS.NET.Driver.Shared
 
                 SP_DEVICE_INTERFACE_DATA deviceInterface = new();
                 deviceInterface.CbSize = Marshal.SizeOf(deviceInterface);      //32
-                for (uint i = 0; Interop.SetupDiEnumDeviceInterfaces(deviceInfo, NULL, ref classGuid, i, ref deviceInterface); ++i)        //Marshal.GetLastWin32Error() == ERROR_NO_MORE_ITEMS
+                for (uint i = 0; Interop.SetupDiEnumDeviceInterfaces(deviceInfo, NULL, ref classGuid, i, ref deviceInterface); ++i)        //Marshal.GetLastSystemError() == ERROR_NO_MORE_ITEMS
                 {
                     uint detailLength = 0;
-                    if (!Interop.SetupDiGetDeviceInterfaceDetail(deviceInfo, ref deviceInterface, NULL, 0, ref detailLength, NULL) && Marshal.GetLastWin32Error() != ERROR_INSUFFICIENT_BUFFER)
+                    if (!Interop.SetupDiGetDeviceInterfaceDetail(deviceInfo, ref deviceInterface, NULL, 0, ref detailLength, NULL) && Marshal.GetLastSystemError() != ERROR_INSUFFICIENT_BUFFER)
                         throw new Exception("SetupDiGetDeviceInterfaceDetail - failed getting length with ERROR_INSUFFICIENT_BUFFER");
                     if (detailLength > 255)
                         throw new Exception("SetupDiGetDeviceInterfaceDetail - failed getting length by returning a length greater than 255 which won't fit into fixed length string field");

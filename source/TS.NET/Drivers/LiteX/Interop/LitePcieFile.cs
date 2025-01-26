@@ -41,14 +41,14 @@ namespace TS.NET.Driver.LiteX
             if (OperatingSystem.IsWindows())
             {
                 if (!Windows.Interop.SetFilePointerEx(fileHandle, address, NULL, FILE_BEGIN))
-                    throw new Exception($"SetFilePointerEx - failed ({Marshal.GetLastWin32Error()})");
+                    throw new Exception($"SetFilePointerEx - failed ({Marshal.GetLastSystemError()})");
 
                 unsafe
                 {
                     fixed (byte* dataPtr = data)
                     {
                         if (!Windows.Interop.ReadFile(fileHandle, dataPtr, (uint)data.Length, out uint bytesRead, NULL))
-                            throw new Exception($"ReadFile - failed ({Marshal.GetLastWin32Error()})");
+                            throw new Exception($"ReadFile - failed ({Marshal.GetLastSystemError()})");
                         if (bytesRead != data.Length)
                             throw new Exception("ReadFile - failed to read all bytes");
                     }
@@ -62,7 +62,7 @@ namespace TS.NET.Driver.LiteX
                     {
                         int bytesRead = Linux.Interop.pread(fileHandle, dataPtr, data.Length, (int)address);
                         if (bytesRead != data.Length)
-                            throw new Exception($"pread user - failed -> toRead={data.Length}, read={bytesRead}, errno={Marshal.GetLastWin32Error()}");
+                            throw new Exception($"pread user - failed -> toRead={data.Length}, read={bytesRead}, errno={Marshal.GetLastSystemError()}");
                     }
                 }
             }
@@ -77,14 +77,14 @@ namespace TS.NET.Driver.LiteX
             if (OperatingSystem.IsWindows())
             {
                 if (!Windows.Interop.SetFilePointerEx(fileHandle, address, NULL, FILE_BEGIN))
-                    throw new Exception($"SetFilePointerEx - failed ({Marshal.GetLastWin32Error()})");
+                    throw new Exception($"SetFilePointerEx - failed ({Marshal.GetLastSystemError()})");
 
                 unsafe
                 {
                     fixed (byte* dataPtr = data)
                     {
                         if (!Windows.Interop.WriteFile(fileHandle, dataPtr, (uint)data.Length, out uint bytesWritten, NULL))
-                            throw new Exception($"WriteFile - failed ({Marshal.GetLastWin32Error()})");
+                            throw new Exception($"WriteFile - failed ({Marshal.GetLastSystemError()})");
                     }
                 }
             }
@@ -97,7 +97,7 @@ namespace TS.NET.Driver.LiteX
                         Int32 bytesWritten = Linux.Interop.pwrite(fileHandle, dataPtr, (Int32)data.Length, (Int32)address);
 
                         if (bytesWritten != data.Length)
-                            throw new Exception($"pwrite user - failed -> toWrite={data.Length}, written={bytesWritten}, errno={Marshal.GetLastWin32Error()}");
+                            throw new Exception($"pwrite user - failed -> toWrite={data.Length}, written={bytesWritten}, errno={Marshal.GetLastSystemError()}");
                     }
                 }
             }

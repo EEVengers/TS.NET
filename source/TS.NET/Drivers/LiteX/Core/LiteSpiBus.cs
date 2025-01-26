@@ -6,20 +6,21 @@ namespace TS.NET.Driver.LiteX
     {
         private readonly ILogger logger;
         private readonly LitePcie litePci;
-        private readonly uint spiBase;
-        private uint numCs;
+        private readonly uint spiBaseAddress;
+        private readonly uint numCs;
 
         const uint SPI_CS_MODE_NORMAL = 0;
         const uint SPI_CTRL_START = (1 << 0);
 
-        public LiteSpiBus(ILoggerFactory loggerFactory, LitePcie litePci, uint spiBase, uint numCs)
+        public LiteSpiBus(ILoggerFactory loggerFactory, LitePcie litePci, uint spiBaseAddress, uint numCs)
         {
-            logger = loggerFactory.CreateLogger(nameof(LiteSpiBus));
+            logger = loggerFactory.CreateLogger($"{nameof(LiteSpiBus)} (baseAddress: {spiBaseAddress})");
             this.litePci = litePci;
-            this.spiBase = spiBase;
+            this.spiBaseAddress = spiBaseAddress;
             this.numCs = numCs;
         }
 
+        // SPI devices on ThunderScope are write-only or single pin SDIO, so no WriteRead method
         public void Write(byte register, ReadOnlySpan<byte> data, uint csIndex)
         {
             if (!IsIdle())
@@ -33,24 +34,23 @@ namespace TS.NET.Driver.LiteX
             }
 
             // Set Chip Select.
-            uint addr = SPI_CS(spiBase);
+            uint addr = SPI_CS(spiBaseAddress);
             litePci.WriteL(addr, SPI_CS_SEL(csIndex) | SPI_CS_MODE_NORMAL);
 
             // Prepare MOSI data.
-            uint mosi_data = (uint)((register << 16) + (data[0] << 8) + data[1]);
-
-            addr = SPI_MOSI(spiBase);
-            litePci.WriteL(addr, mosi_data);
+            uint mosiData = (uint)((register << 16) + (data[0] << 8) + data[1]);
+            addr = SPI_MOSI(spiBaseAddress);
+            litePci.WriteL(addr, mosiData);
 
             // Start SPI Xfer.
-            addr = SPI_CONTROL(spiBase);
+            addr = SPI_CONTROL(spiBaseAddress);
             litePci.WriteL(addr, SPI_CTRL_LENGTH(data.Length + 1) | SPI_CTRL_START);
         }
 
         public bool IsIdle()
         {
             const uint SPI_STATUS_DONE = (1 << 0);
-            return litePci.ReadL(SPI_STATUS(spiBase)) == SPI_STATUS_DONE;
+            return litePci.ReadL(SPI_STATUS(spiBaseAddress)) == SPI_STATUS_DONE;
         }
 
         public void WaitForIdle(double timeoutSec = 0.1)
