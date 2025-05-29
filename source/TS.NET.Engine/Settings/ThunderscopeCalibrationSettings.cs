@@ -9,6 +9,7 @@ namespace TS.NET
         public ThunderscopeChannelCalibrationSettings Channel2 { get; set; } = ThunderscopeChannelCalibrationSettings.Default();
         public ThunderscopeChannelCalibrationSettings Channel3 { get; set; } = ThunderscopeChannelCalibrationSettings.Default();
         public ThunderscopeChannelCalibrationSettings Channel4 { get; set; } = ThunderscopeChannelCalibrationSettings.Default();
+        public ThunderscopeAdcCalibrationSettings Adc { get; set; } = ThunderscopeAdcCalibrationSettings.Default();
 
         public static ThunderscopeCalibrationSettings Default()
         {
@@ -116,6 +117,50 @@ namespace TS.NET
                 PgaHighOffsetVoltage = 0,
                 PgaOutputGainError = 0,
                 PgaInputBiasCurrent = 40
+            };
+        }
+    }
+
+    // ADC Calibration Data
+    [YamlSerializable]
+    public class ThunderscopeAdcCalibrationSettings
+    {
+        public byte FineGainBranch1 { get; set; }
+        public byte FineGainBranch2 { get; set; }
+        public byte FineGainBranch3 { get; set; }
+        public byte FineGainBranch4 { get; set; }
+        public byte FineGainBranch5 { get; set; }
+        public byte FineGainBranch6 { get; set; }
+        public byte FineGainBranch7 { get; set; }
+        public byte FineGainBranch8 { get; set; }
+
+        public ThunderscopeAdcCalibration ToDriver()
+        {
+            return new ThunderscopeAdcCalibration()
+            {
+                FineGainBranch1 = this.FineGainBranch1,
+                FineGainBranch2 = this.FineGainBranch2,
+                FineGainBranch3 = this.FineGainBranch3,
+                FineGainBranch4 = this.FineGainBranch4,
+                FineGainBranch5 = this.FineGainBranch5,
+                FineGainBranch6 = this.FineGainBranch6,
+                FineGainBranch7 = this.FineGainBranch7,
+                FineGainBranch8 = this.FineGainBranch8
+            };
+        }
+
+        public static ThunderscopeAdcCalibrationSettings Default()
+        {
+            return new ThunderscopeAdcCalibrationSettings()
+            {
+                FineGainBranch1 = 0,
+                FineGainBranch2 = 0,
+                FineGainBranch3 = 0,
+                FineGainBranch4 = 0,
+                FineGainBranch5 = 0,
+                FineGainBranch6 = 0,
+                FineGainBranch7 = 0,
+                FineGainBranch8 = 0
             };
         }
     }

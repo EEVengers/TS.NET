@@ -195,3 +195,12 @@ LiteXCalibration:
     PgaHighOffsetVoltage: 0
     PgaOutputGainError: 0
     PgaInputBiasCurrent: 40
+  Adc:
+    FineGainBranch1: 0
+    FineGainBranch2: 0
+    FineGainBranch3: 0
+    FineGainBranch4: 0
+    FineGainBranch5: 0
+    FineGainBranch6: 0
+    FineGainBranch7: 0
+    FineGainBranch8: 0

@@ -43,7 +43,7 @@ namespace TS.NET.Driver.Libtslitex
             if (tsHandle == 0)
                 throw new Exception($"Thunderscope failed to open device {devIndex} ({tsHandle})");
             open = true;
-
+            SetAdcCalibration(initialHardwareConfiguration.AdcCalibration);
             for (int chan = 0; chan < 4; chan++)
             {
                 SetChannelCalibration(chan, initialHardwareConfiguration.Calibration[chan]);
@@ -267,6 +267,23 @@ namespace TS.NET.Driver.Libtslitex
             this.channel_volt_scale[channelIndex] = channel.VoltFullScale;
         }
 
+        public unsafe void SetAdcCalibration(ThunderscopeAdcCalibration adcCal)
+        {
+            if (!open)
+                throw new Exception("Thunderscope not open");
+
+            var tsCal = new Interop.tsAdcCalibration_t();
+            tsCal.branchFineGain[0] = adcCal.FineGainBranch1;
+            tsCal.branchFineGain[1] = adcCal.FineGainBranch2;
+            tsCal.branchFineGain[2] = adcCal.FineGainBranch3;
+            tsCal.branchFineGain[3] = adcCal.FineGainBranch4;
+            tsCal.branchFineGain[4] = adcCal.FineGainBranch5;
+            tsCal.branchFineGain[5] = adcCal.FineGainBranch6;
+            tsCal.branchFineGain[6] = adcCal.FineGainBranch7;
+            tsCal.branchFineGain[7] = adcCal.FineGainBranch8;
+            
+            Interop.SetAdcCalibration(tsHandle, in tsCal);
+        }
         public void SetChannelCalibration(int channelIndex, ThunderscopeChannelCalibration channelCalibration)
         {
             if (!open)

@@ -38,4 +38,18 @@ namespace TS.NET
         public double PgaOutputGainError { get; set; }
         public double PgaInputBiasCurrent { get; set; }
     }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct ThunderscopeAdcCalibration
+    {
+        // HMCAD1520 calibration
+        public byte FineGainBranch1 { get; set; }
+        public byte FineGainBranch2 { get; set; }
+        public byte FineGainBranch3 { get; set; }
+        public byte FineGainBranch4 { get; set; }
+        public byte FineGainBranch5 { get; set; }
+        public byte FineGainBranch6 { get; set; }
+        public byte FineGainBranch7 { get; set; }
+        public byte FineGainBranch8 { get; set; }
+    }
 }

@@ -13,6 +13,7 @@ namespace TS.NET
 
         public ThunderscopeChannelFrontendArray Frontend;
         public ThunderscopeChannelCalibrationArray Calibration;
+        public ThunderscopeAdcCalibration AdcCalibration;
     }
 
     // https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-12#inline-arrays

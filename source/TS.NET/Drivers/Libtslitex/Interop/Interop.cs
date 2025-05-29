@@ -68,6 +68,12 @@ namespace TS.NET.Driver.Libtslitex
             public int preampInputBias_uA;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public unsafe struct tsAdcCalibration_t
+        {
+            public fixed byte branchFineGain[8];
+        }
+
         [LibraryImport(library, EntryPoint = "thunderscopeOpen")]
         public static partial nint Open(uint devIndex, [MarshalAs(UnmanagedType.U1)] Boolean skip_init);
 
@@ -89,8 +95,11 @@ namespace TS.NET.Driver.Libtslitex
         [LibraryImport(library, EntryPoint = "thunderscopeSampleModeSet")]
         public static partial int SetSampleMode(nint ts, uint rate, uint resolution);
 
-        [DllImport(library, EntryPoint = "thunderscopeCalibrationSet")]     // Use runtime marshalling for now. Custom marshalling later.
+        [DllImport(library, EntryPoint = "thunderscopeChanCalibrationSet")]     // Use runtime marshalling for now. Custom marshalling later.
         public static extern int SetCalibration(nint ts, uint channel, in tsChannelCalibration_t cal);
+        
+        [DllImport(library, EntryPoint = "thunderscopeAdcCalibrationSet")] // Use runtime marshalling for now. Custom marshalling later.
+        public static extern int SetAdcCalibration(nint ts, in tsAdcCalibration_t cal);
 
         [LibraryImport(library, EntryPoint = "thunderscopeDataEnable")]
         public static partial int DataEnable(nint ts, byte enable);
