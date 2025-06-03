@@ -94,5 +94,21 @@ namespace TS.NET.Driver.Libtslitex
 
         [LibraryImport(library, EntryPoint = "thunderscopeRead")]
         public static unsafe partial int Read(nint ts, byte* buffer, uint len);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct tsChannelCtrl_t
+        {
+            public byte atten;
+            public byte term;
+            public byte dc_couple;
+            public ushort dac;
+            public byte dpot;
+            public byte pga_high_gain;
+            public byte pga_atten;
+            public byte pga_bw;
+        }
+
+        [LibraryImport(library, EntryPoint = "thunderscopeCalibrationManualCtrl")]
+        public static unsafe partial int SetChannelManualControl(nint ts, uint channel, in tsChannelCtrl_t ctrl);
     }
 }

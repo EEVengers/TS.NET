@@ -19,6 +19,5 @@
     public record HardwareSetOffsetVoltageLowGainRequest(int ChannelIndex, double OffsetVoltage) : HardwareSetChannelCalibrationRequest(ChannelIndex);
     public record HardwareSetOffsetVoltageHighGainRequest(int ChannelIndex, double OffsetVoltage) : HardwareSetChannelCalibrationRequest(ChannelIndex);
 
-    public abstract record HardwareSetChannelFrontendOverrideRequest(int ChannelIndex) : HardwareRequestDto;
-    public record HardwareSetPgaConfigWordOverrideRequest(int ChannelIndex, ushort PgaConfigWord) : HardwareSetChannelFrontendOverrideRequest(ChannelIndex);
+    public record HardwareSetChannelManualControlRequest(int ChannelIndex, ThunderscopeChannelFrontendManualControl Channel) : HardwareRequestDto;
 }

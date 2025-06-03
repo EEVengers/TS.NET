@@ -229,22 +229,12 @@ namespace TS.NET.Engine
                                         thunderscope.SetChannelCalibration(channelIndex, channelCalibration);
                                         break;
                                     }
-                                case HardwareSetChannelFrontendOverrideRequest hardwareSetChannelFrontendOverrideRequest:
+                                case HardwareSetChannelManualControlRequest hardwareSetChannelManualControlRequest:
                                     {
-                                        var channelIndex = ((HardwareSetChannelFrontendOverrideRequest)request).ChannelIndex;
-                                        var channelFrontend = thunderscope.GetChannelFrontend(channelIndex);
-                                        switch (request)
-                                        {
-                                            case HardwareSetPgaConfigWordOverrideRequest hardwareSetPgaWordOverrideRequest:
-                                                logger.LogDebug($"{nameof(HardwareSetPgaConfigWordOverrideRequest)} (channel: {channelIndex})");
-                                                channelFrontend.PgaConfigWordOverride = true;
-                                                ushort pgaConfigWord = hardwareSetPgaWordOverrideRequest.PgaConfigWord;
-                                                pgaConfigWord &= 0x01FF;    // Mask off the top 7 bits
-                                                pgaConfigWord |= 0x400;     // Add on mandatory Aux Hi-Z bit
-                                                channelFrontend.PgaConfigWord = pgaConfigWord;
-                                                break;
-                                        }
-                                        thunderscope.SetChannelFrontend(channelIndex, channelFrontend);
+                                        var channelIndex = hardwareSetChannelManualControlRequest.ChannelIndex;
+                                        var channel = hardwareSetChannelManualControlRequest.Channel;
+
+                                        ((Driver.Libtslitex.Thunderscope)thunderscope).SetChannelManualControl(channelIndex, channel);
                                         break;
                                     }
                                 default:

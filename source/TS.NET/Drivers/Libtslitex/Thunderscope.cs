@@ -314,5 +314,28 @@ namespace TS.NET.Driver.Libtslitex
                 throw new Exception($"Thunderscope failed to set channel {channelIndex} config ({retVal})");
 
         }
+   
+        public void SetChannelManualControl(int channelIndex, ThunderscopeChannelFrontendManualControl channel)
+        {
+            if (!open)
+                throw new Exception("Thunderscope not open");
+
+            var tsChannel = new Interop.tsChannelCtrl_t();
+            tsChannel.atten = channel.Attenuator;
+            tsChannel.term = (channel.Termination == ThunderscopeTermination.OneMegaohm) ? (byte)0 : (byte)1;
+            tsChannel.dc_couple = (channel.Coupling == ThunderscopeCoupling.DC) ? (byte)1 : (byte)0;
+            tsChannel.dac = channel.DAC;
+            tsChannel.dpot = channel.DPOT;
+            
+            tsChannel.pga_atten = channel.PgaLadderAttenuation;
+            tsChannel.pga_high_gain = channel.PgaHighGain;
+            tsChannel.pga_bw = channel.PgaFilter;         
+
+            var retVal = Interop.SetChannelManualControl(tsHandle, (uint)channelIndex, tsChannel);
+
+            if (retVal != 0)
+                throw new Exception($"Thunderscope failed to set channel {channelIndex} config ({retVal})");
+
+        }
     }
 }

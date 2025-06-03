@@ -359,6 +359,37 @@ namespace TS.NET.Engine
                             // :CAL
                             switch (command)
                             {
+                                case var _ when command.StartsWith("MANUAL"):
+                                    {
+                                        // CAL:MANUAL 1 0 3777 128 5 1 0
+                                        var args = argument.Split(' ');
+                                        if (!char.IsDigit(args[0][^1]))
+                                        {
+                                            logger.LogWarning("Parameter not valid");
+                                            break;
+                                        }
+                                        int channelNumber = args[0][^1] - '0';
+                                        if ((channelNumber < 1) || (channelNumber > 4))
+                                        {
+                                            logger.LogWarning("Channel index out of range, allowable values are 1 - 4");
+                                            return null;
+                                        }
+                                        int channelIndex = channelNumber - 1;
+
+                                        var channel = new ThunderscopeChannelFrontendManualControl();
+                                        channel.Coupling = ThunderscopeCoupling.DC;
+                                        channel.Termination = ThunderscopeTermination.OneMegaohm;
+
+                                        channel.Attenuator = byte.Parse(args[1]);
+                                        channel.DAC = ushort.Parse(args[2]);
+                                        channel.DPOT = byte.Parse(args[3]);
+
+                                        channel.PgaLadderAttenuation = byte.Parse(args[4]);   // 0 to 10, 0/-2/-4/-6/-8/-10/-12/-14/-16/-18/-20
+                                        channel.PgaHighGain = byte.Parse(args[5]);            // 0 = LG, 1 = HG
+                                        channel.PgaFilter = byte.Parse(args[6]);              // 0 to 6, Full/20/100/200/350/650/750
+                                        hardwareRequestChannel.Write(new HardwareSetChannelManualControlRequest(channelIndex, channel));
+                                        return null;
+                                    }
                                 case var _ when command.StartsWith("OFFSET:GAIN:LOW") && argument != null:
                                     {
                                         var args = argument.Split(' ');
@@ -399,25 +430,25 @@ namespace TS.NET.Engine
                                         hardwareRequestChannel.Write(new HardwareSetOffsetVoltageHighGainRequest(channelIndex, voltage));
                                         return null;
                                     }
-                                case var _ when command.StartsWith("OVERRIDE:PGA:CONFIG") && argument != null:
-                                    {
-                                        var args = argument.Split(' ');
-                                        if (!char.IsDigit(args[0][^1]))
-                                        {
-                                            logger.LogWarning("Parameter not valid");
-                                            break;
-                                        }
-                                        int channelNumber = args[0][^1] - '0';
-                                        if ((channelNumber < 1) || (channelNumber > 4))
-                                        {
-                                            logger.LogWarning("Channel index out of range, allowable values are 1 - 4");
-                                            return null;
-                                        }
-                                        int channelIndex = channelNumber - 1;
-                                        ushort pgaConfigWord = ushort.Parse(args[1]);
-                                        hardwareRequestChannel.Write(new HardwareSetPgaConfigWordOverrideRequest(channelIndex, pgaConfigWord));
-                                        return null;
-                                    }
+                                //case var _ when command.StartsWith("OVERRIDE:PGA:CONFIG") && argument != null:
+                                //    {
+                                //        var args = argument.Split(' ');
+                                //        if (!char.IsDigit(args[0][^1]))
+                                //        {
+                                //            logger.LogWarning("Parameter not valid");
+                                //            break;
+                                //        }
+                                //        int channelNumber = args[0][^1] - '0';
+                                //        if ((channelNumber < 1) || (channelNumber > 4))
+                                //        {
+                                //            logger.LogWarning("Channel index out of range, allowable values are 1 - 4");
+                                //            return null;
+                                //        }
+                                //        int channelIndex = channelNumber - 1;
+                                //        ushort pgaConfigWord = ushort.Parse(args[1]);
+                                //        hardwareRequestChannel.Write(new HardwareSetPgaConfigWordOverrideRequest(channelIndex, pgaConfigWord));
+                                //        return null;
+                                //    }
                             }
                             break;
                         }
