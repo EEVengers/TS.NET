@@ -11,8 +11,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TS.NET.Engine", "TS.NET.Eng
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TS.NET.Benchmarks", "TS.NET.Benchmarks\TS.NET.Benchmarks.csproj", "{4FD7453D-D701-41A5-AD6A-D1C62D9B40E4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Testbench", "Testbench\Testbench.csproj", "{E9B66559-4219-403A-9B16-E6BC2259250E}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,10 +33,6 @@ Global
 		{4FD7453D-D701-41A5-AD6A-D1C62D9B40E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4FD7453D-D701-41A5-AD6A-D1C62D9B40E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4FD7453D-D701-41A5-AD6A-D1C62D9B40E4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E9B66559-4219-403A-9B16-E6BC2259250E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E9B66559-4219-403A-9B16-E6BC2259250E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E9B66559-4219-403A-9B16-E6BC2259250E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E9B66559-4219-403A-9B16-E6BC2259250E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
