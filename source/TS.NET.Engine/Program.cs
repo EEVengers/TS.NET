@@ -162,7 +162,7 @@ class Program
                         bufferLength = 60;
                         break;
                     }
-                case "litex":       // Use libtslitex for now
+                case "litex":
                 case "libtslitex":
                     {
                         var ts = new TS.NET.Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
@@ -205,7 +205,9 @@ class Program
             BlockingChannel<ProcessingRequestDto> processingRequestChannel = new();
             BlockingChannel<ProcessingResponseDto> processingResponseChannel = new();
 
-            var captureBuffer = new CaptureCircularBufferI8(thunderscopeSettings.MaxChannelDataLength * thunderscopeSettings.MaxChannelCount);
+            long captureBufferLength = ((long)thunderscopeSettings.MaxChannelDataLength) * thunderscopeSettings.MaxChannelCount;
+            logger?.LogDebug($"CaptureCircularBufferI8 length: {captureBufferLength}");
+            var captureBuffer = new CaptureCircularBufferI8(captureBufferLength);
 
             // Start threads
             SemaphoreSlim startSemaphore = new(1);
