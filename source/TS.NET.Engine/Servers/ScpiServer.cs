@@ -467,7 +467,7 @@ namespace TS.NET.Engine
                             }
                         case "DEPTHS?":
                             List<string> depths = [];
-                            int baseCount = 1000;
+                            long baseCount = 1000;
                             while (true)
                             {
                                 if (baseCount <= settings.MaxChannelDataLength)
