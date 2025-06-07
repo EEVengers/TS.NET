@@ -181,6 +181,7 @@ class Program
                         initialHardwareConfiguration.Calibration[1] = thunderscopeSettings.LiteXCalibration.Channel2.ToDriver();
                         initialHardwareConfiguration.Calibration[2] = thunderscopeSettings.LiteXCalibration.Channel3.ToDriver();
                         initialHardwareConfiguration.Calibration[3] = thunderscopeSettings.LiteXCalibration.Channel4.ToDriver();
+                        initialHardwareConfiguration.AdcCalibration = thunderscopeSettings.LiteXCalibration.Adc.ToDriver();
                         ts.Open((uint)deviceIndex, initialHardwareConfiguration);
                         thunderscope = ts;
                         bufferLength = 3;

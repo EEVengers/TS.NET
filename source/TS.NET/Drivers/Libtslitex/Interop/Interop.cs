@@ -9,8 +9,8 @@ namespace TS.NET.Driver.Libtslitex
         [StructLayout(LayoutKind.Sequential)]
         public struct tsChannelParam_t
         {
-            public uint volt_scale_mV;
-            public int volt_offset_mV;
+            public uint volt_scale_uV;
+            public int volt_offset_uV;
             public uint bandwidth;
             public byte coupling;
             public byte term;
@@ -22,6 +22,7 @@ namespace TS.NET.Driver.Libtslitex
         public struct tsDeviceInfo_t
         {
             public uint deviceID;
+            public uint hw_id;
             [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
             public string devicePath;
             [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
@@ -43,13 +44,15 @@ namespace TS.NET.Driver.Libtslitex
             public uint vcc_int;
             public uint vcc_aux;
             public uint vcc_bram;
+            public byte frontend_power_good;
+            public byte acq_power_good;
         }
 
         [StructLayout(LayoutKind.Sequential)]
         public struct tsChannelCalibration_t
         {
-            public int buffer_mV;
-            public int bias_mV;
+            public int buffer_uV;
+            public int bias_uV;
             public int attenuatorGain1M_mdB;
             public int attenuatorGain50_mdB;
             public int bufferGain_mdB;
@@ -60,13 +63,24 @@ namespace TS.NET.Driver.Libtslitex
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
             public int[] preampAttenuatorGain_mdB;
             public int preampOutputGainError_mdB;
-            public int preampLowOffset_mV;
-            public int preampHighOffset_mV;
+            public int preampLowOffset_uV;
+            public int preampHighOffset_uV;
             public int preampInputBias_uA;
+
+            public tsChannelCalibration_t() { preampAttenuatorGain_mdB = new int[11]; }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct tsAdcCalibration_t
+        {
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
+            public byte[] branchFineGain;
+
+            public tsAdcCalibration_t() { branchFineGain = new byte[8]; }
         }
 
         [LibraryImport(library, EntryPoint = "thunderscopeOpen")]
-        public static partial nint Open(uint devIndex);
+        public static partial nint Open(uint devIndex, [MarshalAs(UnmanagedType.U1)] Boolean skip_init);
 
         [LibraryImport(library, EntryPoint = "thunderscopeClose")]
         public static partial int Close(nint ts);
@@ -86,8 +100,11 @@ namespace TS.NET.Driver.Libtslitex
         [LibraryImport(library, EntryPoint = "thunderscopeSampleModeSet")]
         public static partial int SetSampleMode(nint ts, uint rate, uint resolution);
 
-        [DllImport(library, EntryPoint = "thunderscopeCalibrationSet")]     // Use runtime marshalling for now. Custom marshalling later.
+        [DllImport(library, EntryPoint = "thunderscopeChanCalibrationSet")]     // Use runtime marshalling for now. Custom marshalling later.
         public static extern int SetCalibration(nint ts, uint channel, in tsChannelCalibration_t cal);
+        
+        [DllImport(library, EntryPoint = "thunderscopeAdcCalibrationSet")] // Use runtime marshalling for now. Custom marshalling later.
+        public static extern int SetAdcCalibration(nint ts, in tsAdcCalibration_t cal);
 
         [LibraryImport(library, EntryPoint = "thunderscopeDataEnable")]
         public static partial int DataEnable(nint ts, byte enable);

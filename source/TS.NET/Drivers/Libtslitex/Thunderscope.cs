@@ -38,12 +38,12 @@ namespace TS.NET.Driver.Libtslitex
                 Close();
 
             //Initialise();
-            tsHandle = Interop.Open(devIndex);
+            tsHandle = Interop.Open(devIndex, false);
 
             if (tsHandle == 0)
                 throw new Exception($"Thunderscope failed to open device {devIndex} ({tsHandle})");
             open = true;
-
+            SetAdcCalibration(initialHardwareConfiguration.AdcCalibration);
             for (int chan = 0; chan < 4; chan++)
             {
                 SetChannelCalibration(chan, initialHardwareConfiguration.Calibration[chan]);
@@ -125,8 +125,8 @@ namespace TS.NET.Driver.Libtslitex
                 throw new Exception($"Thunderscope failed to get channel {channelIndex} config ({retVal})");
 
             channel.VoltFullScale = this.channel_volt_scale[channelIndex];
-            channel.ActualVoltFullScale = (double)tsChannel.volt_scale_mV / 1000.0;
-            channel.VoltOffset = (double)tsChannel.volt_offset_mV / 1000.0;
+            channel.ActualVoltFullScale = (double)tsChannel.volt_scale_uV / 1000000.0;
+            channel.VoltOffset = (double)tsChannel.volt_offset_uV / 1000000.0;
             channel.Coupling = (tsChannel.coupling == 1) ? ThunderscopeCoupling.AC : ThunderscopeCoupling.DC;
             channel.Termination = (tsChannel.term == 1) ? ThunderscopeTermination.FiftyOhm : ThunderscopeTermination.OneMegaohm;
             channel.Bandwidth = (tsChannel.bandwidth == 750) ? ThunderscopeBandwidth.Bw750M :
@@ -158,8 +158,8 @@ namespace TS.NET.Driver.Libtslitex
                     throw new Exception($"Thunderscope failed to get channel {ch} config ({retVal})");
 
                 config.Frontend[ch].VoltFullScale = this.channel_volt_scale[ch];
-                config.Frontend[ch].ActualVoltFullScale = (double)tsChannel.volt_scale_mV / 1000.0;
-                config.Frontend[ch].VoltOffset = (double)tsChannel.volt_offset_mV / 1000.0;
+                config.Frontend[ch].ActualVoltFullScale = (double)tsChannel.volt_scale_uV / 1000000.0;
+                config.Frontend[ch].VoltOffset = (double)tsChannel.volt_offset_uV / 1000000.0;
                 config.Frontend[ch].Coupling = (tsChannel.coupling == 1) ? ThunderscopeCoupling.AC : ThunderscopeCoupling.DC;
                 config.Frontend[ch].Termination = (tsChannel.term == 1) ? ThunderscopeTermination.FiftyOhm : ThunderscopeTermination.OneMegaohm;
                 config.Frontend[ch].Bandwidth = (tsChannel.bandwidth == 750) ? ThunderscopeBandwidth.Bw750M :
@@ -205,7 +205,7 @@ namespace TS.NET.Driver.Libtslitex
 
             var litexState = new Interop.tsScopeState_t();
             if (Interop.GetStatus(tsHandle, out litexState) != 0)
-                throw new Exception("");
+                throw new Exception("Failed to get libtslitex status");
 
             tsHealth.AdcSampleRate = litexState.adc_sample_rate;
             tsHealth.AdcSampleSize = litexState.adc_sample_bits;
@@ -243,8 +243,8 @@ namespace TS.NET.Driver.Libtslitex
             if (retVal != 0)
                 throw new Exception($"Thunderscope failed to get channel {channelIndex} config ({retVal})");
 
-            tsChannel.volt_scale_mV = (uint)(channel.VoltFullScale * 1000);
-            tsChannel.volt_offset_mV = (int)(channel.VoltOffset * 1000);
+            tsChannel.volt_scale_uV = (uint)(channel.VoltFullScale * 1000000);
+            tsChannel.volt_offset_uV = (int)(channel.VoltOffset * 1000000);
             tsChannel.coupling = (channel.Coupling == ThunderscopeCoupling.DC) ? (byte)0 : (byte)1;
             tsChannel.term = (channel.Termination == ThunderscopeTermination.OneMegaohm) ? (byte)0 : (byte)1;
             tsChannel.bandwidth = channel.Bandwidth switch
@@ -267,6 +267,23 @@ namespace TS.NET.Driver.Libtslitex
             this.channel_volt_scale[channelIndex] = channel.VoltFullScale;
         }
 
+        public void SetAdcCalibration(ThunderscopeAdcCalibration adcCal)
+        {
+            if (!open)
+                throw new Exception("Thunderscope not open");
+
+            var tsCal = new Interop.tsAdcCalibration_t();
+            tsCal.branchFineGain[0] = adcCal.FineGainBranch1;
+            tsCal.branchFineGain[1] = adcCal.FineGainBranch2;
+            tsCal.branchFineGain[2] = adcCal.FineGainBranch3;
+            tsCal.branchFineGain[3] = adcCal.FineGainBranch4;
+            tsCal.branchFineGain[4] = adcCal.FineGainBranch5;
+            tsCal.branchFineGain[5] = adcCal.FineGainBranch6;
+            tsCal.branchFineGain[6] = adcCal.FineGainBranch7;
+            tsCal.branchFineGain[7] = adcCal.FineGainBranch8;
+            
+            Interop.SetAdcCalibration(tsHandle, in tsCal);
+        }
         public void SetChannelCalibration(int channelIndex, ThunderscopeChannelCalibration channelCalibration)
         {
             if (!open)
@@ -277,19 +294,30 @@ namespace TS.NET.Driver.Libtslitex
 
             var tsCal = new Interop.tsChannelCalibration_t
             {
-                buffer_mV = (int)(channelCalibration.BufferOffset * 1000),
-                bias_mV = (int)(channelCalibration.BiasVoltage * 1000),
+                buffer_uV = (int)(channelCalibration.BufferOffset * 1000000),
+                bias_uV = (int)(channelCalibration.BiasVoltage * 1000000),
                 attenuatorGain1M_mdB = (int)(channelCalibration.AttenuatorGain1MOhm * 1000),
                 attenuatorGain50_mdB = (int)(channelCalibration.AttenuatorGain50Ohm * 1000),
                 bufferGain_mdB = (int)(channelCalibration.BufferGain * 1000),
                 trimRheostat_range = (int)channelCalibration.TrimResistorOhms,
                 preampLowGainError_mdB = (int)(channelCalibration.PgaLowGainError * 1000),
                 preampHighGainError_mdB = (int)(channelCalibration.PgaHighGainError * 1000),
-                preampLowOffset_mV = (int)(channelCalibration.PgaLowOffsetVoltage * 1000),
-                preampHighOffset_mV = (int)(channelCalibration.PgaHighOffsetVoltage * 1000),
+                preampLowOffset_uV = (int)(channelCalibration.PgaLowOffsetVoltage * 1000000),
+                preampHighOffset_uV = (int)(channelCalibration.PgaHighOffsetVoltage * 1000000),
                 preampOutputGainError_mdB = (int)(channelCalibration.PgaOutputGainError * 1000),
                 preampInputBias_uA = (int)channelCalibration.PgaInputBiasCurrent,
             };
+            tsCal.preampAttenuatorGain_mdB[0] = (int)channelCalibration.PgaAttenuatorGain0;
+            tsCal.preampAttenuatorGain_mdB[1] = (int)channelCalibration.PgaAttenuatorGain1;
+            tsCal.preampAttenuatorGain_mdB[2] = (int)channelCalibration.PgaAttenuatorGain2;
+            tsCal.preampAttenuatorGain_mdB[3] = (int)channelCalibration.PgaAttenuatorGain3;
+            tsCal.preampAttenuatorGain_mdB[4] = (int)channelCalibration.PgaAttenuatorGain4;
+            tsCal.preampAttenuatorGain_mdB[5] = (int)channelCalibration.PgaAttenuatorGain5;
+            tsCal.preampAttenuatorGain_mdB[6] = (int)channelCalibration.PgaAttenuatorGain6;
+            tsCal.preampAttenuatorGain_mdB[7] = (int)channelCalibration.PgaAttenuatorGain7;
+            tsCal.preampAttenuatorGain_mdB[8] = (int)channelCalibration.PgaAttenuatorGain8;
+            tsCal.preampAttenuatorGain_mdB[9] = (int)channelCalibration.PgaAttenuatorGain9;
+            tsCal.preampAttenuatorGain_mdB[10] = (int)channelCalibration.PgaAttenuatorGain10;
 
             tsCalibration[channelIndex] = channelCalibration;
             Interop.SetCalibration(tsHandle, (uint)channelIndex, in tsCal);
