@@ -186,7 +186,6 @@ namespace TS.NET.Driver.Libtslitex
             return config;
         }
 
-
         public ThunderscopeChannelCalibration GetChannelCalibration(int channelIndex)
         {
             if (!open)

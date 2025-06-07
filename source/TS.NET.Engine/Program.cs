@@ -261,6 +261,16 @@ class Program
             dataServer?.Stop();
             hardwareThread.Stop();
             processingThread.Stop();
+
+            switch (thunderscopeSettings.HardwareDriver.ToLower())
+            {
+                case "litex":
+                case "libtslitex":
+                    {
+                        ((TS.NET.Driver.Libtslitex.Thunderscope)thunderscope).Close();
+                        break;
+                    }
+            }
         }
         catch (IOException)
         {

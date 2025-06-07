@@ -181,7 +181,7 @@ namespace TS.NET.Engine
                                         if (!char.IsDigit(argument[^1]))
                                         {
                                             logger.LogWarning($"Trigger source argument not valid");
-                                            break;
+                                            return null;
                                         }
                                         int source = Convert.ToInt32(argument.ToArray()[^1]) - '0';
                                         if (source < 1 || source > 4)
@@ -291,7 +291,7 @@ namespace TS.NET.Engine
                                         if (thunderscopeBandwidth == null)
                                         {
                                             logger.LogWarning("Bandwidth argument not recognised");
-                                            break;
+                                            return null;
                                         }
                                         hardwareRequestChannel.Write(new HardwareSetBandwidthRequest(channelIndex, (ThunderscopeBandwidth)thunderscopeBandwidth));
                                         return null;
@@ -309,7 +309,7 @@ namespace TS.NET.Engine
                                         if (thunderscopeCoupling == null)
                                         {
                                             logger.LogWarning("Coupling argument not recognised");
-                                            break;
+                                            return null;
                                         }
                                         hardwareRequestChannel.Write(new HardwareSetCouplingRequest(channelIndex, (ThunderscopeCoupling)thunderscopeCoupling));
                                         return null;
@@ -327,7 +327,7 @@ namespace TS.NET.Engine
                                         if (thunderscopeTermination == null)
                                         {
                                             logger.LogWarning("Termination argument not recognised");
-                                            break;
+                                            return null;
                                         }
                                         hardwareRequestChannel.Write(new HardwareSetTerminationRequest(channelIndex, (ThunderscopeTermination)thunderscopeTermination));
                                         return null;
@@ -366,7 +366,7 @@ namespace TS.NET.Engine
                                         if (!char.IsDigit(args[0][^1]))
                                         {
                                             logger.LogWarning("Parameter not valid");
-                                            break;
+                                            return null;
                                         }
                                         int channelNumber = args[0][^1] - '0';
                                         if ((channelNumber < 1) || (channelNumber > 4))
@@ -396,7 +396,7 @@ namespace TS.NET.Engine
                                         if (!char.IsDigit(args[0][^1]))
                                         {
                                             logger.LogWarning("Parameter not valid");
-                                            break;
+                                            return null;
                                         }
                                         int channelNumber = args[0][^1] - '0';
                                         if ((channelNumber < 1) || (channelNumber > 4))
@@ -416,7 +416,7 @@ namespace TS.NET.Engine
                                         if (!char.IsDigit(args[0][^1]))
                                         {
                                             logger.LogWarning("Parameter not valid");
-                                            break;
+                                            return null;
                                         }
                                         int channelNumber = args[0][^1] - '0';
                                         if ((channelNumber < 1) || (channelNumber > 4))
@@ -430,25 +430,34 @@ namespace TS.NET.Engine
                                         hardwareRequestChannel.Write(new HardwareSetOffsetVoltageHighGainRequest(channelIndex, voltage));
                                         return null;
                                     }
-                                //case var _ when command.StartsWith("OVERRIDE:PGA:CONFIG") && argument != null:
-                                //    {
-                                //        var args = argument.Split(' ');
-                                //        if (!char.IsDigit(args[0][^1]))
-                                //        {
-                                //            logger.LogWarning("Parameter not valid");
-                                //            break;
-                                //        }
-                                //        int channelNumber = args[0][^1] - '0';
-                                //        if ((channelNumber < 1) || (channelNumber > 4))
-                                //        {
-                                //            logger.LogWarning("Channel index out of range, allowable values are 1 - 4");
-                                //            return null;
-                                //        }
-                                //        int channelIndex = channelNumber - 1;
-                                //        ushort pgaConfigWord = ushort.Parse(args[1]);
-                                //        hardwareRequestChannel.Write(new HardwareSetPgaConfigWordOverrideRequest(channelIndex, pgaConfigWord));
-                                //        return null;
-                                //    }
+                                case var _ when command.StartsWith("ADC") && argument != null:
+                                    {
+                                        var args = argument.Split(' ');
+                                        if(args.Length != 8)
+                                        {
+                                            logger.LogWarning("Argument count should be 8 values");
+                                            return null;
+                                        }
+                                        var adcCal = new ThunderscopeAdcCalibration();
+                                        try
+                                        {
+                                            adcCal.FineGainBranch1 = Convert.ToByte(args[0]);
+                                            adcCal.FineGainBranch2 = Convert.ToByte(args[1]);
+                                            adcCal.FineGainBranch3 = Convert.ToByte(args[2]);
+                                            adcCal.FineGainBranch4 = Convert.ToByte(args[3]);
+                                            adcCal.FineGainBranch5 = Convert.ToByte(args[4]);
+                                            adcCal.FineGainBranch6 = Convert.ToByte(args[5]);
+                                            adcCal.FineGainBranch7 = Convert.ToByte(args[6]);
+                                            adcCal.FineGainBranch8 = Convert.ToByte(args[7]);
+                                            hardwareRequestChannel.Write(new HardwareSetAdcCalibrationRequest(adcCal));
+                                        }
+                                        catch
+                                        {
+                                            logger.LogWarning("Not able to parse values");
+                                            return null;
+                                        }
+                                        return null;
+                                    }
                             }
                             break;
                         }

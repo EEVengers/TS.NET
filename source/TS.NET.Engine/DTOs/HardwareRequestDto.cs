@@ -20,4 +20,5 @@
     public record HardwareSetOffsetVoltageHighGainRequest(int ChannelIndex, double OffsetVoltage) : HardwareSetChannelCalibrationRequest(ChannelIndex);
 
     public record HardwareSetChannelManualControlRequest(int ChannelIndex, ThunderscopeChannelFrontendManualControl Channel) : HardwareRequestDto;
+    public record HardwareSetAdcCalibrationRequest(ThunderscopeAdcCalibration AdcCalibration) : HardwareRequestDto;
 }

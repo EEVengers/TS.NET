@@ -237,6 +237,11 @@ namespace TS.NET.Engine
                                         ((Driver.Libtslitex.Thunderscope)thunderscope).SetChannelManualControl(channelIndex, channel);
                                         break;
                                     }
+                                case HardwareSetAdcCalibrationRequest hardwareSetAdcCalibrationRequest:
+                                    {
+                                        ((Driver.Libtslitex.Thunderscope)thunderscope).SetAdcCalibration(hardwareSetAdcCalibrationRequest.AdcCalibration);
+                                        break;
+                                    }
                                 default:
                                     logger.LogWarning($"Unknown {nameof(HardwareRequestDto)}: {request}");
                                     break;
