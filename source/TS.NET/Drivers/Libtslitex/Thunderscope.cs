@@ -267,7 +267,7 @@ namespace TS.NET.Driver.Libtslitex
             this.channel_volt_scale[channelIndex] = channel.VoltFullScale;
         }
 
-        public unsafe void SetAdcCalibration(ThunderscopeAdcCalibration adcCal)
+        public void SetAdcCalibration(ThunderscopeAdcCalibration adcCal)
         {
             if (!open)
                 throw new Exception("Thunderscope not open");
@@ -307,6 +307,17 @@ namespace TS.NET.Driver.Libtslitex
                 preampOutputGainError_mdB = (int)(channelCalibration.PgaOutputGainError * 1000),
                 preampInputBias_uA = (int)channelCalibration.PgaInputBiasCurrent,
             };
+            tsCal.preampAttenuatorGain_mdB[0] = (int)channelCalibration.PgaAttenuatorGain0;
+            tsCal.preampAttenuatorGain_mdB[1] = (int)channelCalibration.PgaAttenuatorGain1;
+            tsCal.preampAttenuatorGain_mdB[2] = (int)channelCalibration.PgaAttenuatorGain2;
+            tsCal.preampAttenuatorGain_mdB[3] = (int)channelCalibration.PgaAttenuatorGain3;
+            tsCal.preampAttenuatorGain_mdB[4] = (int)channelCalibration.PgaAttenuatorGain4;
+            tsCal.preampAttenuatorGain_mdB[5] = (int)channelCalibration.PgaAttenuatorGain5;
+            tsCal.preampAttenuatorGain_mdB[6] = (int)channelCalibration.PgaAttenuatorGain6;
+            tsCal.preampAttenuatorGain_mdB[7] = (int)channelCalibration.PgaAttenuatorGain7;
+            tsCal.preampAttenuatorGain_mdB[8] = (int)channelCalibration.PgaAttenuatorGain8;
+            tsCal.preampAttenuatorGain_mdB[9] = (int)channelCalibration.PgaAttenuatorGain9;
+            tsCal.preampAttenuatorGain_mdB[10] = (int)channelCalibration.PgaAttenuatorGain10;
 
             tsCalibration[channelIndex] = channelCalibration;
             Interop.SetCalibration(tsHandle, (uint)channelIndex, in tsCal);

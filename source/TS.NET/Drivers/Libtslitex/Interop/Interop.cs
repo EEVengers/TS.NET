@@ -66,12 +66,17 @@ namespace TS.NET.Driver.Libtslitex
             public int preampLowOffset_uV;
             public int preampHighOffset_uV;
             public int preampInputBias_uA;
+
+            public tsChannelCalibration_t() { preampAttenuatorGain_mdB = new int[11]; }
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public unsafe struct tsAdcCalibration_t
+        public struct tsAdcCalibration_t
         {
-            public fixed byte branchFineGain[8];
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
+            public byte[] branchFineGain;
+
+            public tsAdcCalibration_t() { branchFineGain = new byte[8]; }
         }
 
         [LibraryImport(library, EntryPoint = "thunderscopeOpen")]
