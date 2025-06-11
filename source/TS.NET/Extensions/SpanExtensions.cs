@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Intrinsics.X86;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.Intrinsics.X86;
 
 namespace TS.NET
 {
@@ -27,7 +22,7 @@ namespace TS.NET
                     double* outputPtr = outputP;
                     for (int i = 0; i < loopIterations; i++)
                     {
-                        var intVector = Sse41.ConvertToVector128Int32(inputPtr);            // Convert 4 bytes into 4 ints
+                        var intVector = Sse41.ConvertToVector128Int32((sbyte*)inputPtr);            // Convert 4 bytes into 4 ints
                         var doubleVector = Avx.ConvertToVector256Double(intVector);         // Convert 4 ints into 4 doubles
                         Avx.Store(outputPtr, doubleVector);
                         inputPtr += 4;

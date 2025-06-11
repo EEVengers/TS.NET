@@ -76,10 +76,65 @@ namespace TS.NET.Engine
             BlockingChannelReader<ProcessingResponseDto> processingResponseChannel,
             string message)
         {
+            const string InvalidParameters = "One or more invalid parameters";
+
             string? argument = null;
             string? subject = null;
             string command = message;
             bool isQuery = false;
+
+            int? GetChannelIndex(string arg)
+            {
+                if (!char.IsDigit(arg[^1]))
+                {
+                    logger.LogWarning("Channel parameter not valid");
+                    return null;
+                }
+                int channelNumber = arg[^1] - '0';
+                if ((channelNumber < 1) || (channelNumber > 4))
+                {
+                    logger.LogWarning("Channel parameter out of range, allowable values are 1 - 4");
+                    return null;
+                }
+                return channelNumber - 1;
+            }
+
+            ThunderscopeBandwidth? GetBandwidth(string arg)
+            {
+                ThunderscopeBandwidth? thunderscopeBandwidth = arg switch
+                {
+                    "FULL" => ThunderscopeBandwidth.BwFull,
+                    "750M" => ThunderscopeBandwidth.Bw750M,
+                    "650M" => ThunderscopeBandwidth.Bw650M,
+                    "350M" => ThunderscopeBandwidth.Bw350M,
+                    "200M" => ThunderscopeBandwidth.Bw200M,
+                    "100M" => ThunderscopeBandwidth.Bw100M,
+                    "20M" => ThunderscopeBandwidth.Bw20M,
+                    _ => null
+                };
+                if (thunderscopeBandwidth == null)
+                {
+                    logger.LogWarning("Bandwidth parameter not recognised");
+                    return null;
+                }
+                return thunderscopeBandwidth;
+            }
+
+            ThunderscopeTermination? GetTermination(string arg)
+            {
+                ThunderscopeTermination? thunderscopeTermination = argument switch
+                {
+                    "1M" => ThunderscopeTermination.OneMegaohm,
+                    "50" => ThunderscopeTermination.FiftyOhm,
+                    _ => null
+                };
+                if (thunderscopeTermination == null)
+                {
+                    logger.LogWarning("Termination parameter not recognised");
+                    return null;
+                }
+                return thunderscopeTermination;
+            }
 
             logger.LogDebug($"SCPI request: {message}");
 
@@ -180,7 +235,7 @@ namespace TS.NET.Engine
                                         // TRIG:SOU <arg>
                                         if (!char.IsDigit(argument[^1]))
                                         {
-                                            logger.LogWarning($"Trigger source argument not valid");
+                                            logger.LogWarning($"Trigger source parameter not valid");
                                             return null;
                                         }
                                         int source = Convert.ToInt32(argument.ToArray()[^1]) - '0';
@@ -226,7 +281,7 @@ namespace TS.NET.Engine
                                     }
                                 // Deprecated, keep until March 2025. Replaced with TRIG:EDGE:LEV.
                                 case var _ when command.StartsWith("LEV") && argument != null:
-                                //case var _ when command.StartsWith("EDGE:LEV") && argument != null:
+                                    //case var _ when command.StartsWith("EDGE:LEV") && argument != null:
                                     {
                                         // TRIGger:EDGE:LEVel <arg>
                                         // TRIG:EDGE:LEV <arg>
@@ -254,18 +309,12 @@ namespace TS.NET.Engine
                             }
                             break;
                         }
-                    case var _ when char.IsDigit(subject[0]):    // Maintain backwards compatibility, remove later
                     case var _ when subject.StartsWith("CHAN") && char.IsDigit(subject[^1]):
                         {
                             // CHANnel1:
                             // CHAN1:
-                            int channelNumber = subject[^1] - '0';
-                            if ((channelNumber < 1) || (channelNumber > 4))
-                            {
-                                logger.LogWarning("Channel index out of range, allowable values are 1 - 4");
+                            if (GetChannelIndex(subject) is not int channelIndex)
                                 return null;
-                            }
-                            int channelIndex = channelNumber - 1;
                             switch (command)
                             {
                                 case "ON" or "OFF":
@@ -277,22 +326,8 @@ namespace TS.NET.Engine
                                     {
                                         // CHANnel1:BANDwidth <arg>
                                         // CHAN1:BAND <arg>
-                                        ThunderscopeBandwidth? thunderscopeBandwidth = argument switch
-                                        {
-                                            "FULL" => ThunderscopeBandwidth.BwFull,
-                                            "750M" => ThunderscopeBandwidth.Bw750M,
-                                            "650M" => ThunderscopeBandwidth.Bw650M,
-                                            "350M" => ThunderscopeBandwidth.Bw350M,
-                                            "200M" => ThunderscopeBandwidth.Bw200M,
-                                            "100M" => ThunderscopeBandwidth.Bw100M,
-                                            "20M" => ThunderscopeBandwidth.Bw20M,
-                                            _ => null
-                                        };
-                                        if (thunderscopeBandwidth == null)
-                                        {
-                                            logger.LogWarning("Bandwidth argument not recognised");
+                                        if (GetBandwidth(argument) is not ThunderscopeBandwidth thunderscopeBandwidth)
                                             return null;
-                                        }
                                         hardwareRequestChannel.Write(new HardwareSetBandwidthRequest(channelIndex, (ThunderscopeBandwidth)thunderscopeBandwidth));
                                         return null;
                                     }
@@ -308,7 +343,7 @@ namespace TS.NET.Engine
                                         };
                                         if (thunderscopeCoupling == null)
                                         {
-                                            logger.LogWarning("Coupling argument not recognised");
+                                            logger.LogWarning("Coupling parameter not recognised");
                                             return null;
                                         }
                                         hardwareRequestChannel.Write(new HardwareSetCouplingRequest(channelIndex, (ThunderscopeCoupling)thunderscopeCoupling));
@@ -318,18 +353,9 @@ namespace TS.NET.Engine
                                     {
                                         // CHANnel1:TERMination <arg>
                                         // CHAN1:TERM <arg>
-                                        ThunderscopeTermination? thunderscopeTermination = argument switch
-                                        {
-                                            "1M" => ThunderscopeTermination.OneMegaohm,
-                                            "50" => ThunderscopeTermination.FiftyOhm,
-                                            _ => null
-                                        };
-                                        if (thunderscopeTermination == null)
-                                        {
-                                            logger.LogWarning("Termination argument not recognised");
+                                        if (GetTermination(argument) is not ThunderscopeTermination thunderscopeTermination)
                                             return null;
-                                        }
-                                        hardwareRequestChannel.Write(new HardwareSetTerminationRequest(channelIndex, (ThunderscopeTermination)thunderscopeTermination));
+                                        hardwareRequestChannel.Write(new HardwareSetTerminationRequest(channelIndex, thunderscopeTermination));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("OFFS") && argument != null:
@@ -359,52 +385,63 @@ namespace TS.NET.Engine
                             // :CAL
                             switch (command)
                             {
-                                case var _ when command.StartsWith("MANUAL"):
+                                // :MANual
+                                // :MAN
+                                case var _ when command.StartsWith("MAN") && argument != null:
                                     {
-                                        // CAL:MANUAL 1 0 3777 128 5 1 0
-                                        var args = argument.Split(' ');
-                                        if (!char.IsDigit(args[0][^1]))
+                                        // Channel Coupling Termination Attenuator DAC DPOT PgaLadderAttenuation PgaHighGain PgaFilter
+                                        // CAL:MANUAL CHAN1 DC 1M 0 2147 4 0 1 FULL
+                                        //    - highest gain configuration with attenuator off and maximum offset adjustment range. Adjust 2147 until midscale.
+                                        // CAL:MANUAL CHAN1 DC 1M 1 2147 4 0 1 FULL
+                                        // 4 = 1563.5 ohms
+                                        try
                                         {
-                                            logger.LogWarning("Parameter not valid");
+                                            var args = argument.Split(' ');
+                                            if (GetChannelIndex(args[0]) is not int channelIndex)
+                                                return null;
+                                            var channel = new ThunderscopeChannelFrontendManualControl();
+                                            ThunderscopeCoupling? thunderscopeCoupling = args[1] switch
+                                            {
+                                                "DC" => ThunderscopeCoupling.DC,
+                                                "AC" => ThunderscopeCoupling.AC,
+                                                _ => null
+                                            };
+                                            if (thunderscopeCoupling == null)
+                                            {
+                                                logger.LogWarning("Coupling parameter not recognised");
+                                                return null;
+                                            }
+                                            channel.Coupling = (ThunderscopeCoupling)thunderscopeCoupling;
+
+                                            if (GetTermination(args[2]) is not ThunderscopeTermination thunderscopeTermination)
+                                                return null;
+                                            channel.Termination = thunderscopeTermination;
+
+                                            channel.Attenuator = byte.Parse(args[3]);
+                                            channel.DAC = ushort.Parse(args[4]);
+                                            channel.DPOT = byte.Parse(args[5]);
+
+                                            channel.PgaLadderAttenuation = byte.Parse(args[6]);   // 0 to 10, 0/-2/-4/-6/-8/-10/-12/-14/-16/-18/-20
+                                            channel.PgaHighGain = byte.Parse(args[7]);            // 0 = LG, 1 = HG
+
+                                            if (GetBandwidth(args[8]) is not ThunderscopeBandwidth thunderscopeBandwidth)
+                                                return null;
+                                            channel.PgaFilter = (byte)thunderscopeBandwidth;
+
+                                            hardwareRequestChannel.Write(new HardwareSetChannelManualControlRequest(channelIndex, channel));
+                                        }
+                                        catch
+                                        {
+                                            logger.LogWarning(InvalidParameters);
                                             return null;
                                         }
-                                        int channelNumber = args[0][^1] - '0';
-                                        if ((channelNumber < 1) || (channelNumber > 4))
-                                        {
-                                            logger.LogWarning("Channel index out of range, allowable values are 1 - 4");
-                                            return null;
-                                        }
-                                        int channelIndex = channelNumber - 1;
-
-                                        var channel = new ThunderscopeChannelFrontendManualControl();
-                                        channel.Coupling = ThunderscopeCoupling.DC;
-                                        channel.Termination = ThunderscopeTermination.OneMegaohm;
-
-                                        channel.Attenuator = byte.Parse(args[1]);
-                                        channel.DAC = ushort.Parse(args[2]);
-                                        channel.DPOT = byte.Parse(args[3]);
-
-                                        channel.PgaLadderAttenuation = byte.Parse(args[4]);   // 0 to 10, 0/-2/-4/-6/-8/-10/-12/-14/-16/-18/-20
-                                        channel.PgaHighGain = byte.Parse(args[5]);            // 0 = LG, 1 = HG
-                                        channel.PgaFilter = byte.Parse(args[6]);              // 0 to 6, Full/20/100/200/350/650/750
-                                        hardwareRequestChannel.Write(new HardwareSetChannelManualControlRequest(channelIndex, channel));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("OFFSET:GAIN:LOW") && argument != null:
                                     {
                                         var args = argument.Split(' ');
-                                        if (!char.IsDigit(args[0][^1]))
-                                        {
-                                            logger.LogWarning("Parameter not valid");
+                                        if (GetChannelIndex(args[0]) is not int channelIndex)
                                             return null;
-                                        }
-                                        int channelNumber = args[0][^1] - '0';
-                                        if ((channelNumber < 1) || (channelNumber > 4))
-                                        {
-                                            logger.LogWarning("Channel index out of range, allowable values are 1 - 4");
-                                            return null;
-                                        }
-                                        int channelIndex = channelNumber - 1;
                                         double voltage = Convert.ToDouble(args[1]);
                                         voltage = Math.Clamp(voltage, -5, 5);
                                         hardwareRequestChannel.Write(new HardwareSetOffsetVoltageLowGainRequest(channelIndex, voltage));
@@ -413,18 +450,8 @@ namespace TS.NET.Engine
                                 case var _ when command.StartsWith("OFFSET:GAIN:HIGH") && argument != null:
                                     {
                                         var args = argument.Split(' ');
-                                        if (!char.IsDigit(args[0][^1]))
-                                        {
-                                            logger.LogWarning("Parameter not valid");
+                                        if (GetChannelIndex(args[0]) is not int channelIndex)
                                             return null;
-                                        }
-                                        int channelNumber = args[0][^1] - '0';
-                                        if ((channelNumber < 1) || (channelNumber > 4))
-                                        {
-                                            logger.LogWarning("Channel index out of range, allowable values are 1 - 4");
-                                            return null;
-                                        }
-                                        int channelIndex = channelNumber - 1;
                                         double voltage = Convert.ToDouble(args[1]);
                                         voltage = Math.Clamp(voltage, 0, 5);
                                         hardwareRequestChannel.Write(new HardwareSetOffsetVoltageHighGainRequest(channelIndex, voltage));
@@ -433,9 +460,9 @@ namespace TS.NET.Engine
                                 case var _ when command.StartsWith("ADC") && argument != null:
                                     {
                                         var args = argument.Split(' ');
-                                        if(args.Length != 8)
+                                        if (args.Length != 8)
                                         {
-                                            logger.LogWarning("Argument count should be 8 values");
+                                            logger.LogWarning("Parameter count should be 8 values");
                                             return null;
                                         }
                                         var adcCal = new ThunderscopeAdcCalibration();
@@ -526,7 +553,7 @@ namespace TS.NET.Engine
                 }
             }
 
-            logger.LogWarning("Unknown SCPI Operation: {String}", message);
+            logger.LogWarning("Unknown SCPI command: {String}", message);
             return null;
         }
     }
