@@ -41,11 +41,11 @@ namespace TS.NET.Engine
     internal class WaveformSession : TcpSession
     {
         private readonly ILogger logger;
-        private readonly ICaptureBufferConsumer<sbyte> captureBuffer;
+        private readonly ICaptureBufferConsumer captureBuffer;
         private readonly CancellationToken cancellationToken;
         private uint sequenceNumber = 0;
 
-        public WaveformSession(TcpServer server, ILogger logger, ICaptureBufferConsumer<sbyte> captureBuffer, CancellationToken cancellationToken) : base(server)
+        public WaveformSession(TcpServer server, ILogger logger, ICaptureBufferConsumer captureBuffer, CancellationToken cancellationToken) : base(server)
         {
             this.logger = logger;
             this.captureBuffer = captureBuffer;
@@ -100,7 +100,7 @@ namespace TS.NET.Engine
                         // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
                         if (captureMetadata.Triggered && captureMetadata.ProcessingConfig.TriggerInterpolation)
                         {
-                            ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetReadBuffer(captureMetadata.TriggerChannelCaptureIndex);
+                            ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetChannelReadBuffer<sbyte>(captureMetadata.TriggerChannelCaptureIndex);
                             // Get the trigger index. If it's greater than 0, then do trigger interpolation.
                             int triggerIndex = (int)(captureMetadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
                             if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
@@ -140,7 +140,7 @@ namespace TS.NET.Engine
 
                                 Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
                                 bytesSent += (ulong)sizeof(ChannelHeader);
-                                var channelBuffer = MemoryMarshal.Cast<sbyte, byte>(captureBuffer.GetReadBuffer(captureBufferIndex));
+                                var channelBuffer = MemoryMarshal.Cast<sbyte, byte>(captureBuffer.GetChannelReadBuffer<sbyte>(captureBufferIndex));
                                 Send(channelBuffer);
                                 bytesSent += (ulong)captureMetadata.ProcessingConfig.ChannelDataLength;
                             }
@@ -171,9 +171,9 @@ namespace TS.NET.Engine
     {
         private readonly ILogger logger;
         private readonly CancellationTokenSource cancellationTokenSource;
-        private readonly CaptureCircularBufferI8 captureBuffer;
+        private readonly CaptureCircularBuffer captureBuffer;
 
-        public DataServer(ILoggerFactory loggerFactory, ThunderscopeSettings settings, IPAddress address, int port, CaptureCircularBufferI8 captureBuffer) : base(address, port)
+        public DataServer(ILoggerFactory loggerFactory, ThunderscopeSettings settings, IPAddress address, int port, CaptureCircularBuffer captureBuffer) : base(address, port)
         {
             logger = loggerFactory.CreateLogger(nameof(DataServer));
             cancellationTokenSource = new();

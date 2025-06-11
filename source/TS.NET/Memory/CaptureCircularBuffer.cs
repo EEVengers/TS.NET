@@ -1,31 +1,29 @@
 ﻿namespace TS.NET
 {
-    // Windows are copied out of multiple ChannelSampleCircularBufferI8 into this CaptureCircularBufferI8 when triggered, streamed or forced.
+    // Windows are copied out of multiple AcquisitionCircularBuffer into this CaptureCircularBuffer when triggered, streamed or forced.
     // This allows time for UI consumers to request multiple captures, particularly if the capture length is short (e.g. 1000 samples at ~1M captures/sec).
     // When the user changes the capture length, this buffer will empty, and then configure to allow the maximum number of captures in the given memory.
     // When the user changes various settings, this buffer will empty.
     //
     // Needs to be thread safe for a single writer thread and a single reader thread. Multiple writers or readers not allowed.
-    // The MMF becomes a pure data exchange mechanism.
 
-    public interface ICaptureBufferConsumer<T>
+    public interface ICaptureBufferConsumer
     {
         Lock ReadLock { get; }
         int ChannelCount { get; }
         bool TryStartRead(out CaptureMetadata captureMetadata);
-        ReadOnlySpan<T> GetReadBuffer(int channelIndex);
+        ReadOnlySpan<T> GetChannelReadBuffer<T>(int channelIndex) where T : unmanaged;
         void FinishRead();
     }
 
-    public class CaptureCircularBufferI8 : IDisposable, ICaptureBufferConsumer<sbyte>
+    public class CaptureCircularBuffer : IDisposable, ICaptureBufferConsumer
     {
-        private readonly NativeMemoryAligned_Old<sbyte> buffer;
+        private readonly NativeMemoryAligned buffer;
         private readonly Lock readLock = new();     // Configure/Reset/TryStartWrite/ResetIntervalStats happen on the same thread, so no need for a WriteLock
         public Lock ReadLock { get { return readLock; } }
 
-        private long captureLengthBytes;
         private int channelCount;
-        private int channelLengthBytes;
+        private int channelCaptureLength;
 
         private int maxCaptureCount;
         private int currentCaptureCount;
@@ -56,9 +54,9 @@
         public long IntervalCaptureDrops { get { return intervalCaptureDrops; } }
         public long IntervalCaptureReads { get { return intervalCaptureReads; } }
 
-        public CaptureCircularBufferI8(long totalBufferLength)
+        public CaptureCircularBuffer(long totalBufferLengthBytes)
         {
-            buffer = new NativeMemoryAligned_Old<sbyte>(totalBufferLength);
+            buffer = new NativeMemoryAligned(totalBufferLengthBytes);
             captureMetadata = [];
         }
 
@@ -68,24 +66,24 @@
             GC.SuppressFinalize(this);
         }
 
-        public void Configure(int channelCount, int channelLengthBytes)
+        public void Configure(int channelCount, int channelCaptureLength, ThunderscopeDataType dataType)
         {
-            var potentialCaptureLengthBytes = (long)channelLengthBytes * channelCount;
-            if (potentialCaptureLengthBytes > buffer.Length)
+            var potentialTotalCaptureLength = (long)channelCaptureLength * channelCount;
+            var potentialTotalCaptureLengthBytes = potentialTotalCaptureLength * dataType.ByteWidth();
+            if (potentialTotalCaptureLengthBytes > buffer.LengthBytes)
                 throw new ArgumentOutOfRangeException("Requested configuration exceeds memory size.");
 
             lock (readLock)
             {
-                captureLengthBytes = potentialCaptureLengthBytes;
                 this.channelCount = channelCount;
-                this.channelLengthBytes = channelLengthBytes;
+                this.channelCaptureLength = channelCaptureLength;
 
-                maxCaptureCount = (int)(buffer.Length / captureLengthBytes);
-                if (maxCaptureCount > 10)
+                maxCaptureCount = (int)(buffer.LengthBytes / potentialTotalCaptureLengthBytes);
+                if (maxCaptureCount > 5)
                 {
-                    maxCaptureCount = 10;   // Coerce for now until "stale data" logic implemented where UI is too slow to pull all the data
+                    maxCaptureCount = 5;   // Coerce for now until "stale data" logic implemented where UI is too slow to pull all the data
                 }
-                wraparoundOffset = maxCaptureCount * captureLengthBytes;
+                wraparoundOffset = maxCaptureCount * potentialTotalCaptureLength;
                 Reset();
             }
         }
@@ -122,25 +120,25 @@
             return true;
         }
 
+        public Span<T> GetChannelWriteBuffer<T>(int channelIndex) where T : unmanaged
+        {
+            if (channelIndex >= channelCount)
+                throw new ArgumentException();
+            int channelOffset = channelIndex * channelCaptureLength;
+            return buffer.AsSpan<T>(writeCaptureOffset + channelOffset, channelCaptureLength);
+        }
+
         public void FinishWrite(CaptureMetadata captureMetadata)
         {
             lock (readLock)
             {
                 this.captureMetadata[writeCaptureOffset] = captureMetadata;
                 currentCaptureCount++;
-                writeCaptureOffset += captureLengthBytes;
+                writeCaptureOffset += (channelCount * channelCaptureLength);
                 if (writeCaptureOffset >= wraparoundOffset)
                     writeCaptureOffset = 0;
                 writeInProgress = false;
             }
-        }
-
-        public Span<sbyte> GetWriteBuffer(int channelIndex)
-        {
-            if (channelIndex >= channelCount)
-                throw new ArgumentException();
-            int offset = channelIndex * channelLengthBytes;
-            return buffer.AsSpan(writeCaptureOffset + offset, channelLengthBytes);
         }
 
         public bool TryStartRead(out CaptureMetadata captureMetadata)
@@ -161,23 +159,23 @@
             }
         }
 
+        public ReadOnlySpan<T> GetChannelReadBuffer<T>(int channelIndex) where T : unmanaged
+        {
+            if (channelIndex >= channelCount)
+                throw new ArgumentException(nameof(channelIndex));
+            int channelOffset = channelIndex * channelCaptureLength;
+            return buffer.AsSpan<T>(readCaptureOffset + channelOffset, channelCaptureLength);
+        }
+
         public void FinishRead()
         {
             currentCaptureCount--;
-            readCaptureOffset += captureLengthBytes;
+            readCaptureOffset += (channelCount * channelCaptureLength);
             if (readCaptureOffset >= wraparoundOffset)
                 readCaptureOffset = 0;
             captureReads++;
             intervalCaptureReads++;
             readInProgress = false;
-        }
-
-        public ReadOnlySpan<sbyte> GetReadBuffer(int channelIndex)
-        {
-            if (channelIndex >= channelCount)
-                throw new ArgumentException();
-            int offset = channelIndex * channelLengthBytes;
-            return buffer.AsSpan(readCaptureOffset + offset, channelLengthBytes);
         }
 
         public void ResetIntervalStats()
@@ -188,11 +186,11 @@
         }
     }
 
-    public struct CaptureMetadata
-    {
-        public bool Triggered;
-        public int TriggerChannelCaptureIndex;
-        public ThunderscopeHardwareConfig HardwareConfig;
-        public ThunderscopeProcessingConfig ProcessingConfig;
-    }
+    //public struct CaptureMetadata
+    //{
+    //    public bool Triggered;
+    //    public int TriggerChannelCaptureIndex;
+    //    public ThunderscopeHardwareConfig HardwareConfig;
+    //    public ThunderscopeProcessingConfig ProcessingConfig;
+    //}
 }

@@ -206,9 +206,9 @@ class Program
             BlockingChannel<ProcessingRequestDto> processingRequestChannel = new();
             BlockingChannel<ProcessingResponseDto> processingResponseChannel = new();
 
-            long captureBufferLength = ((long)thunderscopeSettings.MaxChannelDataLength) * thunderscopeSettings.MaxChannelCount;
-            logger?.LogDebug($"CaptureCircularBufferI8 length: {captureBufferLength}");
-            var captureBuffer = new CaptureCircularBufferI8(captureBufferLength);
+            long captureBufferBytes = ((long)thunderscopeSettings.MaxChannelDataLength) * thunderscopeSettings.MaxChannelCount * ThunderscopeDataType.I16.ByteWidth();
+            logger?.LogDebug($"{nameof(CaptureCircularBuffer)} bytes: {captureBufferBytes}");
+            var captureBuffer = new CaptureCircularBuffer(captureBufferBytes);
 
             // Start threads
             SemaphoreSlim startSemaphore = new(1);

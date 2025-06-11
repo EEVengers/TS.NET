@@ -13,7 +13,7 @@ namespace TS.NET.Engine
         private readonly BlockingChannelWriter<ThunderscopeMemory> inputChannel;
         private readonly BlockingChannelReader<ProcessingRequestDto> processingRequestChannel;
         private readonly BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel;
-        private readonly CaptureCircularBufferI8 captureBuffer;
+        private readonly CaptureCircularBuffer captureBuffer;
 
         private CancellationTokenSource? cancelTokenSource;
         private Task? taskLoop;
@@ -26,7 +26,7 @@ namespace TS.NET.Engine
             BlockingChannelWriter<ThunderscopeMemory> inputChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel,
-            CaptureCircularBufferI8 captureBuffer)
+            CaptureCircularBuffer captureBuffer)
         {
             logger = loggerFactory.CreateLogger(nameof(ProcessingThread));
             this.settings = settings;
@@ -60,12 +60,12 @@ namespace TS.NET.Engine
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel,
             SemaphoreSlim startSemaphore,
-            CaptureCircularBufferI8 captureBuffer,
+            CaptureCircularBuffer captureBuffer,
             CancellationToken cancelToken)
         {
+            const int shuffleBufferLength_1Ch = ThunderscopeMemory.Length;
+            var shuffleBufferP = NativeMemory.AlignedAlloc(shuffleBufferLength_1Ch * sizeof(sbyte), 32);
 
-            const int memoryLength_1Ch = ThunderscopeMemory.Length;
-            var shuffleBufferP = NativeMemory.AlignedAlloc(memoryLength_1Ch, 32);
             try
             {
                 Thread.CurrentThread.Name = "Processing";
@@ -115,18 +115,18 @@ namespace TS.NET.Engine
                 };
 
                 // Shuffle buffers. Only needed for 2/4 channel modes.
-                Span<sbyte> shuffleBuffer = new Span<sbyte>((sbyte*)shuffleBufferP, memoryLength_1Ch);              
+                Span<sbyte> shuffleBuffer = new Span<sbyte>((sbyte*)shuffleBufferP, shuffleBufferLength_1Ch);
                 //Span<sbyte> shuffleBuffer = new sbyte[memoryLength_1Ch];
                 // --2 channel buffers
-                const int memoryLength_2Ch = (int)ThunderscopeMemory.Length / 2;
-                Span<sbyte> shuffleBuffer2Ch_1 = shuffleBuffer.Slice(0, memoryLength_2Ch);
-                Span<sbyte> shuffleBuffer2Ch_2 = shuffleBuffer.Slice(memoryLength_2Ch, memoryLength_2Ch);
+                const int shuffleBufferLength_2Ch = shuffleBufferLength_1Ch / 2;
+                Span<sbyte> shuffleBuffer2Ch_1 = shuffleBuffer.Slice(0, shuffleBufferLength_2Ch);
+                Span<sbyte> shuffleBuffer2Ch_2 = shuffleBuffer.Slice(shuffleBufferLength_2Ch, shuffleBufferLength_2Ch);
                 // --4 channel buffers
-                const int memoryLength_4Ch = (int)ThunderscopeMemory.Length / 4;
-                Span<sbyte> shuffleBuffer4Ch_1 = shuffleBuffer.Slice(0, memoryLength_4Ch);
-                Span<sbyte> shuffleBuffer4Ch_2 = shuffleBuffer.Slice(memoryLength_4Ch, memoryLength_4Ch);
-                Span<sbyte> shuffleBuffer4Ch_3 = shuffleBuffer.Slice(memoryLength_4Ch * 2, memoryLength_4Ch);
-                Span<sbyte> shuffleBuffer4Ch_4 = shuffleBuffer.Slice(memoryLength_4Ch * 3, memoryLength_4Ch);
+                const int shuffleBufferLength_4Ch = shuffleBufferLength_1Ch / 4;
+                Span<sbyte> shuffleBuffer4Ch_1 = shuffleBuffer.Slice(0, shuffleBufferLength_4Ch);
+                Span<sbyte> shuffleBuffer4Ch_2 = shuffleBuffer.Slice(shuffleBufferLength_4Ch, shuffleBufferLength_4Ch);
+                Span<sbyte> shuffleBuffer4Ch_3 = shuffleBuffer.Slice(shuffleBufferLength_4Ch * 2, shuffleBufferLength_4Ch);
+                Span<sbyte> shuffleBuffer4Ch_4 = shuffleBuffer.Slice(shuffleBufferLength_4Ch * 3, shuffleBufferLength_4Ch);
                 Span<int> captureEndIndices = new int[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum window width
 
                 // Periodic debug display variables
@@ -136,12 +136,12 @@ namespace TS.NET.Engine
 
                 Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
 
-                var sampleBuffers = new ChannelSampleCircularBufferI8[4];
+                var sampleBuffers = new AcquisitionCircularBuffer[4];
                 for (int i = 0; i < 4; i++)
                 {
-                    sampleBuffers[i] = new ChannelSampleCircularBufferI8((uint)(settings.MaxChannelDataLength + ThunderscopeMemory.Length));
+                    sampleBuffers[i] = new AcquisitionCircularBuffer(settings.MaxChannelDataLength, ThunderscopeDataType.I16);
                 }
-                captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
+                captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes(), processingConfig.ChannelDataType);
 
                 // Triggering:
                 // There are 3 states for Trigger Mode: normal, single, auto.
@@ -288,7 +288,7 @@ namespace TS.NET.Engine
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerInterpolationDto)} (enabled: {processingSetTriggerInterpolation.Enabled})");
                                 break;
                             case ProcessingSetEdgeTriggerDirectionDto processingSetEdgeTriggerDirection:
-                                if(processingConfig.EdgeTriggerParameters.Direction != processingSetEdgeTriggerDirection.Edge)
+                                if (processingConfig.EdgeTriggerParameters.Direction != processingSetEdgeTriggerDirection.Edge)
                                 {
                                     processingConfig.EdgeTriggerParameters.Direction = processingSetEdgeTriggerDirection.Edge;
 
@@ -309,7 +309,7 @@ namespace TS.NET.Engine
                                 if (processingConfig.ChannelDataLength != processingSetDepthDto.Samples)
                                 {
                                     processingConfig.ChannelDataLength = processingSetDepthDto.Samples;
-                                    captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
+                                    captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes(), processingConfig.ChannelDataType);
                                     UpdateTriggerHorizontal(cachedHardwareConfig);
                                     logger.LogDebug($"{nameof(ProcessingSetDepthDto)} ({processingConfig.ChannelDataLength})");
                                 }
@@ -317,6 +317,11 @@ namespace TS.NET.Engine
                                 {
                                     logger.LogDebug($"{nameof(ProcessingSetDepthDto)} (no change)");
                                 }
+                                break;
+                            case ProcessingSetBoxcarFilter processingSetBoxcarFilter:
+                                //processingConfig.BoxcarAveraging = processingSetBoxcarFilter.Averages;
+                                //processingConfig.ChannelDataType = ThunderscopeDataType.I16;
+                                logger.LogDebug($"{nameof(ProcessingSetBoxcarFilter)} (averages: {processingSetBoxcarFilter.Averages})");
                                 break;
                             default:
                                 logger.LogWarning($"Unknown ProcessingRequestDto: {request}");
@@ -332,10 +337,6 @@ namespace TS.NET.Engine
                         if (inputDataDto.HardwareConfig.SampleRateHz != cachedHardwareConfig.SampleRateHz)
                         {
                             UpdateTriggerHorizontal(inputDataDto.HardwareConfig);
-                            //for (int i = 0; i < 4; i++)
-                            //{
-                            //    sampleBuffers[i].Reset();
-                            //}
                             captureBuffer.Reset();
                             logger.LogTrace("Hardware sample rate change ({sampleRateHz})", inputDataDto.HardwareConfig.SampleRateHz);
                         }
@@ -343,11 +344,7 @@ namespace TS.NET.Engine
                         if (inputDataDto.HardwareConfig.EnabledChannelsCount() != cachedHardwareConfig.EnabledChannelsCount())
                         {
                             processingConfig.ChannelCount = inputDataDto.HardwareConfig.EnabledChannelsCount();
-                            //for (int i = 0; i < 4; i++)
-                            //{
-                            //    sampleBuffers[i].Reset();
-                            //}
-                            captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes());
+                            captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelLengthBytes(), processingConfig.ChannelDataType);
                             logger.LogTrace("Hardware enabled channel change ({channelCount})", processingConfig.ChannelCount);
                         }
 
@@ -359,18 +356,26 @@ namespace TS.NET.Engine
                                 inputDataDto.Memory.SpanI8.CopyTo(shuffleBuffer);
                                 // Finished with the memory, return it
                                 inputChannel.Write(inputDataDto.Memory);
+                                // Apply digital filtering if configured
+                                //    Triggering happens after filtering.
+                                //    Post-filter means the UI display will align with the trigger point.
+                                //    Potentially allow the configuration of pre/post later.
+                                if (processingConfig.BoxcarAveraging != BoxcarAveraging.None)
+                                {
+                                    throw new NotImplementedException();
+                                }
                                 // Write to circular sample buffer
-                                sampleBuffers[0].Write(shuffleBuffer);
-                                streamSampleCounter += memoryLength_1Ch;
+                                sampleBuffers[0].Write<sbyte>(shuffleBuffer);
+                                streamSampleCounter += shuffleBufferLength_1Ch;
                                 break;
                             case AdcChannelMode.Dual:
                                 ShuffleI8.TwoChannels(input: inputDataDto.Memory.SpanI8, output: shuffleBuffer);
                                 // Finished with the memory, return it
                                 inputChannel.Write(inputDataDto.Memory);
                                 // Write to circular sample buffers
-                                sampleBuffers[0].Write(shuffleBuffer2Ch_1);
-                                sampleBuffers[1].Write(shuffleBuffer2Ch_2);
-                                streamSampleCounter += memoryLength_2Ch;
+                                sampleBuffers[0].Write<sbyte>(shuffleBuffer2Ch_1);
+                                sampleBuffers[1].Write<sbyte>(shuffleBuffer2Ch_2);
+                                streamSampleCounter += shuffleBufferLength_2Ch;
                                 break;
                             case AdcChannelMode.Quad:
                                 // Quad channel mode is a bit different, it's processed as 4 channels but stored in the capture buffer as 3 or 4 channels.
@@ -378,11 +383,11 @@ namespace TS.NET.Engine
                                 // Finished with the memory, return it
                                 inputChannel.Write(inputDataDto.Memory);
                                 // Write to circular sample buffers
-                                sampleBuffers[0].Write(shuffleBuffer4Ch_1);
-                                sampleBuffers[1].Write(shuffleBuffer4Ch_2);
-                                sampleBuffers[2].Write(shuffleBuffer4Ch_3);
-                                sampleBuffers[3].Write(shuffleBuffer4Ch_4);
-                                streamSampleCounter += memoryLength_4Ch;
+                                sampleBuffers[0].Write<sbyte>(shuffleBuffer4Ch_1);
+                                sampleBuffers[1].Write<sbyte>(shuffleBuffer4Ch_2);
+                                sampleBuffers[2].Write<sbyte>(shuffleBuffer4Ch_3);
+                                sampleBuffers[3].Write<sbyte>(shuffleBuffer4Ch_4);
+                                streamSampleCounter += shuffleBufferLength_4Ch;
                                 break;
                         }
 
@@ -552,7 +557,7 @@ namespace TS.NET.Engine
                         int channelCount = cachedHardwareConfig.EnabledChannelsCount();
                         for (int b = 0; b < channelCount; b++)
                         {
-                            sampleBuffers[b].Read(captureBuffer.GetWriteBuffer(b), (uint)offset);
+                            sampleBuffers[b].Read(captureBuffer.GetChannelWriteBuffer<sbyte>(b), offset);
                         }
                         var captureMetadata = new CaptureMetadata
                         {
@@ -566,7 +571,7 @@ namespace TS.NET.Engine
                 }
 
                 void StreamCapture()
-                {                   
+                {
                     int channelLength = processingConfig.ChannelDataLength;
                     while (streamSampleCounter > channelLength)
                     {
