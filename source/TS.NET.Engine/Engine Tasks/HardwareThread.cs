@@ -4,7 +4,7 @@ using System.Diagnostics;
 namespace TS.NET.Engine
 {
     // The job of this task is to read from the thunderscope as fast as possible with minimal jitter
-    internal class HardwareThread
+    internal class HardwareThread : IEngineTask
     {
         private readonly ILogger logger;
         private readonly IThunderscope thunderscope;

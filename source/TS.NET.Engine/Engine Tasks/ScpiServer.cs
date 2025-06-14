@@ -2,11 +2,59 @@
 using NetCoreServer;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection.Emit;
 using System.Text;
 
 namespace TS.NET.Engine
 {
+    class ScpiServer : TcpServer, IEngineTask
+    {
+        private readonly ILogger logger;
+        private readonly ThunderscopeSettings settings;
+        private readonly BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel;
+        private readonly BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel;
+        private readonly BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel;
+        private readonly BlockingChannelReader<ProcessingResponseDto> processingResponseChannel;
+
+        public ScpiServer(ILoggerFactory loggerFactory,
+            ThunderscopeSettings settings,
+            IPAddress address,
+            int port,
+            BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel,
+            BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel,
+            BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
+            BlockingChannelReader<ProcessingResponseDto> processingResponseChannel) : base(address, port)
+        {
+            logger = loggerFactory.CreateLogger(nameof(ScpiServer));
+            this.settings = settings;
+            this.hardwareRequestChannel = hardwareRequestChannel;
+            this.hardwareResponseChannel = hardwareResponseChannel;
+            this.processingRequestChannel = processingRequestChannel;
+            this.processingResponseChannel = processingResponseChannel;
+            logger.LogDebug("Started");
+        }
+
+        protected override TcpSession CreateSession()
+        {
+            return new ScpiSession(this, logger, settings, hardwareRequestChannel, hardwareResponseChannel, processingRequestChannel, processingResponseChannel);
+        }
+
+        protected override void OnError(SocketError error)
+        {
+            logger.LogDebug($"SCPI server caught an error with code {error}");
+        }
+
+        public void Start(SemaphoreSlim startSemaphore)
+        {
+            base.Start();
+            startSemaphore.Release();
+        }
+
+        public new void Stop()
+        {
+            base.Stop();
+        }
+    }
+
     internal class ScpiSession : TcpSession
     {
         private readonly ILogger logger;
@@ -91,7 +139,7 @@ namespace TS.NET.Engine
                     return null;
                 }
                 int channelNumber = arg[^1] - '0';
-                if ((channelNumber < 1) || (channelNumber > 4))
+                if (channelNumber < 1 || channelNumber > 4)
                 {
                     logger.LogWarning("Channel parameter out of range, allowable values are 1 - 4");
                     return null;
@@ -328,7 +376,7 @@ namespace TS.NET.Engine
                                         // CHAN1:BAND <arg>
                                         if (GetBandwidth(argument) is not ThunderscopeBandwidth thunderscopeBandwidth)
                                             return null;
-                                        hardwareRequestChannel.Write(new HardwareSetBandwidthRequest(channelIndex, (ThunderscopeBandwidth)thunderscopeBandwidth));
+                                        hardwareRequestChannel.Write(new HardwareSetBandwidthRequest(channelIndex, thunderscopeBandwidth));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("COUP") && argument != null:
@@ -376,6 +424,40 @@ namespace TS.NET.Engine
                                     }
                                 default:
                                     break;  // Will log a warning at the end of the handler
+                            }
+                            break;
+                        }
+                    // Change this to a better name later
+                    case var _ when subject.StartsWith("PRO"):
+                        {
+                            // :PROcessing
+                            // :PRO
+                            switch (command)
+                            {
+                                // :FILter
+                                // :FIL
+                                // :PRO:FIL BOXCAR 2
+                                //    Boxcar average by 2, this is the same as a FIR filter of N taps with uniform weights, giving a Sinc1 response. Allowable N is 2-1000000.
+                                // :PRO:FIL FIR GAUSSIAN <taps>
+                                //    This is a FIR filter with a gaussian response.
+                                case var _ when command.StartsWith("FIL") && argument != null:
+                                    {
+                                        try
+                                        {
+                                            var args = argument.Split(' ');
+                                            if (args[0] == "BOXCAR")
+                                            {
+                                                var length = int.Parse(args[1]);
+
+                                            }
+                                        }
+                                        catch
+                                        {
+                                            logger.LogWarning(InvalidParameters);
+                                            return null;
+                                        }
+                                        break;
+                                    }
                             }
                             break;
                         }
@@ -555,44 +637,6 @@ namespace TS.NET.Engine
 
             logger.LogWarning("Unknown SCPI command: {String}", message);
             return null;
-        }
-    }
-
-    class ScpiServer : TcpServer
-    {
-        private readonly ILogger logger;
-        private readonly ThunderscopeSettings settings;
-        private readonly BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel;
-        private readonly BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel;
-        private readonly BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel;
-        private readonly BlockingChannelReader<ProcessingResponseDto> processingResponseChannel;
-
-        public ScpiServer(ILoggerFactory loggerFactory,
-            ThunderscopeSettings settings,
-            IPAddress address,
-            int port,
-            BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel,
-            BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel,
-            BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
-            BlockingChannelReader<ProcessingResponseDto> processingResponseChannel) : base(address, port)
-        {
-            logger = loggerFactory.CreateLogger(nameof(ScpiServer));
-            this.settings = settings;
-            this.hardwareRequestChannel = hardwareRequestChannel;
-            this.hardwareResponseChannel = hardwareResponseChannel;
-            this.processingRequestChannel = processingRequestChannel;
-            this.processingResponseChannel = processingResponseChannel;
-            logger.LogDebug("Started");
-        }
-
-        protected override TcpSession CreateSession()
-        {
-            return new ScpiSession(this, logger, settings, hardwareRequestChannel, hardwareResponseChannel, processingRequestChannel, processingResponseChannel);
-        }
-
-        protected override void OnError(SocketError error)
-        {
-            logger.LogDebug($"SCPI server caught an error with code {error}");
         }
     }
 }

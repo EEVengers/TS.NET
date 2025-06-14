@@ -188,11 +188,11 @@
         }
     }
 
-    public struct CaptureMetadata
-    {
-        public bool Triggered;
-        public int TriggerChannelCaptureIndex;
-        public ThunderscopeHardwareConfig HardwareConfig;
-        public ThunderscopeProcessingConfig ProcessingConfig;
-    }
+    //public struct CaptureMetadata
+    //{
+    //    public bool Triggered;
+    //    public int TriggerChannelCaptureIndex;
+    //    public ThunderscopeHardwareConfig HardwareConfig;
+    //    public ThunderscopeProcessingConfig ProcessingConfig;
+    //}
 }

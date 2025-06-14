@@ -7,7 +7,7 @@
     //
     // Needs to be thread safe for a single writer thread and a single reader thread. Multiple writers or readers not allowed.
 
-    public interface ICaptureBufferConsumer
+    public interface ICaptureBufferReader
     {
         Lock ReadLock { get; }
         int ChannelCount { get; }
@@ -16,7 +16,7 @@
         void FinishRead();
     }
 
-    public class CaptureCircularBuffer : IDisposable, ICaptureBufferConsumer
+    public class CaptureCircularBuffer : IDisposable, ICaptureBufferReader
     {
         private readonly NativeMemoryAligned buffer;
         private readonly Lock readLock = new();     // Configure/Reset/TryStartWrite/ResetIntervalStats happen on the same thread, so no need for a WriteLock
@@ -37,6 +37,11 @@
         private long writeCaptureOffset;
         private long readCaptureOffset;
         private long wraparoundOffset;
+
+        // Used for capture metadata
+        private double cachedCapturesPerSec = 0;
+        DateTimeOffset internalIntervalCaptureStartUtc = DateTimeOffset.UtcNow;
+        private long internalIntervalCaptureTotal;      
 
         Dictionary<long, CaptureMetadata> captureMetadata;
         bool writeInProgress = false;
@@ -110,6 +115,18 @@
 
             captureTotal++;
             intervalCaptureTotal++;
+
+            // cachedInternalCaptureRatePerSecond logic, used for CaptureMetadata
+            var now = DateTimeOffset.UtcNow;
+            var duration = now.Subtract(internalIntervalCaptureStartUtc).TotalSeconds;
+            if (duration > 1)
+            {
+                cachedCapturesPerSec = internalIntervalCaptureTotal / duration;
+                internalIntervalCaptureStartUtc = now;
+                internalIntervalCaptureTotal = 0;
+            }
+            internalIntervalCaptureTotal++;
+
             if (currentCaptureCount == maxCaptureCount)
             {
                 captureDrops++;
@@ -132,6 +149,7 @@
         {
             lock (readLock)
             {
+                captureMetadata.CapturesPerSec = cachedCapturesPerSec;
                 this.captureMetadata[writeCaptureOffset] = captureMetadata;
                 currentCaptureCount++;
                 writeCaptureOffset += (channelCount * channelCaptureLength);
@@ -186,11 +204,12 @@
         }
     }
 
-    //public struct CaptureMetadata
-    //{
-    //    public bool Triggered;
-    //    public int TriggerChannelCaptureIndex;
-    //    public ThunderscopeHardwareConfig HardwareConfig;
-    //    public ThunderscopeProcessingConfig ProcessingConfig;
-    //}
+    public struct CaptureMetadata
+    {
+        public bool Triggered;
+        public int TriggerChannelCaptureIndex;
+        public ThunderscopeHardwareConfig HardwareConfig;
+        public ThunderscopeProcessingConfig ProcessingConfig;
+        public double CapturesPerSec;
+    }
 }

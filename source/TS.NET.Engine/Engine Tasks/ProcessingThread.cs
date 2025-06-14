@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace TS.NET.Engine
 {
-    public class ProcessingThread
+    public class ProcessingThread : IEngineTask
     {
         private readonly ILogger logger;
         private readonly ThunderscopeSettings settings;

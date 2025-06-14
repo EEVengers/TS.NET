@@ -13,7 +13,7 @@ namespace TS.NET.Engine
         public int MaxCaptureLength { get; set; }
         public int ScpiPort { get; set; }
         public int DataPort { get; set; }
-        public bool DataPortEnabled { get; set; }
+        public string WaveformBufferReader { get; set; }
 
         public int HardwareThreadProcessorAffinity { get; set; }
         public int ProcessingThreadProcessorAffinity { get; set; }
@@ -30,7 +30,7 @@ namespace TS.NET.Engine
                 MaxCaptureLength = 10000000,
                 ScpiPort = 5025,
                 DataPort = 5026,
-                DataPortEnabled = true,
+                WaveformBufferReader = "DataServer",
 
                 HardwareThreadProcessorAffinity = -1,
                 ProcessingThreadProcessorAffinity = -1,

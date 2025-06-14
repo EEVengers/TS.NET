@@ -214,23 +214,32 @@ class Program
             SemaphoreSlim startSemaphore = new(1);
 
             startSemaphore.Wait();
-            ProcessingThread processingThread = new(loggerFactory, thunderscopeSettings, thunderscope.GetConfiguration(), processChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer, captureBuffer);
+            var processingThread = new ProcessingThread(loggerFactory, thunderscopeSettings, thunderscope.GetConfiguration(), processChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer, captureBuffer);
             processingThread.Start(startSemaphore);
 
             startSemaphore.Wait();
-            HardwareThread hardwareThread = new(loggerFactory, thunderscopeSettings, thunderscope, inputChannel.Reader, processChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
+            var hardwareThread = new HardwareThread(loggerFactory, thunderscopeSettings, thunderscope, inputChannel.Reader, processChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
             hardwareThread.Start(startSemaphore);
 
             startSemaphore.Wait();
-            DataServer? dataServer = null;
-            if (thunderscopeSettings.DataPortEnabled)
+            IEngineTask waveformBufferReader;
+            switch (thunderscopeSettings.WaveformBufferReader)
             {
-                dataServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5026, captureBuffer);
-                dataServer.Start();
+                case "DataServer":
+                    DataServer dataServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5026, captureBuffer);
+                    waveformBufferReader = dataServer;
+                    break;
+                case "None":
+                    waveformBufferReader = new EmptyWaveformBufferReader();
+                    break;
+                default:
+                    logger?.LogCritical($"{thunderscopeSettings.WaveformBufferReader} waveform buffer reader not supported");
+                    return;
             }
+            waveformBufferReader.Start(startSemaphore);
 
-            ScpiServer scpiServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
-            scpiServer.Start();
+            var scpiServer = new ScpiServer(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
+            scpiServer.Start(startSemaphore);
 
             DateTimeOffset startTime = DateTimeOffset.UtcNow;
             bool loop = true;
@@ -258,7 +267,7 @@ class Program
             }
 
             scpiServer.Stop();
-            dataServer?.Stop();
+            waveformBufferReader.Stop();
             hardwareThread.Stop();
             processingThread.Stop();
 
