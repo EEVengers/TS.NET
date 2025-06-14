@@ -537,14 +537,14 @@ namespace TS.NET.Engine
                             long baseCount = 1000;
                             while (true)
                             {
-                                if (baseCount <= settings.MaxChannelDataLength)
+                                if (baseCount <= settings.MaxCaptureLength)
                                     depths.Add($"{baseCount}");
-                                if (baseCount * 2 <= settings.MaxChannelDataLength)
+                                if (baseCount * 2 <= settings.MaxCaptureLength)
                                     depths.Add($"{baseCount * 2}");
-                                if (baseCount * 5 <= settings.MaxChannelDataLength)
+                                if (baseCount * 5 <= settings.MaxCaptureLength)
                                     depths.Add($"{baseCount * 5}");
                                 baseCount *= 10;
-                                if (baseCount > settings.MaxChannelDataLength)
+                                if (baseCount > settings.MaxCaptureLength)
                                     break;
                             }
                             // Perhaps take into account the sample rate to get 1ms/2ms/5ms/10ms/etc windows instead?
