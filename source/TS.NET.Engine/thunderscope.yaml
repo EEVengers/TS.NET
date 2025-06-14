@@ -9,12 +9,8 @@
 # Value: String, with appropriate value for the Driver used.
 # Selects the hardware revision.
 #
-# Key: MaxChannelCount 
-# Value: Integer, typically 4 for a 4-channel thunderscope.
-# Configures the maximum number of channels possible. At runtime, the processing logic could use any number up to this maximum. This has a large correlation with the amount of RAM usage.
-#
-# Key: MaxChannelDataLength
-# Value: Integer, typically 1000000. Larger values may be used for longer triggered captures.
+# Key: MaxCaptureLength
+# Value: Integer, typically 10000000. Larger values may be used for longer triggered captures.
 # Configures the maximum data length of each channel possible. At runtime, the processing logic could use any number up to this maximum. This has a large correlation with the amount of RAM usage.
 #
 # Key: ScpiPort
@@ -31,8 +27,7 @@
 
 HardwareDriver: LiteX
 HardwareRevision: Rev4
-MaxChannelCount: 4
-MaxChannelDataLength: 50000000
+MaxCaptureLength: 10000000
 ScpiPort: 5025
 DataPort: 5026
 DataPortEnabled: true

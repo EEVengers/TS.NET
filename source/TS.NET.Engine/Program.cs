@@ -206,7 +206,7 @@ class Program
             BlockingChannel<ProcessingRequestDto> processingRequestChannel = new();
             BlockingChannel<ProcessingResponseDto> processingResponseChannel = new();
 
-            long captureBufferBytes = ((long)thunderscopeSettings.MaxChannelDataLength) * thunderscopeSettings.MaxChannelCount * ThunderscopeDataType.I16.ByteWidth();
+            long captureBufferBytes = ((long)thunderscopeSettings.MaxCaptureLength) * 4 * ThunderscopeDataType.I16.ByteWidth();
             logger?.LogDebug($"{nameof(CaptureCircularBuffer)} bytes: {captureBufferBytes}");
             var captureBuffer = new CaptureCircularBuffer(captureBufferBytes);
 

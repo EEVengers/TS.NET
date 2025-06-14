@@ -10,8 +10,7 @@ namespace TS.NET.Engine
     {
         public string HardwareDriver { get; set; } = "";
         public string HardwareRevision { get; set; } = "";
-        public ushort MaxChannelCount { get; set; }
-        public int MaxChannelDataLength { get; set; }
+        public int MaxCaptureLength { get; set; }
         public int ScpiPort { get; set; }
         public int DataPort { get; set; }
         public bool DataPortEnabled { get; set; }
@@ -28,8 +27,7 @@ namespace TS.NET.Engine
             {
                 HardwareDriver = "XDMA",
                 HardwareRevision = "Rev4",
-                MaxChannelCount = 4,
-                MaxChannelDataLength = 1000000,
+                MaxCaptureLength = 10000000,
                 ScpiPort = 5025,
                 DataPort = 5026,
                 DataPortEnabled = true,
