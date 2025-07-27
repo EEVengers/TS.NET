@@ -45,13 +45,16 @@ public class BurstTriggerI8 : ITriggerI8
         if (windowTriggerPosition > windowWidth - 1)
             windowTriggerPosition = windowWidth - 1;
 
-        triggerState = TriggerState.Unarmed;
-
         captureSamples = windowWidth - windowTriggerPosition;
         captureRemaining = 0;
 
         holdoffSamples = windowWidth - captureSamples + additionalHoldoff;
-        holdoffRemaining = 0;
+        holdoffRemaining = windowWidth - captureSamples;
+
+        if (holdoffRemaining != 0)
+            triggerState = TriggerState.InHoldoff;
+        else
+            triggerState = TriggerState.Unarmed;
     }
 
     public void Process(ReadOnlySpan<sbyte> input, ref EdgeTriggerResults results)
