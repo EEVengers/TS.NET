@@ -42,21 +42,26 @@ namespace TS.NET.Tests
 
         private static void RunSituation(EdgeTriggerSituation situation)
         {
-            FallingEdgeTriggerI8 trigger = new(situation.Parameters);
+            var trigger = new FallingEdgeTriggerI8(situation.Parameters);
+            var edgeTriggerResults = new EdgeTriggerResults()
+            {
+                ArmIndices = new int[1000],
+                TriggerIndices = new int[1000],
+                CaptureEndIndices = new int[1000]
+            };
             trigger.SetHorizontal(situation.WindowWidth, situation.WindowTriggerPosition, situation.AdditionalHoldoff);
 
-            Span<int> captureEndIndices = new int[10000];
-            var currentWindowEndIndices = captureEndIndices;
+            if (situation.ChunkCount > 1)
+                throw new NotImplementedException();
 
             for (int i = 0; i < situation.ChunkCount; i++)
             {
-                trigger.Process(situation.Input.Span.Slice((i * situation.ChunkSize), situation.ChunkSize), currentWindowEndIndices, out int windowEndCount);
-                currentWindowEndIndices = currentWindowEndIndices.Slice(windowEndCount);
+                trigger.Process(situation.Input.Span.Slice((i * situation.ChunkSize), situation.ChunkSize), ref edgeTriggerResults);
             }
 
             for (int i = 0; i < situation.ExpectedWindowEndIndices.Length; i++)
             {
-                Assert.Equal(situation.ExpectedWindowEndIndices.Span[i], captureEndIndices[i]);
+                Assert.Equal(situation.ExpectedWindowEndIndices.Span[i], edgeTriggerResults.CaptureEndIndices[i]);
             }
         }
     }

@@ -26,10 +26,10 @@ public class AnyEdgeTriggerI8 : ITriggerI8
 
     public void SetParameters(EdgeTriggerParameters parameters)
     {
-        if (parameters.Level == sbyte.MinValue)
-            parameters.Level += (sbyte)parameters.Hysteresis;  // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
-        if (parameters.Level == sbyte.MaxValue)
-            parameters.Level -= (sbyte)parameters.Hysteresis;  // Coerce so that the trigger arm level is sbyte.MaxValue, ensuring a non-zero chance of seeing some waveforms
+        if (parameters.Level <= sbyte.MinValue)
+            parameters.Level = sbyte.MinValue + parameters.Hysteresis;  // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
+        if (parameters.Level >= sbyte.MaxValue)
+            parameters.Level = sbyte.MaxValue - parameters.Hysteresis;  // Coerce so that the trigger arm level is sbyte.MaxValue, ensuring a non-zero chance of seeing some waveforms
 
         triggerState = TriggerState.Unarmed;
         triggerLevel = (sbyte)parameters.Level;
@@ -43,7 +43,7 @@ public class AnyEdgeTriggerI8 : ITriggerI8
     {
         if (windowWidth < 1000)
             throw new ArgumentException($"windowWidth cannot be less than 1000");
-        if (windowTriggerPosition > (windowWidth - 1))
+        if (windowTriggerPosition > windowWidth - 1)
             windowTriggerPosition = windowWidth - 1;
 
         triggerState = TriggerState.Unarmed;
@@ -55,19 +55,19 @@ public class AnyEdgeTriggerI8 : ITriggerI8
         holdoffRemaining = 0;
     }
 
-    //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Process(ReadOnlySpan<sbyte> input, Span<int> windowEndIndices, out int windowEndCount)
+    public void Process(ReadOnlySpan<sbyte> input, ref EdgeTriggerResults results)
     {
         int inputLength = input.Length;
         int simdLength = inputLength - 32;
-        windowEndCount = 0;
+        results.ArmCount = 0;
+        results.TriggerCount = 0;
+        results.CaptureEndCount = 0;
         int i = 0;
 
         Vector256<sbyte> triggerLevelVector = Vector256.Create(triggerLevel);
         Vector256<sbyte> upperArmLevelVector = Vector256.Create(upperArmLevel);
         Vector256<sbyte> lowerArmLevelVector = Vector256.Create(lowerArmLevel);
 
-        windowEndIndices.Clear();
         unsafe
         {
             fixed (sbyte* samplesPtr = input)
@@ -99,11 +99,13 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                                 if (samplesPtr[i] <= lowerArmLevel)
                                 {
                                     triggerState = TriggerState.ArmedRisingEdge;
+                                    results.ArmIndices[results.ArmCount++] = i;
                                     break;
                                 }
                                 if (samplesPtr[i] >= upperArmLevel)
                                 {
                                     triggerState = TriggerState.ArmedFallingEdge;
+                                    results.ArmIndices[results.ArmCount++] = i;
                                     break;
                                 }
                                 i++;
@@ -128,6 +130,7 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                                 {
                                     triggerState = TriggerState.InCapture;
                                     captureRemaining = captureSamples;
+                                    results.TriggerIndices[results.TriggerCount++] = i;
                                     break;
                                 }
                                 i++;
@@ -172,7 +175,7 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                                 }
                                 if (captureRemaining == 0)
                                 {
-                                    windowEndIndices[windowEndCount++] = i;
+                                    results.CaptureEndIndices[results.CaptureEndCount++] = i;
                                     if (holdoffSamples > 0)
                                     {
                                         triggerState = TriggerState.InHoldoff;

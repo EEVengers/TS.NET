@@ -26,22 +26,27 @@ public class FallingEdgeTriggerI8 : ITriggerI8
 
     public void SetParameters(EdgeTriggerParameters parameters)
     {
-        if (parameters.Level == sbyte.MaxValue)
-            parameters.Level -= (sbyte)parameters.Hysteresis;   // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
-        if (parameters.Level == sbyte.MinValue)
-            parameters.Level += 1;                          // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
+        if (parameters.Level <= sbyte.MinValue)
+            parameters.Level = sbyte.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
 
         triggerState = TriggerState.Unarmed;
-        triggerLevel = (sbyte)parameters.Level;
-        armLevel = (sbyte)parameters.Level;
-        armLevel += (sbyte)parameters.Hysteresis;
+        triggerLevel = (sbyte)parameters.Level;     // Logic = LT
+
+        if((parameters.Level + parameters.Hysteresis) > sbyte.MaxValue)
+        {
+            armLevel = sbyte.MaxValue;              // Logic = GTE
+        }    
+        else
+        {
+            armLevel = (sbyte)(parameters.Level + parameters.Hysteresis);
+        }
     }
 
     public void SetHorizontal(long windowWidth, long windowTriggerPosition, long additionalHoldoff)
     {
         if (windowWidth < 1000)
             throw new ArgumentException($"windowWidth cannot be less than 1000");
-        if (windowTriggerPosition > (windowWidth - 1))
+        if (windowTriggerPosition > windowWidth - 1)
             windowTriggerPosition = windowWidth - 1;
 
         triggerState = TriggerState.Unarmed;
@@ -53,12 +58,13 @@ public class FallingEdgeTriggerI8 : ITriggerI8
         holdoffRemaining = 0;
     }
 
-    //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Process(ReadOnlySpan<sbyte> input, Span<int> windowEndIndices, out int windowEndCount)
+    public void Process(ReadOnlySpan<sbyte> input, ref EdgeTriggerResults results)
     {
         int inputLength = input.Length;
         int simdLength = inputLength - 32;
-        windowEndCount = 0;
+        results.ArmCount = 0;
+        results.TriggerCount = 0;
+        results.CaptureEndCount = 0;
         int i = 0;
 
         Vector256<sbyte> triggerLevelVector256 = Vector256.Create(triggerLevel);
@@ -66,7 +72,6 @@ public class FallingEdgeTriggerI8 : ITriggerI8
         Vector128<sbyte> triggerLevelVector128 = Vector128.Create(triggerLevel);
         Vector128<sbyte> armLevelVector128 = Vector128.Create(armLevel);
 
-        windowEndIndices.Clear();
         unsafe
         {
             fixed (sbyte* samplesPtr = input)
@@ -88,7 +93,7 @@ public class FallingEdgeTriggerI8 : ITriggerI8
                                     i += 32;
                                 }
                             }
-                            else if(AdvSimd.Arm64.IsSupported)
+                            else if (AdvSimd.Arm64.IsSupported)
                             {
                                 while (i < simdLength)
                                 {
@@ -108,6 +113,7 @@ public class FallingEdgeTriggerI8 : ITriggerI8
                                 if (samplesPtr[i] >= armLevel)
                                 {
                                     triggerState = TriggerState.Armed;
+                                    results.ArmIndices[results.ArmCount++] = i;
                                     break;
                                 }
                                 i++;
@@ -147,6 +153,7 @@ public class FallingEdgeTriggerI8 : ITriggerI8
                                 {
                                     triggerState = TriggerState.InCapture;
                                     captureRemaining = captureSamples;
+                                    results.TriggerIndices[results.TriggerCount++] = i;
                                     break;
                                 }
                                 i++;
@@ -167,7 +174,7 @@ public class FallingEdgeTriggerI8 : ITriggerI8
                                 }
                                 if (captureRemaining == 0)
                                 {
-                                    windowEndIndices[windowEndCount++] = i;
+                                    results.CaptureEndIndices[results.CaptureEndCount++] = i;
                                     if (holdoffSamples > 0)
                                     {
                                         triggerState = TriggerState.InHoldoff;

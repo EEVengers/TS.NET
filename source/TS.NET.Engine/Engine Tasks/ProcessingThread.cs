@@ -127,7 +127,6 @@ namespace TS.NET.Engine
                 Span<sbyte> processingBuffer4Ch_2 = processingBuffer.Slice(shuffleBufferLength_4Ch, shuffleBufferLength_4Ch);
                 Span<sbyte> processingBuffer4Ch_3 = processingBuffer.Slice(shuffleBufferLength_4Ch * 2, shuffleBufferLength_4Ch);
                 Span<sbyte> processingBuffer4Ch_4 = processingBuffer.Slice(shuffleBufferLength_4Ch * 3, shuffleBufferLength_4Ch);
-                Span<int> captureEndIndices = new int[ThunderscopeMemory.Length / 1000];  // 1000 samples is the minimum window width
 
                 // Periodic debug display variables
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
@@ -155,6 +154,12 @@ namespace TS.NET.Engine
                 // singleTriggerLatch: used in Single mode to stop the trigger subsystem after a trigger.
 
                 ITriggerI8 triggerI8 = new RisingEdgeTriggerI8(processingConfig.EdgeTriggerParameters);
+                EdgeTriggerResults edgeTriggerResults = new EdgeTriggerResults()
+                {
+                    ArmIndices = new int[ThunderscopeMemory.Length / 1000],         // 1000 samples is the minimum window width
+                    TriggerIndices = new int[ThunderscopeMemory.Length / 1000],     // 1000 samples is the minimum window width
+                    CaptureEndIndices = new int[ThunderscopeMemory.Length / 1000]   // 1000 samples is the minimum window width
+                };
                 bool runMode = true;
                 bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
                 bool singleTriggerLatch = false;    // "Latch" because it will reset state back to false. When reset, runTrigger will be set to false.
@@ -446,13 +451,13 @@ namespace TS.NET.Engine
                                                 throw new NotImplementedException();
                                         }
 
-                                        triggerI8.Process(input: triggerChannelBuffer, captureEndIndices: captureEndIndices, out int captureEndCount);
+                                        triggerI8.Process(input: triggerChannelBuffer, ref edgeTriggerResults);
 
-                                        if (captureEndCount > 0)
+                                        if (edgeTriggerResults.CaptureEndCount > 0)
                                         {
-                                            for (int i = 0; i < captureEndCount; i++)
+                                            for (int i = 0; i < edgeTriggerResults.CaptureEndCount; i++)
                                             {
-                                                int offset = triggerChannelBuffer.Length - captureEndIndices[i];
+                                                int offset = triggerChannelBuffer.Length - edgeTriggerResults.CaptureEndIndices[i];
                                                 Capture(triggered: true, triggerChannelCaptureIndex, offset);
 
                                                 if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
