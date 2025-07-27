@@ -29,16 +29,30 @@ public class AnyEdgeTriggerI8 : ITriggerI8
         parameters.Hysteresis = Math.Abs(parameters.Hysteresis);
 
         if (parameters.Level <= sbyte.MinValue)
-            parameters.Level = sbyte.MinValue + parameters.Hysteresis;  // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
+            parameters.Level = sbyte.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
         if (parameters.Level >= sbyte.MaxValue)
-            parameters.Level = sbyte.MaxValue - parameters.Hysteresis;  // Coerce so that the trigger arm level is sbyte.MaxValue, ensuring a non-zero chance of seeing some waveforms
+            parameters.Level = sbyte.MaxValue - 1;  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms
 
         triggerState = TriggerState.Unarmed;
         triggerLevel = (sbyte)parameters.Level;
-        upperArmLevel = (sbyte)parameters.Level;
-        upperArmLevel -= (sbyte)parameters.Hysteresis;
-        lowerArmLevel = (sbyte)parameters.Level;
-        lowerArmLevel += (sbyte)parameters.Hysteresis;
+
+        if ((parameters.Level + parameters.Hysteresis) > sbyte.MaxValue)
+        {
+            upperArmLevel = sbyte.MaxValue;              // Logic = GTE
+        }
+        else
+        {
+            upperArmLevel = (sbyte)(parameters.Level + parameters.Hysteresis);
+        }
+
+        if ((parameters.Level - parameters.Hysteresis) < sbyte.MinValue)
+        {
+            lowerArmLevel = sbyte.MinValue;              // Logic = GTE
+        }
+        else
+        {
+            lowerArmLevel = (sbyte)(parameters.Level - parameters.Hysteresis);
+        }
     }
 
     public void SetHorizontal(long windowWidth, long windowTriggerPosition, long additionalHoldoff)
@@ -88,12 +102,13 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                                 while (i < simdLength)
                                 {
                                     uint resultCount = 0;
-                                    var lowerArmRegion = Avx2.CompareEqual(Avx2.Max(lowerArmLevelVector, Avx.LoadVector256(samplesPtr + i)), lowerArmLevelVector);
+                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
+                                    var lowerArmRegion = Avx2.CompareEqual(Avx2.Max(lowerArmLevelVector, inputVector), lowerArmLevelVector);
                                     resultCount = (uint)Avx2.MoveMask(lowerArmRegion);     // Quick way to do horizontal vector scan of byte[n] > 0
                                     if (resultCount != 0)
                                         break;
-                                    var upperArmRegion = Avx2.CompareEqual(Avx2.Min(upperArmLevelVector, Avx.LoadVector256(samplesPtr + i)), upperArmLevelVector);
-                                    resultCount = (uint)Avx2.MoveMask(lowerArmRegion);     // Quick way to do horizontal vector scan of byte[n] > 0
+                                    var upperArmRegion = Avx2.CompareEqual(Avx2.Min(upperArmLevelVector, inputVector), upperArmLevelVector);
+                                    resultCount = (uint)Avx2.MoveMask(upperArmRegion);     // Quick way to do horizontal vector scan of byte[n] > 0
                                     if (resultCount != 0)
                                         break;
                                     i += 32;
@@ -160,6 +175,7 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                                 {
                                     triggerState = TriggerState.InCapture;
                                     captureRemaining = captureSamples;
+                                    results.TriggerIndices[results.TriggerCount++] = i;
                                     break;
                                 }
                                 i++;
