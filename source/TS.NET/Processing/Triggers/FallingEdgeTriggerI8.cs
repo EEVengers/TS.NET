@@ -26,6 +26,8 @@ public class FallingEdgeTriggerI8 : ITriggerI8
 
     public void SetParameters(EdgeTriggerParameters parameters)
     {
+        parameters.Hysteresis = Math.Abs(parameters.Hysteresis);
+
         if (parameters.Level <= sbyte.MinValue)
             parameters.Level = sbyte.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
 

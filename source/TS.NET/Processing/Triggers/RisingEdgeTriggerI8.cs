@@ -26,6 +26,8 @@ public class RisingEdgeTriggerI8 : ITriggerI8
 
     public void SetParameters(EdgeTriggerParameters parameters)
     {
+        parameters.Hysteresis = Math.Abs(parameters.Hysteresis);
+
         if (parameters.Level >= sbyte.MaxValue)
             parameters.Level = sbyte.MaxValue - 1;  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms             
 

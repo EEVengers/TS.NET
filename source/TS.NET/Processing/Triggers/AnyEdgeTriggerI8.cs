@@ -26,6 +26,8 @@ public class AnyEdgeTriggerI8 : ITriggerI8
 
     public void SetParameters(EdgeTriggerParameters parameters)
     {
+        parameters.Hysteresis = Math.Abs(parameters.Hysteresis);
+
         if (parameters.Level <= sbyte.MinValue)
             parameters.Level = sbyte.MinValue + parameters.Hysteresis;  // Coerce so that the trigger arm level is sbyte.MinValue, ensuring a non-zero chance of seeing some waveforms
         if (parameters.Level >= sbyte.MaxValue)
