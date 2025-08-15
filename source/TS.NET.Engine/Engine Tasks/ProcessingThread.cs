@@ -9,8 +9,10 @@ namespace TS.NET.Engine
         private readonly ILogger logger;
         private readonly ThunderscopeSettings settings;
         private readonly ThunderscopeHardwareConfig hardwareConfig;
-        private readonly BlockingChannelReader<InputDataDto> processChannel;
-        private readonly BlockingChannelWriter<ThunderscopeMemory> inputChannel;
+        private readonly BlockingChannelReader<InputDataDto> incomingDataChannel;
+        private readonly BlockingChannelWriter<ThunderscopeMemory> memoryReturnChannel;
+        private readonly BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel;
+        private readonly BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel;
         private readonly BlockingChannelReader<ProcessingRequestDto> processingRequestChannel;
         private readonly BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel;
         private readonly CaptureCircularBuffer captureBuffer;
@@ -22,8 +24,10 @@ namespace TS.NET.Engine
             ILoggerFactory loggerFactory,
             ThunderscopeSettings settings,
             ThunderscopeHardwareConfig hardwareConfig,
-            BlockingChannelReader<InputDataDto> processChannel,
-            BlockingChannelWriter<ThunderscopeMemory> inputChannel,
+            BlockingChannelReader<InputDataDto> incomingDataChannel,
+            BlockingChannelWriter<ThunderscopeMemory> memoryReturnChannel,
+            BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel,
+            BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel,
             CaptureCircularBuffer captureBuffer)
@@ -31,8 +35,10 @@ namespace TS.NET.Engine
             logger = loggerFactory.CreateLogger(nameof(ProcessingThread));
             this.settings = settings;
             this.hardwareConfig = hardwareConfig;
-            this.processChannel = processChannel;
-            this.inputChannel = inputChannel;
+            this.incomingDataChannel = incomingDataChannel;
+            this.memoryReturnChannel = memoryReturnChannel;
+            this.hardwareRequestChannel = hardwareRequestChannel;
+            this.hardwareResponseChannel = hardwareResponseChannel;
             this.processingRequestChannel = processingRequestChannel;
             this.processingResponseChannel = processingResponseChannel;
             this.captureBuffer = captureBuffer;
@@ -41,7 +47,19 @@ namespace TS.NET.Engine
         public void Start(SemaphoreSlim startSemaphore)
         {
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, settings, hardwareConfig, processChannel, inputChannel, processingRequestChannel, processingResponseChannel, startSemaphore, captureBuffer, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(
+                logger: logger,
+                settings: settings,
+                cachedHardwareConfig: hardwareConfig,
+                incomingDataChannel: incomingDataChannel,
+                memoryReturnChannel: memoryReturnChannel,
+                hardwareRequestChannel: hardwareRequestChannel,
+                hardwareResponseChannel: hardwareResponseChannel,
+                processingRequestChannel: processingRequestChannel,
+                processingResponseChannel: processingResponseChannel,
+                startSemaphore: startSemaphore,
+                captureBuffer: captureBuffer,
+                cancelToken: cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -55,8 +73,10 @@ namespace TS.NET.Engine
             ILogger logger,
             ThunderscopeSettings settings,
             ThunderscopeHardwareConfig cachedHardwareConfig,
-            BlockingChannelReader<InputDataDto> processingDataChannel,
-            BlockingChannelWriter<ThunderscopeMemory> inputChannel,
+            BlockingChannelReader<InputDataDto> incomingDataChannel,
+            BlockingChannelWriter<ThunderscopeMemory> memoryReturnChannel,
+            BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel,
+            BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel,
             BlockingChannelReader<ProcessingRequestDto> processingRequestChannel,
             BlockingChannelWriter<ProcessingResponseDto> processingResponseChannel,
             SemaphoreSlim startSemaphore,
@@ -184,16 +204,25 @@ namespace TS.NET.Engine
                                 runMode = true;
                                 processingConfig.TriggerMode = TriggerMode.Auto;        // To do: cache the last setting of AUTO/NORMAL/STREAM and use it here
                                 captureBuffer.Reset();
+                                hardwareRequestChannel.Write(new HardwareStartRequest());
                                 logger.LogDebug($"{nameof(ProcessingRunDto)}");
                                 break;
                             case ProcessingStopDto processingStopTriggerDto:
                                 runMode = false;
+                                hardwareRequestChannel.Write(new HardwareStopRequest());
                                 logger.LogDebug($"{nameof(ProcessingStopDto)}");
                                 break;
                             case ProcessingForceTriggerDto processingForceTriggerDto:       // Force only works in RUN mode, and finishes in RUN
-                                forceTriggerLatch = true;
-                                captureBuffer.Reset();
-                                logger.LogDebug($"{nameof(ProcessingForceTriggerDto)}");
+                                if (runMode)        // Ignore the force if not in run mode, to prevent a glitch when going STOP > RUN (with a FORCE armed)
+                                {
+                                    forceTriggerLatch = true;
+                                    captureBuffer.Reset();
+                                    logger.LogDebug($"{nameof(ProcessingForceTriggerDto)} armed");
+                                }
+                                else
+                                {
+                                    logger.LogDebug($"{nameof(ProcessingForceTriggerDto)} not armed");
+                                }
                                 break;
                             case ProcessingSetTriggerModeDto processingSetTriggerModeDto:
                                 processingConfig.TriggerMode = processingSetTriggerModeDto.Mode;
@@ -334,7 +363,7 @@ namespace TS.NET.Engine
                         }
                     }
 
-                    if (processingDataChannel.TryRead(out var inputDataDto, 10, cancelToken))
+                    if (incomingDataChannel.TryRead(out var inputDataDto, 10, cancelToken))
                     {
                         totalDequeueCount++;
 
@@ -360,7 +389,7 @@ namespace TS.NET.Engine
                             case AdcChannelMode.Single:
                                 inputDataDto.Memory.SpanI8.CopyTo(processingBuffer);
                                 // Finished with the memory, return it
-                                inputChannel.Write(inputDataDto.Memory);
+                                memoryReturnChannel.Write(inputDataDto.Memory);
                                 // Apply digital filtering if configured
                                 //    Triggering happens after filtering.
                                 //    Post-filter means the UI display will align with the trigger point.
@@ -376,7 +405,7 @@ namespace TS.NET.Engine
                             case AdcChannelMode.Dual:
                                 ShuffleI8.TwoChannels(input: inputDataDto.Memory.SpanI8, output: processingBuffer);
                                 // Finished with the memory, return it
-                                inputChannel.Write(inputDataDto.Memory);
+                                memoryReturnChannel.Write(inputDataDto.Memory);
                                 // Write to circular sample buffers
                                 sampleBuffers[0].Write<sbyte>(processingBuffer2Ch_1);
                                 sampleBuffers[1].Write<sbyte>(processingBuffer2Ch_2);
@@ -386,7 +415,7 @@ namespace TS.NET.Engine
                                 // Quad channel mode is a bit different, it's processed as 4 channels but stored in the capture buffer as 3 or 4 channels.
                                 ShuffleI8.FourChannels(input: inputDataDto.Memory.SpanI8, output: processingBuffer);
                                 // Finished with the memory, return it
-                                inputChannel.Write(inputDataDto.Memory);
+                                memoryReturnChannel.Write(inputDataDto.Memory);
                                 // Write to circular sample buffers
                                 sampleBuffers[0].Write<sbyte>(processingBuffer4Ch_1);
                                 sampleBuffers[1].Write<sbyte>(processingBuffer4Ch_2);

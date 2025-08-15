@@ -62,6 +62,11 @@
             totalTimeSec += data.SpanI8.Length / sampleRateHz;
         }
 
+        public bool TryRead(ThunderscopeMemory data, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
         public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)
         {
             //throw new NotImplementedException();

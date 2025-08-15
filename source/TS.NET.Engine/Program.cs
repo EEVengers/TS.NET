@@ -55,6 +55,8 @@ class Program
         // In future; change this to lock per-device instead of a single global lock.
         var lockFileName = $"TS.NET.lock";
         var lockFilePath = Path.Combine(Path.GetTempPath(), lockFileName);
+        ThunderscopeSettings? thunderscopeSettings = null;
+        IThunderscope? thunderscope = null;
 
         try
         {
@@ -62,13 +64,12 @@ class Program
             //using FileStream fs = new(lockFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
 
 #if DEBUG
-            ThunderscopeSettings defaultSettings = ThunderscopeSettings.Default();
             var serializer = new YamlDotNet.Serialization.SerializerBuilder()
                 .WithNamingConvention(
                     YamlDotNet.Serialization.NamingConventions.PascalCaseNamingConvention.Instance
                 )
                 .Build();
-            string yaml = serializer.Serialize(defaultSettings);
+            string yaml = serializer.Serialize(ThunderscopeSettings.Default());
             File.WriteAllText("thunderscope (defaults).yaml", yaml);
 #endif
 
@@ -76,7 +77,7 @@ class Program
                 "appsettings.json"
             );
             var configuration = configurationBuilder.Build();
-            var thunderscopeSettings = ThunderscopeSettings.FromYamlFile(configurationFilePath);
+            thunderscopeSettings = ThunderscopeSettings.FromYamlFile(configurationFilePath);
 
             var loggerFactory = LoggerFactory.Create(configure =>
             {
@@ -120,7 +121,6 @@ class Program
             // LiteX bufferLength 3 (driver has large buffer)
             int bufferLength = 60;
 
-            IThunderscope thunderscope;
             switch (thunderscopeSettings.HardwareDriver.ToLower())
             {
                 case "simulator":
@@ -197,10 +197,10 @@ class Program
             string bridgeNamespace = $"ThunderScope.{deviceIndex}";
 
             ThunderscopeMemoryRegion memoryRegion = new(bufferLength);
-            BlockingChannel<ThunderscopeMemory> inputChannel = new(bufferLength);
+            BlockingChannel<ThunderscopeMemory> memoryChannel = new(bufferLength);
             for (uint i = 0; i < bufferLength; i++)
-                inputChannel.Writer.Write(memoryRegion.GetSegment(i));
-            BlockingChannel<InputDataDto> processChannel = new();
+                memoryChannel.Writer.Write(memoryRegion.GetSegment(i));
+            BlockingChannel<InputDataDto> incomingDataChannel = new();
             BlockingChannel<HardwareRequestDto> hardwareRequestChannel = new();
             BlockingChannel<HardwareResponseDto> hardwareResponseChannel = new();
             BlockingChannel<ProcessingRequestDto> processingRequestChannel = new();
@@ -214,11 +214,21 @@ class Program
             SemaphoreSlim startSemaphore = new(1);
 
             startSemaphore.Wait();
-            var processingThread = new ProcessingThread(loggerFactory, thunderscopeSettings, thunderscope.GetConfiguration(), processChannel.Reader, inputChannel.Writer, processingRequestChannel.Reader, processingResponseChannel.Writer, captureBuffer);
+            var processingThread = new ProcessingThread(
+                loggerFactory: loggerFactory,
+                settings: thunderscopeSettings,
+                hardwareConfig: thunderscope.GetConfiguration(),
+                incomingDataChannel: incomingDataChannel.Reader,
+                memoryReturnChannel: memoryChannel.Writer,
+                hardwareRequestChannel: hardwareRequestChannel.Writer,
+                hardwareResponseChannel: hardwareResponseChannel.Reader,
+                processingRequestChannel: processingRequestChannel.Reader,
+                processingResponseChannel: processingResponseChannel.Writer,
+                captureBuffer: captureBuffer);
             processingThread.Start(startSemaphore);
 
             startSemaphore.Wait();
-            var hardwareThread = new HardwareThread(loggerFactory, thunderscopeSettings, thunderscope, inputChannel.Reader, processChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
+            var hardwareThread = new HardwareThread(loggerFactory, thunderscopeSettings, thunderscope, memoryChannel.Reader, incomingDataChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
             hardwareThread.Start(startSemaphore);
 
             startSemaphore.Wait();
@@ -257,7 +267,7 @@ class Program
                 }
                 else
                 {
-                    if(seconds > 0)
+                    if (seconds > 0)
                     {
                         if (DateTimeOffset.UtcNow.Subtract(startTime).TotalSeconds >= seconds)
                             break;
@@ -271,15 +281,7 @@ class Program
             hardwareThread.Stop();
             processingThread.Stop();
 
-            switch (thunderscopeSettings.HardwareDriver.ToLower())
-            {
-                case "litex":
-                case "libtslitex":
-                    {
-                        ((TS.NET.Driver.Libtslitex.Thunderscope)thunderscope).Close();
-                        break;
-                    }
-            }
+
         }
         catch (IOException)
         {
@@ -292,6 +294,20 @@ class Program
             if (File.Exists(lockFilePath))
             {
                 File.Delete(lockFilePath);
+            }
+
+            if (thunderscopeSettings != null)
+            {
+                switch (thunderscopeSettings.HardwareDriver.ToLower())
+                {
+                    case "litex":
+                    case "libtslitex":
+                        {
+                            if (thunderscope != null)
+                                ((TS.NET.Driver.Libtslitex.Thunderscope)thunderscope).Close();
+                            break;
+                        }
+                }
             }
         }
     }

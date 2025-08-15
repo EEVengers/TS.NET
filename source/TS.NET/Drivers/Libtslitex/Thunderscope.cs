@@ -112,6 +112,31 @@ namespace TS.NET.Driver.Libtslitex
             }
         }
 
+        public bool TryRead(ThunderscopeMemory data, CancellationToken cancellationToken)
+        {
+            if (!open)
+                return false;
+
+            unsafe
+            {
+                ulong length = ThunderscopeMemory.Length;
+                ulong dataRead = 0;
+                while (length > 0)
+                {
+                    int readLen = Interop.Read(tsHandle, data.Pointer + dataRead, readSegmentLengthBytes);
+
+                    if (readLen < 0)
+                        return false;
+                    else if (readLen != readSegmentLengthBytes)
+                        throw new Exception($"Thunderscope read incorrect sample length ({readLen})");
+
+                    dataRead += (ulong)readSegmentLengthBytes;
+                    length -= (ulong)readSegmentLengthBytes;
+                }
+                return true;
+            }
+        }
+
         public ThunderscopeChannelFrontend GetChannelFrontend(int channelIndex)
         {
             if (!open)

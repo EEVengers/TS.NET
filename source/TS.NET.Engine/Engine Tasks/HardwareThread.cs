@@ -68,7 +68,6 @@ namespace TS.NET.Engine
 
             try
             {
-                thunderscope.Start();
                 logger.LogInformation("Started");
                 startSemaphore.Release();
 
@@ -91,17 +90,19 @@ namespace TS.NET.Engine
                             switch (request)
                             {
                                 case HardwareStartRequest hardwareStartRequest:
-                                    logger.LogDebug("Start request (ignore)");
+                                    thunderscope.Start();
+                                    logger.LogDebug($"{nameof(HardwareStartRequest)}");
                                     break;
                                 case HardwareStopRequest hardwareStopRequest:
-                                    logger.LogDebug("Stop request (ignore)");
+                                    thunderscope.Stop();
+                                    logger.LogDebug($"{nameof(HardwareStopRequest)}");
                                     break;
                                 case HardwareSetRateRequest hardwareSetRateRequest:
                                     {
-                                        thunderscope.Stop();    // To do: determine if this is needed
+                                        //thunderscope.Stop();    // To do: determine if this is needed
                                         thunderscope.SetRate(hardwareSetRateRequest.rate);
-                                        thunderscope.Start();
-                                        logger.LogDebug($"{nameof(hardwareSetRateRequest)} (rate: {hardwareSetRateRequest.rate})");
+                                        //thunderscope.Start();
+                                        logger.LogDebug($"{nameof(HardwareSetRateRequest)} (rate: {hardwareSetRateRequest.rate})");
                                         break;
                                     }
                                 case HardwareGetRateRequest hardwareGetRateRequest:
@@ -194,9 +195,9 @@ namespace TS.NET.Engine
                                                 break;
                                             case HardwareSetEnabledRequest hardwareSetEnabledRequest:
                                                 logger.LogDebug($"{nameof(HardwareSetEnabledRequest)} (channel: {channelIndex}, enabled: {hardwareSetEnabledRequest.Enabled})");
-                                                thunderscope.Stop();    // To do: determine if this is needed
+                                                //thunderscope.Stop();    // To do: determine if this is needed
                                                 thunderscope.SetChannelEnable(channelIndex, hardwareSetEnabledRequest.Enabled);
-                                                thunderscope.Start();
+                                                //thunderscope.Start();
                                                 break;
                                             case HardwareSetTerminationRequest hardwareSetTerminationRequest:
                                                 logger.LogDebug($"{nameof(HardwareSetTerminationRequest)} (channel: {channelIndex}, termination: {hardwareSetTerminationRequest.Termination})");
@@ -258,10 +259,16 @@ namespace TS.NET.Engine
                     {
                         try
                         {
-                            thunderscope.Read(memory, cancelToken);
-                            if (enqueueCounter == 0)
-                                logger.LogDebug("First block of data received");
-                            //logger.LogDebug($"Acquisition block {enqueueCounter}");
+                            if (thunderscope.TryRead(memory, cancelToken))
+                            {
+                                if (enqueueCounter == 0)
+                                    logger.LogDebug("First block of data received");
+                                //logger.LogDebug($"Acquisition block {enqueueCounter}");
+                            }
+                            else
+                            {
+                                Thread.Sleep(10);
+                            }
                             break;
                         }
                         catch (ThunderscopeMemoryOutOfMemoryException)

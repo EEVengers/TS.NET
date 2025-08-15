@@ -124,6 +124,11 @@ namespace TS.NET.Driver.XMDA
             }
         }
 
+        public bool TryRead(ThunderscopeMemory data, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
         // Returns a by-value copy
         public ThunderscopeChannelFrontend GetChannelFrontend(int channelIndex)
         {
