@@ -263,6 +263,8 @@ namespace TS.NET.Engine
                             {
                                 if (enqueueCounter == 0)
                                     logger.LogDebug("First block of data received");
+                                periodicEnqueueCount++;
+                                enqueueCounter++;
                                 //logger.LogDebug($"Acquisition block {enqueueCounter}");
                             }
                             else
@@ -297,9 +299,6 @@ namespace TS.NET.Engine
                             throw;
                         }
                     }
-
-                    periodicEnqueueCount++;
-                    enqueueCounter++;
 
                     processChannel.Write(new InputDataDto(thunderscope.GetConfiguration(), memory), cancelToken);
 
