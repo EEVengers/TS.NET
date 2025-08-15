@@ -44,6 +44,36 @@ class Program
 
     static void Start(int deviceIndex, string configurationFilePath, int seconds, bool membench)
     {
+        ThunderscopeSettings? thunderscopeSettings = null;
+        IThunderscope? thunderscope = null;
+
+        void StopLibtslitex()
+        {
+            if (thunderscopeSettings != null)
+            {
+                switch (thunderscopeSettings.HardwareDriver.ToLower())
+                {
+                    case "litex":
+                    case "libtslitex":
+                        {
+                            if (thunderscope != null)
+                            {
+                                try
+                                {
+                                    ((TS.NET.Driver.Libtslitex.Thunderscope)thunderscope).Close();
+                                }
+                                catch { }
+                            }
+                            break;
+                        }
+                }
+            }
+        }
+        
+        Console.CancelKeyPress += (sender, e) => { StopLibtslitex(); Environment.Exit(0); };    // Handle Ctrl+C or Ctrl+Break event.
+        AppDomain.CurrentDomain.ProcessExit += (sender, e) => { StopLibtslitex(); };            // Handle UI window close
+        // Abrupt termination/SIGKILL to be handled with driver watchdog later?
+
         if (membench)
         {
             Utility.MemoryBenchmark();
@@ -53,10 +83,8 @@ class Program
         }
 
         // In future; change this to lock per-device instead of a single global lock.
-        var lockFileName = $"TS.NET.lock";
-        var lockFilePath = Path.Combine(Path.GetTempPath(), lockFileName);
-        ThunderscopeSettings? thunderscopeSettings = null;
-        IThunderscope? thunderscope = null;
+        //var lockFileName = $"TS.NET.lock";
+        //var lockFilePath = Path.Combine(Path.GetTempPath(), lockFileName);
 
         try
         {
@@ -283,32 +311,15 @@ class Program
 
 
         }
-        catch (IOException)
-        {
-            Console.WriteLine("Another instance of TS.NET.Engine is already running.");
-            Thread.Sleep(3000);
-            Environment.Exit(0);
-        }
+        //catch (IOException)
+        //{
+        //    Console.WriteLine("Another instance of TS.NET.Engine is already running.");
+        //    Thread.Sleep(3000);
+        //    Environment.Exit(0);
+        //}
         finally
         {
-            if (File.Exists(lockFilePath))
-            {
-                File.Delete(lockFilePath);
-            }
-
-            if (thunderscopeSettings != null)
-            {
-                switch (thunderscopeSettings.HardwareDriver.ToLower())
-                {
-                    case "litex":
-                    case "libtslitex":
-                        {
-                            if (thunderscope != null)
-                                ((TS.NET.Driver.Libtslitex.Thunderscope)thunderscope).Close();
-                            break;
-                        }
-                }
-            }
+            StopLibtslitex();
         }
     }
 }
