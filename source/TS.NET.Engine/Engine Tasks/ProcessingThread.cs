@@ -181,6 +181,7 @@ namespace TS.NET.Engine
                     CaptureEndIndices = new int[ThunderscopeMemory.Length / 1000]   // 1000 samples is the minimum window width
                 };
                 bool runMode = false;
+                bool forceTriggerLatch = false;
                 bool singleTriggerLatch = false;    // "Latch" because it will reset state back to false. When reset, runTrigger will be set to false.
                 Mode modeAfterForce = processingConfig.Mode;
 
@@ -209,6 +210,14 @@ namespace TS.NET.Engine
                                 StopHardware();
                                 logger.LogDebug($"{nameof(ProcessingStopDto)}");
                                 break;
+                            case ProcessingForceDto processingForceDto:
+                                if (runMode)        // FORCE is ignored if not in runMode.
+                                {
+                                    modeAfterForce = processingConfig.Mode;
+                                    forceTriggerLatch = true;
+                                }
+                                logger.LogDebug($"{nameof(ProcessingForceDto)}");
+                                break;
                             case ProcessingGetModeRequest processingGetModeRequest:
                                 processingResponseChannel.Write(new ProcessingGetModeResponse(processingConfig.Mode));
                                 logger.LogDebug($"{nameof(ProcessingGetModeRequest)}");
@@ -233,13 +242,6 @@ namespace TS.NET.Engine
                                         }
                                         singleTriggerLatch = true;
                                         processingConfig.Mode = processingSetModeDto.Mode;
-                                        break;
-                                    case Mode.Force:                 // FORCE is ignored if not in runMode.
-                                        if (runMode)
-                                        {
-                                            modeAfterForce = processingConfig.Mode;
-                                            processingConfig.Mode = processingSetModeDto.Mode;
-                                        }
                                         break;
                                 }
                                 logger.LogDebug($"{nameof(ProcessingSetModeDto)} (mode: {processingConfig.Mode})");
@@ -500,16 +502,17 @@ namespace TS.NET.Engine
                                             autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
                                         }
                                     }
+                                    if(forceTriggerLatch)
+                                    {
+                                        Capture(triggered: false, triggerChannelCaptureIndex: 0, offset: 0);
+                                        forceTriggerLatch = false;
+                                        streamSampleCounter = 0;
+                                        autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
+                                    }
                                     if (processingConfig.Mode == Mode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                     {
                                         StreamCapture();
                                     }
-                                    break;
-                                case Mode.Force:        // Mode.Force is a latching mode - it'll return back to one of the other modes
-                                    Capture(triggered: false, triggerChannelCaptureIndex: 0, offset: 0);
-                                    processingConfig.Mode = modeAfterForce;
-                                    streamSampleCounter = 0;
-                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
                                     break;
                                 case Mode.Stream:
                                     StreamCapture();
@@ -546,6 +549,7 @@ namespace TS.NET.Engine
                 void StopHardware()
                 {
                     runMode = false;
+                    forceTriggerLatch = false;
                     hardwareRequestChannel.Write(new HardwareStopRequest());
                 }
 

@@ -7,6 +7,7 @@
     // Control
     public record ProcessingRunDto() : ProcessingRequestDto;
     public record ProcessingStopDto() : ProcessingRequestDto;
+    public record ProcessingForceDto() : ProcessingRequestDto;
     public record ProcessingSetModeDto(Mode Mode) : ProcessingRequestDto;
 
     public record ProcessingGetModeRequest() : ProcessingRequestDto;
