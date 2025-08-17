@@ -229,24 +229,24 @@ namespace TS.NET.Engine
                                     logger.LogDebug($"{nameof(ProcessingStopDto)} sent");
                                     return null;
                                 case "FORCE":
-                                    processingRequestChannel.Write(new ProcessingForceTriggerDto());
-                                    logger.LogDebug($"{nameof(ProcessingForceTriggerDto)} sent");
+                                    processingRequestChannel.Write(new ProcessingSetModeDto(Mode.Force));
+                                    logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
                                     return null;
                                 case "SINGLE":
-                                    processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Single));
-                                    logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
+                                    processingRequestChannel.Write(new ProcessingSetModeDto(Mode.Single));
+                                    logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
                                     return null;
                                 case "NORMAL":
-                                    processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Normal));
-                                    logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
+                                    processingRequestChannel.Write(new ProcessingSetModeDto(Mode.Normal));
+                                    logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
                                     return null;
                                 case "AUTO":
-                                    processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Auto));
-                                    logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
+                                    processingRequestChannel.Write(new ProcessingSetModeDto(Mode.Auto));
+                                    logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
                                     return null;
                                 case "STREAM":
-                                    processingRequestChannel.Write(new ProcessingSetTriggerModeDto(TriggerMode.Stream));
-                                    logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} sent");
+                                    processingRequestChannel.Write(new ProcessingSetModeDto(Mode.Stream));
+                                    logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
                                     return null;
                                 case "DEPTH":
                                     if (argument != null)
@@ -580,6 +580,22 @@ namespace TS.NET.Engine
                     {
                         case "*IDN?":
                             return "ThunderScope,(Bridge),NOSERIAL,NOVERSION\n";
+                        case "MODE?":
+                            {
+                                processingRequestChannel.Write(new ProcessingGetModeRequest());
+                                if (processingResponseChannel.TryRead(out var response, 500))
+                                {
+                                    switch (response)
+                                    {
+                                        case ProcessingGetModeResponse processingGetModeResponse:
+                                            return $"{processingGetModeResponse.Mode.ToString().ToUpper()}\n";
+                                        default:
+                                            logger.LogError($"MODE? - Invalid response from {nameof(processingResponseChannel)}");
+                                            break;
+                                    }
+                                }
+                                return "Error: No/bad response from channel.\n";
+                            }
                         case "RATES?":
                             {
                                 hardwareRequestChannel.Write(new HardwareGetRatesRequest());
@@ -591,11 +607,11 @@ namespace TS.NET.Engine
                                             return $"{string.Join(",", hardwareGetRatesResponse.SampleRatesHz)},\n";
                                         default:
                                             logger.LogError($"RATES? - Invalid response from {nameof(hardwareResponseChannel)}");
-                                            return "Error: Invalid response from hardware.\n";
+                                            break;
                                     }
                                 }
                                 logger.LogError($"RATES? - No response from {nameof(hardwareResponseChannel)}");
-                                return "Error: No response from hardware.\n";
+                                return "Error: No/bad response from channel.\n";
                             }
                         case "RATE?":
                             {
@@ -608,11 +624,11 @@ namespace TS.NET.Engine
                                             return $"{hardwareGetRateResponse.SampleRateHz}\n";
                                         default:
                                             logger.LogError($"RATES? - Invalid response from {nameof(hardwareResponseChannel)}");
-                                            return "Error: Invalid response from hardware.\n";
+                                            break;
                                     }
                                 }
                                 logger.LogError($"RATES? - No response from {nameof(hardwareResponseChannel)}");
-                                return "Error: No response from hardware.\n";
+                                return "Error: No/bad response from channel.\n";
                             }
                         case "DEPTHS?":
                             List<string> depths = [];

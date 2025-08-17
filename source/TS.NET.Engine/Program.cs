@@ -260,6 +260,10 @@ class Program
             hardwareThread.Start(startSemaphore);
 
             startSemaphore.Wait();
+            var scpiServer = new ScpiServer(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
+            scpiServer.Start(startSemaphore);
+
+            startSemaphore.Wait();
             IEngineTask waveformBufferReader;
             switch (thunderscopeSettings.WaveformBufferReader)
             {
@@ -275,9 +279,6 @@ class Program
                     return;
             }
             waveformBufferReader.Start(startSemaphore);
-
-            var scpiServer = new ScpiServer(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
-            scpiServer.Start(startSemaphore);
 
             DateTimeOffset startTime = DateTimeOffset.UtcNow;
             bool loop = true;
@@ -308,8 +309,6 @@ class Program
             waveformBufferReader.Stop();
             hardwareThread.Stop();
             processingThread.Stop();
-
-
         }
         //catch (IOException)
         //{

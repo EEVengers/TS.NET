@@ -4,13 +4,14 @@
 
     public record ProcessingSetDepthDto(int Samples) : ProcessingRequestDto;
 
-    // Trigger actions
+    // Control
     public record ProcessingRunDto() : ProcessingRequestDto;
     public record ProcessingStopDto() : ProcessingRequestDto;
-    public record ProcessingForceTriggerDto() : ProcessingRequestDto;
+    public record ProcessingSetModeDto(Mode Mode) : ProcessingRequestDto;
+
+    public record ProcessingGetModeRequest() : ProcessingRequestDto;
 
     // Trigger configuration
-    public record ProcessingSetTriggerModeDto(TriggerMode Mode) : ProcessingRequestDto;
     public record ProcessingSetTriggerSourceDto(TriggerChannel Channel) : ProcessingRequestDto;
     public record ProcessingSetTriggerTypeDto(TriggerType Type) : ProcessingRequestDto;
     public record ProcessingSetTriggerDelayDto(ulong Femtoseconds) : ProcessingRequestDto;

@@ -15,12 +15,13 @@ public enum TriggerChannel : byte
     Channel4 = 4
 }
 
-public enum TriggerMode : byte
+public enum Mode : byte
 {
     Auto = 1,
     Normal = 2,
     Single = 3,         // Single effectively becomes Normal if Run again after a successful Single capture
-    Stream = 4
+    Force = 4,
+    Stream = 5
     //Single_Armed?
     //Single_Unarmed?
 }

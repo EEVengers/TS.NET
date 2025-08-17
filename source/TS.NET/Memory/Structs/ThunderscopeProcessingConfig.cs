@@ -12,7 +12,7 @@ namespace TS.NET
         public ThunderscopeDataType ChannelDataType;
 
         public TriggerChannel TriggerChannel;   // U8
-        public TriggerMode TriggerMode;         // U8
+        public Mode Mode;         // U8
         public TriggerType TriggerType;         // U8
         public ulong TriggerDelayFs;
         public ulong TriggerHoldoffFs;

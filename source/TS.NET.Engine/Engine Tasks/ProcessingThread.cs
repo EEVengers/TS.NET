@@ -123,8 +123,8 @@ namespace TS.NET.Engine
                     ChannelCount = initialChannelCount,
                     ChannelDataLength = settings.MaxCaptureLength,
                     ChannelDataType = ThunderscopeDataType.I8,
+                    Mode = Mode.Auto,
                     TriggerChannel = TriggerChannel.Channel1,
-                    TriggerMode = TriggerMode.Auto,
                     TriggerType = TriggerType.Edge,
                     TriggerDelayFs = 0,
                     TriggerHoldoffFs = 0,
@@ -180,9 +180,9 @@ namespace TS.NET.Engine
                     TriggerIndices = new int[ThunderscopeMemory.Length / 1000],     // 1000 samples is the minimum window width
                     CaptureEndIndices = new int[ThunderscopeMemory.Length / 1000]   // 1000 samples is the minimum window width
                 };
-                bool runMode = true;
-                bool forceTriggerLatch = false;     // "Latch" because it will reset state back to false. If the force is invoked and a trigger happens anyway, it will be reset (effectively ignoring it and only updating the bridge once).
+                bool runMode = false;
                 bool singleTriggerLatch = false;    // "Latch" because it will reset state back to false. When reset, runTrigger will be set to false.
+                Mode modeAfterForce = processingConfig.Mode;
 
                 // Variables for Auto triggering
                 Stopwatch autoTimeoutTimer = Stopwatch.StartNew();
@@ -200,49 +200,49 @@ namespace TS.NET.Engine
                     {
                         switch (request)
                         {
-                            case ProcessingRunDto processingStartTriggerDto:
-                                runMode = true;
-                                processingConfig.TriggerMode = TriggerMode.Auto;        // To do: cache the last setting of AUTO/NORMAL/STREAM and use it here
+                            case ProcessingRunDto processingRunDto:
                                 captureBuffer.Reset();
-                                hardwareRequestChannel.Write(new HardwareStartRequest());
+                                StartHardware();
                                 logger.LogDebug($"{nameof(ProcessingRunDto)}");
                                 break;
-                            case ProcessingStopDto processingStopTriggerDto:
-                                runMode = false;
-                                hardwareRequestChannel.Write(new HardwareStopRequest());
+                            case ProcessingStopDto processingStopDto:
+                                StopHardware();
                                 logger.LogDebug($"{nameof(ProcessingStopDto)}");
                                 break;
-                            case ProcessingForceTriggerDto processingForceTriggerDto:       // Force only works in RUN mode, and finishes in RUN
-                                if (runMode)        // Ignore the force if not in run mode, to prevent a glitch when going STOP > RUN (with a FORCE armed)
-                                {
-                                    forceTriggerLatch = true;
-                                    captureBuffer.Reset();
-                                    logger.LogDebug($"{nameof(ProcessingForceTriggerDto)} armed");
-                                }
-                                else
-                                {
-                                    logger.LogDebug($"{nameof(ProcessingForceTriggerDto)} not armed");
-                                }
+                            case ProcessingGetModeRequest processingGetModeRequest:
+                                processingResponseChannel.Write(new ProcessingGetModeResponse(processingConfig.Mode));
+                                logger.LogDebug($"{nameof(ProcessingGetModeRequest)}");
                                 break;
-                            case ProcessingSetTriggerModeDto processingSetTriggerModeDto:
-                                processingConfig.TriggerMode = processingSetTriggerModeDto.Mode;
-                                switch (processingSetTriggerModeDto.Mode)
+                            case ProcessingSetModeDto processingSetModeDto:
+                                singleTriggerLatch = false;
+                                captureBuffer.Reset();              // To do: consider if resetting capture buffer is right in all mode change scenarios
+                                switch (processingSetModeDto.Mode)
                                 {
-                                    case TriggerMode.Normal:
-                                    case TriggerMode.Stream:
-                                        singleTriggerLatch = false;
+                                    case Mode.Normal:                // NORMAL/STREAM/AUTO use RUN/STOP on user demand
+                                    case Mode.Stream:
+                                        processingConfig.Mode = processingSetModeDto.Mode;
                                         break;
-                                    case TriggerMode.Single:                                // Single works in both RUN/STOP, and finishes in STOP
-                                        runMode = true;
-                                        singleTriggerLatch = true;
-                                        break;
-                                    case TriggerMode.Auto:
-                                        singleTriggerLatch = false;
+                                    case Mode.Auto:
                                         autoTimeoutTimer.Restart();
+                                        processingConfig.Mode = processingSetModeDto.Mode;
+                                        break;
+                                    case Mode.Single:                // SINGLE forces runMode.
+                                        if (runMode != true)
+                                        {
+                                            StartHardware();
+                                        }
+                                        singleTriggerLatch = true;
+                                        processingConfig.Mode = processingSetModeDto.Mode;
+                                        break;
+                                    case Mode.Force:                 // FORCE is ignored if not in runMode.
+                                        if (runMode)
+                                        {
+                                            modeAfterForce = processingConfig.Mode;
+                                            processingConfig.Mode = processingSetModeDto.Mode;
+                                        }
                                         break;
                                 }
-                                captureBuffer.Reset();
-                                logger.LogDebug($"{nameof(ProcessingSetTriggerModeDto)} (mode: {processingConfig.TriggerMode})");
+                                logger.LogDebug($"{nameof(ProcessingSetModeDto)} (mode: {processingConfig.Mode})");
                                 break;
                             case ProcessingSetTriggerSourceDto processingSetTriggerSourceDto:
                                 processingConfig.TriggerChannel = processingSetTriggerSourceDto.Channel;
@@ -427,11 +427,11 @@ namespace TS.NET.Engine
 
                         if (runMode)
                         {
-                            switch (processingConfig.TriggerMode)
+                            switch (processingConfig.Mode)
                             {
-                                case TriggerMode.Normal:
-                                case TriggerMode.Single:
-                                case TriggerMode.Auto:
+                                case Mode.Normal:
+                                case Mode.Single:
+                                case Mode.Auto:
                                     if (cachedHardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
                                     {
                                         // Load in the trigger buffer from the correct shuffle buffer
@@ -492,7 +492,7 @@ namespace TS.NET.Engine
                                                 if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
                                                 {
                                                     singleTriggerLatch = false;
-                                                    runMode = false;
+                                                    StopHardware();
                                                     break;
                                                 }
                                             }
@@ -500,21 +500,18 @@ namespace TS.NET.Engine
                                             autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
                                         }
                                     }
-                                    if (forceTriggerLatch) // This will always run, despite whether a trigger has happened or not (so from the user perspective, the UI might show one misaligned waveform during normal triggering; this is intended)
-                                    {
-                                        Capture(triggered: false, triggerChannelCaptureIndex: 0, offset: 0);
-
-                                        forceTriggerLatch = false;
-
-                                        streamSampleCounter = 0;
-                                        autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
-                                    }
-                                    else if (processingConfig.TriggerMode == TriggerMode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
+                                    if (processingConfig.Mode == Mode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
                                     {
                                         StreamCapture();
                                     }
                                     break;
-                                case TriggerMode.Stream:
+                                case Mode.Force:        // Mode.Force is a latching mode - it'll return back to one of the other modes
+                                    Capture(triggered: false, triggerChannelCaptureIndex: 0, offset: 0);
+                                    processingConfig.Mode = modeAfterForce;
+                                    streamSampleCounter = 0;
+                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
+                                    break;
+                                case Mode.Stream:
                                     StreamCapture();
                                     break;
                             }
@@ -540,6 +537,18 @@ namespace TS.NET.Engine
                 }
 
                 // Locally scoped methods for deduplication
+                void StartHardware()
+                {
+                    runMode = true;
+                    hardwareRequestChannel.Write(new HardwareStartRequest());
+                }
+
+                void StopHardware()
+                {
+                    runMode = false;
+                    hardwareRequestChannel.Write(new HardwareStopRequest());
+                }
+
                 void SwitchTrigger()
                 {
                     triggerI8 = processingConfig.TriggerType switch
