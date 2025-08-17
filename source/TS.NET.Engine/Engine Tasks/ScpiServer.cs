@@ -229,8 +229,8 @@ namespace TS.NET.Engine
                                     logger.LogDebug($"{nameof(ProcessingStopDto)} sent");
                                     return null;
                                 case "FORCE":
-                                    processingRequestChannel.Write(new ProcessingSetModeDto(Mode.Force));
-                                    logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
+                                    processingRequestChannel.Write(new ProcessingForceDto());
+                                    logger.LogDebug($"{nameof(ProcessingForceDto)} sent");
                                     return null;
                                 case "SINGLE":
                                     processingRequestChannel.Write(new ProcessingSetModeDto(Mode.Single));

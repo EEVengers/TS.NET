@@ -19,9 +19,8 @@ public enum Mode : byte
 {
     Auto = 1,
     Normal = 2,
-    Single = 3,         // Single effectively becomes Normal if Run again after a successful Single capture
-    Force = 4,
-    Stream = 5
+    Single = 3,
+    Stream = 4
     //Single_Armed?
     //Single_Unarmed?
 }
