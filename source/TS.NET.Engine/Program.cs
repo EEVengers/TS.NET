@@ -69,7 +69,7 @@ class Program
                 }
             }
         }
-        
+
         Console.CancelKeyPress += (sender, e) => { StopLibtslitex(); Environment.Exit(0); };    // Handle Ctrl+C or Ctrl+Break event.
         AppDomain.CurrentDomain.ProcessExit += (sender, e) => { StopLibtslitex(); };            // Handle UI window close
         // Abrupt termination/SIGKILL to be handled with driver watchdog later?
@@ -151,7 +151,7 @@ class Program
 
             switch (thunderscopeSettings.HardwareDriver.ToLower())
             {
-                case "simulator":
+                case "simulation":
                     {
                         var ts = new TS.NET.Driver.Simulation.Thunderscope();
                         thunderscope = ts;

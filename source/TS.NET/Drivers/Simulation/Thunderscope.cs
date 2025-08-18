@@ -10,6 +10,7 @@
         private float sampleRateHz = 1e9f;
         private float frequencyHz = 1e6f;
         private int nextIterationCopy = 0;
+        private bool running = false;
 
         public ThunderscopeChannelFrontend GetChannelFrontend(int channelIndex)
         {
@@ -64,7 +65,10 @@
 
         public bool TryRead(ThunderscopeMemory data, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            if (!running)
+                return false;
+            Read(data, cancellationToken);
+            return true;
         }
 
         public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)
@@ -99,10 +103,13 @@
                 int scaledValue = (int)(sineValue * scale);
                 oneCycle.Span[i] = (sbyte)scaledValue;
             }
+
+            running = true;
         }
 
         public void Stop()
         {
+            running = false;
         }
 
         public ThunderscopeChannelCalibration GetChannelCalibration(int channelIndex)

@@ -165,6 +165,11 @@ namespace TS.NET.Engine
                                                     }
                                                     break;
                                                 }
+                                            case Driver.Simulation.Thunderscope simulationThunderscope:
+                                                {
+                                                    rates.Add(1000000000);
+                                                    break;
+                                                }
                                         }
                                         hardwareResponseChannel.Write(new HardwareGetRatesResponse(rates.ToArray()));
                                         logger.LogDebug($"{nameof(HardwareGetRatesResponse)}");
