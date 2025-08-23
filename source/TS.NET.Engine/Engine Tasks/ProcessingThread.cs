@@ -338,6 +338,11 @@ namespace TS.NET.Engine
                                 var requestedTriggerLevel = processingSetTriggerLevelDto.LevelVolts;
                                 // Convert the voltage to Int8
 
+                                if (processingConfig.TriggerChannel == TriggerChannel.None)
+                                {
+                                    logger.LogWarning($"Could not set trigger level {requestedTriggerLevel}");
+                                    break;
+                                }
                                 var triggerChannel = cachedHardwareConfig.GetTriggerChannelFrontend(processingConfig.TriggerChannel);
 
                                 if ((requestedTriggerLevel > triggerChannel.ActualVoltFullScale / 2) || (requestedTriggerLevel < -triggerChannel.ActualVoltFullScale / 2))
