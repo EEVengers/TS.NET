@@ -10,7 +10,19 @@
     public record ProcessingForceDto() : ProcessingRequestDto;
     public record ProcessingSetModeDto(Mode Mode) : ProcessingRequestDto;
 
+    public record ProcessingGetStateRequest() : ProcessingRequestDto;
     public record ProcessingGetModeRequest() : ProcessingRequestDto;
+    public record ProcessingGetDepthRequest() : ProcessingRequestDto;
+
+    // Trigger query requests
+    public record ProcessingGetTriggerSourceRequest() : ProcessingRequestDto;
+    public record ProcessingGetTriggerTypeRequest() : ProcessingRequestDto;
+    public record ProcessingGetTriggerDelayRequest() : ProcessingRequestDto;
+    public record ProcessingGetTriggerHoldoffRequest() : ProcessingRequestDto;
+    public record ProcessingGetTriggerInterpolationRequest() : ProcessingRequestDto;
+
+    public record ProcessingGetEdgeTriggerLevelRequest() : ProcessingRequestDto;
+    public record ProcessingGetEdgeTriggerDirectionRequest() : ProcessingRequestDto;
 
     // Trigger configuration
     public record ProcessingSetTriggerSourceDto(TriggerChannel Channel) : ProcessingRequestDto;

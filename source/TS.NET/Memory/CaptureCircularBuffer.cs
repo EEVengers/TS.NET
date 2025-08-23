@@ -84,9 +84,9 @@
                 this.channelCaptureLength = channelCaptureLength;
 
                 maxCaptureCount = (int)(buffer.LengthBytes / potentialTotalCaptureLengthBytes);
-                if (maxCaptureCount > 5)
+                if (maxCaptureCount > 2)
                 {
-                    maxCaptureCount = 5;   // Coerce for now until "stale data" logic implemented where UI is too slow to pull all the data
+                    maxCaptureCount = 2;   // Coerce for now until "stale data" logic implemented where UI is too slow to pull all the data
                 }
                 wraparoundOffset = maxCaptureCount * potentialTotalCaptureLength;
                 Reset();

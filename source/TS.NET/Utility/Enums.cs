@@ -8,7 +8,7 @@ public enum ChannelLength : ulong
 
 public enum TriggerChannel : byte
 {
-    NotSet = 0,
+    None = 0,
     Channel1 = 1,
     Channel2 = 2,
     Channel3 = 3,

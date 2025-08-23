@@ -76,13 +76,14 @@ namespace TS.NET.Engine
                 Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
                 uint periodicEnqueueCount = 0;
                 uint enqueueCounter = 0;
+                ThunderscopeMemory memory = inputChannel.Read(cancelToken);
+                bool validMemory = true;
 
                 while (true)
                 {
                     cancelToken.ThrowIfCancellationRequested();
 
-                    // Check for configuration requests
-                    if (hardwareRequestChannel.PeekAvailable() != 0)
+                    if (hardwareRequestChannel.PeekAvailable() > 0)
                     {
                         while (hardwareRequestChannel.TryRead(out var request))
                         {
@@ -95,6 +96,7 @@ namespace TS.NET.Engine
                                     break;
                                 case HardwareStopRequest hardwareStopRequest:
                                     thunderscope.Stop();
+                                    hardwareResponseChannel.Write(new HardwareStopResponse());
                                     logger.LogDebug($"{nameof(HardwareStopRequest)}");
                                     break;
                                 case HardwareSetRateRequest hardwareSetRateRequest:
@@ -257,55 +259,48 @@ namespace TS.NET.Engine
                         }
                     }
 
-                    //logger.LogDebug($"Requesting memory block {enqueueCounter}");
-                    var memory = inputChannel.Read(cancelToken);
-                    //logger.LogDebug($"Memory block {enqueueCounter}");
-                    while (true)
+                    try
                     {
-                        try
+                        if (!validMemory)
                         {
-                            if (thunderscope.TryRead(memory, cancelToken))
-                            {
-                                if (enqueueCounter == 0)
-                                    logger.LogDebug("First block of data received");
-                                periodicEnqueueCount++;
-                                enqueueCounter++;
-                                //logger.LogDebug($"Acquisition block {enqueueCounter}");
-                            }
-                            else
-                            {
-                                Thread.Sleep(10);
-                            }
-                            break;
+                            memory = inputChannel.Read(cancelToken);
+                            validMemory = true;
                         }
-                        catch (ThunderscopeMemoryOutOfMemoryException)
+                        if (thunderscope.TryRead(memory, cancelToken))
                         {
-                            logger.LogWarning("Scope ran out of memory - reset buffer pointers and continue");
-                            ((Driver.XMDA.Thunderscope)thunderscope).ResetBuffer();
-                            continue;
+                            if (enqueueCounter == 0)
+                                logger.LogDebug("First block of data received");
+                            periodicEnqueueCount++;
+                            enqueueCounter++;
+                            processChannel.Write(new InputDataDto(thunderscope.GetConfiguration(), memory), cancelToken);
+                            validMemory = false;
                         }
-                        catch (ThunderscopeFifoOverflowException)
+                        else
                         {
-                            logger.LogWarning("Scope had FIFO overflow - ignore and continue");
-                            continue;
-                        }
-                        catch (ThunderscopeNotRunningException)
-                        {
-                            // logger.LogWarning("Tried to read from stopped scope");
-                            continue;
-                        }
-                        catch (Exception ex)
-                        {
-                            if (ex.Message == "ReadFile - failed (1359)")
-                            {
-                                logger.LogError(ex, $"{nameof(HardwareThread)} error");
-                                continue;
-                            }
-                            throw;
+                            Thread.Sleep(10);
                         }
                     }
-
-                    processChannel.Write(new InputDataDto(thunderscope.GetConfiguration(), memory), cancelToken);
+                    catch (ThunderscopeMemoryOutOfMemoryException)
+                    {
+                        logger.LogWarning("Scope ran out of memory - reset buffer pointers and continue");
+                        ((Driver.XMDA.Thunderscope)thunderscope).ResetBuffer();
+                    }
+                    catch (ThunderscopeFifoOverflowException)
+                    {
+                        logger.LogWarning("Scope had FIFO overflow - ignore and continue");
+                    }
+                    catch (ThunderscopeNotRunningException)
+                    {
+                        // logger.LogWarning("Tried to read from stopped scope");
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex.Message == "ReadFile - failed (1359)")
+                        {
+                            logger.LogError(ex, $"{nameof(HardwareThread)} error");
+                        }
+                        throw;
+                    }
 
                     if (periodicUpdateTimer.ElapsedMilliseconds >= 10000)
                     {

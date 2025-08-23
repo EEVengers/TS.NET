@@ -18,6 +18,8 @@ namespace TS.NET
         public ulong TriggerHoldoffFs;
         public bool TriggerInterpolation;
 
+        public long AutoTimeoutMs;
+
         public EdgeTriggerParameters EdgeTriggerParameters;
         public BurstTriggerParameters BurstTriggerParameters;
 

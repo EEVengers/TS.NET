@@ -170,7 +170,7 @@ namespace TS.NET.Engine
 
             ThunderscopeTermination? GetTermination(string arg)
             {
-                ThunderscopeTermination? thunderscopeTermination = argument switch
+                ThunderscopeTermination? thunderscopeTermination = arg switch
                 {
                     "1M" => ThunderscopeTermination.OneMegaohm,
                     "50" => ThunderscopeTermination.FiftyOhm,
@@ -281,16 +281,47 @@ namespace TS.NET.Engine
                                     {
                                         // TRIGger:SOUrce <arg>
                                         // TRIG:SOU <arg>
-                                        if (!char.IsDigit(argument[^1]))
+                                        if (!char.IsDigit(argument[^1]) && argument != "NONE")
                                         {
                                             logger.LogWarning($"Trigger source parameter not valid");
                                             return null;
                                         }
-                                        int source = Convert.ToInt32(argument.ToArray()[^1]) - '0';
-                                        if (source < 1 || source > 4)
-                                            source = 1;
-                                        logger.LogDebug($"Set trigger source to ch {source}");
-                                        processingRequestChannel.Write(new ProcessingSetTriggerSourceDto((TriggerChannel)source));
+                                        var triggerChannel = TriggerChannel.None;
+                                        if (argument != "NONE") {
+                                            int source = Convert.ToInt32(argument.ToArray()[^1]) - '0';
+                                            if (source < 1 || source > 4)
+                                                source = 1;
+                                            triggerChannel = (TriggerChannel)source;
+                                        }
+                                        logger.LogDebug($"Set trigger source to {triggerChannel}");
+                                        processingRequestChannel.Write(new ProcessingSetTriggerSourceDto(triggerChannel));
+                                        return null;
+                                    }
+                                case var _ when command.StartsWith("TYPE") && argument != null:
+                                    {
+                                        // TRIGger:TYPE <arg>
+                                        // TRIG:TYPE <arg>
+                                        TriggerType? triggerType = argument.ToUpper() switch
+                                        {
+                                            "EDGE" => TriggerType.Edge,
+                                            "WINDOW" => TriggerType.Window,
+                                            "RUNT" => TriggerType.Runt,
+                                            "WIDTH" => TriggerType.Width,
+                                            "INTERVAL" => TriggerType.Interval,
+                                            "BURST" => TriggerType.Burst,
+                                            "DROPOUT" => TriggerType.Dropout,
+                                            "SLEWRATE" => TriggerType.SlewRate,
+                                            _ => null
+                                        };
+
+                                        if (triggerType == null)
+                                        {
+                                            logger.LogWarning("Trigger type parameter not recognised: {Argument}. Valid values: EDGE, WINDOW, RUNT, WIDTH, INTERVAL, BURST, DROPOUT, SLEWRATE", argument);
+                                            return null;
+                                        }
+
+                                        logger.LogDebug($"Set trigger type to {triggerType}");
+                                        processingRequestChannel.Write(new ProcessingSetTriggerTypeDto(triggerType.Value));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("DEL") && argument != null:
@@ -327,9 +358,7 @@ namespace TS.NET.Engine
                                         processingRequestChannel.Write(new ProcessingSetTriggerInterpolationDto(enabled));
                                         return null;
                                     }
-                                // Deprecated, keep until March 2025. Replaced with TRIG:EDGE:LEV.
-                                case var _ when command.StartsWith("LEV") && argument != null:
-                                    //case var _ when command.StartsWith("EDGE:LEV") && argument != null:
+                                case var _ when command.StartsWith("EDGE:LEV") && argument != null:
                                     {
                                         // TRIGger:EDGE:LEVel <arg>
                                         // TRIG:EDGE:LEV <arg>
@@ -579,7 +608,24 @@ namespace TS.NET.Engine
                     switch (command)
                     {
                         case "*IDN?":
-                            return "ThunderScope,(Bridge),NOSERIAL,NOVERSION\n";
+                            return "EEVengers,ThunderScope,NO_SERIAL,NO_VERSION\n";
+                        case "STATE?":
+                            {
+                                processingRequestChannel.Write(new ProcessingGetStateRequest());
+                                if (processingResponseChannel.TryRead(out var response, 500))
+                                {
+                                    switch (response)
+                                    {
+                                        case ProcessingGetStateResponse processingGetStateResponse:
+                                            return $"{(processingGetStateResponse.Run ? "RUN" : "STOP")}\n";
+                                        default:
+                                            logger.LogError($"STATE? - Invalid response from {nameof(processingResponseChannel)}");
+                                            break;
+                                    }
+                                }
+                                logger.LogError($"STATE? - No response from {nameof(processingResponseChannel)}");
+                                return "Error: No/bad response from channel.\n";
+                            }
                         case "MODE?":
                             {
                                 processingRequestChannel.Write(new ProcessingGetModeRequest());
@@ -594,6 +640,7 @@ namespace TS.NET.Engine
                                             break;
                                     }
                                 }
+                                logger.LogError($"MODE? - No response from {nameof(processingResponseChannel)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                         case "RATES?":
@@ -623,11 +670,11 @@ namespace TS.NET.Engine
                                         case HardwareGetRateResponse hardwareGetRateResponse:
                                             return $"{hardwareGetRateResponse.SampleRateHz}\n";
                                         default:
-                                            logger.LogError($"RATES? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                            logger.LogError($"RATE? - Invalid response from {nameof(hardwareResponseChannel)}");
                                             break;
                                     }
                                 }
-                                logger.LogError($"RATES? - No response from {nameof(hardwareResponseChannel)}");
+                                logger.LogError($"RATE? - No response from {nameof(hardwareResponseChannel)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                         case "DEPTHS?":
@@ -647,6 +694,150 @@ namespace TS.NET.Engine
                             }
                             // Perhaps take into account the sample rate to get 1ms/2ms/5ms/10ms/etc windows instead?
                             return $"{string.Join(",", depths)},\n";
+                        case "DEPTH?":
+                            {
+                                processingRequestChannel.Write(new ProcessingGetDepthRequest());
+                                if (processingResponseChannel.TryRead(out var response, 500))
+                                {
+                                    switch (response)
+                                    {
+                                        case ProcessingGetDepthResponse processingGetDepthResponse:
+                                            return $"{processingGetDepthResponse.Depth}\n";
+                                        default:
+                                            logger.LogError($"DEPTH? - Invalid response from {nameof(processingResponseChannel)}");
+                                            break;
+                                    }
+                                }
+                                logger.LogError($"DEPTH? - No response from {nameof(processingResponseChannel)}");
+                                return "Error: No/bad response from channel.\n";
+                            }
+                    }
+                }
+                else if (subject?.StartsWith("TRIG") == true)
+                {
+                    // Trigger query commands
+                    while (processingResponseChannel.TryRead(out var response, 10)) { }
+                    switch (command)
+                    {
+                        case var _ when command.StartsWith("SOU"):
+                            {
+                                processingRequestChannel.Write(new ProcessingGetTriggerSourceRequest());
+                                if (processingResponseChannel.TryRead(out var response, 500))
+                                {
+                                    switch (response)
+                                    {
+                                        case ProcessingGetTriggerSourceResponse triggerSourceResponse:
+                                            return $"CHAN{(int)triggerSourceResponse.Channel}\n";
+                                        default:
+                                            logger.LogError($"TRIG:SOU? - Invalid response from {nameof(processingResponseChannel)}");
+                                            break;
+                                    }
+                                }
+                                logger.LogError($"TRIG:SOU? - No response from {nameof(processingResponseChannel)}");
+                                return "Error: No/bad response from channel.\n";
+                            }
+                        case var _ when command.StartsWith("TYPE"):
+                            {
+                                processingRequestChannel.Write(new ProcessingGetTriggerTypeRequest());
+                                if (processingResponseChannel.TryRead(out var response, 500))
+                                {
+                                    switch (response)
+                                    {
+                                        case ProcessingGetTriggerTypeResponse triggerTypeResponse:
+                                            return $"{triggerTypeResponse.Type.ToString().ToUpper()}\n";
+                                        default:
+                                            logger.LogError($"TRIG:TYPE? - Invalid response from {nameof(processingResponseChannel)}");
+                                            break;
+                                    }
+                                }
+                                logger.LogError($"TRIG:TYPE? - No response from {nameof(processingResponseChannel)}");
+                                return "Error: No/bad response from channel.\n";
+                            }
+                        case var _ when command.StartsWith("DEL"):
+                            {
+                                processingRequestChannel.Write(new ProcessingGetTriggerDelayRequest());
+                                if (processingResponseChannel.TryRead(out var response, 500))
+                                {
+                                    switch (response)
+                                    {
+                                        case ProcessingGetTriggerDelayResponse triggerDelayResponse:
+                                            return $"{triggerDelayResponse.Femtoseconds}\n";
+                                        default:
+                                            logger.LogError($"TRIG:DEL? - Invalid response from {nameof(processingResponseChannel)}");
+                                            break;
+                                    }
+                                }
+                                logger.LogError($"TRIG:DEL? - No response from {nameof(processingResponseChannel)}");
+                                return "Error: No/bad response from channel.\n";
+                            }
+                        case var _ when command.StartsWith("HOLD"):
+                            {
+                                processingRequestChannel.Write(new ProcessingGetTriggerHoldoffRequest());
+                                if (processingResponseChannel.TryRead(out var response, 500))
+                                {
+                                    switch (response)
+                                    {
+                                        case ProcessingGetTriggerHoldoffResponse triggerHoldoffResponse:
+                                            return $"{triggerHoldoffResponse.Femtoseconds}\n";
+                                        default:
+                                            logger.LogError($"TRIG:HOLD? - Invalid response from {nameof(processingResponseChannel)}");
+                                            break;
+                                    }
+                                }
+                                logger.LogError($"TRIG:HOLD? - No response from {nameof(processingResponseChannel)}");
+                                return "Error: No/bad response from channel.\n";
+                            }
+                        case var _ when command.StartsWith("INTER"):
+                            {
+                                processingRequestChannel.Write(new ProcessingGetTriggerInterpolationRequest());
+                                if (processingResponseChannel.TryRead(out var response, 500))
+                                {
+                                    switch (response)
+                                    {
+                                        case ProcessingGetTriggerInterpolationResponse triggerInterpolationResponse:
+                                            return $"{(triggerInterpolationResponse.Enabled ? "1" : "0")}\n";
+                                        default:
+                                            logger.LogError($"TRIG:INTER? - Invalid response from {nameof(processingResponseChannel)}");
+                                            break;
+                                    }
+                                }
+                                logger.LogError($"TRIG:INTER? - No response from {nameof(processingResponseChannel)}");
+                                return "Error: No/bad response from channel.\n";
+                            }
+                        case var _ when command.StartsWith("EDGE:LEV"):
+                            {
+                                processingRequestChannel.Write(new ProcessingGetEdgeTriggerLevelRequest());
+                                if (processingResponseChannel.TryRead(out var response, 500))
+                                {
+                                    switch (response)
+                                    {
+                                        case ProcessingGetEdgeTriggerLevelResponse triggerLevelResponse:
+                                            return $"{triggerLevelResponse.LevelVolts:F6}\n";
+                                        default:
+                                            logger.LogError($"TRIG:EDGE:LEV? - Invalid response from {nameof(processingResponseChannel)}");
+                                            break;
+                                    }
+                                }
+                                logger.LogError($"TRIG:EDGE:LEV? - No response from {nameof(processingResponseChannel)}");
+                                return "Error: No/bad response from channel.\n";
+                            }
+                        case var _ when command.StartsWith("EDGE:DIR"):
+                            {
+                                processingRequestChannel.Write(new ProcessingGetEdgeTriggerDirectionRequest());
+                                if (processingResponseChannel.TryRead(out var response, 500))
+                                {
+                                    switch (response)
+                                    {
+                                        case ProcessingGetEdgeTriggerDirectionResponse triggerDirectionResponse:
+                                            return $"{triggerDirectionResponse.Direction.ToString().ToUpper()}\n";
+                                        default:
+                                            logger.LogError($"TRIG:EDGE:DIR? - Invalid response from {nameof(processingResponseChannel)}");
+                                            break;
+                                    }
+                                }
+                                logger.LogError($"TRIG:EDGE:DIR? - No response from {nameof(processingResponseChannel)}");
+                                return "Error: No/bad response from channel.\n";
+                            }
                     }
                 }
             }

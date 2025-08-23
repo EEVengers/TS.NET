@@ -121,14 +121,15 @@ namespace TS.NET.Engine
                 var processingConfig = new ThunderscopeProcessingConfig
                 {
                     ChannelCount = initialChannelCount,
-                    ChannelDataLength = settings.MaxCaptureLength,
+                    ChannelDataLength = 1000,
                     ChannelDataType = ThunderscopeDataType.I8,
                     Mode = Mode.Auto,
                     TriggerChannel = TriggerChannel.Channel1,
                     TriggerType = TriggerType.Edge,
-                    TriggerDelayFs = 0,
+                    TriggerDelayFs = (ulong)(1e15 / (1e9 / initialChannelCount) * 500),   // Set the trigger delay to the middle of the capture
                     TriggerHoldoffFs = 0,
                     TriggerInterpolation = true,
+                    AutoTimeoutMs = 1000,
                     EdgeTriggerParameters = new EdgeTriggerParameters() { Level = 0, Hysteresis = 5, Direction = EdgeDirection.Rising },
                     BurstTriggerParameters = new BurstTriggerParameters() { WindowHighLevel = 64, WindowLowLevel = -64, MinimumInRangePeriod = 450000 },
                     BoxcarAveraging = BoxcarAveraging.None
@@ -188,7 +189,6 @@ namespace TS.NET.Engine
                 // Variables for Auto triggering
                 Stopwatch autoTimeoutTimer = Stopwatch.StartNew();
                 int streamSampleCounter = 0;
-                long autoTimeout = 1000;
 
                 logger.LogInformation("Started");
                 startSemaphore.Release();
@@ -203,6 +203,8 @@ namespace TS.NET.Engine
                         {
                             case ProcessingRunDto processingRunDto:
                                 captureBuffer.Reset();
+                                if (processingConfig.Mode == Mode.Single)
+                                    singleTriggerLatch = true;
                                 StartHardware();
                                 logger.LogDebug($"{nameof(ProcessingRunDto)}");
                                 break;
@@ -218,9 +220,48 @@ namespace TS.NET.Engine
                                 }
                                 logger.LogDebug($"{nameof(ProcessingForceDto)}");
                                 break;
+                            case ProcessingGetStateRequest processingGetStateRequest:
+                                processingResponseChannel.Write(new ProcessingGetStateResponse(runMode));
+                                logger.LogDebug($"{nameof(ProcessingGetStateRequest)}");
+                                break;
                             case ProcessingGetModeRequest processingGetModeRequest:
                                 processingResponseChannel.Write(new ProcessingGetModeResponse(processingConfig.Mode));
                                 logger.LogDebug($"{nameof(ProcessingGetModeRequest)}");
+                                break;
+                            case ProcessingGetDepthRequest processingGetDepthRequest:
+                                processingResponseChannel.Write(new ProcessingGetDepthResponse(processingConfig.ChannelDataLength));
+                                logger.LogDebug($"{nameof(ProcessingGetDepthRequest)}");
+                                break;
+                            case ProcessingGetTriggerSourceRequest processingGetTriggerSourceRequest:
+                                processingResponseChannel.Write(new ProcessingGetTriggerSourceResponse(processingConfig.TriggerChannel));
+                                logger.LogDebug($"{nameof(ProcessingGetTriggerSourceRequest)}");
+                                break;
+                            case ProcessingGetTriggerTypeRequest processingGetTriggerTypeRequest:
+                                processingResponseChannel.Write(new ProcessingGetTriggerTypeResponse(processingConfig.TriggerType));
+                                logger.LogDebug($"{nameof(ProcessingGetTriggerTypeRequest)}");
+                                break;
+                            case ProcessingGetTriggerDelayRequest processingGetTriggerDelayRequest:
+                                processingResponseChannel.Write(new ProcessingGetTriggerDelayResponse(processingConfig.TriggerDelayFs));
+                                logger.LogDebug($"{nameof(ProcessingGetTriggerDelayRequest)}");
+                                break;
+                            case ProcessingGetTriggerHoldoffRequest processingGetTriggerHoldoffRequest:
+                                processingResponseChannel.Write(new ProcessingGetTriggerHoldoffResponse(processingConfig.TriggerHoldoffFs));
+                                logger.LogDebug($"{nameof(ProcessingGetTriggerHoldoffRequest)}");
+                                break;
+                            case ProcessingGetTriggerInterpolationRequest processingGetTriggerInterpolationRequest:
+                                processingResponseChannel.Write(new ProcessingGetTriggerInterpolationResponse(processingConfig.TriggerInterpolation));
+                                logger.LogDebug($"{nameof(ProcessingGetTriggerInterpolationRequest)}");
+                                break;
+                            case ProcessingGetEdgeTriggerLevelRequest processingGetEdgeTriggerLevelRequest:
+                                // Convert the internal trigger level back to volts
+                                var triggerChannelFrontend = cachedHardwareConfig.GetTriggerChannelFrontend(processingConfig.TriggerChannel);
+                                double levelVolts = (processingConfig.EdgeTriggerParameters.Level / 127.0) * (triggerChannelFrontend.ActualVoltFullScale / 2);
+                                processingResponseChannel.Write(new ProcessingGetEdgeTriggerLevelResponse(levelVolts));
+                                logger.LogDebug($"{nameof(ProcessingGetEdgeTriggerLevelRequest)}");
+                                break;
+                            case ProcessingGetEdgeTriggerDirectionRequest processingGetEdgeTriggerDirectionRequest:
+                                processingResponseChannel.Write(new ProcessingGetEdgeTriggerDirectionResponse(processingConfig.EdgeTriggerParameters.Direction));
+                                logger.LogDebug($"{nameof(ProcessingGetEdgeTriggerDirectionRequest)}");
                                 break;
                             case ProcessingSetModeDto processingSetModeDto:
                                 singleTriggerLatch = false;
@@ -502,14 +543,14 @@ namespace TS.NET.Engine
                                             autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
                                         }
                                     }
-                                    if(forceTriggerLatch)
+                                    if (forceTriggerLatch)
                                     {
                                         Capture(triggered: false, triggerChannelCaptureIndex: 0, offset: 0);
                                         forceTriggerLatch = false;
                                         streamSampleCounter = 0;
                                         autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
                                     }
-                                    if (processingConfig.Mode == Mode.Auto && autoTimeoutTimer.ElapsedMilliseconds > autoTimeout)
+                                    if (processingConfig.Mode == Mode.Auto && autoTimeoutTimer.ElapsedMilliseconds > processingConfig.AutoTimeoutMs)
                                     {
                                         StreamCapture();
                                     }
@@ -551,6 +592,24 @@ namespace TS.NET.Engine
                     runMode = false;
                     forceTriggerLatch = false;
                     hardwareRequestChannel.Write(new HardwareStopRequest());
+                    // Wait for response before clearing incomingDataChannel
+                    if (hardwareResponseChannel.TryRead(out var response, 500))
+                    {
+                        switch (response)
+                        {
+                            case HardwareStopResponse hardwareStopResponse:
+                                int i = 0;
+                                while (incomingDataChannel.TryRead(out var inputDataDto, 10, cancelToken))
+                                {
+                                    i++;
+                                    memoryReturnChannel.Write(inputDataDto.Memory, cancelToken);
+                                }
+                                break;
+                            default:
+                                throw new UnreachableException($"Invalid response to {nameof(HardwareStopRequest)}");
+                        }
+                    }
+                    SwitchTrigger();    // Reset trigger so that if the trigger has been left in an ARM state, it doesn't prematurely trigger
                 }
 
                 void SwitchTrigger()

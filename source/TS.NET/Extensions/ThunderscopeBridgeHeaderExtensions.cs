@@ -18,7 +18,7 @@
         {
             return triggerChannel switch
             {
-                TriggerChannel.NotSet => false,
+                TriggerChannel.None => false,
                 TriggerChannel.Channel1 => (config.EnabledChannels & 0x01) > 0,
                 TriggerChannel.Channel2 => ((config.EnabledChannels >> 1) & 0x01) > 0,
                 TriggerChannel.Channel3 => ((config.EnabledChannels >> 2) & 0x01) > 0,
