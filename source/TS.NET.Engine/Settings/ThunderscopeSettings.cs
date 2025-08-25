@@ -13,20 +13,19 @@ namespace TS.NET.Engine
         public int MaxCaptureLength { get; set; }
         public int ScpiPort { get; set; }
         public int DataPort { get; set; }
-        public string WaveformBufferReader { get; set; }
+        public string WaveformBufferReader { get; set; } = "";
 
         public int HardwareThreadProcessorAffinity { get; set; }
         public int ProcessingThreadProcessorAffinity { get; set; }
 
-        public ThunderscopeCalibrationSettings XdmaCalibration { get; set; } = new();
         public ThunderscopeCalibrationSettings LiteXCalibration { get; set; } = new();
 
         public static ThunderscopeSettings Default()
         {
             return new ThunderscopeSettings()
             {
-                HardwareDriver = "XDMA",
-                HardwareRevision = "Rev4",
+                HardwareDriver = "LiteX",
+                HardwareRevision = "Rev5",
                 MaxCaptureLength = 10000000,
                 ScpiPort = 5025,
                 DataPort = 5026,
@@ -35,7 +34,6 @@ namespace TS.NET.Engine
                 HardwareThreadProcessorAffinity = -1,
                 ProcessingThreadProcessorAffinity = -1,
 
-                XdmaCalibration = ThunderscopeCalibrationSettings.Default(),
                 LiteXCalibration = ThunderscopeCalibrationSettings.Default()
             };
         }
@@ -56,6 +54,7 @@ namespace TS.NET.Engine
             var context = new StaticContext();
             var deserializer = new StaticDeserializerBuilder(context)
                 .WithNamingConvention(PascalCaseNamingConvention.Instance)
+                .IgnoreUnmatchedProperties()
                 .Build();
 
             return deserializer.Deserialize<ThunderscopeSettings>(File.ReadAllText(file));

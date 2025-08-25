@@ -16,9 +16,6 @@ namespace TS.NET.Driver.Shared
 
             switch (hardwareDriver.ToLower())
             {
-                case "xdma":
-                    classGuid = Guid.Parse("{74c7e4a9-6d5d-4a70-bc0d-20691dff9e9d}");
-                    break;
                 case "litex":
                     //classGuid = Guid.Parse("{164adc02-e1ae-4fe1-a904-9a013577b891}");
                     classGuid = Guid.Parse("{dac3fa32-b912-4302-a1e7-c37299053dac}");

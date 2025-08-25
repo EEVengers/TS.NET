@@ -158,38 +158,6 @@ class Program
                         bufferLength = 3;
                         break;
                     }
-                case "xdma":
-                    {
-                        // Find thunderscope
-                        var devices = TS.NET.Driver.XMDA.Thunderscope.IterateDevices();
-                        if (devices.Count == 0)
-                        {
-                            logger?.LogCritical("No thunderscopes found");
-                            return;
-                        }
-                        if (deviceIndex > devices.Count - 1)
-                        {
-                            logger?.LogCritical($"Invalid thunderscope index ({deviceIndex}). Only {devices.Count} Thunderscopes connected.");
-                            return;
-                        }
-                        var ts = new TS.NET.Driver.XMDA.Thunderscope(loggerFactory);
-                        ThunderscopeHardwareConfig initialHardwareConfiguration = new();
-                        initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Quad;
-                        initialHardwareConfiguration.EnabledChannels = 0x0F;
-                        initialHardwareConfiguration.SampleRateHz = 250000000;
-                        initialHardwareConfiguration.Frontend[0] = ThunderscopeChannelFrontend.Default();
-                        initialHardwareConfiguration.Frontend[1] = ThunderscopeChannelFrontend.Default();
-                        initialHardwareConfiguration.Frontend[2] = ThunderscopeChannelFrontend.Default();
-                        initialHardwareConfiguration.Frontend[3] = ThunderscopeChannelFrontend.Default();
-                        initialHardwareConfiguration.Calibration[0] = thunderscopeSettings.XdmaCalibration.Channel1.ToDriver();
-                        initialHardwareConfiguration.Calibration[1] = thunderscopeSettings.XdmaCalibration.Channel2.ToDriver();
-                        initialHardwareConfiguration.Calibration[2] = thunderscopeSettings.XdmaCalibration.Channel3.ToDriver();
-                        initialHardwareConfiguration.Calibration[3] = thunderscopeSettings.XdmaCalibration.Channel4.ToDriver();
-                        ts.Open(devices[deviceIndex], initialHardwareConfiguration, thunderscopeSettings.HardwareRevision);
-                        thunderscope = ts;
-                        bufferLength = 60;
-                        break;
-                    }
                 case "litex":
                 case "libtslitex":
                     {

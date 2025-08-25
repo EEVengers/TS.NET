@@ -123,22 +123,6 @@ namespace TS.NET.Engine
                                         List<ulong> rates = [];
                                         switch (thunderscope)
                                         {
-                                            case Driver.XMDA.Thunderscope xdmaThunderscope:
-                                                {
-                                                    switch (config.AdcChannelMode)
-                                                    {
-                                                        case AdcChannelMode.Single:
-                                                            rates.Add(1000000000);
-                                                            break;
-                                                        case AdcChannelMode.Dual:
-                                                            rates.Add(500000000);
-                                                            break;
-                                                        case AdcChannelMode.Quad:
-                                                            rates.Add(250000000);
-                                                            break;
-                                                    }
-                                                    break;
-                                                }
                                             case Driver.Libtslitex.Thunderscope liteXThunderscope:
                                                 {
                                                     switch (config.AdcChannelMode)
@@ -221,17 +205,17 @@ namespace TS.NET.Engine
                                     {
                                         var channelIndex = ((HardwareSetChannelCalibrationRequest)request).ChannelIndex;
                                         var channelCalibration = thunderscope.GetChannelCalibration(channelIndex);
+                                        throw new NotImplementedException();
+                                        // Will need logic to find out what PGA gain is currently active, then set the specific calibration value for it.
                                         switch (request)
                                         {
                                             case HardwareSetOffsetVoltageLowGainRequest hardwareSetOffsetVoltageLowGainRequest:
                                                 logger.LogDebug($"{nameof(HardwareSetOffsetVoltageLowGainRequest)} (channel: {channelIndex})");
-                                                channelCalibration.HardwareOffsetVoltageLowGain = hardwareSetOffsetVoltageLowGainRequest.OffsetVoltage;     // XDMA, example value: 2.501
-                                                channelCalibration.PgaLowOffsetVoltage = hardwareSetOffsetVoltageLowGainRequest.OffsetVoltage;              // LiteX
+                                                channelCalibration.PgaLowOffsetVoltage = hardwareSetOffsetVoltageLowGainRequest.OffsetVoltage;
                                                 break;
                                             case HardwareSetOffsetVoltageHighGainRequest hardwareSetOffsetVoltageHighGainRequest:
                                                 logger.LogDebug($"{nameof(HardwareSetOffsetVoltageHighGainRequest)} (channel: {channelIndex})");
-                                                channelCalibration.HardwareOffsetVoltageHighGain = hardwareSetOffsetVoltageHighGainRequest.OffsetVoltage;   // XMDA, example value: 2.501
-                                                channelCalibration.PgaHighOffsetVoltage = hardwareSetOffsetVoltageHighGainRequest.OffsetVoltage;            // LiteX
+                                                channelCalibration.PgaHighOffsetVoltage = hardwareSetOffsetVoltageHighGainRequest.OffsetVoltage;
                                                 break;
                                         }
                                         thunderscope.SetChannelCalibration(channelIndex, channelCalibration);
@@ -279,11 +263,6 @@ namespace TS.NET.Engine
                         {
                             Thread.Sleep(10);
                         }
-                    }
-                    catch (ThunderscopeMemoryOutOfMemoryException)
-                    {
-                        logger.LogWarning("Scope ran out of memory - reset buffer pointers and continue");
-                        ((Driver.XMDA.Thunderscope)thunderscope).ResetBuffer();
                     }
                     catch (ThunderscopeFifoOverflowException)
                     {
