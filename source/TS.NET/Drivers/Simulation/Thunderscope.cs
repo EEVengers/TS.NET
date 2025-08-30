@@ -8,7 +8,7 @@
         private Memory<sbyte> oneCycle;
         private float scaleRelativeToFull = 1.0f;
         private float sampleRateHz = 1e9f;
-        private float frequencyHz = 1e6f;
+        private float frequencyHz = 0.99e6f;
         private int nextIterationCopy = 0;
         private bool running = false;
 
@@ -91,17 +91,28 @@
             startTimestamp = DateTimeOffset.UtcNow;
             totalTimeSec = 0;
 
-            // Generate a full sine wave at desired sample rate & frequency.          
-            var samplesPerCycle = (int)(sampleRateHz / frequencyHz);
-            var scale = (scaleRelativeToFull * (sbyte.MaxValue - sbyte.MinValue)) * 0.5f;
+            // Calculate samples for 500 microseconds at the current sample rate
+            var samplesFor500us = (int)(sampleRateHz * 500e-6f); // 500 microseconds in samples
+            var totalPatternSamples = samplesFor500us * 2; // 500us sine + 500us zero = 1000us total pattern
+
+            var scale = (scaleRelativeToFull * (sbyte.MaxValue - sbyte.MinValue-20)) * 0.5f;
             var angularFrequency = (2.0f * MathF.PI * frequencyHz);
-            oneCycle = new sbyte[samplesPerCycle];
-            for (int i = 0; i < oneCycle.Length; i++)
+            
+            oneCycle = new sbyte[totalPatternSamples];
+            
+            // Generate sine wave for first 500us
+            for (int i = 0; i < samplesFor500us; i++)
             {
                 float time = (i / sampleRateHz);
                 float sineValue = MathF.Sin(angularFrequency * time);
                 int scaledValue = (int)(sineValue * scale);
                 oneCycle.Span[i] = (sbyte)scaledValue;
+            }
+            
+            // Generate zero signal for next 500us
+            for (int i = samplesFor500us; i < totalPatternSamples; i++)
+            {
+                oneCycle.Span[i] = 0;
             }
 
             running = true;

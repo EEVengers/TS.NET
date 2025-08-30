@@ -3,7 +3,9 @@
     "LogLevel": {
       "Default": "Trace",
       "System": "Information",
-      "Microsoft": "Information"
+      "Microsoft": "Information",
+      "Microsoft.Hosting": "Information",
+      "Microsoft.AspNetCore": "Warning"
     },
     "File": {
       "Path": "Logs/TS.NET.Engine.txt",

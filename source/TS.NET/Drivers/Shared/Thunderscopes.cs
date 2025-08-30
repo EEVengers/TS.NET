@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using TS.NET.Driver.Shared.Windows;
 
 namespace TS.NET.Driver.Shared

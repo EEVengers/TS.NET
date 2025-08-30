@@ -2,7 +2,7 @@
 # General configuration
 #
 # Key: HardwareDriver
-# Value: String, with possible values of XDMA/LiteX/libtslitex/Simulation.
+# Value: String, with possible values of libtslitex/Simulation.
 # Selects the hardware driver to use.
 #
 # Key: HardwareRevision
@@ -25,9 +25,9 @@
 # Value: String, with one of None/DataServer
 # Configures the reader that will access the waveform buffer
 
-HardwareDriver: LiteX
-HardwareRevision: Rev4
-MaxCaptureLength: 10000000
+HardwareDriver: libtslitex
+HardwareRevision: Rev5.1
+MaxCaptureLength: 50000000
 ScpiPort: 5025
 DataPort: 5026
 WaveformBufferReader: DataServer
@@ -45,157 +45,3 @@ WaveformBufferReader: DataServer
 
 HardwareThreadProcessorAffinity: -1
 ProcessingThreadProcessorAffinity: -1
-
-###################################################################################################
-# Calibration configuration
-#
-# Calibration is a structure containing the DC calibration data for a specific thunderscope.
-#
-# Key: AttenuatorGain
-# Value: Double, nominally 0.02 with slight variation based on calibration.
-# Sets the multiplier for the frontend relay-switched attenuator.
-
-XdmaCalibration:
-  Channel1:
-    AttenuatorGain1MOhm: -34
-    AttenuatorGain50Ohm: -14
-    BufferGain: -0.25
-    PgaPreampLowGain: 10
-    PgaPreampHighGain: 30
-    PgaAttenuatorGain0: 0
-    PgaAttenuatorGain1: -2
-    PgaAttenuatorGain2: -4
-    PgaAttenuatorGain3: -6
-    PgaAttenuatorGain4: -8
-    PgaAttenuatorGain5: -10
-    PgaAttenuatorGain6: -12
-    PgaAttenuatorGain7: -14
-    PgaAttenuatorGain8: -16
-    PgaAttenuatorGain9: -18
-    PgaAttenuatorGain10: -20
-    PgaOutputAmpGain: 8.86
-    HardwareOffsetVoltageLowGain: 2.529
-    HardwareOffsetVoltageHighGain: 2.533
-  Channel2:
-    AttenuatorGain1MOhm: -34
-    AttenuatorGain50Ohm: -14
-    BufferGain: -0.25
-    PgaPreampLowGain: 10
-    PgaPreampHighGain: 30
-    PgaAttenuatorGain0: 0
-    PgaAttenuatorGain1: -2
-    PgaAttenuatorGain2: -4
-    PgaAttenuatorGain3: -6
-    PgaAttenuatorGain4: -8
-    PgaAttenuatorGain5: -10
-    PgaAttenuatorGain6: -12
-    PgaAttenuatorGain7: -14
-    PgaAttenuatorGain8: -16
-    PgaAttenuatorGain9: -18
-    PgaAttenuatorGain10: -20
-    PgaOutputAmpGain: 8.86
-    HardwareOffsetVoltageLowGain: 2.521
-    HardwareOffsetVoltageHighGain: 2.525
-  Channel3:
-    AttenuatorGain1MOhm: -34
-    AttenuatorGain50Ohm: -14
-    BufferGain: -0.25
-    PgaPreampLowGain: 10
-    PgaPreampHighGain: 30
-    PgaAttenuatorGain0: 0
-    PgaAttenuatorGain1: -2
-    PgaAttenuatorGain2: -4
-    PgaAttenuatorGain3: -6
-    PgaAttenuatorGain4: -8
-    PgaAttenuatorGain5: -10
-    PgaAttenuatorGain6: -12
-    PgaAttenuatorGain7: -14
-    PgaAttenuatorGain8: -16
-    PgaAttenuatorGain9: -18
-    PgaAttenuatorGain10: -20
-    PgaOutputAmpGain: 8.86
-    HardwareOffsetVoltageLowGain: 2.528
-    HardwareOffsetVoltageHighGain: 2.525
-  Channel4:
-    AttenuatorGain1MOhm: -34
-    AttenuatorGain50Ohm: -14
-    BufferGain: -0.25
-    PgaPreampLowGain: 10
-    PgaPreampHighGain: 30
-    PgaAttenuatorGain0: 0
-    PgaAttenuatorGain1: -2
-    PgaAttenuatorGain2: -4
-    PgaAttenuatorGain3: -6
-    PgaAttenuatorGain4: -8
-    PgaAttenuatorGain5: -10
-    PgaAttenuatorGain6: -12
-    PgaAttenuatorGain7: -14
-    PgaAttenuatorGain8: -16
-    PgaAttenuatorGain9: -18
-    PgaAttenuatorGain10: -20
-    PgaOutputAmpGain: 8.86
-    HardwareOffsetVoltageLowGain: 2.524
-    HardwareOffsetVoltageHighGain: 2.525
-
-LiteXCalibration:
-  Channel1:
-    AttenuatorGain1MOhm: -33.9794
-    AttenuatorGain50Ohm: -13.9794
-    BufferGain: -0.25
-    BufferOffset: 2.5
-    BiasVoltage: 2.5
-    TrimResistorOhms: 50000
-    PgaLowGainError: 0
-    PgaHighGainError: 0
-    PgaLowOffsetVoltage: 0
-    PgaHighOffsetVoltage: 0
-    PgaOutputGainError: 0
-    PgaInputBiasCurrent: 40
-  Channel2:
-    AttenuatorGain1MOhm: -33.9794
-    AttenuatorGain50Ohm: -13.9794
-    BufferGain: -0.25
-    BufferOffset: 2.5
-    BiasVoltage: 2.5
-    TrimResistorOhms: 50000
-    PgaLowGainError: 0
-    PgaHighGainError: 0
-    PgaLowOffsetVoltage: 0
-    PgaHighOffsetVoltage: 0
-    PgaOutputGainError: 0
-    PgaInputBiasCurrent: 40
-  Channel3:
-    AttenuatorGain1MOhm: -33.9794
-    AttenuatorGain50Ohm: -13.9794
-    BufferGain: -0.25
-    BufferOffset: 2.5
-    BiasVoltage: 2.5
-    TrimResistorOhms: 50000
-    PgaLowGainError: 0
-    PgaHighGainError: 0
-    PgaLowOffsetVoltage: 0
-    PgaHighOffsetVoltage: 0
-    PgaOutputGainError: 0
-    PgaInputBiasCurrent: 40
-  Channel4:
-    AttenuatorGain1MOhm: -33.9794
-    AttenuatorGain50Ohm: -13.9794
-    BufferGain: -0.25
-    BufferOffset: 2.5
-    BiasVoltage: 2.5
-    TrimResistorOhms: 50000
-    PgaLowGainError: 0
-    PgaHighGainError: 0
-    PgaLowOffsetVoltage: 0
-    PgaHighOffsetVoltage: 0
-    PgaOutputGainError: 0
-    PgaInputBiasCurrent: 40
-  Adc:
-    FineGainBranch1: 0
-    FineGainBranch2: 0
-    FineGainBranch3: 0
-    FineGainBranch4: 0
-    FineGainBranch5: 0
-    FineGainBranch6: 0
-    FineGainBranch7: 0
-    FineGainBranch8: 0

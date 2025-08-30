@@ -14,7 +14,7 @@ namespace TS.NET
         public byte DPOT;
         
         public byte PgaLadderAttenuation;
-        public byte PgaFilter;
+        public ThunderscopeBandwidth PgaFilter;
         public byte PgaHighGain;
     }
 }

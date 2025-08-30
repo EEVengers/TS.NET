@@ -287,7 +287,8 @@ namespace TS.NET.Engine
                                             return null;
                                         }
                                         var triggerChannel = TriggerChannel.None;
-                                        if (argument != "NONE") {
+                                        if (argument != "NONE")
+                                        {
                                             int source = Convert.ToInt32(argument.ToArray()[^1]) - '0';
                                             if (source < 1 || source > 4)
                                                 source = 1;
@@ -537,7 +538,7 @@ namespace TS.NET.Engine
 
                                             if (GetBandwidth(args[8]) is not ThunderscopeBandwidth thunderscopeBandwidth)
                                                 return null;
-                                            channel.PgaFilter = (byte)thunderscopeBandwidth;
+                                            channel.PgaFilter = thunderscopeBandwidth;
 
                                             hardwareRequestChannel.Write(new HardwareSetChannelManualControlRequest(channelIndex, channel));
                                         }
@@ -548,26 +549,26 @@ namespace TS.NET.Engine
                                         }
                                         return null;
                                     }
-                                case var _ when command.StartsWith("OFFSET:GAIN:LOW") && argument != null:
-                                    {
-                                        var args = argument.Split(' ');
-                                        if (GetChannelIndex(args[0]) is not int channelIndex)
-                                            return null;
-                                        double voltage = Convert.ToDouble(args[1]);
-                                        voltage = Math.Clamp(voltage, -5, 5);
-                                        hardwareRequestChannel.Write(new HardwareSetOffsetVoltageLowGainRequest(channelIndex, voltage));
-                                        return null;
-                                    }
-                                case var _ when command.StartsWith("OFFSET:GAIN:HIGH") && argument != null:
-                                    {
-                                        var args = argument.Split(' ');
-                                        if (GetChannelIndex(args[0]) is not int channelIndex)
-                                            return null;
-                                        double voltage = Convert.ToDouble(args[1]);
-                                        voltage = Math.Clamp(voltage, 0, 5);
-                                        hardwareRequestChannel.Write(new HardwareSetOffsetVoltageHighGainRequest(channelIndex, voltage));
-                                        return null;
-                                    }
+                                //case var _ when command.StartsWith("OFFSET:GAIN:LOW") && argument != null:
+                                //    {
+                                //        var args = argument.Split(' ');
+                                //        if (GetChannelIndex(args[0]) is not int channelIndex)
+                                //            return null;
+                                //        double voltage = Convert.ToDouble(args[1]);
+                                //        voltage = Math.Clamp(voltage, -5, 5);
+                                //        hardwareRequestChannel.Write(new HardwareSetOffsetVoltageLowGainRequest(channelIndex, voltage));
+                                //        return null;
+                                //    }
+                                //case var _ when command.StartsWith("OFFSET:GAIN:HIGH") && argument != null:
+                                //    {
+                                //        var args = argument.Split(' ');
+                                //        if (GetChannelIndex(args[0]) is not int channelIndex)
+                                //            return null;
+                                //        double voltage = Convert.ToDouble(args[1]);
+                                //        voltage = Math.Clamp(voltage, 0, 5);
+                                //        hardwareRequestChannel.Write(new HardwareSetOffsetVoltageHighGainRequest(channelIndex, voltage));
+                                //        return null;
+                                //    }
                                 case var _ when command.StartsWith("ADC") && argument != null:
                                     {
                                         var args = argument.Split(' ');
@@ -836,6 +837,121 @@ namespace TS.NET.Engine
                                     }
                                 }
                                 logger.LogError($"TRIG:EDGE:DIR? - No response from {nameof(processingResponseChannel)}");
+                                return "Error: No/bad response from channel.\n";
+                            }
+                    }
+                }
+                else if (subject?.StartsWith("CHAN") == true)
+                {
+                    // CHANnel1:
+                    // CHAN1:
+                    if (GetChannelIndex(subject) is not int channelIndex)
+                        return null;
+
+                    while (hardwareResponseChannel.TryRead(out var _, 10)) { }
+                    switch (command)
+                    {
+                        case var _ when command.Equals("STATE?", StringComparison.OrdinalIgnoreCase):
+                            {
+                                hardwareRequestChannel.Write(new HardwareGetEnabledRequest(channelIndex));
+                                if (hardwareResponseChannel.TryRead(out var response, 500))
+                                {
+                                    if (response is HardwareGetEnabledResponse hardwareGetEnabledResponse)
+                                    {
+                                        return hardwareGetEnabledResponse.Enabled ? "ON\n" : "OFF\n";
+                                    }
+                                    logger.LogError($"{subject}:STATE? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                }
+                                logger.LogError($"{subject}:STATE? - No response from {nameof(hardwareResponseChannel)}");
+                                return "Error: No/bad response from channel.\n";
+                            }
+                        case var _ when command.StartsWith("BAND", StringComparison.OrdinalIgnoreCase):
+                            {
+                                hardwareRequestChannel.Write(new HardwareGetBandwidthRequest(channelIndex));
+                                if (hardwareResponseChannel.TryRead(out var response, 500))
+                                {
+                                    if (response is HardwareGetBandwidthResponse hardwareGetBandwidthResponse)
+                                    {
+                                        string bandwidth = hardwareGetBandwidthResponse.Bandwidth switch
+                                        {
+                                            ThunderscopeBandwidth.BwFull => "FULL",
+                                            ThunderscopeBandwidth.Bw750M => "750M",
+                                            ThunderscopeBandwidth.Bw650M => "650M",
+                                            ThunderscopeBandwidth.Bw350M => "350M",
+                                            ThunderscopeBandwidth.Bw200M => "200M",
+                                            ThunderscopeBandwidth.Bw100M => "100M",
+                                            ThunderscopeBandwidth.Bw20M => "20M",
+                                            _ => hardwareGetBandwidthResponse.Bandwidth.ToString().ToUpper()
+                                        };
+                                        return bandwidth + "\n";
+                                    }
+                                    logger.LogError($"{subject}:BAND? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                }
+                                logger.LogError($"{subject}:BAND? - No response from {nameof(hardwareResponseChannel)}");
+                                return "Error: No/bad response from channel.\n";
+                            }
+                        case var _ when command.StartsWith("COUP", StringComparison.OrdinalIgnoreCase):
+                            {
+                                hardwareRequestChannel.Write(new HardwareGetCouplingRequest(channelIndex));
+                                if (hardwareResponseChannel.TryRead(out var response, 500))
+                                {
+                                    if (response is HardwareGetCouplingResponse hardwareGetCouplingResponse)
+                                    {
+                                        string coupling = hardwareGetCouplingResponse.Coupling switch
+                                        {
+                                            ThunderscopeCoupling.DC => "DC",
+                                            ThunderscopeCoupling.AC => "AC",
+                                            _ => hardwareGetCouplingResponse.Coupling.ToString().ToUpper()
+                                        };
+                                        return coupling + "\n";
+                                    }
+                                    logger.LogError($"{subject}:COUP? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                }
+                                logger.LogError($"{subject}:COUP? - No response from {nameof(hardwareResponseChannel)}");
+                                return "Error: No/bad response from channel.\n";
+                            }
+                        case var _ when command.StartsWith("TERM", StringComparison.OrdinalIgnoreCase):
+                            {
+                                hardwareRequestChannel.Write(new HardwareGetTerminationRequest(channelIndex));
+                                if (hardwareResponseChannel.TryRead(out var response, 500))
+                                {
+                                    if (response is HardwareGetTerminationResponse hardwareGetTerminationResponse)
+                                    {
+                                        string termination = hardwareGetTerminationResponse.Termination switch
+                                        {
+                                            ThunderscopeTermination.OneMegaohm => "1M",
+                                            ThunderscopeTermination.FiftyOhm => "50",
+                                            _ => hardwareGetTerminationResponse.Termination.ToString().ToUpper()
+                                        };
+                                        return termination + "\n";
+                                    }
+                                    logger.LogError($"{subject}:TERM? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                }
+                                logger.LogError($"{subject}:TERM? - No response from {nameof(hardwareResponseChannel)}");
+                                return "Error: No/bad response from channel.\n";
+                            }
+                        case var _ when command.StartsWith("OFFS", StringComparison.OrdinalIgnoreCase):
+                            {
+                                hardwareRequestChannel.Write(new HardwareGetVoltOffsetRequest(channelIndex));
+                                if (hardwareResponseChannel.TryRead(out var response, 500))
+                                {
+                                    if (response is HardwareGetVoltOffsetResponse hardwareGetVoltOffsetResponse)
+                                        return $"{hardwareGetVoltOffsetResponse.VoltOffset:F6}\n";
+                                    logger.LogError($"{subject}:OFFS? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                }
+                                logger.LogError($"{subject}:OFFS? - No response from {nameof(hardwareResponseChannel)}");
+                                return "Error: No/bad response from channel.\n";
+                            }
+                        case var _ when command.StartsWith("RANG", StringComparison.OrdinalIgnoreCase):
+                            {
+                                hardwareRequestChannel.Write(new HardwareGetVoltFullScaleRequest(channelIndex));
+                                if (hardwareResponseChannel.TryRead(out var response, 500))
+                                {
+                                    if (response is HardwareGetVoltFullScaleResponse hardwareGetVoltFullScaleResponse)
+                                        return $"{hardwareGetVoltFullScaleResponse.VoltFullScale:F6}\n";
+                                    logger.LogError($"{subject}:RANG? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                }
+                                logger.LogError($"{subject}:RANG? - No response from {nameof(hardwareResponseChannel)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                     }

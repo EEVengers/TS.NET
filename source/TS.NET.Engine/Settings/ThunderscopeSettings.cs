@@ -18,8 +18,6 @@ namespace TS.NET.Engine
         public int HardwareThreadProcessorAffinity { get; set; }
         public int ProcessingThreadProcessorAffinity { get; set; }
 
-        public ThunderscopeCalibrationSettings LiteXCalibration { get; set; } = new();
-
         public static ThunderscopeSettings Default()
         {
             return new ThunderscopeSettings()
@@ -33,8 +31,6 @@ namespace TS.NET.Engine
 
                 HardwareThreadProcessorAffinity = -1,
                 ProcessingThreadProcessorAffinity = -1,
-
-                LiteXCalibration = ThunderscopeCalibrationSettings.Default()
             };
         }
 
@@ -63,6 +59,7 @@ namespace TS.NET.Engine
 
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(ThunderscopeSettings))]
+    [JsonSerializable(typeof(ThunderscopeCalibrationSettings))]
     internal partial class SourceGenerationContext : JsonSerializerContext { }
 
     [YamlStaticContext]

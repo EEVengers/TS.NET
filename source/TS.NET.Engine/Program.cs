@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using System.Text.Json;
 using TS.NET;
 using TS.NET.Engine;
 
@@ -27,6 +28,7 @@ class Program
         // To do: have something better than array index. Hardware serial?
         var deviceIndexOption = new Option<int>(name: "-i", description: "The ThunderScope to use if there are multiple connected to the host.", getDefaultValue: () => { return 0; });
         var configurationFilePathOption = new Option<string>(name: "-config", description: "Configuration file to use.", getDefaultValue: () => { return "thunderscope.yaml"; });
+        var calibrationFilePathOption = new Option<string>(name: "-calibration", description: "Calibration file to use.", getDefaultValue: () => { return "thunderscope-calibration.json"; });
         var secondsOption = new Option<int>(name: "-seconds", description: "Run for an integer number of seconds. Useful for profiling.", getDefaultValue: () => { return 0; });
         var membenchOption = new Option<bool>(name: "-membench", description: "Run memory benchmark.", getDefaultValue: () => { return false; });
 
@@ -34,15 +36,16 @@ class Program
         {
             deviceIndexOption,
             configurationFilePathOption,
+            calibrationFilePathOption,
             secondsOption,
             membenchOption
         };
 
-        rootCommand.SetHandler(Start, deviceIndexOption, configurationFilePathOption, secondsOption, membenchOption);
+        rootCommand.SetHandler(Start, deviceIndexOption, configurationFilePathOption, calibrationFilePathOption, secondsOption, membenchOption);
         return await rootCommand.InvokeAsync(args);
     }
 
-    static void Start(int deviceIndex, string configurationFilePath, int seconds, bool membench)
+    static void Start(int deviceIndex, string configurationFilePath, string calibrationFilePath, int seconds, bool membench)
     {
         ThunderscopeSettings? thunderscopeSettings = null;
         IThunderscope? thunderscope = null;
@@ -97,15 +100,19 @@ class Program
                     YamlDotNet.Serialization.NamingConventions.PascalCaseNamingConvention.Instance
                 )
                 .Build();
-            string yaml = serializer.Serialize(ThunderscopeSettings.Default());
+            var yaml = serializer.Serialize(ThunderscopeSettings.Default()) ?? throw new ArgumentNullException();
             File.WriteAllText("thunderscope (defaults).yaml", yaml);
+
+            var json = JsonSerializer.Serialize(ThunderscopeCalibrationSettings.Default(), SourceGenerationContext.Default.ThunderscopeCalibrationSettings) ?? throw new ArgumentNullException();
+            File.WriteAllText("thunderscope-calibration (defaults).json", json);
 #endif
 
             IConfigurationBuilder configurationBuilder = new ConfigurationBuilder().AddJsonFile(
-                "appsettings.json"
+                "thunderscope-appsettings.json"
             );
             var configuration = configurationBuilder.Build();
             thunderscopeSettings = ThunderscopeSettings.FromYamlFile(configurationFilePath);
+            var thunderscopeCalibrationSettings = ThunderscopeCalibrationSettings.FromJsonFile(calibrationFilePath);
 
             var loggerFactory = LoggerFactory.Create(configure =>
             {
@@ -161,7 +168,14 @@ class Program
                 case "litex":
                 case "libtslitex":
                     {
+                        // Check for tslitex.dll
+                        if (!File.Exists("tslitex.dll"))
+                        {
+                            logger?.LogCritical($"tslitex DLL not found");
+                            return;
+                        }
                         var ts = new TS.NET.Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
+
                         ThunderscopeHardwareConfig initialHardwareConfiguration = new();
                         //initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Quad;
                         //initialHardwareConfiguration.EnabledChannels = 0x0F;
@@ -173,11 +187,11 @@ class Program
                         initialHardwareConfiguration.Frontend[1] = ThunderscopeChannelFrontend.Default();
                         initialHardwareConfiguration.Frontend[2] = ThunderscopeChannelFrontend.Default();
                         initialHardwareConfiguration.Frontend[3] = ThunderscopeChannelFrontend.Default();
-                        initialHardwareConfiguration.Calibration[0] = thunderscopeSettings.LiteXCalibration.Channel1.ToDriver();
-                        initialHardwareConfiguration.Calibration[1] = thunderscopeSettings.LiteXCalibration.Channel2.ToDriver();
-                        initialHardwareConfiguration.Calibration[2] = thunderscopeSettings.LiteXCalibration.Channel3.ToDriver();
-                        initialHardwareConfiguration.Calibration[3] = thunderscopeSettings.LiteXCalibration.Channel4.ToDriver();
-                        initialHardwareConfiguration.AdcCalibration = thunderscopeSettings.LiteXCalibration.Adc.ToDriver();
+                        initialHardwareConfiguration.Calibration[0] = thunderscopeCalibrationSettings.Channel1.ToDriver();
+                        initialHardwareConfiguration.Calibration[1] = thunderscopeCalibrationSettings.Channel2.ToDriver();
+                        initialHardwareConfiguration.Calibration[2] = thunderscopeCalibrationSettings.Channel3.ToDriver();
+                        initialHardwareConfiguration.Calibration[3] = thunderscopeCalibrationSettings.Channel4.ToDriver();
+                        initialHardwareConfiguration.AdcCalibration = thunderscopeCalibrationSettings.Adc.ToDriver();
                         ts.Open((uint)deviceIndex, initialHardwareConfiguration);
                         thunderscope = ts;
                         bufferLength = 3;

@@ -7,29 +7,30 @@ namespace TS.NET
     {
         public ThunderscopeCoupling Coupling;
         public ThunderscopeTermination Termination;
-        public double VoltFullScale;
-        public double VoltOffset;
+        public double RequestedVoltFullScale;
+        public double RequestedVoltOffset;
         public ThunderscopeBandwidth Bandwidth;
 
         // Used by calibration for fixed setting of PGA gain & attenuator
         public bool PgaConfigWordOverride;
 
         // Calculated data
-        public bool Attenuator1MOhm;
-        public bool Attenuator50Ohm;
+        //public bool Attenuator1MOhm;
+        //public bool Attenuator50Ohm;
         public ushort PgaConfigWord;
-        public double ActualSystemGain;
+        //public double ActualSystemGain;
         public double ActualVoltFullScale;
-        public ushort TrimOffsetDac;
-        public ushort TrimSensitivityDac;
+        public double ActualVoltOffset;
+        //public ushort TrimOffsetDac;
+        //public ushort TrimSensitivityDac;
 
         public static ThunderscopeChannelFrontend Default()
         {
             return new ThunderscopeChannelFrontend()
             {
                 Coupling = ThunderscopeCoupling.DC,
-                VoltFullScale = 0.5,
-                VoltOffset = 0,
+                RequestedVoltFullScale = 0.5,
+                RequestedVoltOffset = 0,
                 Bandwidth = ThunderscopeBandwidth.BwFull
             };
         }

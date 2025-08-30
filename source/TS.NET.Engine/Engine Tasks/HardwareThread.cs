@@ -161,6 +161,55 @@ namespace TS.NET.Engine
                                         logger.LogDebug($"{nameof(HardwareGetRatesResponse)}");
                                         break;
                                     }
+                                case HardwareGetEnabledRequest hardwareGetEnabledRequest:
+                                    {
+                                        logger.LogDebug($"{nameof(HardwareGetEnabledRequest)}");
+                                        var config = thunderscope.GetConfiguration();
+                                        var enabled = ((config.EnabledChannels >> hardwareGetEnabledRequest.ChannelIndex) & 0x01) > 0;
+                                        hardwareResponseChannel.Write(new HardwareGetEnabledResponse(enabled));
+                                        logger.LogDebug($"{nameof(HardwareGetEnabledResponse)}");
+                                        break;
+                                    }
+                                case HardwareGetVoltOffsetRequest hardwareGetVoltOffsetRequest:
+                                    {
+                                        logger.LogDebug($"{nameof(HardwareGetVoltOffsetRequest)}");
+                                        var frontend = thunderscope.GetChannelFrontend(hardwareGetVoltOffsetRequest.ChannelIndex);
+                                        hardwareResponseChannel.Write(new HardwareGetVoltOffsetResponse(frontend.ActualVoltOffset));
+                                        logger.LogDebug($"{nameof(HardwareGetVoltOffsetRequest)}");
+                                        break;
+                                    }
+                                case HardwareGetVoltFullScaleRequest hardwareGetVoltFullScaleRequest:
+                                    {
+                                        logger.LogDebug($"{nameof(HardwareGetVoltFullScaleRequest)}");
+                                        var frontend = thunderscope.GetChannelFrontend(hardwareGetVoltFullScaleRequest.ChannelIndex);
+                                        hardwareResponseChannel.Write(new HardwareGetVoltFullScaleResponse(frontend.ActualVoltFullScale));
+                                        logger.LogDebug($"{nameof(HardwareGetVoltFullScaleRequest)}");
+                                        break;
+                                    }
+                                case HardwareGetBandwidthRequest hardwareGetBandwidthRequest:
+                                    {
+                                        logger.LogDebug($"{nameof(HardwareGetBandwidthRequest)}");
+                                        var frontend = thunderscope.GetChannelFrontend(hardwareGetBandwidthRequest.ChannelIndex);
+                                        hardwareResponseChannel.Write(new HardwareGetBandwidthResponse(frontend.Bandwidth));
+                                        logger.LogDebug($"{nameof(HardwareGetBandwidthRequest)}");
+                                        break;
+                                    }
+                                case HardwareGetCouplingRequest hardwareGetCouplingRequest:
+                                    {
+                                        logger.LogDebug($"{nameof(HardwareGetCouplingRequest)}");
+                                        var frontend = thunderscope.GetChannelFrontend(hardwareGetCouplingRequest.ChannelIndex);
+                                        hardwareResponseChannel.Write(new HardwareGetCouplingResponse(frontend.Coupling));
+                                        logger.LogDebug($"{nameof(HardwareGetCouplingRequest)}");
+                                        break;
+                                    }
+                                case HardwareGetTerminationRequest hardwareGetTerminationRequest:
+                                    {
+                                        logger.LogDebug($"{nameof(HardwareGetTerminationRequest)}");
+                                        var frontend = thunderscope.GetChannelFrontend(hardwareGetTerminationRequest.ChannelIndex);
+                                        hardwareResponseChannel.Write(new HardwareGetTerminationResponse(frontend.Termination));
+                                        logger.LogDebug($"{nameof(HardwareGetTerminationRequest)}");
+                                        break;
+                                    }
                                 case HardwareSetChannelFrontendRequest hardwareConfigureChannelFrontendDto:
                                     {
                                         var channelIndex = ((HardwareSetChannelFrontendRequest)request).ChannelIndex;
@@ -170,11 +219,11 @@ namespace TS.NET.Engine
                                         {
                                             case HardwareSetVoltOffsetRequest hardwareSetOffsetRequest:
                                                 logger.LogDebug($"{nameof(HardwareSetVoltOffsetRequest)} (channel: {channelIndex}, offset: {hardwareSetOffsetRequest.VoltOffset})");
-                                                channelFrontend.VoltOffset = hardwareSetOffsetRequest.VoltOffset;
+                                                channelFrontend.RequestedVoltOffset = hardwareSetOffsetRequest.VoltOffset;
                                                 break;
                                             case HardwareSetVoltFullScaleRequest hardwareSetVdivRequest:
                                                 logger.LogDebug($"{nameof(HardwareSetVoltFullScaleRequest)} (channel: {channelIndex}, scale: {hardwareSetVdivRequest.VoltFullScale})");
-                                                channelFrontend.VoltFullScale = hardwareSetVdivRequest.VoltFullScale;
+                                                channelFrontend.RequestedVoltFullScale = hardwareSetVdivRequest.VoltFullScale;
                                                 break;
                                             case HardwareSetBandwidthRequest hardwareSetBandwidthRequest:
                                                 logger.LogDebug($"{nameof(HardwareSetBandwidthRequest)} (channel: {channelIndex}, bandwidth: {hardwareSetBandwidthRequest.Bandwidth})");
@@ -199,26 +248,6 @@ namespace TS.NET.Engine
                                                 break;
                                         }
                                         thunderscope.SetChannelFrontend(channelIndex, channelFrontend);
-                                        break;
-                                    }
-                                case HardwareSetChannelCalibrationRequest hardwareSetChannelCalibrationDto:
-                                    {
-                                        var channelIndex = ((HardwareSetChannelCalibrationRequest)request).ChannelIndex;
-                                        var channelCalibration = thunderscope.GetChannelCalibration(channelIndex);
-                                        throw new NotImplementedException();
-                                        // Will need logic to find out what PGA gain is currently active, then set the specific calibration value for it.
-                                        switch (request)
-                                        {
-                                            case HardwareSetOffsetVoltageLowGainRequest hardwareSetOffsetVoltageLowGainRequest:
-                                                logger.LogDebug($"{nameof(HardwareSetOffsetVoltageLowGainRequest)} (channel: {channelIndex})");
-                                                channelCalibration.PgaLowOffsetVoltage = hardwareSetOffsetVoltageLowGainRequest.OffsetVoltage;
-                                                break;
-                                            case HardwareSetOffsetVoltageHighGainRequest hardwareSetOffsetVoltageHighGainRequest:
-                                                logger.LogDebug($"{nameof(HardwareSetOffsetVoltageHighGainRequest)} (channel: {channelIndex})");
-                                                channelCalibration.PgaHighOffsetVoltage = hardwareSetOffsetVoltageHighGainRequest.OffsetVoltage;
-                                                break;
-                                        }
-                                        thunderscope.SetChannelCalibration(channelIndex, channelCalibration);
                                         break;
                                     }
                                 case HardwareSetChannelManualControlRequest hardwareSetChannelManualControlRequest:

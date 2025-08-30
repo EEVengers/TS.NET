@@ -195,7 +195,7 @@ namespace TS.NET.Engine
                                 int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureMetadata.TriggerChannelCaptureIndex);
                                 ThunderscopeChannelFrontend triggerChannelFrontend = captureMetadata.HardwareConfig.Frontend[channelIndex];
                                 var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 255.0);
-                                var channelOffset = (float)triggerChannelFrontend.VoltOffset;
+                                var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
 
                                 float fa = channelScale * triggerChannelBuffer[triggerIndex - 1] - channelOffset;
                                 float fb = channelScale * triggerChannelBuffer[triggerIndex] - channelOffset;
@@ -223,7 +223,7 @@ namespace TS.NET.Engine
                                 ThunderscopeChannelFrontend thunderscopeChannel = captureMetadata.HardwareConfig.Frontend[channelIndex];
                                 chHeader.channelIndex = (byte)channelIndex;
                                 chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
-                                chHeader.offset = (float)thunderscopeChannel.VoltOffset;
+                                chHeader.offset = (float)thunderscopeChannel.ActualVoltOffset;
 
                                 Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeaderOld)));
                                 bytesSent += (ulong)sizeof(ChannelHeaderOld);
@@ -292,7 +292,7 @@ namespace TS.NET.Engine
                                 int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureMetadata.TriggerChannelCaptureIndex);
                                 ThunderscopeChannelFrontend triggerChannelFrontend = captureMetadata.HardwareConfig.Frontend[channelIndex];
                                 var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 255.0);
-                                var channelOffset = (float)triggerChannelFrontend.VoltOffset;
+                                var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
 
                                 float fa = channelScale * triggerChannelBuffer[triggerIndex - 1] - channelOffset;
                                 float fb = channelScale * triggerChannelBuffer[triggerIndex] - channelOffset;
@@ -320,7 +320,7 @@ namespace TS.NET.Engine
                                 ThunderscopeChannelFrontend thunderscopeChannel = captureMetadata.HardwareConfig.Frontend[channelIndex];
                                 chHeader.channelIndex = (byte)channelIndex;
                                 chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
-                                chHeader.offset = (float)thunderscopeChannel.VoltOffset;
+                                chHeader.offset = (float)thunderscopeChannel.ActualVoltOffset;
 
                                 Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
                                 bytesSent += (ulong)sizeof(ChannelHeader);
