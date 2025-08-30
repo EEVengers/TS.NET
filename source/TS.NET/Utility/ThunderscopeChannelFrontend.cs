@@ -29,7 +29,8 @@ namespace TS.NET
             return new ThunderscopeChannelFrontend()
             {
                 Coupling = ThunderscopeCoupling.DC,
-                RequestedVoltFullScale = 0.5,
+                Termination = ThunderscopeTermination.OneMegaohm,
+                RequestedVoltFullScale = 0.8,
                 RequestedVoltOffset = 0,
                 Bandwidth = ThunderscopeBandwidth.BwFull
             };

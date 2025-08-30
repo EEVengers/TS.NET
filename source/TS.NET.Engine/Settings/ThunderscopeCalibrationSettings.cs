@@ -121,7 +121,7 @@ namespace TS.NET
                     new(){ PgaLadderAttenuator = 9, Vpp = 0.777, TrimScaleDac = 1, TrimOffsetDacGainV = 0.25, TrimOffsetDacZero = 2048 },
                     new(){ PgaLadderAttenuator = 10, Vpp = 0.977, TrimScaleDac = 1, TrimOffsetDacGainV = 0.25, TrimOffsetDacZero = 2048 },
                 ],
-                AttenuatorGain1MOhm = 0.002,
+                AttenuatorGain1MOhm = 0.02,
                 //BufferGain = 0,
                 //PgaPreampLowGain = 10,
                 //PgaPreampHighGain = 30,

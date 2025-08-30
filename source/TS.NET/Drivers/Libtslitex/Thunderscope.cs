@@ -170,7 +170,15 @@ namespace TS.NET.Driver.Libtslitex
 
             //return channel;
 
-            return channelFrontend[channelIndex];
+
+            var channel = channelFrontend[channelIndex];
+            var tsChannel = new Interop.tsChannelParam_t();
+
+            var retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, out tsChannel);
+            if (retVal != 0)
+                throw new Exception($"Thunderscope failed to get channel {channelIndex} config ({retVal})");
+            channel.Termination = (tsChannel.term == 1) ? ThunderscopeTermination.FiftyOhm : ThunderscopeTermination.OneMegaohm;
+            return channel;
         }
 
         public ThunderscopeHardwareConfig GetConfiguration()
@@ -287,13 +295,10 @@ namespace TS.NET.Driver.Libtslitex
             //requestedChannelVoltScale[channelIndex] = channel.RequestedVoltFullScale;
             //requestedChannelVoltOffset[channelIndex] = channel.RequestedVoltOffset;
 
-
-
             // To calculate:
-            //channel.ActualVoltFullScale;
             //channel.ActualVoltOffset;
 
-            bool configFound = false;
+            bool pathFound = false;
             ThunderscopeChannelPathCalibration selectedPath = new();
             bool attenuator = false;
             while (true)
@@ -302,36 +307,38 @@ namespace TS.NET.Driver.Libtslitex
                 // Pga with no attenuator
                 foreach (var path in channelCalibration[channelIndex].Paths)
                 {
-                    var potentialVoltPP = path.Vpp;
-                    if (potentialVoltPP > channel.RequestedVoltFullScale)
+                    var potentialVpp = path.Vpp;
+                    if (potentialVpp > channel.RequestedVoltFullScale)
                     {
-                        configFound = true;
+                        pathFound = true;
                         selectedPath = path;
-                        channel.ActualVoltFullScale = potentialVoltPP;
+                        channel.ActualVoltFullScale = potentialVpp;
+                        channel.ActualVoltOffset = 0;       // To do
                         break;
                     }
                 }
-                if (configFound)
+                if (pathFound)
                     break;
                 if (channel.Termination == ThunderscopeTermination.FiftyOhm)
                     break;
                 attenuator = true;
                 // Pga with 1M attenuator
-                foreach (var gainAndTrimConfig in channelCalibration[channelIndex].Paths)
+                foreach (var path in channelCalibration[channelIndex].Paths)
                 {
-                    var potentialVoltPP = gainAndTrimConfig.Vpp * channelCalibration[channelIndex].AttenuatorGain1MOhm;
-                    if (potentialVoltPP > channel.RequestedVoltFullScale)
+                    var potentialVpp = path.Vpp / channelCalibration[channelIndex].AttenuatorGain1MOhm;
+                    if (potentialVpp > channel.RequestedVoltFullScale)
                     {
-                        configFound = true;
-                        selectedPath = gainAndTrimConfig;
-                        channel.ActualVoltFullScale = potentialVoltPP;
+                        pathFound = true;
+                        selectedPath = path;
+                        channel.ActualVoltFullScale = potentialVpp;
+                        channel.ActualVoltOffset = 0;       // To do
                         break;
                     }
                 }
                 break;
             }
 
-            if (!configFound)
+            if (!pathFound)
             {
                 logger.LogError("No valid frontend configuration found");
                 return;
@@ -342,8 +349,8 @@ namespace TS.NET.Driver.Libtslitex
                 Coupling = channel.Coupling,
                 Termination = channel.Termination,
                 Attenuator = attenuator ? (byte)1 : (byte)0,
-                DAC = (ushort)selectedPath.TrimOffsetDacZero,
-                DPOT = (byte)selectedPath.TrimScaleDac,
+                DAC = selectedPath.TrimOffsetDacZero,
+                DPOT = selectedPath.TrimScaleDac,
 
                 PgaLadderAttenuation = selectedPath.PgaLadderAttenuator,
                 PgaFilter = channel.Bandwidth,

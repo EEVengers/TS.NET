@@ -178,7 +178,7 @@
         "TrimOffsetDacZero": 2031
       }
     ],
-    "AttenuatorGain1MOhm": 0.002
+    "AttenuatorGain1MOhm": 0.02
   },
   "Channel2": {
     "Paths": [
@@ -359,7 +359,7 @@
         "TrimOffsetDacZero": 2031
       }
     ],
-    "AttenuatorGain1MOhm": 0.002
+    "AttenuatorGain1MOhm": 0.02
   },
   "Channel3": {
     "Paths": [
@@ -540,7 +540,7 @@
         "TrimOffsetDacZero": 2031
       }
     ],
-    "AttenuatorGain1MOhm": 0.002
+    "AttenuatorGain1MOhm": 0.02
   },
   "Channel4": {
     "Paths": [
@@ -721,7 +721,7 @@
         "TrimOffsetDacZero": 2031
       }
     ],
-    "AttenuatorGain1MOhm": 0.002
+    "AttenuatorGain1MOhm": 0.02
   },
   "Adc": {
     "FineGainBranch1": 0,
