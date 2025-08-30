@@ -8,6 +8,7 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <Version>0.1.0</Version>
     <InvariantGlobalization>true</InvariantGlobalization>
+	<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,7 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="appsettings.json">
+    <None Update="thunderscope-calibration.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="thunderscope-appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="thunderscope.json">
@@ -34,6 +38,7 @@
     <None Update="thunderscope.yaml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+
   </ItemGroup>
 
 </Project>
