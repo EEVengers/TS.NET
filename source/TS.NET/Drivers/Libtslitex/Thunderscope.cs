@@ -247,17 +247,36 @@ namespace TS.NET.Driver.Libtslitex
             return health;
         }
 
+        uint cachedSampleRateHz = 1000000000;
+        AdcResolution cachedSampleResolution = AdcResolution.EightBit;
         public void SetRate(ulong sampleRateHz)
         {
             if (!open)
                 throw new Exception("Thunderscope not open");
 
-            var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, health.AdcSampleResolution);
+            cachedSampleRateHz = (uint)sampleRateHz;
+            uint resolutionValue = cachedSampleResolution switch { AdcResolution.EightBit => 256, AdcResolution.TwelveBit => 4096, _ => throw new NotImplementedException() };
+            var retVal = Interop.SetSampleMode(tsHandle, cachedSampleRateHz, resolutionValue);
 
             if (retVal == -2) //Invalid Parameter
                 logger.LogTrace($"Thunderscope failed to set sample rate ({sampleRateHz}): INVALID_PARAMETER");
             else if (retVal < 0)
                 throw new Exception($"Thunderscope had an errors trying to set sample rate {sampleRateHz} ({retVal})");
+        }
+
+        public void SetResolution(AdcResolution resolution)
+        {
+            if (!open)
+                throw new Exception("Thunderscope not open");
+
+            cachedSampleResolution = resolution;
+            uint resolutionValue = cachedSampleResolution switch { AdcResolution.EightBit => 256, AdcResolution.TwelveBit => 4096, _ => throw new NotImplementedException() };
+            var retVal = Interop.SetSampleMode(tsHandle, cachedSampleRateHz, resolutionValue);
+
+            if (retVal == -2) //Invalid Parameter
+                logger.LogTrace($"Thunderscope failed to set resolution ({resolutionValue}): INVALID_PARAMETER");
+            else if (retVal < 0)
+                throw new Exception($"Thunderscope had an errors trying to set resolution {resolutionValue} ({retVal})");
         }
 
         public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)

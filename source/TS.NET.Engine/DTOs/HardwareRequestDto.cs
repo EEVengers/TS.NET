@@ -3,7 +3,8 @@
     public abstract record HardwareRequestDto();
     public record HardwareStartRequest() : HardwareRequestDto;
     public record HardwareStopRequest() : HardwareRequestDto;
-    public record HardwareSetRateRequest(ulong rate) : HardwareRequestDto;
+    public record HardwareSetRateRequest(ulong Rate) : HardwareRequestDto;
+    public record HardwareSetResolutionRequest(AdcResolution Resolution) : HardwareRequestDto;
     public record HardwareGetRateRequest() : HardwareRequestDto;        // The current rate
     public record HardwareGetRatesRequest() : HardwareRequestDto;       // A collection of possible logical rates depending on hardware configuration, not an exhaustive list of all rates
 

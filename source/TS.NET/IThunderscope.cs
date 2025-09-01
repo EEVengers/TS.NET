@@ -13,5 +13,6 @@
         bool TryRead(ThunderscopeMemory data, CancellationToken cancellationToken);
         ThunderscopeHardwareConfig GetConfiguration();
         void SetRate(ulong sampleRateHz);
+        void SetResolution(AdcResolution resolution);
     }
 }

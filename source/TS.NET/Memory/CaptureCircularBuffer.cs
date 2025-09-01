@@ -73,6 +73,8 @@
 
         public void Configure(int channelCount, int channelCaptureLength, ThunderscopeDataType dataType)
         {
+            if (channelCount < 1)
+                channelCount = 1;
             var potentialTotalCaptureLength = (long)channelCaptureLength * channelCount;
             var potentialTotalCaptureLengthBytes = potentialTotalCaptureLength * dataType.ByteWidth();
             if (potentialTotalCaptureLengthBytes > buffer.LengthBytes)

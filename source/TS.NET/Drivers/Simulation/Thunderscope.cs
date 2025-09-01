@@ -127,8 +127,14 @@
         {
             throw new NotImplementedException();
         }
+
         public void SetRate(ulong sampleRateHz)
         {
+        }
+
+        public void SetResolution(AdcResolution resolution)
+        {
+
         }
     }
 }

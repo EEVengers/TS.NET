@@ -248,7 +248,7 @@ namespace TS.NET.Engine
                                     processingRequestChannel.Write(new ProcessingSetModeDto(Mode.Stream));
                                     logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
                                     return null;
-                                case "DEPTH":
+                                case "DEPTH":       // Same as ACQ:DEPTH
                                     if (argument != null)
                                     {
                                         var depth = Convert.ToInt32(argument);
@@ -256,7 +256,7 @@ namespace TS.NET.Engine
                                         logger.LogDebug($"{nameof(ProcessingSetDepthDto)} sent with argument: {depth}");
                                     }
                                     return null;
-                                case "RATE":
+                                case "RATE":        // SAME AS ACQ:RATE
                                     if (argument != null)
                                     {
                                         ulong rate = Convert.ToUInt64(argument);
@@ -264,6 +264,37 @@ namespace TS.NET.Engine
                                         logger.LogDebug($"{nameof(HardwareSetRateRequest)} sent with argument: {rate}");
                                     }
                                     return null;
+                            }
+                            break;
+                        }
+                    case var _ when subject.StartsWith("ACQ"):
+                        {
+                            // ACQuisition:
+                            // ACQ
+                            switch (command)
+                            {
+                                case var _ when command.StartsWith("RATE") && argument != null:
+                                    {
+                                        ulong rate = Convert.ToUInt64(argument);
+                                        hardwareRequestChannel.Write(new HardwareSetRateRequest(rate));
+                                        logger.LogDebug($"{nameof(HardwareSetRateRequest)} sent with argument: {rate}");
+                                        return null;
+                                    }
+                                case var _ when command.StartsWith("DEPTH") && argument != null:
+                                    {
+                                        var depth = Convert.ToInt32(argument);
+                                        processingRequestChannel.Write(new ProcessingSetDepthDto(depth));
+                                        logger.LogDebug($"{nameof(ProcessingSetDepthDto)} sent with argument: {depth}");
+                                        return null;
+                                    }
+                                case var _ when command.StartsWith("RES") && argument != null:
+                                    {
+                                        var resolution = Convert.ToInt32(argument) switch { 8 => AdcResolution.EightBit, 12 => AdcResolution.TwelveBit, _ => AdcResolution.EightBit };
+                                        hardwareRequestChannel.Write(new HardwareSetResolutionRequest(resolution));
+                                        logger.LogDebug($"{nameof(HardwareSetResolutionRequest)} sent with argument: {resolution}");
+                                        return null;
+                                    }
+                                    
                             }
                             break;
                         }

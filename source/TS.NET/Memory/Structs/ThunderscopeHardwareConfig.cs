@@ -35,4 +35,10 @@ namespace TS.NET
         Dual = 2,
         Quad = 4
     }
+
+    public enum AdcResolution : byte
+    {
+        EightBit = 1,
+        TwelveBit = 2
+    }
 }

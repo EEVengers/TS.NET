@@ -102,9 +102,17 @@ namespace TS.NET.Engine
                                 case HardwareSetRateRequest hardwareSetRateRequest:
                                     {
                                         //thunderscope.Stop();    // To do: determine if this is needed
-                                        thunderscope.SetRate(hardwareSetRateRequest.rate);
+                                        thunderscope.SetRate(hardwareSetRateRequest.Rate);
                                         //thunderscope.Start();
-                                        logger.LogDebug($"{nameof(HardwareSetRateRequest)} (rate: {hardwareSetRateRequest.rate})");
+                                        logger.LogDebug($"{nameof(HardwareSetRateRequest)} (rate: {hardwareSetRateRequest.Rate})");
+                                        break;
+                                    }
+                                case HardwareSetResolutionRequest hardwareSetResolutionRequest:
+                                    {
+                                        //thunderscope.Stop();    // To do: determine if this is needed
+                                        thunderscope.SetResolution(hardwareSetResolutionRequest.Resolution);
+                                        //thunderscope.Start();
+                                        logger.LogDebug($"{nameof(HardwareSetResolutionRequest)} (resolution: {hardwareSetResolutionRequest.Resolution})");
                                         break;
                                     }
                                 case HardwareGetRateRequest hardwareGetRateRequest:
