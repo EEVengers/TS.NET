@@ -183,6 +183,7 @@ class Program
                         initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Single;
                         initialHardwareConfiguration.EnabledChannels = 0x01;
                         initialHardwareConfiguration.SampleRateHz = 1000000000;
+                        initialHardwareConfiguration.Resolution = AdcResolution.EightBit;
                         initialHardwareConfiguration.Frontend[0] = ThunderscopeChannelFrontend.Default();
                         initialHardwareConfiguration.Frontend[1] = ThunderscopeChannelFrontend.Default();
                         initialHardwareConfiguration.Frontend[2] = ThunderscopeChannelFrontend.Default();

@@ -4,7 +4,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 0,
-        "Vpp": 0.009561319177081626,
+        "PgaInputVpp": 0.009561319177081626,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.900711532633531E-05,
         "TrimOffsetDacZero": 2529
@@ -12,7 +12,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 1,
-        "Vpp": 0.012597291678185525,
+        "PgaInputVpp": 0.012597291678185525,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 3.0149724022248177E-05,
         "TrimOffsetDacZero": 2529
@@ -20,7 +20,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 2,
-        "Vpp": 0.015720234386382908,
+        "PgaInputVpp": 0.015720234386382908,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.9815725887188667E-05,
         "TrimOffsetDacZero": 2529
@@ -28,7 +28,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 3,
-        "Vpp": 0.019683957466595948,
+        "PgaInputVpp": 0.019683957466595948,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.9704818384808572E-05,
         "TrimOffsetDacZero": 2529
@@ -36,7 +36,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 4,
-        "Vpp": 0.024807236872816885,
+        "PgaInputVpp": 0.024807236872816885,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.964514871600328E-05,
         "TrimOffsetDacZero": 2529
@@ -44,7 +44,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 5,
-        "Vpp": 0.031202860671383375,
+        "PgaInputVpp": 0.031202860671383375,
         "TrimScaleDac": 53,
         "TrimOffsetDacGainV": 3.0122405791988957E-05,
         "TrimOffsetDacZero": 2520
@@ -52,7 +52,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 6,
-        "Vpp": 0.03936524032394796,
+        "PgaInputVpp": 0.03936524032394796,
         "TrimScaleDac": 42,
         "TrimOffsetDacGainV": 3.792810087830983E-05,
         "TrimOffsetDacZero": 2419
@@ -60,7 +60,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 7,
-        "Vpp": 0.04934580992462621,
+        "PgaInputVpp": 0.04934580992462621,
         "TrimScaleDac": 33,
         "TrimOffsetDacGainV": 4.766038370967892E-05,
         "TrimOffsetDacZero": 2337
@@ -68,7 +68,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 8,
-        "Vpp": 0.06219834475703089,
+        "PgaInputVpp": 0.06219834475703089,
         "TrimScaleDac": 26,
         "TrimOffsetDacGainV": 5.998869794715879E-05,
         "TrimOffsetDacZero": 2271
@@ -76,7 +76,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 9,
-        "Vpp": 0.07824472421163085,
+        "PgaInputVpp": 0.07824472421163085,
         "TrimScaleDac": 20,
         "TrimOffsetDacGainV": 7.659813264263279E-05,
         "TrimOffsetDacZero": 2218
@@ -84,7 +84,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 10,
-        "Vpp": 0.09838517281044533,
+        "PgaInputVpp": 0.09838517281044533,
         "TrimScaleDac": 16,
         "TrimOffsetDacGainV": 9.396941285016746E-05,
         "TrimOffsetDacZero": 2179
@@ -92,7 +92,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 0,
-        "Vpp": 0.0987466781181834,
+        "PgaInputVpp": 0.0987466781181834,
         "TrimScaleDac": 16,
         "TrimOffsetDacGainV": 9.412764984460605E-05,
         "TrimOffsetDacZero": 2148
@@ -100,7 +100,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 1,
-        "Vpp": 0.12444265717187293,
+        "PgaInputVpp": 0.12444265717187293,
         "TrimScaleDac": 12,
         "TrimOffsetDacGainV": 0.00012219953532645322,
         "TrimOffsetDacZero": 2119
@@ -108,7 +108,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 2,
-        "Vpp": 0.15623457702713703,
+        "PgaInputVpp": 0.15623457702713703,
         "TrimScaleDac": 10,
         "TrimOffsetDacGainV": 0.00014273935086541812,
         "TrimOffsetDacZero": 2103
@@ -116,7 +116,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 3,
-        "Vpp": 0.19636285449102414,
+        "PgaInputVpp": 0.19636285449102414,
         "TrimScaleDac": 8,
         "TrimOffsetDacGainV": 0.00017224049337019037,
         "TrimOffsetDacZero": 2087
@@ -124,7 +124,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 4,
-        "Vpp": 0.24639390548337178,
+        "PgaInputVpp": 0.24639390548337178,
         "TrimScaleDac": 6,
         "TrimOffsetDacGainV": 0.00021801190131194784,
         "TrimOffsetDacZero": 2071
@@ -132,7 +132,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 5,
-        "Vpp": 0.3105515055731964,
+        "PgaInputVpp": 0.3105515055731964,
         "TrimScaleDac": 4,
         "TrimOffsetDacGainV": 0.0002959990184421442,
         "TrimOffsetDacZero": 2056
@@ -140,7 +140,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 6,
-        "Vpp": 0.39069772023033655,
+        "PgaInputVpp": 0.39069772023033655,
         "TrimScaleDac": 3,
         "TrimOffsetDacGainV": 0.00036084091052789,
         "TrimOffsetDacZero": 2050
@@ -148,7 +148,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 7,
-        "Vpp": 0.4907688390069224,
+        "PgaInputVpp": 0.4907688390069224,
         "TrimScaleDac": 2,
         "TrimOffsetDacGainV": 0.00046091384441001226,
         "TrimOffsetDacZero": 2043
@@ -156,7 +156,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 8,
-        "Vpp": 0.6182853220457745,
+        "PgaInputVpp": 0.6182853220457745,
         "TrimScaleDac": 2,
         "TrimOffsetDacGainV": 0.000462354080895226,
         "TrimOffsetDacZero": 2039
@@ -164,7 +164,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 9,
-        "Vpp": 0.7770307808474614,
+        "PgaInputVpp": 0.7792337935046294,
         "TrimScaleDac": 1,
         "TrimOffsetDacGainV": 0.000638276254115665,
         "TrimOffsetDacZero": 2035
@@ -172,7 +172,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 10,
-        "Vpp": 0.9785375781843679,
+        "PgaInputVpp": 0.9764144831617565,
         "TrimScaleDac": 1,
         "TrimOffsetDacGainV": 0.000639173262487398,
         "TrimOffsetDacZero": 2031
@@ -185,7 +185,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 0,
-        "Vpp": 0.009561319177081626,
+        "PgaInputVpp": 0.009561319177081626,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.900711532633531E-05,
         "TrimOffsetDacZero": 2529
@@ -193,7 +193,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 1,
-        "Vpp": 0.012597291678185525,
+        "PgaInputVpp": 0.012597291678185525,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 3.0149724022248177E-05,
         "TrimOffsetDacZero": 2529
@@ -201,7 +201,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 2,
-        "Vpp": 0.015720234386382908,
+        "PgaInputVpp": 0.015720234386382908,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.9815725887188667E-05,
         "TrimOffsetDacZero": 2529
@@ -209,7 +209,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 3,
-        "Vpp": 0.019683957466595948,
+        "PgaInputVpp": 0.019683957466595948,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.9704818384808572E-05,
         "TrimOffsetDacZero": 2529
@@ -217,7 +217,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 4,
-        "Vpp": 0.024807236872816885,
+        "PgaInputVpp": 0.024807236872816885,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.964514871600328E-05,
         "TrimOffsetDacZero": 2529
@@ -225,7 +225,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 5,
-        "Vpp": 0.031202860671383375,
+        "PgaInputVpp": 0.031202860671383375,
         "TrimScaleDac": 53,
         "TrimOffsetDacGainV": 3.0122405791988957E-05,
         "TrimOffsetDacZero": 2520
@@ -233,7 +233,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 6,
-        "Vpp": 0.03936524032394796,
+        "PgaInputVpp": 0.03936524032394796,
         "TrimScaleDac": 42,
         "TrimOffsetDacGainV": 3.792810087830983E-05,
         "TrimOffsetDacZero": 2419
@@ -241,7 +241,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 7,
-        "Vpp": 0.04934580992462621,
+        "PgaInputVpp": 0.04934580992462621,
         "TrimScaleDac": 33,
         "TrimOffsetDacGainV": 4.766038370967892E-05,
         "TrimOffsetDacZero": 2337
@@ -249,7 +249,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 8,
-        "Vpp": 0.06219834475703089,
+        "PgaInputVpp": 0.06219834475703089,
         "TrimScaleDac": 26,
         "TrimOffsetDacGainV": 5.998869794715879E-05,
         "TrimOffsetDacZero": 2271
@@ -257,7 +257,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 9,
-        "Vpp": 0.07824472421163085,
+        "PgaInputVpp": 0.07824472421163085,
         "TrimScaleDac": 20,
         "TrimOffsetDacGainV": 7.659813264263279E-05,
         "TrimOffsetDacZero": 2218
@@ -265,7 +265,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 10,
-        "Vpp": 0.09838517281044533,
+        "PgaInputVpp": 0.09838517281044533,
         "TrimScaleDac": 16,
         "TrimOffsetDacGainV": 9.396941285016746E-05,
         "TrimOffsetDacZero": 2179
@@ -273,7 +273,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 0,
-        "Vpp": 0.0987466781181834,
+        "PgaInputVpp": 0.0987466781181834,
         "TrimScaleDac": 16,
         "TrimOffsetDacGainV": 9.412764984460605E-05,
         "TrimOffsetDacZero": 2148
@@ -281,7 +281,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 1,
-        "Vpp": 0.12444265717187293,
+        "PgaInputVpp": 0.12444265717187293,
         "TrimScaleDac": 12,
         "TrimOffsetDacGainV": 0.00012219953532645322,
         "TrimOffsetDacZero": 2119
@@ -289,7 +289,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 2,
-        "Vpp": 0.15623457702713703,
+        "PgaInputVpp": 0.15623457702713703,
         "TrimScaleDac": 10,
         "TrimOffsetDacGainV": 0.00014273935086541812,
         "TrimOffsetDacZero": 2103
@@ -297,7 +297,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 3,
-        "Vpp": 0.19636285449102414,
+        "PgaInputVpp": 0.19636285449102414,
         "TrimScaleDac": 8,
         "TrimOffsetDacGainV": 0.00017224049337019037,
         "TrimOffsetDacZero": 2087
@@ -305,7 +305,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 4,
-        "Vpp": 0.24639390548337178,
+        "PgaInputVpp": 0.24639390548337178,
         "TrimScaleDac": 6,
         "TrimOffsetDacGainV": 0.00021801190131194784,
         "TrimOffsetDacZero": 2071
@@ -313,7 +313,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 5,
-        "Vpp": 0.3105515055731964,
+        "PgaInputVpp": 0.3105515055731964,
         "TrimScaleDac": 4,
         "TrimOffsetDacGainV": 0.0002959990184421442,
         "TrimOffsetDacZero": 2056
@@ -321,7 +321,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 6,
-        "Vpp": 0.39069772023033655,
+        "PgaInputVpp": 0.39069772023033655,
         "TrimScaleDac": 3,
         "TrimOffsetDacGainV": 0.00036084091052789,
         "TrimOffsetDacZero": 2050
@@ -329,7 +329,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 7,
-        "Vpp": 0.4907688390069224,
+        "PgaInputVpp": 0.4907688390069224,
         "TrimScaleDac": 2,
         "TrimOffsetDacGainV": 0.00046091384441001226,
         "TrimOffsetDacZero": 2043
@@ -337,7 +337,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 8,
-        "Vpp": 0.6182853220457745,
+        "PgaInputVpp": 0.6182853220457745,
         "TrimScaleDac": 2,
         "TrimOffsetDacGainV": 0.000462354080895226,
         "TrimOffsetDacZero": 2039
@@ -345,7 +345,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 9,
-        "Vpp": 0.7770307808474614,
+        "PgaInputVpp": 0.7770307808474614,
         "TrimScaleDac": 1,
         "TrimOffsetDacGainV": 0.000638276254115665,
         "TrimOffsetDacZero": 2035
@@ -353,7 +353,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 10,
-        "Vpp": 0.9785375781843679,
+        "PgaInputVpp": 0.9785375781843679,
         "TrimScaleDac": 1,
         "TrimOffsetDacGainV": 0.000639173262487398,
         "TrimOffsetDacZero": 2031
@@ -366,7 +366,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 0,
-        "Vpp": 0.009561319177081626,
+        "PgaInputVpp": 0.009561319177081626,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.900711532633531E-05,
         "TrimOffsetDacZero": 2529
@@ -374,7 +374,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 1,
-        "Vpp": 0.012597291678185525,
+        "PgaInputVpp": 0.012597291678185525,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 3.0149724022248177E-05,
         "TrimOffsetDacZero": 2529
@@ -382,7 +382,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 2,
-        "Vpp": 0.015720234386382908,
+        "PgaInputVpp": 0.015720234386382908,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.9815725887188667E-05,
         "TrimOffsetDacZero": 2529
@@ -390,7 +390,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 3,
-        "Vpp": 0.019683957466595948,
+        "PgaInputVpp": 0.019683957466595948,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.9704818384808572E-05,
         "TrimOffsetDacZero": 2529
@@ -398,7 +398,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 4,
-        "Vpp": 0.024807236872816885,
+        "PgaInputVpp": 0.024807236872816885,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.964514871600328E-05,
         "TrimOffsetDacZero": 2529
@@ -406,7 +406,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 5,
-        "Vpp": 0.031202860671383375,
+        "PgaInputVpp": 0.031202860671383375,
         "TrimScaleDac": 53,
         "TrimOffsetDacGainV": 3.0122405791988957E-05,
         "TrimOffsetDacZero": 2520
@@ -414,7 +414,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 6,
-        "Vpp": 0.03936524032394796,
+        "PgaInputVpp": 0.03936524032394796,
         "TrimScaleDac": 42,
         "TrimOffsetDacGainV": 3.792810087830983E-05,
         "TrimOffsetDacZero": 2419
@@ -422,7 +422,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 7,
-        "Vpp": 0.04934580992462621,
+        "PgaInputVpp": 0.04934580992462621,
         "TrimScaleDac": 33,
         "TrimOffsetDacGainV": 4.766038370967892E-05,
         "TrimOffsetDacZero": 2337
@@ -430,7 +430,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 8,
-        "Vpp": 0.06219834475703089,
+        "PgaInputVpp": 0.06219834475703089,
         "TrimScaleDac": 26,
         "TrimOffsetDacGainV": 5.998869794715879E-05,
         "TrimOffsetDacZero": 2271
@@ -438,7 +438,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 9,
-        "Vpp": 0.07824472421163085,
+        "PgaInputVpp": 0.07824472421163085,
         "TrimScaleDac": 20,
         "TrimOffsetDacGainV": 7.659813264263279E-05,
         "TrimOffsetDacZero": 2218
@@ -446,7 +446,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 10,
-        "Vpp": 0.09838517281044533,
+        "PgaInputVpp": 0.09838517281044533,
         "TrimScaleDac": 16,
         "TrimOffsetDacGainV": 9.396941285016746E-05,
         "TrimOffsetDacZero": 2179
@@ -454,7 +454,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 0,
-        "Vpp": 0.0987466781181834,
+        "PgaInputVpp": 0.0987466781181834,
         "TrimScaleDac": 16,
         "TrimOffsetDacGainV": 9.412764984460605E-05,
         "TrimOffsetDacZero": 2148
@@ -462,7 +462,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 1,
-        "Vpp": 0.12444265717187293,
+        "PgaInputVpp": 0.12444265717187293,
         "TrimScaleDac": 12,
         "TrimOffsetDacGainV": 0.00012219953532645322,
         "TrimOffsetDacZero": 2119
@@ -470,7 +470,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 2,
-        "Vpp": 0.15623457702713703,
+        "PgaInputVpp": 0.15623457702713703,
         "TrimScaleDac": 10,
         "TrimOffsetDacGainV": 0.00014273935086541812,
         "TrimOffsetDacZero": 2103
@@ -478,7 +478,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 3,
-        "Vpp": 0.19636285449102414,
+        "PgaInputVpp": 0.19636285449102414,
         "TrimScaleDac": 8,
         "TrimOffsetDacGainV": 0.00017224049337019037,
         "TrimOffsetDacZero": 2087
@@ -486,7 +486,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 4,
-        "Vpp": 0.24639390548337178,
+        "PgaInputVpp": 0.24639390548337178,
         "TrimScaleDac": 6,
         "TrimOffsetDacGainV": 0.00021801190131194784,
         "TrimOffsetDacZero": 2071
@@ -494,7 +494,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 5,
-        "Vpp": 0.3105515055731964,
+        "PgaInputVpp": 0.3105515055731964,
         "TrimScaleDac": 4,
         "TrimOffsetDacGainV": 0.0002959990184421442,
         "TrimOffsetDacZero": 2056
@@ -502,7 +502,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 6,
-        "Vpp": 0.39069772023033655,
+        "PgaInputVpp": 0.39069772023033655,
         "TrimScaleDac": 3,
         "TrimOffsetDacGainV": 0.00036084091052789,
         "TrimOffsetDacZero": 2050
@@ -510,7 +510,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 7,
-        "Vpp": 0.4907688390069224,
+        "PgaInputVpp": 0.4907688390069224,
         "TrimScaleDac": 2,
         "TrimOffsetDacGainV": 0.00046091384441001226,
         "TrimOffsetDacZero": 2043
@@ -518,7 +518,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 8,
-        "Vpp": 0.6182853220457745,
+        "PgaInputVpp": 0.6182853220457745,
         "TrimScaleDac": 2,
         "TrimOffsetDacGainV": 0.000462354080895226,
         "TrimOffsetDacZero": 2039
@@ -526,7 +526,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 9,
-        "Vpp": 0.7770307808474614,
+        "PgaInputVpp": 0.7770307808474614,
         "TrimScaleDac": 1,
         "TrimOffsetDacGainV": 0.000638276254115665,
         "TrimOffsetDacZero": 2035
@@ -534,7 +534,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 10,
-        "Vpp": 0.9785375781843679,
+        "PgaInputVpp": 0.9785375781843679,
         "TrimScaleDac": 1,
         "TrimOffsetDacGainV": 0.000639173262487398,
         "TrimOffsetDacZero": 2031
@@ -547,7 +547,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 0,
-        "Vpp": 0.009561319177081626,
+        "PgaInputVpp": 0.009561319177081626,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.900711532633531E-05,
         "TrimOffsetDacZero": 2529
@@ -555,7 +555,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 1,
-        "Vpp": 0.012597291678185525,
+        "PgaInputVpp": 0.012597291678185525,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 3.0149724022248177E-05,
         "TrimOffsetDacZero": 2529
@@ -563,7 +563,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 2,
-        "Vpp": 0.015720234386382908,
+        "PgaInputVpp": 0.015720234386382908,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.9815725887188667E-05,
         "TrimOffsetDacZero": 2529
@@ -571,7 +571,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 3,
-        "Vpp": 0.019683957466595948,
+        "PgaInputVpp": 0.019683957466595948,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.9704818384808572E-05,
         "TrimOffsetDacZero": 2529
@@ -579,7 +579,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 4,
-        "Vpp": 0.024807236872816885,
+        "PgaInputVpp": 0.024807236872816885,
         "TrimScaleDac": 54,
         "TrimOffsetDacGainV": 2.964514871600328E-05,
         "TrimOffsetDacZero": 2529
@@ -587,7 +587,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 5,
-        "Vpp": 0.031202860671383375,
+        "PgaInputVpp": 0.031202860671383375,
         "TrimScaleDac": 53,
         "TrimOffsetDacGainV": 3.0122405791988957E-05,
         "TrimOffsetDacZero": 2520
@@ -595,7 +595,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 6,
-        "Vpp": 0.03936524032394796,
+        "PgaInputVpp": 0.03936524032394796,
         "TrimScaleDac": 42,
         "TrimOffsetDacGainV": 3.792810087830983E-05,
         "TrimOffsetDacZero": 2419
@@ -603,7 +603,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 7,
-        "Vpp": 0.04934580992462621,
+        "PgaInputVpp": 0.04934580992462621,
         "TrimScaleDac": 33,
         "TrimOffsetDacGainV": 4.766038370967892E-05,
         "TrimOffsetDacZero": 2337
@@ -611,7 +611,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 8,
-        "Vpp": 0.06219834475703089,
+        "PgaInputVpp": 0.06219834475703089,
         "TrimScaleDac": 26,
         "TrimOffsetDacGainV": 5.998869794715879E-05,
         "TrimOffsetDacZero": 2271
@@ -619,7 +619,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 9,
-        "Vpp": 0.07824472421163085,
+        "PgaInputVpp": 0.07824472421163085,
         "TrimScaleDac": 20,
         "TrimOffsetDacGainV": 7.659813264263279E-05,
         "TrimOffsetDacZero": 2218
@@ -627,7 +627,7 @@
       {
         "PgaPreampGain": 1,
         "PgaLadderAttenuator": 10,
-        "Vpp": 0.09838517281044533,
+        "PgaInputVpp": 0.09838517281044533,
         "TrimScaleDac": 16,
         "TrimOffsetDacGainV": 9.396941285016746E-05,
         "TrimOffsetDacZero": 2179
@@ -635,7 +635,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 0,
-        "Vpp": 0.0987466781181834,
+        "PgaInputVpp": 0.0987466781181834,
         "TrimScaleDac": 16,
         "TrimOffsetDacGainV": 9.412764984460605E-05,
         "TrimOffsetDacZero": 2148
@@ -643,7 +643,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 1,
-        "Vpp": 0.12444265717187293,
+        "PgaInputVpp": 0.12444265717187293,
         "TrimScaleDac": 12,
         "TrimOffsetDacGainV": 0.00012219953532645322,
         "TrimOffsetDacZero": 2119
@@ -651,7 +651,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 2,
-        "Vpp": 0.15623457702713703,
+        "PgaInputVpp": 0.15623457702713703,
         "TrimScaleDac": 10,
         "TrimOffsetDacGainV": 0.00014273935086541812,
         "TrimOffsetDacZero": 2103
@@ -659,7 +659,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 3,
-        "Vpp": 0.19636285449102414,
+        "PgaInputVpp": 0.19636285449102414,
         "TrimScaleDac": 8,
         "TrimOffsetDacGainV": 0.00017224049337019037,
         "TrimOffsetDacZero": 2087
@@ -667,7 +667,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 4,
-        "Vpp": 0.24639390548337178,
+        "PgaInputVpp": 0.24639390548337178,
         "TrimScaleDac": 6,
         "TrimOffsetDacGainV": 0.00021801190131194784,
         "TrimOffsetDacZero": 2071
@@ -675,7 +675,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 5,
-        "Vpp": 0.3105515055731964,
+        "PgaInputVpp": 0.3105515055731964,
         "TrimScaleDac": 4,
         "TrimOffsetDacGainV": 0.0002959990184421442,
         "TrimOffsetDacZero": 2056
@@ -683,7 +683,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 6,
-        "Vpp": 0.39069772023033655,
+        "PgaInputVpp": 0.39069772023033655,
         "TrimScaleDac": 3,
         "TrimOffsetDacGainV": 0.00036084091052789,
         "TrimOffsetDacZero": 2050
@@ -691,7 +691,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 7,
-        "Vpp": 0.4907688390069224,
+        "PgaInputVpp": 0.4907688390069224,
         "TrimScaleDac": 2,
         "TrimOffsetDacGainV": 0.00046091384441001226,
         "TrimOffsetDacZero": 2043
@@ -699,7 +699,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 8,
-        "Vpp": 0.6182853220457745,
+        "PgaInputVpp": 0.6182853220457745,
         "TrimScaleDac": 2,
         "TrimOffsetDacGainV": 0.000462354080895226,
         "TrimOffsetDacZero": 2039
@@ -707,7 +707,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 9,
-        "Vpp": 0.7770307808474614,
+        "PgaInputVpp": 0.7770307808474614,
         "TrimScaleDac": 1,
         "TrimOffsetDacGainV": 0.000638276254115665,
         "TrimOffsetDacZero": 2035
@@ -715,7 +715,7 @@
       {
         "PgaPreampGain": 0,
         "PgaLadderAttenuator": 10,
-        "Vpp": 0.9785375781843679,
+        "PgaInputVpp": 0.9785375781843679,
         "TrimScaleDac": 1,
         "TrimOffsetDacGainV": 0.000639173262487398,
         "TrimOffsetDacZero": 2031

@@ -55,8 +55,8 @@ namespace TS.NET.Driver.Libtslitex
                 SetChannelFrontend(chan, initialHardwareConfiguration.Frontend[chan]);
                 SetChannelEnable(chan, ((initialHardwareConfiguration.EnabledChannels >> chan) & 0x01) > 0);
             }
-            GetStatus();        // Required to make SetRate work
             SetRate(initialHardwareConfiguration.SampleRateHz);
+            SetResolution(initialHardwareConfiguration.Resolution);
 
             GetStatus();
         }
@@ -326,7 +326,7 @@ namespace TS.NET.Driver.Libtslitex
                 // Pga with no attenuator
                 foreach (var path in channelCalibration[channelIndex].Paths)
                 {
-                    var potentialVpp = path.Vpp;
+                    var potentialVpp = path.PgaInputVpp;
                     if (potentialVpp > channel.RequestedVoltFullScale)
                     {
                         pathFound = true;
@@ -344,7 +344,7 @@ namespace TS.NET.Driver.Libtslitex
                 // Pga with 1M attenuator
                 foreach (var path in channelCalibration[channelIndex].Paths)
                 {
-                    var potentialVpp = path.Vpp / channelCalibration[channelIndex].AttenuatorGain1MOhm;
+                    var potentialVpp = path.PgaInputVpp / channelCalibration[channelIndex].AttenuatorGain1MOhm;
                     if (potentialVpp > channel.RequestedVoltFullScale)
                     {
                         pathFound = true;
@@ -363,12 +363,36 @@ namespace TS.NET.Driver.Libtslitex
                 return;
             }
 
+            // Note: PGA input voltage should not go beyond +/-0.6V from 2.5V so that enforces a limit in some gain scenarios. 
+            //   Datasheet says +/-0.6V. Testing shows up to +/-1.3V. Use datasheet specification.
+            var dacValueMaxDeviation = (int)((0.6 - (selectedPath.PgaInputVpp / 2.0))/selectedPath.TrimOffsetDacGainV);
+
+            // Note: attenuator is the only source of gainFactor change. Probe scaling should be accounted for at the UI level.
+            double gainFactor = 1.0;
+            if (attenuator)
+                gainFactor = channelCalibration[channelIndex].AttenuatorGain1MOhm;
+
+            // Note: if desired offset is beyond acceptable range for PGA input voltage limits, clamp it.
+            var dacOffset = (int)((channel.RequestedVoltOffset*gainFactor) / selectedPath.TrimOffsetDacGainV);
+            if (dacOffset > dacValueMaxDeviation)
+                dacOffset = dacValueMaxDeviation;
+            if (dacOffset < -dacValueMaxDeviation)
+                dacOffset = -dacValueMaxDeviation;
+            var dacValue = selectedPath.TrimOffsetDacZero - dacOffset;
+
+            // Note: last resort clamping of DAC value.
+            if(dacValue < 0) dacValue = 0;
+            if (dacValue > 4095) dacValue = 4095;
+
+            // Note: calculate actual offset so UI can use it.
+            channel.ActualVoltOffset = ((dacValue - selectedPath.TrimOffsetDacZero) * selectedPath.TrimOffsetDacGainV)/ gainFactor;
+
             var manualControl = new ThunderscopeChannelFrontendManualControl()
             {
                 Coupling = channel.Coupling,
                 Termination = channel.Termination,
                 Attenuator = attenuator ? (byte)1 : (byte)0,
-                DAC = selectedPath.TrimOffsetDacZero,
+                DAC = (ushort)dacValue,
                 DPOT = selectedPath.TrimScaleDac,
 
                 PgaLadderAttenuation = selectedPath.PgaLadderAttenuator,
