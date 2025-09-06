@@ -9,9 +9,8 @@ namespace TS.NET.Driver.Libtslitex
         private nint tsHandle;
         private uint readSegmentLengthBytes;
 
+        private bool[] channelEnabled;
         private ThunderscopeChannelCalibration[] channelCalibration;
-        private double[] requestedChannelVoltScale;
-        private double[] requestedChannelVoltOffset;
         private ThunderscopeChannelFrontend[] channelFrontend;
         private ThunderscopeLiteXStatus health;
 
@@ -24,9 +23,8 @@ namespace TS.NET.Driver.Libtslitex
                 throw new ArgumentException("ThunderscopeMemory.Length % readSegmentLengthBytes != 0");
             this.readSegmentLengthBytes = (uint)readSegmentLengthBytes;
             logger = loggerFactory.CreateLogger("Driver.LiteX");
+            channelEnabled = new bool[4];
             channelCalibration = new ThunderscopeChannelCalibration[4];
-            requestedChannelVoltScale = new double[4];
-            requestedChannelVoltOffset = new double[4];
             channelFrontend = new ThunderscopeChannelFrontend[4];
             health = new ThunderscopeLiteXStatus();
         }
@@ -258,6 +256,12 @@ namespace TS.NET.Driver.Libtslitex
             uint resolutionValue = cachedSampleResolution switch { AdcResolution.EightBit => 256, AdcResolution.TwelveBit => 4096, _ => throw new NotImplementedException() };
             var retVal = Interop.SetSampleMode(tsHandle, cachedSampleRateHz, resolutionValue);
 
+            for(int i = 0; i < channelFrontend.Length; i++)
+            {
+                if(channelEnabled[i])
+                    SetChannelFrontend(i, channelFrontend[i]);
+            }
+
             if (retVal == -2) //Invalid Parameter
                 logger.LogTrace($"Thunderscope failed to set sample rate ({sampleRateHz}): INVALID_PARAMETER");
             else if (retVal < 0)
@@ -326,7 +330,7 @@ namespace TS.NET.Driver.Libtslitex
                 // Pga with no attenuator
                 foreach (var path in channelCalibration[channelIndex].Paths)
                 {
-                    var potentialVpp = path.PgaInputVpp;
+                    var potentialVpp = path.BufferInputVpp[cachedSampleRateHz];
                     if (potentialVpp > channel.RequestedVoltFullScale)
                     {
                         pathFound = true;
@@ -344,7 +348,7 @@ namespace TS.NET.Driver.Libtslitex
                 // Pga with 1M attenuator
                 foreach (var path in channelCalibration[channelIndex].Paths)
                 {
-                    var potentialVpp = path.PgaInputVpp / channelCalibration[channelIndex].AttenuatorGain1MOhm;
+                    var potentialVpp = path.BufferInputVpp[cachedSampleRateHz] / channelCalibration[channelIndex].AttenuatorGain1MOhm;
                     if (potentialVpp > channel.RequestedVoltFullScale)
                     {
                         pathFound = true;
@@ -365,7 +369,7 @@ namespace TS.NET.Driver.Libtslitex
 
             // Note: PGA input voltage should not go beyond +/-0.6V from 2.5V so that enforces a limit in some gain scenarios. 
             //   Datasheet says +/-0.6V. Testing shows up to +/-1.3V. Use datasheet specification.
-            var dacValueMaxDeviation = (int)((0.6 - (selectedPath.PgaInputVpp / 2.0))/selectedPath.TrimOffsetDacScaleV);
+            var dacValueMaxDeviation = (int)((0.6 - (selectedPath.BufferInputVpp[cachedSampleRateHz] / 2.0))/selectedPath.TrimOffsetDacScaleV);
 
             // Note: attenuator is the only source of gainFactor change. Probe scaling should be accounted for at the UI level.
             double gainFactor = 1.0;
@@ -478,6 +482,8 @@ namespace TS.NET.Driver.Libtslitex
 
             if (retVal != 0)
                 throw new Exception($"Thunderscope failed to set channel {channelIndex} config ({retVal})");
+
+            channelEnabled[channelIndex] = enabled;
         }
 
         public void SetChannelManualControl(int channelIndex, ThunderscopeChannelFrontendManualControl channel)

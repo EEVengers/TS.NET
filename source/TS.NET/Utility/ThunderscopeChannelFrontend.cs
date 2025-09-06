@@ -11,9 +11,6 @@ namespace TS.NET
         public double RequestedVoltOffset;
         public ThunderscopeBandwidth Bandwidth;
 
-        // Used by calibration for fixed setting of PGA gain & attenuator
-        public bool PgaConfigWordOverride;
-
         // Calculated data
         //public bool Attenuator1MOhm;
         //public bool Attenuator50Ohm;
