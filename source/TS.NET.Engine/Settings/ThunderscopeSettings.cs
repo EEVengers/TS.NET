@@ -57,7 +57,7 @@ namespace TS.NET.Engine
         }
     }
 
-    [JsonSourceGenerationOptions(WriteIndented = true)]
+    [JsonSourceGenerationOptions(WriteIndented = true, UseStringEnumConverter = true)]
     [JsonSerializable(typeof(ThunderscopeSettings))]
     [JsonSerializable(typeof(ThunderscopeCalibrationSettings))]
     internal partial class SourceGenerationContext : JsonSerializerContext { }

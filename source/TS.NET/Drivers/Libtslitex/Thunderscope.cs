@@ -365,7 +365,7 @@ namespace TS.NET.Driver.Libtslitex
 
             // Note: PGA input voltage should not go beyond +/-0.6V from 2.5V so that enforces a limit in some gain scenarios. 
             //   Datasheet says +/-0.6V. Testing shows up to +/-1.3V. Use datasheet specification.
-            var dacValueMaxDeviation = (int)((0.6 - (selectedPath.PgaInputVpp / 2.0))/selectedPath.TrimOffsetDacGainV);
+            var dacValueMaxDeviation = (int)((0.6 - (selectedPath.PgaInputVpp / 2.0))/selectedPath.TrimOffsetDacScaleV);
 
             // Note: attenuator is the only source of gainFactor change. Probe scaling should be accounted for at the UI level.
             double gainFactor = 1.0;
@@ -373,7 +373,7 @@ namespace TS.NET.Driver.Libtslitex
                 gainFactor = channelCalibration[channelIndex].AttenuatorGain1MOhm;
 
             // Note: if desired offset is beyond acceptable range for PGA input voltage limits, clamp it.
-            var dacOffset = (int)((channel.RequestedVoltOffset*gainFactor) / selectedPath.TrimOffsetDacGainV);
+            var dacOffset = (int)((channel.RequestedVoltOffset*gainFactor) / selectedPath.TrimOffsetDacScaleV);
             if (dacOffset > dacValueMaxDeviation)
                 dacOffset = dacValueMaxDeviation;
             if (dacOffset < -dacValueMaxDeviation)
@@ -385,7 +385,7 @@ namespace TS.NET.Driver.Libtslitex
             if (dacValue > 4095) dacValue = 4095;
 
             // Note: calculate actual offset so UI can use it.
-            channel.ActualVoltOffset = ((dacValue - selectedPath.TrimOffsetDacZero) * selectedPath.TrimOffsetDacGainV)/ gainFactor;
+            channel.ActualVoltOffset = ((dacValue - selectedPath.TrimOffsetDacZero) * selectedPath.TrimOffsetDacScaleV)/ gainFactor;
 
             var manualControl = new ThunderscopeChannelFrontendManualControl()
             {
