@@ -40,8 +40,7 @@ TS.NET requires .NET SDK. to install follow below instruction based on your dist
   ```
 Run build script
 ```
-cd build-scripts
-./TS.NET.Engine (linux-x64)
+./build-scripts/"TS.NET.Engine (linux-x64)"
 ```
 
 Build output can be found at `builds/linux-x64/TS.NET.Engine/0.1.0/` `0.1.0` indicates the version of TS.NET.Engine and might change depending on the version you are building.
