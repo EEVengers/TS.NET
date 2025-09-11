@@ -256,11 +256,12 @@ namespace TS.NET.Driver.Libtslitex
             uint resolutionValue = cachedSampleResolution switch { AdcResolution.EightBit => 256, AdcResolution.TwelveBit => 4096, _ => throw new NotImplementedException() };
             var retVal = Interop.SetSampleMode(tsHandle, cachedSampleRateHz, resolutionValue);
 
-            for(int i = 0; i < channelFrontend.Length; i++)
-            {
-                if(channelEnabled[i])
-                    SetChannelFrontend(i, channelFrontend[i]);
-            }
+            // Commented out as this causes an issue during calibration which uses SetChannelManualControl (that doesn't update channelFrontend[])
+            //for(int i = 0; i < channelFrontend.Length; i++)
+            //{
+            //    if(channelEnabled[i])
+            //        SetChannelFrontend(i, channelFrontend[i]);
+            //}
 
             if (retVal == -2) //Invalid Parameter
                 logger.LogTrace($"Thunderscope failed to set sample rate ({sampleRateHz}): INVALID_PARAMETER");
