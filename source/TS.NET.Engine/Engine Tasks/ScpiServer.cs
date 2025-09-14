@@ -248,7 +248,8 @@ namespace TS.NET.Engine
                                     processingRequestChannel.Write(new ProcessingSetModeDto(Mode.Stream));
                                     logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
                                     return null;
-                                case "DEPTH":       // Same as ACQ:DEPTH
+                                // Deprecate soon, command is now ACQ:DEPTH
+                                case "DEPTH":
                                     if (argument != null)
                                     {
                                         var depth = Convert.ToInt32(argument);
@@ -256,7 +257,8 @@ namespace TS.NET.Engine
                                         logger.LogDebug($"{nameof(ProcessingSetDepthDto)} sent with argument: {depth}");
                                     }
                                     return null;
-                                case "RATE":        // SAME AS ACQ:RATE
+                                // Deprecate soon, command is now ACQ:RATE
+                                case "RATE":
                                     if (argument != null)
                                     {
                                         ulong rate = Convert.ToUInt64(argument);
@@ -294,7 +296,7 @@ namespace TS.NET.Engine
                                         logger.LogDebug($"{nameof(HardwareSetResolutionRequest)} sent with argument: {resolution}");
                                         return null;
                                     }
-                                    
+
                             }
                             break;
                         }
@@ -675,74 +677,42 @@ namespace TS.NET.Engine
                                 logger.LogError($"MODE? - No response from {nameof(processingResponseChannel)}");
                                 return "Error: No/bad response from channel.\n";
                             }
+                        // Deprecate soon, command is now ACQ:RATES?
                         case "RATES?":
-                            {
-                                hardwareRequestChannel.Write(new HardwareGetRatesRequest());
-                                if (hardwareResponseChannel.TryRead(out var response, 500))
-                                {
-                                    switch (response)
-                                    {
-                                        case HardwareGetRatesResponse hardwareGetRatesResponse:
-                                            return $"{string.Join(",", hardwareGetRatesResponse.SampleRatesHz)},\n";
-                                        default:
-                                            logger.LogError($"RATES? - Invalid response from {nameof(hardwareResponseChannel)}");
-                                            break;
-                                    }
-                                }
-                                logger.LogError($"RATES? - No response from {nameof(hardwareResponseChannel)}");
-                                return "Error: No/bad response from channel.\n";
-                            }
+                            return GetRates();
+                        // Deprecate soon, command is now ACQ:RATE?
                         case "RATE?":
-                            {
-                                hardwareRequestChannel.Write(new HardwareGetRateRequest());
-                                if (hardwareResponseChannel.TryRead(out var response, 500))
-                                {
-                                    switch (response)
-                                    {
-                                        case HardwareGetRateResponse hardwareGetRateResponse:
-                                            return $"{hardwareGetRateResponse.SampleRateHz}\n";
-                                        default:
-                                            logger.LogError($"RATE? - Invalid response from {nameof(hardwareResponseChannel)}");
-                                            break;
-                                    }
-                                }
-                                logger.LogError($"RATE? - No response from {nameof(hardwareResponseChannel)}");
-                                return "Error: No/bad response from channel.\n";
-                            }
+                            return GetRate();
+                        // Deprecate soon, command is now ACQ:DEPTHS?
                         case "DEPTHS?":
-                            List<string> depths = [];
-                            long baseCount = 1000;
-                            while (true)
-                            {
-                                if (baseCount <= settings.MaxCaptureLength)
-                                    depths.Add($"{baseCount}");
-                                if (baseCount * 2 <= settings.MaxCaptureLength)
-                                    depths.Add($"{baseCount * 2}");
-                                if (baseCount * 5 <= settings.MaxCaptureLength)
-                                    depths.Add($"{baseCount * 5}");
-                                baseCount *= 10;
-                                if (baseCount > settings.MaxCaptureLength)
-                                    break;
-                            }
-                            // Perhaps take into account the sample rate to get 1ms/2ms/5ms/10ms/etc windows instead?
-                            return $"{string.Join(",", depths)},\n";
+                            return GetDepths();
+                        // Deprecate soon, command is now ACQ:DEPTH?
                         case "DEPTH?":
+                            return GetDepth();
+                    }
+                }
+                else if (subject?.StartsWith("ACQ") == true)
+                {
+                    // ACQuisition:
+                    // ACQ
+                    switch (command)
+                    {
+                        case "RATES?":
+                            return GetRates();
+                        case "RATE?":
+                            return GetRate();
+                        case "DEPTHS?":
+                            return GetDepths();
+                        case "DEPTH?":
+                            return GetDepth();
+                        case var _ when command.StartsWith("RES"):
                             {
-                                processingRequestChannel.Write(new ProcessingGetDepthRequest());
-                                if (processingResponseChannel.TryRead(out var response, 500))
-                                {
-                                    switch (response)
-                                    {
-                                        case ProcessingGetDepthResponse processingGetDepthResponse:
-                                            return $"{processingGetDepthResponse.Depth}\n";
-                                        default:
-                                            logger.LogError($"DEPTH? - Invalid response from {nameof(processingResponseChannel)}");
-                                            break;
-                                    }
-                                }
-                                logger.LogError($"DEPTH? - No response from {nameof(processingResponseChannel)}");
-                                return "Error: No/bad response from channel.\n";
+                                var resolution = Convert.ToInt32(argument) switch { 8 => AdcResolution.EightBit, 12 => AdcResolution.TwelveBit, _ => AdcResolution.EightBit };
+                                hardwareRequestChannel.Write(new HardwareSetResolutionRequest(resolution));
+                                logger.LogDebug($"{nameof(HardwareSetResolutionRequest)} sent with argument: {resolution}");
+                                return null;
                             }
+
                     }
                 }
                 else if (subject?.StartsWith("TRIG") == true)
@@ -991,6 +961,80 @@ namespace TS.NET.Engine
 
             logger.LogWarning("Unknown SCPI command: {String}", message);
             return null;
+
+            string GetRates()
+            {
+                hardwareRequestChannel.Write(new HardwareGetRatesRequest());
+                if (hardwareResponseChannel.TryRead(out var response, 500))
+                {
+                    switch (response)
+                    {
+                        case HardwareGetRatesResponse hardwareGetRatesResponse:
+                            return $"{string.Join(",", hardwareGetRatesResponse.SampleRatesHz)},\n";
+                        default:
+                            logger.LogError($"RATES? - Invalid response from {nameof(hardwareResponseChannel)}");
+                            break;
+                    }
+                }
+                logger.LogError($"RATES? - No response from {nameof(hardwareResponseChannel)}");
+                return "Error: No/bad response from channel.\n";
+            }
+
+            string GetRate()
+            {
+                hardwareRequestChannel.Write(new HardwareGetRateRequest());
+                if (hardwareResponseChannel.TryRead(out var response, 500))
+                {
+                    switch (response)
+                    {
+                        case HardwareGetRateResponse hardwareGetRateResponse:
+                            return $"{hardwareGetRateResponse.SampleRateHz}\n";
+                        default:
+                            logger.LogError($"RATE? - Invalid response from {nameof(hardwareResponseChannel)}");
+                            break;
+                    }
+                }
+                logger.LogError($"RATE? - No response from {nameof(hardwareResponseChannel)}");
+                return "Error: No/bad response from channel.\n";
+            }
+
+            string GetDepths()
+            {
+                List<string> depths = [];
+                long baseCount = 1000;
+                while (true)
+                {
+                    if (baseCount <= settings.MaxCaptureLength)
+                        depths.Add($"{baseCount}");
+                    if (baseCount * 2 <= settings.MaxCaptureLength)
+                        depths.Add($"{baseCount * 2}");
+                    if (baseCount * 5 <= settings.MaxCaptureLength)
+                        depths.Add($"{baseCount * 5}");
+                    baseCount *= 10;
+                    if (baseCount > settings.MaxCaptureLength)
+                        break;
+                }
+                // Perhaps take into account the sample rate to get 1ms/2ms/5ms/10ms/etc windows instead?
+                return $"{string.Join(",", depths)},\n";
+            }
+
+            string GetDepth()
+            {
+                processingRequestChannel.Write(new ProcessingGetDepthRequest());
+                if (processingResponseChannel.TryRead(out var response, 500))
+                {
+                    switch (response)
+                    {
+                        case ProcessingGetDepthResponse processingGetDepthResponse:
+                            return $"{processingGetDepthResponse.Depth}\n";
+                        default:
+                            logger.LogError($"DEPTH? - Invalid response from {nameof(processingResponseChannel)}");
+                            break;
+                    }
+                }
+                logger.LogError($"DEPTH? - No response from {nameof(processingResponseChannel)}");
+                return "Error: No/bad response from channel.\n";
+            }
         }
     }
 }

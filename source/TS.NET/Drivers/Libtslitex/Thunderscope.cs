@@ -10,6 +10,7 @@ namespace TS.NET.Driver.Libtslitex
         private uint readSegmentLengthBytes;
 
         private bool[] channelEnabled;
+        private bool[] channelManualOverride;
         private ThunderscopeChannelCalibration[] channelCalibration;
         private ThunderscopeChannelFrontend[] channelFrontend;
         private ThunderscopeLiteXStatus health;
@@ -24,6 +25,7 @@ namespace TS.NET.Driver.Libtslitex
             this.readSegmentLengthBytes = (uint)readSegmentLengthBytes;
             logger = loggerFactory.CreateLogger("Driver.LiteX");
             channelEnabled = new bool[4];
+            channelManualOverride = new bool[4];
             channelCalibration = new ThunderscopeChannelCalibration[4];
             channelFrontend = new ThunderscopeChannelFrontend[4];
             health = new ThunderscopeLiteXStatus();
@@ -242,6 +244,18 @@ namespace TS.NET.Driver.Libtslitex
             health.VccAux = litexState.vcc_aux / 1000.0;
             health.VccBram = litexState.vcc_bram / 1000.0;
 
+            // Update active frontends if rate changed as gain will change.
+            // Only update a frontend if the manual override isn't active.
+            if(cachedSampleRateHz != health.AdcSampleRate)
+            {
+                cachedSampleRateHz = health.AdcSampleRate;
+                for (int i = 0; i < channelFrontend.Length; i++)
+                {
+                    if (channelEnabled[i] && !channelManualOverride[i])
+                        SetChannelFrontend(i, channelFrontend[i]);
+                }
+            }
+
             return health;
         }
 
@@ -252,16 +266,12 @@ namespace TS.NET.Driver.Libtslitex
             if (!open)
                 throw new Exception("Thunderscope not open");
 
-            cachedSampleRateHz = (uint)sampleRateHz;
+            //cachedSampleRateHz = (uint)sampleRateHz;  // Do not do this, GetStatus will do this and handle the frontends
             uint resolutionValue = cachedSampleResolution switch { AdcResolution.EightBit => 256, AdcResolution.TwelveBit => 4096, _ => throw new NotImplementedException() };
-            var retVal = Interop.SetSampleMode(tsHandle, cachedSampleRateHz, resolutionValue);
+            var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, resolutionValue);
 
-            // Commented out as this causes an issue during calibration which uses SetChannelManualControl (that doesn't update channelFrontend[])
-            //for(int i = 0; i < channelFrontend.Length; i++)
-            //{
-            //    if(channelEnabled[i])
-            //        SetChannelFrontend(i, channelFrontend[i]);
-            //}
+            // GetStatus is crucial for managing the rate vs. gain relationship.
+            GetStatus();
 
             if (retVal == -2) //Invalid Parameter
                 logger.LogTrace($"Thunderscope failed to set sample rate ({sampleRateHz}): INVALID_PARAMETER");
@@ -378,7 +388,8 @@ namespace TS.NET.Driver.Libtslitex
                 gainFactor = channelCalibration[channelIndex].AttenuatorGain1MOhm;
 
             // Note: if desired offset is beyond acceptable range for PGA input voltage limits, clamp it.
-            var dacOffset = (int)((channel.RequestedVoltOffset*gainFactor) / selectedPath.TrimOffsetDacScaleV);
+            // -1 to make the SCPI API match most scope vendors, i.e. if input signal has 100mV offset, send CHAN1:OFFS 0.1 to cancel it out.
+            var dacOffset = -1 * (int)((channel.RequestedVoltOffset*gainFactor) / selectedPath.TrimOffsetDacScaleV);
             if (dacOffset > dacValueMaxDeviation)
                 dacOffset = dacValueMaxDeviation;
             if (dacOffset < -dacValueMaxDeviation)
@@ -405,7 +416,7 @@ namespace TS.NET.Driver.Libtslitex
                 PgaHighGain = (selectedPath.PgaPreampGain == PgaPreampGain.High) ? (byte)1 : (byte)0
             };
             SetChannelManualControl(channelIndex, manualControl);
-
+            channelManualOverride[channelIndex] = false;            // SetChannelManualControl sets to true, so immediately set to false
             channelFrontend[channelIndex] = channel;
         }
 
@@ -485,6 +496,9 @@ namespace TS.NET.Driver.Libtslitex
                 throw new Exception($"Thunderscope failed to set channel {channelIndex} config ({retVal})");
 
             channelEnabled[channelIndex] = enabled;
+
+            // Hardware may need to coerce sample rate so get potential new value
+            GetStatus();
         }
 
         public void SetChannelManualControl(int channelIndex, ThunderscopeChannelFrontendManualControl channel)
@@ -507,6 +521,8 @@ namespace TS.NET.Driver.Libtslitex
 
             if (retVal != 0)
                 throw new Exception($"Thunderscope failed to set channel {channelIndex} config ({retVal})");
+
+            channelManualOverride[channelIndex] = true;
         }
     }
 }
