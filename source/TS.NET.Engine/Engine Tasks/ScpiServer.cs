@@ -582,26 +582,6 @@ namespace TS.NET.Engine
                                         }
                                         return null;
                                     }
-                                //case var _ when command.StartsWith("OFFSET:GAIN:LOW") && argument != null:
-                                //    {
-                                //        var args = argument.Split(' ');
-                                //        if (GetChannelIndex(args[0]) is not int channelIndex)
-                                //            return null;
-                                //        double voltage = Convert.ToDouble(args[1]);
-                                //        voltage = Math.Clamp(voltage, -5, 5);
-                                //        hardwareRequestChannel.Write(new HardwareSetOffsetVoltageLowGainRequest(channelIndex, voltage));
-                                //        return null;
-                                //    }
-                                //case var _ when command.StartsWith("OFFSET:GAIN:HIGH") && argument != null:
-                                //    {
-                                //        var args = argument.Split(' ');
-                                //        if (GetChannelIndex(args[0]) is not int channelIndex)
-                                //            return null;
-                                //        double voltage = Convert.ToDouble(args[1]);
-                                //        voltage = Math.Clamp(voltage, 0, 5);
-                                //        hardwareRequestChannel.Write(new HardwareSetOffsetVoltageHighGainRequest(channelIndex, voltage));
-                                //        return null;
-                                //    }
                                 case var _ when command.StartsWith("ADC") && argument != null:
                                     {
                                         var args = argument.Split(' ');

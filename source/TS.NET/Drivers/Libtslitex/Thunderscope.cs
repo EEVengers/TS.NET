@@ -332,6 +332,12 @@ namespace TS.NET.Driver.Libtslitex
             // To calculate:
             //channel.ActualVoltOffset;
 
+            double CalculateInputVpp(ThunderscopeChannelPathCalibration path)
+            {
+                var gain = channelCalibration[channelIndex].PgaLoadScales[cachedSampleRateHz].Single;
+                return path.BufferInputVpp * (1.0/gain);
+            }
+
             bool pathFound = false;
             ThunderscopeChannelPathCalibration selectedPath = new();
             bool attenuator = false;
@@ -341,7 +347,7 @@ namespace TS.NET.Driver.Libtslitex
                 // Pga with no attenuator
                 foreach (var path in channelCalibration[channelIndex].Paths)
                 {
-                    var potentialVpp = path.BufferInputVpp[cachedSampleRateHz];
+                    var potentialVpp = CalculateInputVpp(path);
                     if (potentialVpp > channel.RequestedVoltFullScale)
                     {
                         pathFound = true;
@@ -359,7 +365,7 @@ namespace TS.NET.Driver.Libtslitex
                 // Pga with 1M attenuator
                 foreach (var path in channelCalibration[channelIndex].Paths)
                 {
-                    var potentialVpp = path.BufferInputVpp[cachedSampleRateHz] / channelCalibration[channelIndex].AttenuatorGain1MOhm;
+                    var potentialVpp = CalculateInputVpp(path) / channelCalibration[channelIndex].AttenuatorScale;
                     if (potentialVpp > channel.RequestedVoltFullScale)
                     {
                         pathFound = true;
@@ -380,12 +386,12 @@ namespace TS.NET.Driver.Libtslitex
 
             // Note: PGA input voltage should not go beyond +/-0.6V from 2.5V so that enforces a limit in some gain scenarios. 
             //   Datasheet says +/-0.6V. Testing shows up to +/-1.3V. Use datasheet specification.
-            var dacValueMaxDeviation = (int)((0.6 - (selectedPath.BufferInputVpp[cachedSampleRateHz] / 2.0))/selectedPath.TrimOffsetDacScaleV);
+            var dacValueMaxDeviation = (int)((0.6 - (CalculateInputVpp(selectedPath) / 2.0)) / selectedPath.TrimOffsetDacScaleV);
 
             // Note: attenuator is the only source of gainFactor change. Probe scaling should be accounted for at the UI level.
             double gainFactor = 1.0;
             if (attenuator)
-                gainFactor = channelCalibration[channelIndex].AttenuatorGain1MOhm;
+                gainFactor = channelCalibration[channelIndex].AttenuatorScale;
 
             // Note: if desired offset is beyond acceptable range for PGA input voltage limits, clamp it.
             // -1 to make the SCPI API match most scope vendors, i.e. if input signal has 100mV offset, send CHAN1:OFFS 0.1 to cancel it out.
@@ -448,30 +454,30 @@ namespace TS.NET.Driver.Libtslitex
 
             var tsCal = new Interop.tsChannelCalibration_t
             {
-                buffer_uV = (int)(channelCalibration.BufferOffset * 1000000),
-                bias_uV = (int)(channelCalibration.BiasVoltage * 1000000),
-                attenuatorGain1M_mdB = (int)(channelCalibration.AttenuatorGain1MOhm * 1000),
-                attenuatorGain50_mdB = (int)(channelCalibration.AttenuatorGain50Ohm * 1000),
-                bufferGain_mdB = (int)(channelCalibration.BufferGain * 1000),
-                trimRheostat_range = (int)channelCalibration.TrimResistorOhms,
-                preampLowGainError_mdB = (int)(channelCalibration.PgaLowGainError * 1000),
-                preampHighGainError_mdB = (int)(channelCalibration.PgaHighGainError * 1000),
-                preampLowOffset_uV = (int)(channelCalibration.PgaLowOffsetVoltage * 1000000),
-                preampHighOffset_uV = (int)(channelCalibration.PgaHighOffsetVoltage * 1000000),
-                preampOutputGainError_mdB = (int)(channelCalibration.PgaOutputGainError * 1000),
-                preampInputBias_uA = (int)channelCalibration.PgaInputBiasCurrent,
+                //buffer_uV = (int)(channelCalibration.BufferOffset * 1000000),
+                //bias_uV = (int)(channelCalibration.BiasVoltage * 1000000),
+                //attenuatorGain1M_mdB = (int)(channelCalibration.AttenuatorGain1MOhm * 1000),
+                //attenuatorGain50_mdB = (int)(channelCalibration.AttenuatorGain50Ohm * 1000),
+                //bufferGain_mdB = (int)(channelCalibration.BufferGain * 1000),
+                //trimRheostat_range = (int)channelCalibration.TrimResistorOhms,
+                //preampLowGainError_mdB = (int)(channelCalibration.PgaLowGainError * 1000),
+                //preampHighGainError_mdB = (int)(channelCalibration.PgaHighGainError * 1000),
+                //preampLowOffset_uV = (int)(channelCalibration.PgaLowOffsetVoltage * 1000000),
+                //preampHighOffset_uV = (int)(channelCalibration.PgaHighOffsetVoltage * 1000000),
+                //preampOutputGainError_mdB = (int)(channelCalibration.PgaOutputGainError * 1000),
+                //preampInputBias_uA = (int)channelCalibration.PgaInputBiasCurrent,
             };
-            tsCal.preampAttenuatorGain_mdB[0] = (int)channelCalibration.PgaAttenuatorGain0;
-            tsCal.preampAttenuatorGain_mdB[1] = (int)channelCalibration.PgaAttenuatorGain1;
-            tsCal.preampAttenuatorGain_mdB[2] = (int)channelCalibration.PgaAttenuatorGain2;
-            tsCal.preampAttenuatorGain_mdB[3] = (int)channelCalibration.PgaAttenuatorGain3;
-            tsCal.preampAttenuatorGain_mdB[4] = (int)channelCalibration.PgaAttenuatorGain4;
-            tsCal.preampAttenuatorGain_mdB[5] = (int)channelCalibration.PgaAttenuatorGain5;
-            tsCal.preampAttenuatorGain_mdB[6] = (int)channelCalibration.PgaAttenuatorGain6;
-            tsCal.preampAttenuatorGain_mdB[7] = (int)channelCalibration.PgaAttenuatorGain7;
-            tsCal.preampAttenuatorGain_mdB[8] = (int)channelCalibration.PgaAttenuatorGain8;
-            tsCal.preampAttenuatorGain_mdB[9] = (int)channelCalibration.PgaAttenuatorGain9;
-            tsCal.preampAttenuatorGain_mdB[10] = (int)channelCalibration.PgaAttenuatorGain10;
+            //tsCal.preampAttenuatorGain_mdB[0] = (int)channelCalibration.PgaAttenuatorGain0;
+            //tsCal.preampAttenuatorGain_mdB[1] = (int)channelCalibration.PgaAttenuatorGain1;
+            //tsCal.preampAttenuatorGain_mdB[2] = (int)channelCalibration.PgaAttenuatorGain2;
+            //tsCal.preampAttenuatorGain_mdB[3] = (int)channelCalibration.PgaAttenuatorGain3;
+            //tsCal.preampAttenuatorGain_mdB[4] = (int)channelCalibration.PgaAttenuatorGain4;
+            //tsCal.preampAttenuatorGain_mdB[5] = (int)channelCalibration.PgaAttenuatorGain5;
+            //tsCal.preampAttenuatorGain_mdB[6] = (int)channelCalibration.PgaAttenuatorGain6;
+            //tsCal.preampAttenuatorGain_mdB[7] = (int)channelCalibration.PgaAttenuatorGain7;
+            //tsCal.preampAttenuatorGain_mdB[8] = (int)channelCalibration.PgaAttenuatorGain8;
+            //tsCal.preampAttenuatorGain_mdB[9] = (int)channelCalibration.PgaAttenuatorGain9;
+            //tsCal.preampAttenuatorGain_mdB[10] = (int)channelCalibration.PgaAttenuatorGain10;
 
             this.channelCalibration[channelIndex] = channelCalibration;
             Interop.SetCalibration(tsHandle, (uint)channelIndex, in tsCal);

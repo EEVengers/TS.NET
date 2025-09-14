@@ -35,10 +35,19 @@ namespace TS.NET
         }
     }
 
+    public class ThunderscopePgaLoadScale
+    {
+        public double Single { get; set; }
+        public double Dual { get; set; }
+        public double Quad { get; set; }
+    }
+
     public class ThunderscopeChannelCalibrationSettings
     {
-        public required ThunderscopeChannelPathCalibration[] Paths { get; set; }
         public double AttenuatorScale { get; set; }
+        public required ThunderscopeChannelPathCalibration[] Paths { get; set; }
+        public required Dictionary<uint, ThunderscopePgaLoadScale> PgaLoadScales { get; set; }
+
         //public double BufferGain { get; set; }
         //public double PgaPreampLowGain { get; set; }
         //public double PgaPreampHighGain { get; set; }
@@ -70,8 +79,10 @@ namespace TS.NET
         {
             return new ThunderscopeChannelCalibration()
             {
+                AttenuatorScale = AttenuatorScale,
                 Paths = Paths,
-                AttenuatorGain1MOhm = this.AttenuatorScale,
+                PgaLoadScales = PgaLoadScales
+                
                 //BufferGain = this.BufferGain,
                 //PgaPreampLowGain = this.PgaPreampLowGain,
                 //PgaPreampHighGain = this.PgaPreampHighGain,
@@ -105,33 +116,34 @@ namespace TS.NET
         {
             return new ThunderscopeChannelCalibrationSettings()
             {
+                AttenuatorScale = 0.02,
                 Paths =
                 [
-                    new(){ PgaLadderAttenuator = 0, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.009 } }, TrimScaleDac = 83, TrimOffsetDacScaleV = 0.5, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 1, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.012 } }, TrimScaleDac = 66, TrimOffsetDacScaleV = 0.5, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 2, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.016 } }, TrimScaleDac = 53, TrimOffsetDacScaleV = 0.5, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 3, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.020 } }, TrimScaleDac = 85, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 4, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.025 } }, TrimScaleDac = 67, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 5, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.032 } }, TrimScaleDac = 53, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 6, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.040 } }, TrimScaleDac = 42, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 7, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.050 } }, TrimScaleDac = 33, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 8, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.062 } }, TrimScaleDac = 26, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 9, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.078 } }, TrimScaleDac = 20, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 10, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.098 } }, TrimScaleDac = 16, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 0, BufferInputVpp = 0.009, TrimScaleDac = 83, TrimOffsetDacScaleV = 0.5, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 1, BufferInputVpp = 0.012, TrimScaleDac = 66, TrimOffsetDacScaleV = 0.5, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 2, BufferInputVpp = 0.016, TrimScaleDac = 53, TrimOffsetDacScaleV = 0.5, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 3, BufferInputVpp = 0.020, TrimScaleDac = 85, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 4, BufferInputVpp = 0.025, TrimScaleDac = 67, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 5, BufferInputVpp = 0.032, TrimScaleDac = 53, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 6, BufferInputVpp = 0.040, TrimScaleDac = 42, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 7, BufferInputVpp = 0.050, TrimScaleDac = 33, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 8, BufferInputVpp = 0.062, TrimScaleDac = 26, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 9, BufferInputVpp = 0.078, TrimScaleDac = 20, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 10, BufferInputVpp = 0.098, TrimScaleDac = 16, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
 
-                    new(){ PgaLadderAttenuator = 0, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.098 } }, TrimScaleDac = 16, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 1, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.124 } }, TrimScaleDac = 12, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 2, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.156 } }, TrimScaleDac = 10, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 3, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.196 } }, TrimScaleDac = 8, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 4, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.247 } }, TrimScaleDac = 6, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 5, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.310 } }, TrimScaleDac = 4, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 6, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.390 } }, TrimScaleDac = 3, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 7, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.491 } }, TrimScaleDac = 2, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 8, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.618 } }, TrimScaleDac = 2, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 9, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.777 } }, TrimScaleDac = 1, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 10, BufferInputVpp = new Dictionary<uint, double>{ { 1000000000, 0.977 } }, TrimScaleDac = 1, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 0, BufferInputVpp = 0.098, TrimScaleDac = 16, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 1, BufferInputVpp = 0.124, TrimScaleDac = 12, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 2, BufferInputVpp = 0.156, TrimScaleDac = 10, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 3, BufferInputVpp = 0.196, TrimScaleDac = 8, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 4, BufferInputVpp = 0.247, TrimScaleDac = 6, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 5, BufferInputVpp = 0.310, TrimScaleDac = 4, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 6, BufferInputVpp = 0.390, TrimScaleDac = 3, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 7, BufferInputVpp = 0.491, TrimScaleDac = 2, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 8, BufferInputVpp = 0.618, TrimScaleDac = 2, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 9, BufferInputVpp = 0.777, TrimScaleDac = 1, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 10, BufferInputVpp = 0.977, TrimScaleDac = 1, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
                 ],
-                AttenuatorScale = 0.02,
+                PgaLoadScales = new Dictionary<uint, ThunderscopePgaLoadScale> { { 1000000000, new ThunderscopePgaLoadScale() { Single = 1.0, Dual = 1.05, Quad = 1.1 } } }
                 //BufferGain = 0,
                 //PgaPreampLowGain = 10,
                 //PgaPreampHighGain = 30,

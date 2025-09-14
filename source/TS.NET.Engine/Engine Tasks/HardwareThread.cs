@@ -101,17 +101,13 @@ namespace TS.NET.Engine
                                     break;
                                 case HardwareSetRateRequest hardwareSetRateRequest:
                                     {
-                                        //thunderscope.Stop();    // To do: determine if this is needed
                                         thunderscope.SetRate(hardwareSetRateRequest.Rate);
-                                        //thunderscope.Start();
                                         logger.LogDebug($"{nameof(HardwareSetRateRequest)} (rate: {hardwareSetRateRequest.Rate})");
                                         break;
                                     }
                                 case HardwareSetResolutionRequest hardwareSetResolutionRequest:
                                     {
-                                        //thunderscope.Stop();    // To do: determine if this is needed
                                         thunderscope.SetResolution(hardwareSetResolutionRequest.Resolution);
-                                        //thunderscope.Start();
                                         logger.LogDebug($"{nameof(HardwareSetResolutionRequest)} (resolution: {hardwareSetResolutionRequest.Resolution})");
                                         break;
                                     }
@@ -212,6 +208,13 @@ namespace TS.NET.Engine
                                         logger.LogDebug($"{nameof(HardwareGetTerminationRequest)}");
                                         break;
                                     }
+                                case HardwareSetEnabledRequest hardwareSetEnabledRequest:
+                                    {
+                                        var channelIndex = ((HardwareSetEnabledRequest)request).ChannelIndex;
+                                        logger.LogDebug($"{nameof(HardwareSetEnabledRequest)} (channel: {channelIndex}, enabled: {hardwareSetEnabledRequest.Enabled})");
+                                        thunderscope.SetChannelEnable(channelIndex, hardwareSetEnabledRequest.Enabled);
+                                        break;
+                                    }
                                 case HardwareSetChannelFrontendRequest hardwareConfigureChannelFrontendDto:
                                     {
                                         var channelIndex = ((HardwareSetChannelFrontendRequest)request).ChannelIndex;
@@ -233,12 +236,6 @@ namespace TS.NET.Engine
                                             case HardwareSetCouplingRequest hardwareSetCouplingRequest:
                                                 logger.LogDebug($"{nameof(HardwareSetCouplingRequest)} (channel: {channelIndex}, coupling: {hardwareSetCouplingRequest.Coupling})");
                                                 channelFrontend.Coupling = hardwareSetCouplingRequest.Coupling;
-                                                break;
-                                            case HardwareSetEnabledRequest hardwareSetEnabledRequest:
-                                                logger.LogDebug($"{nameof(HardwareSetEnabledRequest)} (channel: {channelIndex}, enabled: {hardwareSetEnabledRequest.Enabled})");
-                                                //thunderscope.Stop();    // To do: determine if this is needed
-                                                thunderscope.SetChannelEnable(channelIndex, hardwareSetEnabledRequest.Enabled);
-                                                //thunderscope.Start();
                                                 break;
                                             case HardwareSetTerminationRequest hardwareSetTerminationRequest:
                                                 logger.LogDebug($"{nameof(HardwareSetTerminationRequest)} (channel: {channelIndex}, termination: {hardwareSetTerminationRequest.Termination})");

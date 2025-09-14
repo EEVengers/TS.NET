@@ -197,7 +197,7 @@ namespace TS.NET.Engine
                 {
                     cancelToken.ThrowIfCancellationRequested();
 
-                    if (processingRequestChannel.TryRead(out var request))
+                    while (processingRequestChannel.TryRead(out var request))
                     {
                         switch (request)
                         {
