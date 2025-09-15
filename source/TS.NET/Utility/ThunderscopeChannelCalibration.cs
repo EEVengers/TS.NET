@@ -7,7 +7,7 @@ namespace TS.NET
     {
         public double AttenuatorScale { get; set; }
         public required ThunderscopeChannelPathCalibration[] Paths { get; set; }
-        public required Dictionary<uint, ThunderscopePgaLoadScale> PgaLoadScales { get; set; }
+        public required ThunderscopePgaLoadScale[] PgaLoadScales { get; set; }
 
         // XDMA calibration
         //public double AttenuatorGain1MOhm { get; set; }

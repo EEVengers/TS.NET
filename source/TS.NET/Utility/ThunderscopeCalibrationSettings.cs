@@ -37,16 +37,16 @@ namespace TS.NET
 
     public class ThunderscopePgaLoadScale
     {
-        public double Single { get; set; }
-        public double Dual { get; set; }
-        public double Quad { get; set; }
+        public uint SampleRate { get; set; }
+        public byte ChannelCount { get; set; }
+        public double Scale { get; set; }
     }
 
     public class ThunderscopeChannelCalibrationSettings
     {
         public double AttenuatorScale { get; set; }
         public required ThunderscopeChannelPathCalibration[] Paths { get; set; }
-        public required Dictionary<uint, ThunderscopePgaLoadScale> PgaLoadScales { get; set; }
+        public required ThunderscopePgaLoadScale[] PgaLoadScales { get; set; }
 
         //public double BufferGain { get; set; }
         //public double PgaPreampLowGain { get; set; }
@@ -119,31 +119,31 @@ namespace TS.NET
                 AttenuatorScale = 0.02,
                 Paths =
                 [
-                    new(){ PgaLadderAttenuator = 0, BufferInputVpp = 0.009, TrimScaleDac = 83, TrimOffsetDacScaleV = 0.5, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 1, BufferInputVpp = 0.012, TrimScaleDac = 66, TrimOffsetDacScaleV = 0.5, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 2, BufferInputVpp = 0.016, TrimScaleDac = 53, TrimOffsetDacScaleV = 0.5, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 3, BufferInputVpp = 0.020, TrimScaleDac = 85, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 4, BufferInputVpp = 0.025, TrimScaleDac = 67, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 5, BufferInputVpp = 0.032, TrimScaleDac = 53, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 6, BufferInputVpp = 0.040, TrimScaleDac = 42, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 7, BufferInputVpp = 0.050, TrimScaleDac = 33, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 8, BufferInputVpp = 0.062, TrimScaleDac = 26, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 9, BufferInputVpp = 0.078, TrimScaleDac = 20, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 10, BufferInputVpp = 0.098, TrimScaleDac = 16, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 0, BufferInputVpp = 0.009, TrimScaleDac = 83, TrimOffsetDacScale = 0.5, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 1, BufferInputVpp = 0.012, TrimScaleDac = 66, TrimOffsetDacScale = 0.5, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 2, BufferInputVpp = 0.016, TrimScaleDac = 53, TrimOffsetDacScale = 0.5, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 3, BufferInputVpp = 0.020, TrimScaleDac = 85, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 4, BufferInputVpp = 0.025, TrimScaleDac = 67, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 5, BufferInputVpp = 0.032, TrimScaleDac = 53, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 6, BufferInputVpp = 0.040, TrimScaleDac = 42, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 7, BufferInputVpp = 0.050, TrimScaleDac = 33, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 8, BufferInputVpp = 0.062, TrimScaleDac = 26, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 9, BufferInputVpp = 0.078, TrimScaleDac = 20, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 10, BufferInputVpp = 0.098, TrimScaleDac = 16, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
 
-                    new(){ PgaLadderAttenuator = 0, BufferInputVpp = 0.098, TrimScaleDac = 16, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 1, BufferInputVpp = 0.124, TrimScaleDac = 12, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 2, BufferInputVpp = 0.156, TrimScaleDac = 10, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 3, BufferInputVpp = 0.196, TrimScaleDac = 8, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 4, BufferInputVpp = 0.247, TrimScaleDac = 6, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 5, BufferInputVpp = 0.310, TrimScaleDac = 4, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 6, BufferInputVpp = 0.390, TrimScaleDac = 3, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 7, BufferInputVpp = 0.491, TrimScaleDac = 2, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 8, BufferInputVpp = 0.618, TrimScaleDac = 2, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 9, BufferInputVpp = 0.777, TrimScaleDac = 1, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
-                    new(){ PgaLadderAttenuator = 10, BufferInputVpp = 0.977, TrimScaleDac = 1, TrimOffsetDacScaleV = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 0, BufferInputVpp = 0.098, TrimScaleDac = 16, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 1, BufferInputVpp = 0.124, TrimScaleDac = 12, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 2, BufferInputVpp = 0.156, TrimScaleDac = 10, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 3, BufferInputVpp = 0.196, TrimScaleDac = 8, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 4, BufferInputVpp = 0.247, TrimScaleDac = 6, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 5, BufferInputVpp = 0.310, TrimScaleDac = 4, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 6, BufferInputVpp = 0.390, TrimScaleDac = 3, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 7, BufferInputVpp = 0.491, TrimScaleDac = 2, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 8, BufferInputVpp = 0.618, TrimScaleDac = 2, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 9, BufferInputVpp = 0.777, TrimScaleDac = 1, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
+                    new(){ PgaLadderAttenuator = 10, BufferInputVpp = 0.977, TrimScaleDac = 1, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
                 ],
-                PgaLoadScales = new Dictionary<uint, ThunderscopePgaLoadScale> { { 1000000000, new ThunderscopePgaLoadScale() { Single = 1.0, Dual = 1.05, Quad = 1.1 } } }
+                PgaLoadScales = []
                 //BufferGain = 0,
                 //PgaPreampLowGain = 10,
                 //PgaPreampHighGain = 30,

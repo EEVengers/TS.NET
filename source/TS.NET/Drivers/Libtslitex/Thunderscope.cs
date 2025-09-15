@@ -52,13 +52,18 @@ namespace TS.NET.Driver.Libtslitex
             for (int chan = 0; chan < 4; chan++)
             {
                 SetChannelCalibration(chan, initialHardwareConfiguration.Calibration[chan]);
-                SetChannelFrontend(chan, initialHardwareConfiguration.Frontend[chan]);
                 SetChannelEnable(chan, ((initialHardwareConfiguration.EnabledChannels >> chan) & 0x01) > 0);
             }
             SetRate(initialHardwareConfiguration.SampleRateHz);
             SetResolution(initialHardwareConfiguration.Resolution);
 
             GetStatus();
+
+            // There is a rate/channel-count vs. scale relationship so update frontends after GetStatus has updated cachedSampleRateHz
+            for (int chan = 0; chan < 4; chan++)
+            {
+                SetChannelFrontend(chan, initialHardwareConfiguration.Frontend[chan]);
+            }
         }
 
         public void Close()
@@ -243,18 +248,7 @@ namespace TS.NET.Driver.Libtslitex
             health.VccInt = litexState.vcc_int / 1000.0;
             health.VccAux = litexState.vcc_aux / 1000.0;
             health.VccBram = litexState.vcc_bram / 1000.0;
-
-            // Update active frontends if rate changed as gain will change.
-            // Only update a frontend if the manual override isn't active.
-            if(cachedSampleRateHz != health.AdcSampleRate)
-            {
-                cachedSampleRateHz = health.AdcSampleRate;
-                for (int i = 0; i < channelFrontend.Length; i++)
-                {
-                    if (channelEnabled[i] && !channelManualOverride[i])
-                        SetChannelFrontend(i, channelFrontend[i]);
-                }
-            }
+            cachedSampleRateHz = health.AdcSampleRate;
 
             return health;
         }
@@ -270,8 +264,8 @@ namespace TS.NET.Driver.Libtslitex
             uint resolutionValue = cachedSampleResolution switch { AdcResolution.EightBit => 256, AdcResolution.TwelveBit => 4096, _ => throw new NotImplementedException() };
             var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, resolutionValue);
 
-            // GetStatus is crucial for managing the rate vs. gain relationship.
-            GetStatus();
+            // There is a rate vs. scale relationship so update frontends
+            UpdateFrontends();
 
             if (retVal == -2) //Invalid Parameter
                 logger.LogTrace($"Thunderscope failed to set sample rate ({sampleRateHz}): INVALID_PARAMETER");
@@ -334,7 +328,10 @@ namespace TS.NET.Driver.Libtslitex
 
             double CalculateInputVpp(ThunderscopeChannelPathCalibration path)
             {
-                var gain = channelCalibration[channelIndex].PgaLoadScales[cachedSampleRateHz].Single;
+                var channelCount = channelEnabled.Count(chE => chE);
+                if (channelCount == 0)
+                    channelCount = 1;
+                var gain = channelCalibration[channelIndex].PgaLoadScales.First(s => s.SampleRate == cachedSampleRateHz && s.ChannelCount == channelCount).Scale;
                 return path.BufferInputVpp * (1.0/gain);
             }
 
@@ -386,7 +383,7 @@ namespace TS.NET.Driver.Libtslitex
 
             // Note: PGA input voltage should not go beyond +/-0.6V from 2.5V so that enforces a limit in some gain scenarios. 
             //   Datasheet says +/-0.6V. Testing shows up to +/-1.3V. Use datasheet specification.
-            var dacValueMaxDeviation = (int)((0.6 - (CalculateInputVpp(selectedPath) / 2.0)) / selectedPath.TrimOffsetDacScaleV);
+            var dacValueMaxDeviation = (int)((0.6 - (CalculateInputVpp(selectedPath) / 2.0)) / (selectedPath.BufferInputVpp * selectedPath.TrimOffsetDacScale));
 
             // Note: attenuator is the only source of gainFactor change. Probe scaling should be accounted for at the UI level.
             double gainFactor = 1.0;
@@ -395,7 +392,7 @@ namespace TS.NET.Driver.Libtslitex
 
             // Note: if desired offset is beyond acceptable range for PGA input voltage limits, clamp it.
             // -1 to make the SCPI API match most scope vendors, i.e. if input signal has 100mV offset, send CHAN1:OFFS 0.1 to cancel it out.
-            var dacOffset = -1 * (int)((channel.RequestedVoltOffset*gainFactor) / selectedPath.TrimOffsetDacScaleV);
+            var dacOffset = -1 * (int)((channel.RequestedVoltOffset*gainFactor) / (selectedPath.BufferInputVpp * selectedPath.TrimOffsetDacScale));
             if (dacOffset > dacValueMaxDeviation)
                 dacOffset = dacValueMaxDeviation;
             if (dacOffset < -dacValueMaxDeviation)
@@ -403,11 +400,13 @@ namespace TS.NET.Driver.Libtslitex
             var dacValue = selectedPath.TrimOffsetDacZero - dacOffset;
 
             // Note: last resort clamping of DAC value.
-            if(dacValue < 0) dacValue = 0;
-            if (dacValue > 4095) dacValue = 4095;
+            if(dacValue < 0) 
+                dacValue = 0;
+            if (dacValue > 4095) 
+                dacValue = 4095;
 
             // Note: calculate actual offset so UI can use it.
-            channel.ActualVoltOffset = ((dacValue - selectedPath.TrimOffsetDacZero) * selectedPath.TrimOffsetDacScaleV)/ gainFactor;
+            channel.ActualVoltOffset = ((dacValue - selectedPath.TrimOffsetDacZero) * (selectedPath.BufferInputVpp * selectedPath.TrimOffsetDacScale))/ gainFactor;
 
             var manualControl = new ThunderscopeChannelFrontendManualControl()
             {
@@ -503,8 +502,8 @@ namespace TS.NET.Driver.Libtslitex
 
             channelEnabled[channelIndex] = enabled;
 
-            // Hardware may need to coerce sample rate so get potential new value
-            GetStatus();
+            // There is a channel-count vs. scale relationship so update frontends
+            UpdateFrontends();
         }
 
         public void SetChannelManualControl(int channelIndex, ThunderscopeChannelFrontendManualControl channel)
@@ -529,6 +528,16 @@ namespace TS.NET.Driver.Libtslitex
                 throw new Exception($"Thunderscope failed to set channel {channelIndex} config ({retVal})");
 
             channelManualOverride[channelIndex] = true;
+        }
+
+        private void UpdateFrontends()
+        {
+            GetStatus();    // Update cachedSampleRateHz
+            for (int i = 0; i < channelFrontend.Length; i++)
+            {
+                if (channelEnabled[i] && !channelManualOverride[i])
+                    SetChannelFrontend(i, channelFrontend[i]);
+            }
         }
     }
 }
