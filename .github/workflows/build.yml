@@ -15,15 +15,15 @@ jobs:
           dotnet-version: ${{ matrix.dotnet-version }}
       - name: Install dependencies
         run: dotnet restore
-        working-directory: ./source
+        working-directory: source
       - name: Build
         run: dotnet build --configuration Release --no-restore
-        working-directory: ./source
+        working-directory: source
       - name: Test
         run: dotnet test --no-restore --verbosity normal
-        working-directory: ./source
+        working-directory: source
       - name:  Run build scripts
-        working-directory: ./build-scripts
+        working-directory: build-scripts
         run:   |
                if [ "$RUNNER_OS" == "Linux" ]; then
                     ./"TS.NET.Engine (linux-x64)"
@@ -34,3 +34,9 @@ jobs:
                     exit 1
                fi
         shell: bash
+      - name: Upload TS.NET.Engine win-x64 build
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: TS.NET.Engine-win-x64
+          path: builds/TS.NET.Engine/win-x64/*

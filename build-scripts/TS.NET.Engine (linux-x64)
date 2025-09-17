@@ -2,33 +2,40 @@ cd "$(dirname "$0")"
 
 version=$(cat ../source/TS.NET.Engine/TS.NET.Engine.csproj | grep -oPm1 "(?<=<Version>)[^<]+")
 
-if test -f ../builds/linux-x64/TS.NET.Engine/$version/thunderscope.yaml; then
-  cp ../builds/linux-x64/TS.NET.Engine/$version/thunderscope.yaml ../thunderscope.yaml
+if test -f ../builds/TS.NET.Engine/linux-x64/thunderscope.yaml; then
+  cp ../builds/TS.NET.Engine/linux-x64/thunderscope.yaml ../thunderscope.yaml
 fi
 
-if test -f ../builds/linux-x64/TS.NET.Engine/$version/appsettings.json; then
-  cp ../builds/linux-x64/TS.NET.Engine/$version/appsettings.json ../appsettings.json
+if test -f ../builds/TS.NET.Engine/linux-x64/thunderscope-calibration.json; then
+  cp ../builds/TS.NET.Engine/linux-x64/thunderscope-calibration.json ../thunderscope-calibration.json
 fi
 
-if test -f ../builds/linux-x64/TS.NET.Engine/$version/libtslitex.so; then
-  cp ../builds/linux-x64/TS.NET.Engine/$version/libtslitex.so ../libtslitex.so
+if test -f ../builds/TS.NET.Engine/linux-x64/thunderscope-appsettings.json; then
+  cp ../builds/TS.NET.Engine/linux-x64/thunderscope-appsettings.json ../thunderscope-appsettings.json
 fi
 
-dotnet publish ../source/TS.NET.Engine/TS.NET.Engine.csproj -r linux-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/linux-x64/TS.NET.Engine/$version
+if test -f ../builds/TS.NET.Engine/linux-x64/libtslitex.so; then
+  cp ../builds/TS.NET.Engine/linux-x64/libtslitex.so ../libtslitex.so
+fi
+
+dotnet publish ../source/TS.NET.Engine/TS.NET.Engine.csproj -r linux-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Engine/linux-x64
 
 if test -f ../thunderscope.yaml; then
-  cp ../thunderscope.yaml ../builds/linux-x64/TS.NET.Engine/$version/thunderscope.yaml
+  cp ../thunderscope.yaml ../builds/TS.NET.Engine/linux-x64/thunderscope.yaml
   rm ../thunderscope.yaml
 fi
 
-if test -f ../appsettings.json; then
-  cp ../appsettings.json ../builds/linux-x64/TS.NET.Engine/$version/appsettings.json
-  rm ../appsettings.json
+if test -f ../thunderscope-calibration.json; then
+  cp ../thunderscope-calibration.json ../builds/TS.NET.Engine/linux-x64/thunderscope-calibration.json
+  rm ../thunderscope-calibration.json
+fi
+
+if test -f ../thunderscope-appsettings.json; then
+  cp ../thunderscope-appsettings.json ../builds/TS.NET.Engine/linux-x64/thunderscope-appsettings.json
+  rm ../thunderscope-appsettings.json
 fi
 
 if test -f ../libtslitex.so; then
-  cp ../libtslitex.so ../builds/linux-x64/TS.NET.Engine/$version/libtslitex.so
+  cp ../libtslitex.so ../builds/TS.NET.Engine/linux-x64/libtslitex.so
   rm ../libtslitex.so
 fi
-
-

@@ -3,9 +3,10 @@
 New-Variable -Name "projectFolder" -Value (Join-Path (Resolve-Path ..) 'source/TS.NET.Engine')
 $xml = [Xml] (Get-Content $projectFolder\TS.NET.Engine.csproj)
 $version = [Version] $xml.Project.PropertyGroup.Version
-New-Variable -Name "publishFolder" -Value (Join-Path (Resolve-Path ..) -ChildPath 'builds/win-x64/TS.NET.Engine' | Join-Path -ChildPath $version)
+New-Variable -Name "publishFolder" -Value (Join-Path (Resolve-Path ..) -ChildPath "builds/TS.NET.Engine/win-x64")
 $tsYamlFileExists = Test-Path -Path $publishFolder\thunderscope.yaml
-$appSettingsFileExists = Test-Path -Path $publishFolder\appsettings.json
+$tsCalibrationFileExists = Test-Path -Path $publishFolder\thunderscope-calibration.json
+$appSettingsFileExists = Test-Path -Path $publishFolder\thunderscope-appsettings.json
 $tslitexDllExists = Test-Path -Path $publishFolder\tslitex.dll
 
 Write-Host "Project folder:" $projectFolder -ForegroundColor green
@@ -18,10 +19,15 @@ if($tsYamlFileExists)
     Write-Host "Found existing thunderscope.yaml, preserving it." -ForegroundColor green
     Copy-Item -Path $publishFolder\thunderscope.yaml -Destination $publishFolder\..\thunderscope.yaml
 }
+if($tsCalibrationFileExists)
+{
+    Write-Host "Found existing thunderscope-calibration.json, preserving it." -ForegroundColor green
+    Copy-Item -Path $publishFolder\thunderscope-calibration.json -Destination $publishFolder\..\thunderscope-calibration.json
+}
 if($appSettingsFileExists)
 {
-    Write-Host "Found existing appsettings.json, preserving it." -ForegroundColor green
-    Copy-Item -Path $publishFolder\appsettings.json -Destination $publishFolder\..\appsettings.json
+    Write-Host "Found existing thunderscope-appsettings.json, preserving it." -ForegroundColor green
+    Copy-Item -Path $publishFolder\thunderscope-appsettings.json -Destination $publishFolder\..\thunderscope-appsettings.json
 }
 if($tslitexDllExists)
 {
@@ -48,10 +54,15 @@ if($tsYamlFileExists)
     Copy-Item -Path $publishFolder\..\thunderscope.yaml -Destination $publishFolder\thunderscope.yaml
     Remove-Item -Path $publishFolder\..\thunderscope.yaml
 }
+if($tsCalibrationFileExists)
+{
+    Copy-Item -Path $publishFolder\..\thunderscope-calibration.json -Destination $publishFolder\thunderscope-calibration.json
+    Remove-Item -Path $publishFolder\..\thunderscope-calibration.json
+}
 if($appSettingsFileExists)
 {
-    Copy-Item -Path $publishFolder\..\appsettings.json -Destination $publishFolder\appsettings.json
-    Remove-Item -Path $publishFolder\..\appsettings.json
+    Copy-Item -Path $publishFolder\..\thunderscope-appsettings.json -Destination $publishFolder\thunderscope-appsettings.json
+    Remove-Item -Path $publishFolder\..\thunderscope-appsettings.json
 }
 if($tslitexDllExists)
 {
