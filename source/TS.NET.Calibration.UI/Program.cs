@@ -29,6 +29,7 @@ class Program
 #endif
 
         var window = new PhotinoWindow()
+            .SetLogVerbosity(0)
             .SetTitle("ThunderScope Calibration")
             .SetIconFile(ExtractEmbeddedResourceToTempFile("icon.ico", "TS.NET.Calibration.UI"))
             .SetUseOsDefaultSize(false)
