@@ -23,11 +23,11 @@ jobs:
       - name: Test
         run: dotnet test --no-restore --verbosity normal
         working-directory: source
-      - name:  Run TS.NET.Engine build script
+      - name:  Publish TS.NET.Engine
         working-directory: build-scripts
         run:   |
                if [ "$RUNNER_OS" == "Linux" ]; then
-                    ./"TS.NET.Engine (linux-x64)"
+                    dotnet publish ../source/TS.NET.Engine/TS.NET.Engine.csproj -r linux-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Engine/linux-x64
                elif [ "$RUNNER_OS" == "Windows" ]; then
                     powershell -ExecutionPolicy Bypass -File "TS.NET.Engine (win-x64).ps1"
                else
@@ -47,7 +47,7 @@ jobs:
         with:
           name: TS.NET.Engine-linux-x64
           path: builds/TS.NET.Engine/linux-x64/*
-      - name:  Run TS.NET.Calibration.UI build script
+      - name:  Publish TS.NET.Calibration.UI
         working-directory: build-scripts
         run:   |
                if [ "$RUNNER_OS" == "Linux" ]; then
