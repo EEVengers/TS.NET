@@ -351,3 +351,4 @@ MigrationBackup/
 
 builds/
 .DS_Store
+source/TS.NET.Calibration.UI/tailwindcss-windows-x64.exe

@@ -1,0 +1,19 @@
+@charset "UTF-8";
+
+* {
+    font-family: "Nunito";
+}
+
+/* nunito-regular - latin */
+@font-face {
+    font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+    font-family: 'Nunito';
+    font-style: normal;
+    font-weight: 400;
+    src: url('./fonts/nunito-v31-latin-regular.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+
+.trim-box {
+    text-box-edge: cap alphabetic;
+    text-box-trim: trim-both;
+}

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Gradient square">
+  <defs>
+    <linearGradient
+      xmlns="http://www.w3.org/2000/svg"
+      data-v-fde0c5aa=""
+      id="3dc3c2f0-2841-43e9-8452-d54c7afa2a9d"
+      x1="0%"
+      y1="0%"
+      x2="100%"
+      y2="0%"
+      gradientTransform="rotate(25)">
+      <stop data-v-fde0c5aa="" offset="0%" stop-color="#3616AC" stop-opacity="1"/>
+      <stop data-v-fde0c5aa="" offset="100%" stop-color="#E09BED" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="256" height="256" fill="url(#3dc3c2f0-2841-43e9-8452-d54c7afa2a9d)" />
+</svg>
