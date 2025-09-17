@@ -42,20 +42,11 @@ Run build script
 ```
 ./build-scripts/"TS.NET.Engine (linux-x64)"
 ```
+Build output can be found at `builds/TS.NET.Engine/linux-x64`
 
-Build output can be found at `builds/linux-x64/TS.NET.Engine/0.1.0/` `0.1.0` indicates the version of TS.NET.Engine and might change depending on the version you are building.
-
-Copy `thunderscope-appsettings.json` and `thunderscope-calibration.json` from the `source` folder to
-`builds/linux-64/TS.NET.Engine/0.1.0/` using the following commands
-
-```
-cp source/TS.NET.Engine/thunderscope-appsettings.json builds/linux-x64/TS.NET.Engine/0.1.0/
-cp source/TS.NET.Engine/thunderscope-calibration.json builds/linux-x64/TS.NET.Engine/0.1.0/
-```
 to run TS.NET.Engine use below commands, there should be no errors if everything went alright.
-
 ```
-cd builds/linux-x64/TS.NET.Engine/0.1.0/
+cd builds/TS.NET.Engine/linux-x64
 ./TS.NET.Engine
 ```
 ## Profiling on Windows
