@@ -52,6 +52,8 @@ jobs:
         run:   |
                if [ "$RUNNER_OS" == "Linux" ]; then
                     dotnet publish ../source/TS.NET.Calibration.UI/TS.NET.Calibration.UI.csproj -r linux-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Calibration.UI/linux-x64
+                    dotnet publish ../source/TS.NET.Calibration.UI/TS.NET.Calibration.UI.csproj -r osx-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Calibration.UI/macos-x64
+                    dotnet publish ../source/TS.NET.Calibration.UI/TS.NET.Calibration.UI.csproj -r osx-arm64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Calibration.UI/macos-arm64
                elif [ "$RUNNER_OS" == "Windows" ]; then
                     powershell -ExecutionPolicy Bypass -File "TS.NET.Calibration.UI (win-x64).ps1"
                else
@@ -71,3 +73,15 @@ jobs:
         with:
           name: TS.NET.Calibration.UI-linux-x64
           path: builds/TS.NET.Calibration.UI/linux-x64/*          
+      - name: Upload TS.NET.Calibration.UI macos-x64 build
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: TS.NET.Calibration.UI-macos-x64
+          path: builds/TS.NET.Calibration.UI/macos-x64/*   
+      - name: Upload TS.NET.Calibration.UI macos-arm64 build
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: TS.NET.Calibration.UI-macos-arm64
+          path: builds/TS.NET.Calibration.UI/macos-arm64/* 
