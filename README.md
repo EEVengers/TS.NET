@@ -21,7 +21,7 @@ powershell -ExecutionPolicy Bypass -File "TS.NET.Engine (win-x64).ps1"
 
 ## Build on Linux
 
-TS.NET requires .NET SDK. to install follow below instruction based on your distro
+TS.NET requires .NET SDK. to build, installation varies by distro.
 
 ### Ubuntu
 
