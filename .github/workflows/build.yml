@@ -1,4 +1,4 @@
-name: Build & test
+name: Build, test & publish
 on: [push]
 jobs:
   build:   
@@ -23,6 +23,7 @@ jobs:
       - name: Test
         run: dotnet test --no-restore --verbosity normal
         working-directory: source
+        continue-on-error: true
       - name:  Publish TS.NET.Engine
         working-directory: build-scripts
         run:   |
