@@ -19,7 +19,6 @@
     --color-zinc-900: oklch(21% 0.006 285.885);
     --color-neutral-50: oklch(98.5% 0 0);
     --color-neutral-100: oklch(97% 0 0);
-    --color-neutral-300: oklch(87% 0 0);
     --color-neutral-400: oklch(70.8% 0 0);
     --color-neutral-800: oklch(26.9% 0 0);
     --spacing: 0.25rem;
@@ -196,6 +195,9 @@
   .fixed {
     position: fixed;
   }
+  .relative {
+    position: relative;
+  }
   .static {
     position: static;
   }
@@ -216,9 +218,6 @@
   }
   .float-right {
     float: right;
-  }
-  .mr-4 {
-    margin-right: calc(var(--spacing) * 4);
   }
   .ml-2 {
     margin-left: calc(var(--spacing) * 2);
@@ -241,8 +240,8 @@
   .h-12 {
     height: calc(var(--spacing) * 12);
   }
-  .h-26 {
-    height: calc(var(--spacing) * 26);
+  .h-32 {
+    height: calc(var(--spacing) * 32);
   }
   .h-50 {
     height: calc(var(--spacing) * 50);
@@ -262,17 +261,17 @@
   .w-10 {
     width: calc(var(--spacing) * 10);
   }
+  .w-15 {
+    width: calc(var(--spacing) * 15);
+  }
   .w-20 {
     width: calc(var(--spacing) * 20);
-  }
-  .w-22 {
-    width: calc(var(--spacing) * 22);
   }
   .w-24 {
     width: calc(var(--spacing) * 24);
   }
-  .w-30 {
-    width: calc(var(--spacing) * 30);
+  .w-25 {
+    width: calc(var(--spacing) * 25);
   }
   .w-100 {
     width: calc(var(--spacing) * 100);
@@ -323,9 +322,6 @@
   }
   .gap-3 {
     gap: calc(var(--spacing) * 3);
-  }
-  .gap-4 {
-    gap: calc(var(--spacing) * 4);
   }
   .overflow-x-auto {
     overflow-x: auto;
@@ -378,6 +374,9 @@
   .pr-2 {
     padding-right: calc(var(--spacing) * 2);
   }
+  .pl-1 {
+    padding-left: calc(var(--spacing) * 1);
+  }
   .pl-2 {
     padding-left: calc(var(--spacing) * 2);
   }
@@ -386,9 +385,6 @@
   }
   .text-left {
     text-align: left;
-  }
-  .font-mono {
-    font-family: var(--font-mono);
   }
   .text-base {
     font-size: var(--text-base);
@@ -417,9 +413,6 @@
   }
   .text-neutral-100 {
     color: var(--color-neutral-100);
-  }
-  .text-neutral-300 {
-    color: var(--color-neutral-300);
   }
   .text-neutral-400 {
     color: var(--color-neutral-400);

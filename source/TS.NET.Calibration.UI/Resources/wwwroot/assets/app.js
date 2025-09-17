@@ -61,6 +61,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     row.innerHTML = `
                     <td class="p-1">${step.index}</td>
                     <td class="p-1">${step.name}</td>
+                    <td class="p-1">${step.skip ? "Yes" : "-"}</td>
+                    <td class="p-1">${step.ignoreError ? "Yes" : "-"}</td>
                     <td class="p-1">-</td>
                     <td class="p-1">-</td>`;
                 }
@@ -68,9 +70,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     row.innerHTML = `
                     <td class="p-1">${step.index}</td>
                     <td class="p-1">${step.name}</td>
+                    <td class="p-1">${step.skip ? "Yes" : "-"}</td>
+                    <td class="p-1">${step.ignoreError ? "Yes" : "-"}</td>
                     <td class="p-1">${step.result.duration}</td>
                     <td class="p-1">${step.result.status}</td>`;
-                    const statusCell = row.children[3];
+                    const statusCell = row.children[5];
                     statusColour(statusCell, step.result.status);
                 }
                 sequenceTableBody.appendChild(row);
@@ -114,8 +118,8 @@ document.addEventListener("DOMContentLoaded", () => {
         );
         if (row) {
             row.scrollIntoView({ behavior: "smooth", block: "nearest" });
-            const durationCell = row.children[2];
-            const statusCell = row.children[3];
+            const durationCell = row.children[4];
+            const statusCell = row.children[5];
 
             durationCell.textContent = step.result.duration;
             statusCell.textContent = step.result.status;

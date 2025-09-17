@@ -56,7 +56,7 @@ public static class Utility
         if (foundAverage > 15 || foundAverage < -15)
         {
             Instruments.Instance.SetSdgDcOffset(channelIndex, 0);
-            throw new CalibrationException("Average check failed");
+            throw new CalibrationException($"Average check failed ({foundAverage})");
         }
 
         Variables.Instance.SigGenZero = zeroValue;

@@ -140,13 +140,15 @@
                 <div class="flex-none border-b border-zinc-600"></div>
                 <!-- Content -->
                 <div class="flex-auto flex flex-col p-2 overflow-y-auto">
-                    <div class="flex-auto">
+                    <div class="flex-auto overflow-y-auto">
                         <table class="w-full text-left text-neutral-50 text-sm font-normal">
-                            <thead class="bg-zinc-800 border-b border-zinc-600">
-                                <tr>
+                            <thead class="">
+                                <tr class="bg-zinc-800">
                                     <th class="p-1 w-10 font-normal">#</th>
                                     <th class="p-1 font-normal">Step name</th>
-                                    <th class="p-1 w-30 font-normal">Duration</th>
+                                    <th class="p-1 w-15 font-normal">Skip?</th>
+                                    <th class="p-1 w-25 font-normal">Ignore error?</th>
+                                    <th class="p-1 w-20 font-normal">Duration</th>
                                     <th class="p-1 w-20 font-normal">Status</th>
                                 </tr>
                             </thead>
@@ -166,9 +168,11 @@
                 </div>
                 <div class="flex-none border-b border-zinc-600"></div>
                 <!-- Content -->
-                <div id="variables-content"
-                    class="flex-auto flex flex-row gap-4 p-3 overflow-y-auto text-sm text-neutral-50 overflow-x-auto">
+                <div class="flex-auto flex overflow-y-auto p-2">
+                    <div id="variables-content"
+                         class="flex-auto flex flex-row overflow-y-auto text-sm text-neutral-50 overflow-x-auto pl-1">
 
+                    </div>
                 </div>
             </div>
         </main>
@@ -185,9 +189,10 @@
                 </div>
                 <div class="flex-none border-b border-zinc-600"></div>
                 <!-- Content -->
-                <div id="log-content"
-                    class="flex-auto flex flex-col gap-1 p-2 h-26 overflow-y-auto font-mono text-sm text-neutral-400">
+                <div class="flex-auto flex p-2 h-32 overflow-y-auto text-sm text-neutral-400">
+                    <div id="log-content" class="flex-auto flex flex-col gap-1 overflow-y-auto text-sm text-neutral-400">
 
+                    </div>
                 </div>
             </div>
         </footer>

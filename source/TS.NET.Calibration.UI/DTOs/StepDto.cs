@@ -8,7 +8,7 @@ public class StepDto
     public string? Name { get; set; }
     public StepResultDto? Result { get; set; }
     public bool Skip { get; set; }
-    public bool AllowSkip { get; set; }
+    public bool IgnoreError { get; set; }
 
     internal static StepDto FromStep(Step step)
     {
@@ -27,7 +27,7 @@ public class StepDto
             Name = step.Name,
             Result = result,
             Skip = step.Skip,
-            AllowSkip = step.AllowSkip
+            IgnoreError = step.IgnoreError
         };
     }
 

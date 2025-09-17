@@ -8,6 +8,7 @@ public class Step
     public string Name { get; }
     public StepResult? Result { get; internal set; }
     public bool Skip { get; set; }
+    public bool IgnoreError { get; set; }
 
     public Action<CancellationToken>? PreAction { get; set; }
     public Func<CancellationToken, Status>? Action { get; set; }

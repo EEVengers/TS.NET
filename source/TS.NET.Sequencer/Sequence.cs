@@ -50,7 +50,7 @@ public class Sequence
                 .ContinueWith(t => t.Result);
             Steps[i].Result = stepResult;
             PostStep?.Invoke(Steps[i]);
-            if (stepResult.Status == Sequencer.Status.Failed || stepResult.Status == Sequencer.Status.Error || stepResult.Status == Sequencer.Status.Cancelled)
+            if (!Steps[i].IgnoreError && (stepResult.Status == Sequencer.Status.Failed || stepResult.Status == Sequencer.Status.Error || stepResult.Status == Sequencer.Status.Cancelled))
                 break;
         }
         // Always run Cleanup step if it exists and it didn't run
