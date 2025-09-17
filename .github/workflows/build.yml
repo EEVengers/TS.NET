@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:
         dotnet-version: [ '9.0.x' ]
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
@@ -30,6 +30,9 @@ jobs:
                     dotnet publish ../source/TS.NET.Engine/TS.NET.Engine.csproj -r linux-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Engine/linux-x64
                elif [ "$RUNNER_OS" == "Windows" ]; then
                     powershell -ExecutionPolicy Bypass -File "TS.NET.Engine (win-x64).ps1"
+               elif [ "$RUNNER_OS" == "macOS" ]; then
+                    dotnet publish ../source/TS.NET.Engine/TS.NET.Engine.csproj -r osx-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Engine/macos-x64
+                    dotnet publish ../source/TS.NET.Engine/TS.NET.Engine.csproj -r osx-arm64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Engine/macos-arm64
                else
                     echo "$RUNNER_OS not supported"
                     exit 1
@@ -47,15 +50,28 @@ jobs:
         with:
           name: TS.NET.Engine-linux-x64
           path: builds/TS.NET.Engine/linux-x64/*
+      - name: Upload TS.NET.Engine macos-x64 build
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: TS.NET.Engine-macos-x64
+          path: builds/TS.NET.Engine/macos-x64/*
+      - name: Upload TS.NET.Engine macos-arm64 build
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: TS.NET.Engine-macos-arm64
+          path: builds/TS.NET.Engine/macos-arm64/*
       - name:  Publish TS.NET.Calibration.UI
         working-directory: build-scripts
         run:   |
                if [ "$RUNNER_OS" == "Linux" ]; then
                     dotnet publish ../source/TS.NET.Calibration.UI/TS.NET.Calibration.UI.csproj -r linux-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Calibration.UI/linux-x64
-                    dotnet publish ../source/TS.NET.Calibration.UI/TS.NET.Calibration.UI.csproj -r osx-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Calibration.UI/macos-x64
-                    dotnet publish ../source/TS.NET.Calibration.UI/TS.NET.Calibration.UI.csproj -r osx-arm64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Calibration.UI/macos-arm64
                elif [ "$RUNNER_OS" == "Windows" ]; then
                     powershell -ExecutionPolicy Bypass -File "TS.NET.Calibration.UI (win-x64).ps1"
+               elif [ "$RUNNER_OS" == "macOS" ]; then
+                    dotnet publish ../source/TS.NET.Calibration.UI/TS.NET.Calibration.UI.csproj -r osx-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Calibration.UI/macos-x64
+                    dotnet publish ../source/TS.NET.Calibration.UI/TS.NET.Calibration.UI.csproj -r osx-arm64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Calibration.UI/macos-arm64
                else
                     echo "$RUNNER_OS not supported"
                     exit 1
@@ -74,14 +90,14 @@ jobs:
           name: TS.NET.Calibration.UI-linux-x64
           path: builds/TS.NET.Calibration.UI/linux-x64/*          
       - name: Upload TS.NET.Calibration.UI macos-x64 build
-        if: runner.os == 'Linux'
+        if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
           name: TS.NET.Calibration.UI-macos-x64
           path: builds/TS.NET.Calibration.UI/macos-x64/*   
       - name: Upload TS.NET.Calibration.UI macos-arm64 build
-        if: runner.os == 'Linux'
+        if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
           name: TS.NET.Calibration.UI-macos-arm64
-          path: builds/TS.NET.Calibration.UI/macos-arm64/* 
+          path: builds/TS.NET.Calibration.UI/macos-arm64/*
