@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging;
 using System.Net.NetworkInformation;
 
 namespace TS.NET.Calibration.UI;
@@ -30,6 +31,7 @@ public class PhotinoServer
         // only creates a PhysicalFileProvider if the folder exists
 
         var builder = WebApplication.CreateBuilder(args);
+        builder.Logging.ClearProviders();
 
         //Try to read files from the embedded resources - from a slightly different path, prefixed with Resources/
         var manifestEmbeddedFileProvider =
