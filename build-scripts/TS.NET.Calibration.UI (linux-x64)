@@ -1,0 +1,3 @@
+cd "$(dirname "$0")"
+
+dotnet publish ../source/TS.NET.Calibration.UI/TS.NET.Calibration.UI.csproj -r linux-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Calibration.UI/linux-x64

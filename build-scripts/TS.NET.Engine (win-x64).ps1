@@ -1,8 +1,8 @@
 # To run this script from build-scripts directory: powershell -ExecutionPolicy Bypass -File "TS.NET.Engine (win-x64).ps1"
 
 New-Variable -Name "projectFolder" -Value (Join-Path (Resolve-Path ..) 'source/TS.NET.Engine')
-$xml = [Xml] (Get-Content $projectFolder\TS.NET.Engine.csproj)
-$version = [Version] $xml.Project.PropertyGroup.Version
+# $xml = [Xml] (Get-Content $projectFolder\TS.NET.Engine.csproj)
+# $version = [Version] $xml.Project.PropertyGroup.Version
 New-Variable -Name "publishFolder" -Value (Join-Path (Resolve-Path ..) -ChildPath "builds/TS.NET.Engine/win-x64")
 $tsYamlFileExists = Test-Path -Path $publishFolder\thunderscope.yaml
 $tsCalibrationFileExists = Test-Path -Path $publishFolder\thunderscope-calibration.json

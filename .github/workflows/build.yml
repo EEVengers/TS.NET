@@ -22,7 +22,7 @@ jobs:
       - name: Test
         run: dotnet test --no-restore --verbosity normal
         working-directory: source
-      - name:  Run build scripts
+      - name:  Run TS.NET.Engine build script
         working-directory: build-scripts
         run:   |
                if [ "$RUNNER_OS" == "Linux" ]; then
@@ -40,3 +40,33 @@ jobs:
         with:
           name: TS.NET.Engine-win-x64
           path: builds/TS.NET.Engine/win-x64/*
+      - name: Upload TS.NET.Engine linux-x64 build
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: TS.NET.Engine-linux-x64
+          path: builds/TS.NET.Engine/linux-x64/*
+      - name:  Run TS.NET.Calibration.UI build script
+        working-directory: build-scripts
+        run:   |
+               if [ "$RUNNER_OS" == "Linux" ]; then
+                    ./"TS.NET.Calibration.UI (linux-x64)"
+               elif [ "$RUNNER_OS" == "Windows" ]; then
+                    powershell -ExecutionPolicy Bypass -File "TS.NET.Calibration.UI (win-x64).ps1"
+               else
+                    echo "$RUNNER_OS not supported"
+                    exit 1
+               fi
+        shell: bash
+      - name: Upload TS.NET.Calibration.UI win-x64 build
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: TS.NET.Calibration.UI-win-x64
+          path: builds/TS.NET.Calibration.UI/win-x64/*
+      - name: Upload TS.NET.Calibration.UI linux-x64 build
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: TS.NET.Calibration.UI-linux-x64
+          path: builds/TS.NET.Calibration.UI/linux-x64/*          
