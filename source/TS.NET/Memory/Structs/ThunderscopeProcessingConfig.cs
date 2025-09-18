@@ -25,9 +25,9 @@ namespace TS.NET
 
         public BoxcarAveraging BoxcarAveraging; // U32
 
-        public int ChannelLengthBytes()
-        {
-            return ChannelDataLength * ChannelDataType.ByteWidth();
-        }
+        //public int ChannelLengthBytes()
+        //{
+        //    return ChannelDataLength * ChannelDataType.ByteWidth();
+        //}
     }
 }

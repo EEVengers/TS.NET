@@ -36,8 +36,8 @@ namespace TS.NET
 
         public Span<T> AsSpan<T>(long start, int length) where T : unmanaged
         {
-            var startByte = start / sizeof(T);
-            var lengthByte = length / sizeof(T);
+            var startByte = start * sizeof(T);
+            var lengthByte = length * sizeof(T);
 
             if ((startByte + lengthByte) > memoryLengthBytes) 
                 throw new ArgumentOutOfRangeException();
