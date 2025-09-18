@@ -10,7 +10,7 @@ public class MovingAverageFilterI8
     public MovingAverageFilterI8(int points)
     {
         if (points < 2)
-            throw new ArgumentOutOfRangeException(nameof(points), "Points must be greater than 2.");
+            throw new ArgumentOutOfRangeException(nameof(points), "Points must be 2 or higher.");
         this.points = points;
         buffer = new int[points];
     }
