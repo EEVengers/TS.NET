@@ -161,14 +161,22 @@ public class Instruments
 
     public double GetThunderscopeAverage(int channelIndex)
     {
+        GetThunderscopeStats(channelIndex, out var average, out _, out _);
+        return average;
+    }
+
+    public void GetThunderscopeStats(int channelIndex, out double average, out double min, out double max)
+    {
         thunderScope!.WriteLine("FORCE");
         var tsDataBuffer = ArrayPool<byte>.Shared.Rent(2_000_000);
         thunderScopeData!.RequestWaveform();
         var waveformHeader = thunderScopeData!.ReadWaveformHeader(tsDataBuffer);
 
         bool channelFound = false;
-        double average = 0;
-        for(int i = 0; i < waveformHeader.NumChannels; i++)
+        average = 0;
+        min = int.MaxValue;
+        max = int.MinValue;
+        for (int i = 0; i < waveformHeader.NumChannels; i++)
         {
             var channelHeader = thunderScopeData.ReadChannelHeader(tsDataBuffer);
             var channelData = thunderScopeData.ReadChannelData<sbyte>(tsDataBuffer, channelHeader);
@@ -176,8 +184,6 @@ public class Instruments
                 continue;
             channelFound = true;
             int sum = 0;
-            int min = int.MaxValue;
-            int max = int.MinValue;
             foreach (var point in channelData)
             {
                 sum += point;
@@ -190,67 +196,92 @@ public class Instruments
 
         if (!channelFound)
             throw new CalibrationException("Channel was not in waveform data");
-
-        return average;
     }
 
-    public void EnableSdgDc(int channelIndex)
+    public void SetSdgChannel(int channelIndex)
     {
         switch (channelIndex)
         {
             case -1:
-                sigGen1.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-                sigGen1.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
-                sigGen2.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-                sigGen2.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
+                sigGen1?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
+                sigGen1?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
+                sigGen2?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
+                sigGen2?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
                 break;
             case 0:
-                sigGen1.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
-                sigGen2.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-                sigGen2.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
-
-                sigGen1.WriteLine($"C1:OUTP ON"); Thread.Sleep(200);
+                sigGen1?.WriteLine($"C1:OUTP ON"); Thread.Sleep(200);
+                sigGen1?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
+                sigGen2?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
+                sigGen2?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
                 break;
             case 1:
-                sigGen1.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-                sigGen2.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-                sigGen2.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
-
-                sigGen1.WriteLine($"C2:OUTP ON"); Thread.Sleep(200);
+                sigGen1?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
+                sigGen1?.WriteLine($"C2:OUTP ON"); Thread.Sleep(200);
+                sigGen2?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
+                sigGen2?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
                 break;
             case 2:
-                sigGen1.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-                sigGen1.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
-                sigGen2.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
-
-                sigGen2.WriteLine($"C1:OUTP ON"); Thread.Sleep(200);
+                sigGen1?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
+                sigGen1?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
+                sigGen2?.WriteLine($"C1:OUTP ON"); Thread.Sleep(200);
+                sigGen2?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
                 break;
             case 3:
-                sigGen1.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-                sigGen1.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
-                sigGen2.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-
-                sigGen2.WriteLine($"C2:OUTP ON"); Thread.Sleep(200);
+                sigGen1?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
+                sigGen1?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
+                sigGen2?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
+                sigGen2?.WriteLine($"C2:OUTP ON"); Thread.Sleep(200);
                 break;
         }
     }
 
     public void SetSdgDcOffset(int channelIndex, double voltage)
     {
+        GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
+        sigGen.WriteLine($"{sdgChannel}:BSWV OFST, {voltage:F4}"); Thread.Sleep(50);
+    }
+
+    public void SetSdgSine(int channelIndex, double vpp, uint freqHz)
+    {
+        GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
+        sigGen.WriteLine($"{sdgChannel}:BSWV WVTP, SINE"); Thread.Sleep(50);
+        sigGen.WriteLine($"{sdgChannel}:BSWV FRQ, {freqHz}"); Thread.Sleep(50);
+        sigGen.WriteLine($"{sdgChannel}:BSWV AMP, {vpp}"); Thread.Sleep(50);
+        sigGen.WriteLine($"{sdgChannel}:BSWV OFST, 0"); Thread.Sleep(50);
+        SetSdgChannel(channelIndex);
+    }
+
+    public void SetSdgFrequency(int channelIndex, uint frequencyHz)
+    {
+        GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
+        sigGen.WriteLine($"{sdgChannel}:BSWV FRQ, {frequencyHz}"); Thread.Sleep(50);
+    }
+
+    private void GetSdgReference(int channelIndex, out TcpScpiConnection sigGen, out string sdgChannel)
+    {
+        if (sigGen1 == null || sigGen2 == null)
+            throw new NullReferenceException();
+
         switch (channelIndex)
         {
             case 0:
-                sigGen1.WriteLine($"C1:BSWV OFST, {voltage:F4}"); Thread.Sleep(50);
-                break;
+                sigGen = sigGen1;
+                sdgChannel = "C1";
+                return;
             case 1:
-                sigGen1.WriteLine($"C2:BSWV OFST, {voltage:F4}"); Thread.Sleep(50);
-                break;
+                sigGen = sigGen1;
+                sdgChannel = "C2";
+                return;
             case 2:
-                sigGen2.WriteLine($"C1:BSWV OFST, {voltage:F4}"); Thread.Sleep(50);
-                break;
+                sigGen = sigGen2;
+                sdgChannel = "C1";
+                return;
             case 3:
-                sigGen2.WriteLine($"C2:BSWV OFST, {voltage:F4}"); Thread.Sleep(50);
-                break;
+                sigGen = sigGen2;
+                sdgChannel = "C2";
+                return;
+            default:
+                throw new NotImplementedException();
         }
     }
 }

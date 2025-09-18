@@ -67,7 +67,7 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - LG L10", 0, 21) { IgnoreError = true },
 
             new Step("Connect SDG2042X"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.EnableSdgDc(0);
+                Instruments.Instance.SetSdgChannel(0);
                 cancellationToken.WaitHandle.WaitOne(2000);
                 return Sequencer.Status.Done;
             }},
@@ -104,7 +104,7 @@ public class BenchCalibrationSequence : Sequence
             new AttenuatorStep("Channel 1 - measure attenuator scale", 0) { IgnoreError = true },
             new PgaLoadStep("Channel 1 - measure PGA loading scales", 0) { IgnoreError = true },
 
-            new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.EnableSdgDc(-1); return Sequencer.Status.Done; }},
+            new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
             new Step("Set channel 2"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.SetThunderscopeChannel([1]);
@@ -157,7 +157,7 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - LG L10", 1, 21) { IgnoreError = true },
 
             new Step("Connect SDG2042X"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.EnableSdgDc(1);
+                Instruments.Instance.SetSdgChannel(1);
                 cancellationToken.WaitHandle.WaitOne(2000);
                 return Sequencer.Status.Done;
             }},
@@ -194,7 +194,7 @@ public class BenchCalibrationSequence : Sequence
             new AttenuatorStep("Channel 2 - measure attenuator scale", 1) { IgnoreError = true },
             new PgaLoadStep("Channel 2 - measure PGA loading scales", 1) { IgnoreError = true },
 
-            new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.EnableSdgDc(-1); return Sequencer.Status.Done; }},
+            new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
             new Step("Set Channel 3"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.SetThunderscopeChannel([2]);
@@ -248,7 +248,7 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - LG L10", 2, 21) { IgnoreError = true },
 
             new Step("Connect SDG2042X"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.EnableSdgDc(2);
+                Instruments.Instance.SetSdgChannel(2);
                 cancellationToken.WaitHandle.WaitOne(2000);
                 return Sequencer.Status.Done;
             }},
@@ -285,7 +285,7 @@ public class BenchCalibrationSequence : Sequence
             new AttenuatorStep("Channel 3 - measure attenuator scale", 2) { IgnoreError = true },
             new PgaLoadStep("Channel 3 - measure PGA loading scales", 2) { IgnoreError = true },
 
-            new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.EnableSdgDc(-1); return Sequencer.Status.Done; }},
+            new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
             new Step("Set Channel 4"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.SetThunderscopeChannel([3]);
@@ -339,7 +339,7 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - LG L10", 3, 21) { IgnoreError = true },
 
             new Step("Connect SDG2042X"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.EnableSdgDc(3);
+                Instruments.Instance.SetSdgChannel(3);
                 cancellationToken.WaitHandle.WaitOne(2000);
                 return Sequencer.Status.Done;
             }},
@@ -376,7 +376,7 @@ public class BenchCalibrationSequence : Sequence
             new AttenuatorStep("Channel 4 - measure attenuator scale", 3) { IgnoreError = true },
             new PgaLoadStep("Channel 4 - measure PGA loading scales", 3) { IgnoreError = true },
 
-            new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.EnableSdgDc(-1); return Sequencer.Status.Done; }},
+            new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
             new Step("Save calibration file"){ Action = (CancellationToken cancellationToken) => {
                 Variables.Instance.Calibration.ToJsonFile(Variables.Instance.CalibrationFileName);
