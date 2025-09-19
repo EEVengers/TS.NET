@@ -123,7 +123,7 @@ namespace TS.NET.Engine
                 {
                     ChannelCount = initialChannelCount,
                     ChannelDataLength = 1000,
-                    ChannelDataType = ThunderscopeDataType.I16,
+                    ChannelDataType = ThunderscopeDataType.I8,
                     Mode = Mode.Auto,
                     TriggerChannel = TriggerChannel.Channel1,
                     TriggerType = TriggerType.Edge,
@@ -455,14 +455,14 @@ namespace TS.NET.Engine
                                 {
                                     throw new NotImplementedException();
                                 }
-                                
+
                                 // Temporary code to convert I8 ADC samples to I16
-                                if(processingConfig.ChannelDataType == ThunderscopeDataType.I16)
+                                if (processingConfig.ChannelDataType == ThunderscopeDataType.I16)
                                 {
                                     Scale.I8toI16(processingBufferI8, processingBufferI16);
                                     //movingAverageFilterI16.Process(processingBufferI16);
                                 }
-                                
+
                                 // Write to circular sample buffer
                                 switch (processingConfig.ChannelDataType)
                                 {
@@ -762,7 +762,7 @@ namespace TS.NET.Engine
                         int channelCount = cachedHardwareConfig.EnabledChannelsCount();
                         for (int b = 0; b < channelCount; b++)
                         {
-                            switch(processingConfig.ChannelDataType)
+                            switch (processingConfig.ChannelDataType)
                             {
                                 case ThunderscopeDataType.I8:
                                     sampleBuffers[b].Read(captureBuffer.GetChannelWriteBuffer<sbyte>(b), offset);
@@ -770,7 +770,7 @@ namespace TS.NET.Engine
                                 case ThunderscopeDataType.I16:
                                     sampleBuffers[b].Read(captureBuffer.GetChannelWriteBuffer<short>(b), offset);
                                     break;
-                            }                           
+                            }
                         }
                         var captureMetadata = new CaptureMetadata
                         {
