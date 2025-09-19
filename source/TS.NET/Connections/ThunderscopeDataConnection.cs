@@ -3,6 +3,12 @@ using System.Runtime.InteropServices;
 
 namespace TS.NET;
 
+public class ThunderscopeDataConnectionException : Exception
+{
+    public ThunderscopeDataConnectionException() { }
+    public ThunderscopeDataConnectionException(string message) : base(message) { }
+}
+
 public class ThunderscopeDataConnection : TcpScpiConnection
 {
     public void Open(string ipAddress)
@@ -23,7 +29,7 @@ public class ThunderscopeDataConnection : TcpScpiConnection
             var fixedLengthBuffer = buffer.Slice(0, sizeof(WaveformHeader));
             var count = ReadBytes(fixedLengthBuffer);
             if (count != fixedLengthBuffer.Length)
-                throw new Exception();
+                throw new ThunderscopeDataConnectionException();
             return MemoryMarshal.Read<WaveformHeader>(fixedLengthBuffer);
         }
     }
@@ -35,7 +41,7 @@ public class ThunderscopeDataConnection : TcpScpiConnection
             var fixedLengthBuffer = buffer.Slice(0, sizeof(ChannelHeader));
             var count = ReadBytes(fixedLengthBuffer);
             if (count != fixedLengthBuffer.Length)
-                throw new Exception();
+                throw new ThunderscopeDataConnectionException();
             return MemoryMarshal.Read<ChannelHeader>(fixedLengthBuffer);
         }
     }
@@ -45,15 +51,15 @@ public class ThunderscopeDataConnection : TcpScpiConnection
         unsafe
         {
             if (typeof(T) == typeof(sbyte) && channelHeader.DataType != 2)
-                throw new Exception();
+                throw new ThunderscopeDataConnectionException();
             if (typeof(T) == typeof(short) && channelHeader.DataType != 4)
-                throw new Exception();
+                throw new ThunderscopeDataConnectionException();
             if (typeof(T) != typeof(sbyte) && typeof(T) != typeof(short))
-                throw new Exception();
+                throw new ThunderscopeDataConnectionException();
             var fixedLengthBuffer = buffer.Slice(0, (int)channelHeader.Depth);
             var count = ReadBytes(fixedLengthBuffer);
             if (count != fixedLengthBuffer.Length)
-                throw new Exception($"Count: {count}, buffer: {fixedLengthBuffer.Length}");
+                throw new ThunderscopeDataConnectionException($"Count: {count}, buffer: {fixedLengthBuffer.Length}");
             return MemoryMarshal.Cast<byte, T>(fixedLengthBuffer);
         }
     }
