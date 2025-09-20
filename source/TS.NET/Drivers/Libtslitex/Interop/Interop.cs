@@ -118,8 +118,8 @@ namespace TS.NET.Driver.Libtslitex
             public byte atten;
             public byte term;
             public byte dc_couple;
-            public ushort dac;
             public byte dpot;
+            public ushort dac;
             public byte pga_high_gain;
             public byte pga_atten;
             public byte pga_bw;
