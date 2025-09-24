@@ -10,7 +10,7 @@
         public AcquisitionCircularBuffer(int maxChannelLength, ThunderscopeDataType maxDataType)
         {
             ArgumentOutOfRangeException.ThrowIfGreaterThan(maxChannelLength, 2000000000);
-            capacity = maxChannelLength + ThunderscopeMemory.Length;
+            capacity = maxChannelLength + ThunderscopeMemory.DataLength;
             memory = new NativeMemoryAligned((long)capacity * maxDataType.ByteWidth());
             Reset();
         }

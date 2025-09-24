@@ -20,7 +20,7 @@ namespace TS.NET.Driver.Libtslitex
         /// </summary>
         public Thunderscope(ILoggerFactory loggerFactory, int readSegmentLengthBytes)
         {
-            if (ThunderscopeMemory.Length % readSegmentLengthBytes != 0)
+            if (ThunderscopeMemory.DataLength % readSegmentLengthBytes != 0)
                 throw new ArgumentException("ThunderscopeMemory.Length % readSegmentLengthBytes != 0");
             this.readSegmentLengthBytes = (uint)readSegmentLengthBytes;
             logger = loggerFactory.CreateLogger("Driver.LiteX");
@@ -105,11 +105,11 @@ namespace TS.NET.Driver.Libtslitex
 
             unsafe
             {
-                ulong length = ThunderscopeMemory.Length;
+                ulong length = ThunderscopeMemory.DataLength;
                 ulong dataRead = 0;
                 while (length > 0)
                 {
-                    int readLen = Interop.Read(tsHandle, data.Pointer + dataRead, readSegmentLengthBytes);
+                    int readLen = Interop.Read(tsHandle, data.DataLoadPointer + dataRead, readSegmentLengthBytes);
 
                     if (readLen < 0)
                         throw new Exception($"Thunderscope failed to read samples ({readLen})");
@@ -129,11 +129,11 @@ namespace TS.NET.Driver.Libtslitex
 
             unsafe
             {
-                ulong length = ThunderscopeMemory.Length;
+                ulong length = ThunderscopeMemory.DataLength;
                 ulong dataRead = 0;
                 while (length > 0)
                 {
-                    int readLen = Interop.Read(tsHandle, data.Pointer + dataRead, readSegmentLengthBytes);
+                    int readLen = Interop.Read(tsHandle, data.DataLoadPointer + dataRead, readSegmentLengthBytes);
 
                     if (readLen < 0)
                         return false;
@@ -177,12 +177,17 @@ namespace TS.NET.Driver.Libtslitex
 
 
             var channel = channelFrontend[channelIndex];
-            var tsChannel = new Interop.tsChannelParam_t();
+            //var tsChannel = new Interop.tsChannelParam_t();
 
-            var retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, out tsChannel);
-            if (retVal != 0)
-                throw new Exception($"Thunderscope failed to get channel {channelIndex} config ({retVal})");
-            channel.Termination = (tsChannel.term == 1) ? ThunderscopeTermination.FiftyOhm : ThunderscopeTermination.OneMegaohm;
+            //var retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, out tsChannel);
+            //if (retVal != 0)
+            //    throw new Exception($"Thunderscope failed to get channel {channelIndex} config ({retVal})");
+            //channel.Termination = tsChannel.term switch
+            //{
+            //    0 => ThunderscopeTermination.OneMegaohm,
+            //    1 => ThunderscopeTermination.FiftyOhm,
+            //    _ => throw new NotImplementedException()
+            //};
             return channel;
         }
 

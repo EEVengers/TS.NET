@@ -9,8 +9,7 @@ namespace TS.NET.Engine
         private readonly ILogger logger;
         private readonly IThunderscope thunderscope;
         private readonly ThunderscopeSettings settings;
-        private readonly BlockingChannelReader<ThunderscopeMemory> inputChannel;
-        private readonly BlockingChannelWriter<InputDataDto> processChannel;
+        private readonly BlockingPool<DataDto> hardwarePool;
         private readonly BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel;
         private readonly BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel;
 
@@ -20,16 +19,14 @@ namespace TS.NET.Engine
         public HardwareThread(ILoggerFactory loggerFactory,
             ThunderscopeSettings settings,
             IThunderscope thunderscope,
-            BlockingChannelReader<ThunderscopeMemory> inputChannel,
-            BlockingChannelWriter<InputDataDto> processChannel,
+            BlockingPool<DataDto> hardwarePool,
             BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
             BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel)
         {
             logger = loggerFactory.CreateLogger(nameof(HardwareThread));
             this.settings = settings;
             this.thunderscope = thunderscope;
-            this.inputChannel = inputChannel;
-            this.processChannel = processChannel;
+            this.hardwarePool = hardwarePool;
             this.hardwareRequestChannel = hardwareRequestChannel;
             this.hardwareResponseChannel = hardwareResponseChannel;
         }
@@ -37,7 +34,15 @@ namespace TS.NET.Engine
         public void Start(SemaphoreSlim startSemaphore)
         {
             cancelTokenSource = new CancellationTokenSource();
-            taskLoop = Task.Factory.StartNew(() => Loop(logger, thunderscope, settings, inputChannel, processChannel, hardwareRequestChannel, hardwareResponseChannel, startSemaphore, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+            taskLoop = Task.Factory.StartNew(() => Loop(
+                logger: logger, 
+                thunderscope: thunderscope, 
+                settings: settings, 
+                hardwarePool: hardwarePool, 
+                hardwareRequestChannel: hardwareRequestChannel, 
+                hardwareResponseChannel: hardwareResponseChannel, 
+                startSemaphore, 
+                cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
         public void Stop()
@@ -50,8 +55,7 @@ namespace TS.NET.Engine
             ILogger logger,
             IThunderscope thunderscope,
             ThunderscopeSettings settings,
-            BlockingChannelReader<ThunderscopeMemory> inputChannel,
-            BlockingChannelWriter<InputDataDto> processChannel,
+            BlockingPool<DataDto> hardwarePool,
             BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
             BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel,
             SemaphoreSlim startSemaphore,
@@ -76,8 +80,9 @@ namespace TS.NET.Engine
                 Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
                 uint periodicEnqueueCount = 0;
                 uint enqueueCounter = 0;
-                ThunderscopeMemory memory = inputChannel.Read(cancelToken);
-                bool validMemory = true;
+                var dataDto = hardwarePool.Return.Reader.Read(cancelToken);
+                dataDto.Memory.Reset();
+                bool validDataDto = true;
 
                 while (true)
                 {
@@ -272,19 +277,22 @@ namespace TS.NET.Engine
 
                     try
                     {
-                        if (!validMemory)
+                        if (!validDataDto)
                         {
-                            memory = inputChannel.Read(cancelToken);
-                            validMemory = true;
-                        }
-                        if (thunderscope.TryRead(memory, cancelToken))
+                            dataDto = hardwarePool.Return.Reader.Read(cancelToken);
+                            dataDto.Memory.Reset();
+                            validDataDto = true;
+                        }                     
+                        if (thunderscope.TryRead(dataDto.Memory, cancelToken))
                         {
                             if (enqueueCounter == 0)
                                 logger.LogDebug("First block of data received");
                             periodicEnqueueCount++;
                             enqueueCounter++;
-                            processChannel.Write(new InputDataDto(thunderscope.GetConfiguration(), memory), cancelToken);
-                            validMemory = false;
+                            dataDto.MemoryType = ThunderscopeDataType.I8;
+                            dataDto.HardwareConfig = thunderscope.GetConfiguration();
+                            hardwarePool.Source.Writer.Write(dataDto, cancelToken);
+                            validDataDto = false;
                         }
                         else
                         {
@@ -311,7 +319,7 @@ namespace TS.NET.Engine
                     if (periodicUpdateTimer.ElapsedMilliseconds >= 10000)
                     {
                         var oneSecondEnqueueCount = periodicEnqueueCount / periodicUpdateTimer.Elapsed.TotalSeconds;
-                        logger.LogDebug($"[Stream] MB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.Length / 1000 / 1000):F3}, MiB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.Length / 1024 / 1024):F3}");
+                        logger.LogDebug($"[Stream] MB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.DataLength / 1000 / 1000):F3}, MiB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.DataLength / 1024 / 1024):F3}");
 
                         if (thunderscope is Driver.Libtslitex.Thunderscope liteXThunderscope)
                         {

@@ -44,4 +44,5 @@ WaveformBufferReader: DataServer
 # Configures the thread processor affinity for the processing thread. Typically should remain as -1 to allow full control by operating system, but user may wish to experiment.
 
 HardwareThreadProcessorAffinity: -1
+PreProcessingThreadProcessorAffinity: -1
 ProcessingThreadProcessorAffinity: -1

@@ -26,6 +26,10 @@ public class Instruments
         if (!thunderScopeIdn.StartsWith("EEVengers,ThunderScope", StringComparison.OrdinalIgnoreCase))
             throw new ApplicationException("Incorrect response from SCPI instrument (Scope).");
 
+        thunderScope.WriteLine("ACQ:RATE?");
+        var rate = thunderScope.ReadLine();
+        Logger.Instance.Log(LogLevel.Debug, $"ACQ:RATE? {rate}");
+
         thunderScopeData = new ThunderscopeDataConnection();
         thunderScopeData.Open(Variables.Instance.ThunderScopeIp);
         Logger.Instance.Log(LogLevel.Debug, "Data connection to ThunderScope opened.");
@@ -109,29 +113,32 @@ public class Instruments
         sigGen2?.Close();
     }
 
-    public void SetThunderscopeChannel(int[] enabledChannelIndices)
+    public void SetThunderscopeChannel(int[] enabledChannelIndices, bool setDefaultRate = true)
     {
         thunderScope?.WriteLine($"CHAN1:{(enabledChannelIndices.Contains(0) ? "ON" : "OFF")}");
         thunderScope?.WriteLine($"CHAN2:{(enabledChannelIndices.Contains(1) ? "ON" : "OFF")}");
         thunderScope?.WriteLine($"CHAN3:{(enabledChannelIndices.Contains(2) ? "ON" : "OFF")}");
         thunderScope?.WriteLine($"CHAN4:{(enabledChannelIndices.Contains(3) ? "ON" : "OFF")}");
-        // Set a default rate so that sequences get a consistent behaviour
-        switch (enabledChannelIndices.Length)
+        if (setDefaultRate)
         {
-            case 1:
-                SetThunderscopeRate(1_000_000_000);
-                break;
-            case 2:
-                SetThunderscopeRate(500_000_000);
-                break;
-            case 3:
-                SetThunderscopeRate(250_000_000);
-                break;
-            case 4:
-                SetThunderscopeRate(250_000_000);
-                break;
-            default:
-                throw new NotImplementedException();
+            // Set a default rate so that sequences get a consistent behaviour
+            switch (enabledChannelIndices.Length)
+            {
+                case 1:
+                    SetThunderscopeRate(1_000_000_000);
+                    break;
+                case 2:
+                    SetThunderscopeRate(500_000_000);
+                    break;
+                case 3:
+                    SetThunderscopeRate(250_000_000);
+                    break;
+                case 4:
+                    SetThunderscopeRate(250_000_000);
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
         }
     }
 

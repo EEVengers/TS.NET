@@ -25,6 +25,25 @@ namespace TS.NET
         }
     }
 
+    // Pair of channels, used for reuse of large objects/memory
+    public class BlockingPool<T>
+    {
+        public BlockingChannel<T> Source { get; private set; }
+        public BlockingChannel<T> Return { get; private set; }
+
+        public BlockingPool()
+        {
+            Source = new BlockingChannel<T>();
+            Return = new BlockingChannel<T>();
+        }
+
+        public BlockingPool(int boundedCapacity)
+        {
+            Source = new BlockingChannel<T>(boundedCapacity);
+            Return = new BlockingChannel<T>(boundedCapacity);
+        }
+    }
+
     public class BlockingChannelReader<T>
     {
         private readonly BlockingCollection<T> collection;

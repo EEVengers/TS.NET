@@ -15,8 +15,9 @@ namespace TS.NET.Engine
         public int DataPort { get; set; }
         public string WaveformBufferReader { get; set; } = "";
 
-        public int HardwareThreadProcessorAffinity { get; set; }
-        public int ProcessingThreadProcessorAffinity { get; set; }
+        public int HardwareThreadProcessorAffinity { get; set; } = -1;
+        public int PreProcessingThreadProcessorAffinity { get; set; } = -1;
+        public int ProcessingThreadProcessorAffinity { get; set; } = -1;
 
         public static ThunderscopeSettings Default()
         {
@@ -30,6 +31,7 @@ namespace TS.NET.Engine
                 WaveformBufferReader = "DataServer",
 
                 HardwareThreadProcessorAffinity = -1,
+                PreProcessingThreadProcessorAffinity = -1,
                 ProcessingThreadProcessorAffinity = -1,
             };
         }

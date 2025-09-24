@@ -207,11 +207,22 @@ class Program
 
             string bridgeNamespace = $"ThunderScope.{deviceIndex}";
 
-            ThunderscopeMemoryRegion memoryRegion = new(bufferLength);
-            BlockingChannel<ThunderscopeMemory> memoryChannel = new(bufferLength);
-            for (uint i = 0; i < bufferLength; i++)
-                memoryChannel.Writer.Write(memoryRegion.GetSegment(i));
-            BlockingChannel<InputDataDto> incomingDataChannel = new();
+            BlockingPool<DataDto> hardwarePool = new(bufferLength);
+            BlockingPool<DataDto> preProcessingPool = new(bufferLength);
+
+            ThunderscopeMemoryRegion memoryRegion = new(bufferLength * 2);
+            for (int i = 0; i < bufferLength / 2; i++)
+            {
+                var dataDto = new DataDto() { Memory = memoryRegion.GetSegment(i) };
+                hardwarePool.Return.Writer.Write(dataDto);
+            }
+
+            for (int i = bufferLength / 2; i < bufferLength; i++)
+            {
+                var dataDto = new DataDto() { Memory = memoryRegion.GetSegment(i) };
+                preProcessingPool.Return.Writer.Write(dataDto);
+            }
+
             BlockingChannel<HardwareRequestDto> hardwareRequestChannel = new();
             BlockingChannel<HardwareResponseDto> hardwareResponseChannel = new();
             BlockingChannel<ProcessingRequestDto> processingRequestChannel = new();
@@ -229,21 +240,42 @@ class Program
                 loggerFactory: loggerFactory,
                 settings: thunderscopeSettings,
                 hardwareConfig: thunderscope.GetConfiguration(),
-                incomingDataChannel: incomingDataChannel.Reader,
-                memoryReturnChannel: memoryChannel.Writer,
-                hardwareRequestChannel: hardwareRequestChannel.Writer,
-                hardwareResponseChannel: hardwareResponseChannel.Reader,
-                processingRequestChannel: processingRequestChannel.Reader,
-                processingResponseChannel: processingResponseChannel.Writer,
+                preProcessingPool: preProcessingPool,
+                hardwareRequestWriter: hardwareRequestChannel.Writer,
+                hardwareResponseReader: hardwareResponseChannel.Reader,
+                processingRequestReader: processingRequestChannel.Reader,
+                processingResponseWriter: processingResponseChannel.Writer,
                 captureBuffer: captureBuffer);
             processingThread.Start(startSemaphore);
 
             startSemaphore.Wait();
-            var hardwareThread = new HardwareThread(loggerFactory, thunderscopeSettings, thunderscope, memoryChannel.Reader, incomingDataChannel.Writer, hardwareRequestChannel.Reader, hardwareResponseChannel.Writer);
+            var preProcessingThread = new PreProcessingThread(
+                loggerFactory: loggerFactory,
+                settings: thunderscopeSettings,
+                hardwarePool: hardwarePool,
+                preProcessingPool: preProcessingPool);
+            preProcessingThread.Start(startSemaphore);
+
+            startSemaphore.Wait();
+            var hardwareThread = new HardwareThread(
+                loggerFactory: loggerFactory,
+                settings: thunderscopeSettings,
+                thunderscope: thunderscope,
+                hardwarePool: hardwarePool,
+                hardwareRequestChannel.Reader,
+                hardwareResponseChannel.Writer);
             hardwareThread.Start(startSemaphore);
 
             startSemaphore.Wait();
-            var scpiServer = new ScpiServer(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5025, hardwareRequestChannel.Writer, hardwareResponseChannel.Reader, processingRequestChannel.Writer, processingResponseChannel.Reader);
+            var scpiServer = new ScpiServer(
+                loggerFactory,
+                thunderscopeSettings,
+                System.Net.IPAddress.Any,
+                5025,
+                hardwareRequestChannel.Writer,
+                hardwareResponseChannel.Reader,
+                processingRequestChannel.Writer,
+                processingResponseChannel.Reader);
             scpiServer.Start(startSemaphore);
 
             startSemaphore.Wait();
@@ -253,6 +285,13 @@ class Program
                 case "DataServer":
                     DataServer dataServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5026, captureBuffer);
                     waveformBufferReader = dataServer;
+                    break;
+                case "WebServer":
+                    WebServer webServer = new(
+                        loggerFactory,
+                        thunderscopeSettings,
+                        captureBuffer);
+                    waveformBufferReader = webServer;
                     break;
                 case "None":
                     waveformBufferReader = new EmptyWaveformBufferReader();
@@ -292,6 +331,8 @@ class Program
             waveformBufferReader.Stop();
             hardwareThread.Stop();
             processingThread.Stop();
+            memoryRegion.Dispose();
+            captureBuffer.Dispose();
         }
         //catch (IOException)
         //{
