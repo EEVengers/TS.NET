@@ -79,14 +79,14 @@ namespace TS.NET.Driver.Libtslitex
             public tsAdcCalibration_t() { branchFineGain = new byte[8]; }
         }
 
+        [DllImport(library, EntryPoint = "thunderscopeListDevices")]        // Use runtime marshalling for now. Custom marshalling later.
+        public static extern int ListDevices(uint devIndex, out tsDeviceInfo_t devInfo);
+
         [LibraryImport(library, EntryPoint = "thunderscopeOpen")]
-        public static partial nint Open(uint devIndex, [MarshalAs(UnmanagedType.U1)] Boolean skip_init);
+        public static partial nint Open(uint devIndex, [MarshalAs(UnmanagedType.U1)] bool skip_init);
 
         [LibraryImport(library, EntryPoint = "thunderscopeClose")]
         public static partial int Close(nint ts);
-
-        [DllImport(library, EntryPoint = "thunderscopeListDevices")]        // Use runtime marshalling for now. Custom marshalling later.
-        public static extern int ListDevices(uint devIndex, out tsDeviceInfo_t devInfo);
 
         [LibraryImport(library, EntryPoint = "thunderscopeChannelConfigGet")]
         public static partial int GetChannelConfig(nint ts, uint channel, out tsChannelParam_t conf);
@@ -100,17 +100,29 @@ namespace TS.NET.Driver.Libtslitex
         [LibraryImport(library, EntryPoint = "thunderscopeSampleModeSet")]
         public static partial int SetSampleMode(nint ts, uint rate, uint resolution);
 
-        [DllImport(library, EntryPoint = "thunderscopeChanCalibrationSet")]     // Use runtime marshalling for now. Custom marshalling later.
-        public static extern int SetCalibration(nint ts, uint channel, in tsChannelCalibration_t cal);
-        
-        [DllImport(library, EntryPoint = "thunderscopeAdcCalibrationSet")] // Use runtime marshalling for now. Custom marshalling later.
-        public static extern int SetAdcCalibration(nint ts, in tsAdcCalibration_t cal);
-
         [LibraryImport(library, EntryPoint = "thunderscopeDataEnable")]
         public static partial int DataEnable(nint ts, byte enable);
 
         [LibraryImport(library, EntryPoint = "thunderscopeRead")]
         public static unsafe partial int Read(nint ts, byte* buffer, uint len);
+
+        [LibraryImport(library, EntryPoint = "thunderscopeFwUpdate")]
+        public static unsafe partial int FirmwareUpdate(nint ts, byte* bitstream, uint len);
+
+        [LibraryImport(library, EntryPoint = "thunderscopeGetFwProgress")]
+        public static unsafe partial int FirmwareUpdateProgress(nint ts, out uint progress);
+
+        [LibraryImport(library, EntryPoint = "thunderscopeUserDataRead")]
+        public static unsafe partial int UserDataRead(nint ts, byte* buffer, uint offset, uint readLen);
+
+        [LibraryImport(library, EntryPoint = "thunderscopeUserDataWrite")]
+        public static unsafe partial int UserDataWrite(nint ts, byte* buffer, uint offset, uint writeLen);
+
+        [DllImport(library, EntryPoint = "thunderscopeChanCalibrationSet")]     // Use runtime marshalling for now. Custom marshalling later.
+        public static extern int SetCalibration(nint ts, uint channel, in tsChannelCalibration_t cal);
+        
+        [DllImport(library, EntryPoint = "thunderscopeAdcCalibrationSet")] // Use runtime marshalling for now. Custom marshalling later.
+        public static extern int SetAdcCalibration(nint ts, in tsAdcCalibration_t cal);
 
         [StructLayout(LayoutKind.Sequential)]
         public struct tsChannelCtrl_t
@@ -127,5 +139,7 @@ namespace TS.NET.Driver.Libtslitex
 
         [LibraryImport(library, EntryPoint = "thunderscopeCalibrationManualCtrl")]
         public static unsafe partial int SetChannelManualControl(nint ts, uint channel, in tsChannelCtrl_t ctrl);
+
+
     }
 }
