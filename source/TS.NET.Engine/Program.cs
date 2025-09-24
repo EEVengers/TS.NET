@@ -223,10 +223,8 @@ class Program
                 preProcessingPool.Return.Writer.Write(dataDto);
             }
 
-            BlockingChannel<HardwareRequestDto> hardwareRequestChannel = new();
-            BlockingChannel<HardwareResponseDto> hardwareResponseChannel = new();
-            BlockingChannel<ProcessingRequestDto> processingRequestChannel = new();
-            BlockingChannel<ProcessingResponseDto> processingResponseChannel = new();
+            BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl = new();
+            BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl = new();
 
             long captureBufferBytes = ((long)thunderscopeSettings.MaxCaptureLength) * 4 * ThunderscopeDataType.I16.ByteWidth();
             logger?.LogDebug($"{nameof(CaptureCircularBuffer)} bytes: {captureBufferBytes}");
@@ -241,10 +239,8 @@ class Program
                 settings: thunderscopeSettings,
                 hardwareConfig: thunderscope.GetConfiguration(),
                 preProcessingPool: preProcessingPool,
-                hardwareRequestWriter: hardwareRequestChannel.Writer,
-                hardwareResponseReader: hardwareResponseChannel.Reader,
-                processingRequestReader: processingRequestChannel.Reader,
-                processingResponseWriter: processingResponseChannel.Writer,
+                hardwareControl: hardwareControl,
+                processingControl: processingControl,
                 captureBuffer: captureBuffer);
             processingThread.Start(startSemaphore);
 
@@ -262,8 +258,7 @@ class Program
                 settings: thunderscopeSettings,
                 thunderscope: thunderscope,
                 hardwarePool: hardwarePool,
-                hardwareRequestChannel.Reader,
-                hardwareResponseChannel.Writer);
+                hardwareControl: hardwareControl);
             hardwareThread.Start(startSemaphore);
 
             startSemaphore.Wait();
@@ -272,10 +267,8 @@ class Program
                 thunderscopeSettings,
                 System.Net.IPAddress.Any,
                 5025,
-                hardwareRequestChannel.Writer,
-                hardwareResponseChannel.Reader,
-                processingRequestChannel.Writer,
-                processingResponseChannel.Reader);
+                hardwareControl,
+                processingControl);
             scpiServer.Start(startSemaphore);
 
             startSemaphore.Wait();
@@ -285,13 +278,6 @@ class Program
                 case "DataServer":
                     DataServer dataServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5026, captureBuffer);
                     waveformBufferReader = dataServer;
-                    break;
-                case "WebServer":
-                    WebServer webServer = new(
-                        loggerFactory,
-                        thunderscopeSettings,
-                        captureBuffer);
-                    waveformBufferReader = webServer;
                     break;
                 case "None":
                     waveformBufferReader = new EmptyWaveformBufferReader();

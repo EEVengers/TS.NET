@@ -44,6 +44,25 @@ namespace TS.NET
         }
     }
 
+    // Pair of channels, used for request/response
+    public class BlockingRequestResponse<T1,T2>
+    {
+        public BlockingChannel<T1> Request { get; private set; }
+        public BlockingChannel<T2> Response { get; private set; }
+
+        public BlockingRequestResponse()
+        {
+            Request = new BlockingChannel<T1>();
+            Response = new BlockingChannel<T2>();
+        }
+
+        public BlockingRequestResponse(int boundedCapacity)
+        {
+            Request = new BlockingChannel<T1>(boundedCapacity);
+            Response = new BlockingChannel<T2>(boundedCapacity);
+        }
+    }
+
     public class BlockingChannelReader<T>
     {
         private readonly BlockingCollection<T> collection;

@@ -10,32 +10,26 @@ namespace TS.NET.Engine
     {
         private readonly ILogger logger;
         private readonly ThunderscopeSettings settings;
-        private readonly BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel;
-        private readonly BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel;
-        private readonly BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel;
-        private readonly BlockingChannelReader<ProcessingResponseDto> processingResponseChannel;
+        private readonly BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl;
+        private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
 
         public ScpiServer(ILoggerFactory loggerFactory,
             ThunderscopeSettings settings,
             IPAddress address,
             int port,
-            BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel,
-            BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel,
-            BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
-            BlockingChannelReader<ProcessingResponseDto> processingResponseChannel) : base(address, port)
+            BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
+            BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl) : base(address, port)
         {
             logger = loggerFactory.CreateLogger(nameof(ScpiServer));
             this.settings = settings;
-            this.hardwareRequestChannel = hardwareRequestChannel;
-            this.hardwareResponseChannel = hardwareResponseChannel;
-            this.processingRequestChannel = processingRequestChannel;
-            this.processingResponseChannel = processingResponseChannel;
+            this.hardwareControl = hardwareControl;
+            this.processingControl = processingControl;
             logger.LogDebug("Started");
         }
 
         protected override TcpSession CreateSession()
         {
-            return new ScpiSession(this, logger, settings, hardwareRequestChannel, hardwareResponseChannel, processingRequestChannel, processingResponseChannel);
+            return new ScpiSession(this, logger, settings, hardwareControl, processingControl);
         }
 
         protected override void OnError(SocketError error)
@@ -58,27 +52,21 @@ namespace TS.NET.Engine
     internal class ScpiSession : TcpSession
     {
         private readonly ILogger logger;
-        private readonly BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel;
-        private readonly BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel;
-        private readonly BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel;
-        private readonly BlockingChannelReader<ProcessingResponseDto> processingResponseChannel;
+        private readonly BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl;
+        private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
         private readonly ThunderscopeSettings settings;
 
         public ScpiSession(
             TcpServer server,
             ILogger logger,
             ThunderscopeSettings settings,
-            BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel,
-            BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel,
-            BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
-            BlockingChannelReader<ProcessingResponseDto> processingResponseChannel) : base(server)
+            BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
+            BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl) : base(server)
         {
             this.logger = logger;
             this.settings = settings;
-            this.hardwareRequestChannel = hardwareRequestChannel;
-            this.hardwareResponseChannel = hardwareResponseChannel;
-            this.processingRequestChannel = processingRequestChannel;
-            this.processingResponseChannel = processingResponseChannel;
+            this.hardwareControl = hardwareControl;
+            this.processingControl = processingControl;
         }
 
         protected override void OnConnected()
@@ -100,7 +88,7 @@ namespace TS.NET.Engine
             {
                 if (string.IsNullOrWhiteSpace(message)) { continue; }
 
-                string? response = ProcessSCPICommand(logger, settings, hardwareRequestChannel, hardwareResponseChannel, processingRequestChannel, processingResponseChannel, message.Trim());
+                string? response = ProcessSCPICommand(logger, settings, hardwareControl, processingControl, message.Trim());
 
                 if (response != null)
                 {
@@ -118,10 +106,8 @@ namespace TS.NET.Engine
         public static string? ProcessSCPICommand(
             ILogger logger,
             ThunderscopeSettings settings,
-            BlockingChannelWriter<HardwareRequestDto> hardwareRequestChannel,
-            BlockingChannelReader<HardwareResponseDto> hardwareResponseChannel,
-            BlockingChannelWriter<ProcessingRequestDto> processingRequestChannel,
-            BlockingChannelReader<ProcessingResponseDto> processingResponseChannel,
+            BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
+            BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
             string message)
         {
             const string InvalidParameters = "One or more invalid parameters";
@@ -221,31 +207,31 @@ namespace TS.NET.Engine
                             {
                                 case "START":   //Obsolete
                                 case "RUN":
-                                    processingRequestChannel.Write(new ProcessingRunDto());
+                                    processingControl.Request.Writer.Write(new ProcessingRunDto());
                                     logger.LogDebug($"{nameof(ProcessingRunDto)} sent");
                                     return null;
                                 case "STOP":
-                                    processingRequestChannel.Write(new ProcessingStopDto());
+                                    processingControl.Request.Writer.Write(new ProcessingStopDto());
                                     logger.LogDebug($"{nameof(ProcessingStopDto)} sent");
                                     return null;
                                 case "FORCE":
-                                    processingRequestChannel.Write(new ProcessingForceDto());
+                                    processingControl.Request.Writer.Write(new ProcessingForceDto());
                                     logger.LogDebug($"{nameof(ProcessingForceDto)} sent");
                                     return null;
                                 case "SINGLE":
-                                    processingRequestChannel.Write(new ProcessingSetModeDto(Mode.Single));
+                                    processingControl.Request.Writer.Write(new ProcessingSetModeDto(Mode.Single));
                                     logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
                                     return null;
                                 case "NORMAL":
-                                    processingRequestChannel.Write(new ProcessingSetModeDto(Mode.Normal));
+                                    processingControl.Request.Writer.Write(new ProcessingSetModeDto(Mode.Normal));
                                     logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
                                     return null;
                                 case "AUTO":
-                                    processingRequestChannel.Write(new ProcessingSetModeDto(Mode.Auto));
+                                    processingControl.Request.Writer.Write(new ProcessingSetModeDto(Mode.Auto));
                                     logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
                                     return null;
                                 case "STREAM":
-                                    processingRequestChannel.Write(new ProcessingSetModeDto(Mode.Stream));
+                                    processingControl.Request.Writer.Write(new ProcessingSetModeDto(Mode.Stream));
                                     logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
                                     return null;
                                 // Deprecate soon, command is now ACQ:DEPTH
@@ -253,7 +239,7 @@ namespace TS.NET.Engine
                                     if (argument != null)
                                     {
                                         var depth = Convert.ToInt32(argument);
-                                        processingRequestChannel.Write(new ProcessingSetDepthDto(depth));
+                                        processingControl.Request.Writer.Write(new ProcessingSetDepthDto(depth));
                                         logger.LogDebug($"{nameof(ProcessingSetDepthDto)} sent with argument: {depth}");
                                     }
                                     return null;
@@ -262,7 +248,7 @@ namespace TS.NET.Engine
                                     if (argument != null)
                                     {
                                         ulong rate = Convert.ToUInt64(argument);
-                                        hardwareRequestChannel.Write(new HardwareSetRateRequest(rate));
+                                        hardwareControl.Request.Writer.Write(new HardwareSetRateRequest(rate));
                                         logger.LogDebug($"{nameof(HardwareSetRateRequest)} sent with argument: {rate}");
                                     }
                                     return null;
@@ -278,21 +264,21 @@ namespace TS.NET.Engine
                                 case var _ when command.StartsWith("RATE") && argument != null:
                                     {
                                         ulong rate = Convert.ToUInt64(argument);
-                                        hardwareRequestChannel.Write(new HardwareSetRateRequest(rate));
+                                        hardwareControl.Request.Writer.Write(new HardwareSetRateRequest(rate));
                                         logger.LogDebug($"{nameof(HardwareSetRateRequest)} sent with argument: {rate}");
                                         return null;
                                     }
                                 case var _ when command.StartsWith("DEPTH") && argument != null:
                                     {
                                         var depth = Convert.ToInt32(argument);
-                                        processingRequestChannel.Write(new ProcessingSetDepthDto(depth));
+                                        processingControl.Request.Writer.Write(new ProcessingSetDepthDto(depth));
                                         logger.LogDebug($"{nameof(ProcessingSetDepthDto)} sent with argument: {depth}");
                                         return null;
                                     }
                                 case var _ when command.StartsWith("RES") && argument != null:
                                     {
                                         var resolution = Convert.ToInt32(argument) switch { 8 => AdcResolution.EightBit, 12 => AdcResolution.TwelveBit, _ => AdcResolution.EightBit };
-                                        hardwareRequestChannel.Write(new HardwareSetResolutionRequest(resolution));
+                                        hardwareControl.Request.Writer.Write(new HardwareSetResolutionRequest(resolution));
                                         logger.LogDebug($"{nameof(HardwareSetResolutionRequest)} sent with argument: {resolution}");
                                         return null;
                                     }
@@ -328,7 +314,7 @@ namespace TS.NET.Engine
                                             triggerChannel = (TriggerChannel)source;
                                         }
                                         logger.LogDebug($"Set trigger source to {triggerChannel}");
-                                        processingRequestChannel.Write(new ProcessingSetTriggerSourceDto(triggerChannel));
+                                        processingControl.Request.Writer.Write(new ProcessingSetTriggerSourceDto(triggerChannel));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("TYPE") && argument != null:
@@ -355,7 +341,7 @@ namespace TS.NET.Engine
                                         }
 
                                         logger.LogDebug($"Set trigger type to {triggerType}");
-                                        processingRequestChannel.Write(new ProcessingSetTriggerTypeDto(triggerType.Value));
+                                        processingControl.Request.Writer.Write(new ProcessingSetTriggerTypeDto(triggerType.Value));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("DEL") && argument != null:
@@ -364,7 +350,7 @@ namespace TS.NET.Engine
                                         // TRIG:DEL <arg>
                                         long delay = Convert.ToInt64(argument);
                                         logger.LogDebug($"Set trigger delay to {delay}fs");
-                                        processingRequestChannel.Write(new ProcessingSetTriggerDelayDto((ulong)delay));
+                                        processingControl.Request.Writer.Write(new ProcessingSetTriggerDelayDto((ulong)delay));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("HOLD") && argument != null:
@@ -373,7 +359,7 @@ namespace TS.NET.Engine
                                         // TRIG:HOLD <arg>
                                         long holdoff = Convert.ToInt64(argument);
                                         logger.LogDebug($"Set trigger holdoff to {holdoff}fs");
-                                        processingRequestChannel.Write(new ProcessingSetTriggerHoldoffDto((ulong)holdoff));
+                                        processingControl.Request.Writer.Write(new ProcessingSetTriggerHoldoffDto((ulong)holdoff));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("INTER") && argument != null:
@@ -389,7 +375,7 @@ namespace TS.NET.Engine
                                             _ => true       // Default to true
                                         };
                                         logger.LogDebug($"Set trigger interpolation to {enabled}V");
-                                        processingRequestChannel.Write(new ProcessingSetTriggerInterpolationDto(enabled));
+                                        processingControl.Request.Writer.Write(new ProcessingSetTriggerInterpolationDto(enabled));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("EDGE:LEV") && argument != null:
@@ -398,7 +384,7 @@ namespace TS.NET.Engine
                                         // TRIG:EDGE:LEV <arg>
                                         double level = Convert.ToDouble(argument);
                                         logger.LogDebug($"Set trigger level to {level}V");
-                                        processingRequestChannel.Write(new ProcessingSetEdgeTriggerLevelDto(level));
+                                        processingControl.Request.Writer.Write(new ProcessingSetEdgeTriggerLevelDto(level));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("EDGE:DIR") && argument != null:
@@ -414,7 +400,7 @@ namespace TS.NET.Engine
                                             "ANY" => EdgeDirection.Any,
                                             _ => throw new NotImplementedException()
                                         };
-                                        processingRequestChannel.Write(new ProcessingSetEdgeTriggerDirectionDto(type));
+                                        processingControl.Request.Writer.Write(new ProcessingSetEdgeTriggerDirectionDto(type));
                                         return null;
                                     }
                             }
@@ -430,7 +416,7 @@ namespace TS.NET.Engine
                             {
                                 case "ON" or "OFF":
                                     {
-                                        hardwareRequestChannel.Write(new HardwareSetEnabledRequest(channelIndex, command == "ON"));
+                                        hardwareControl.Request.Writer.Write(new HardwareSetEnabledRequest(channelIndex, command == "ON"));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("BAND") && argument != null:
@@ -439,7 +425,7 @@ namespace TS.NET.Engine
                                         // CHAN1:BAND <arg>
                                         if (GetBandwidth(argument) is not ThunderscopeBandwidth thunderscopeBandwidth)
                                             return null;
-                                        hardwareRequestChannel.Write(new HardwareSetBandwidthRequest(channelIndex, thunderscopeBandwidth));
+                                        hardwareControl.Request.Writer.Write(new HardwareSetBandwidthRequest(channelIndex, thunderscopeBandwidth));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("COUP") && argument != null:
@@ -457,7 +443,7 @@ namespace TS.NET.Engine
                                             logger.LogWarning("Coupling parameter not recognised");
                                             return null;
                                         }
-                                        hardwareRequestChannel.Write(new HardwareSetCouplingRequest(channelIndex, (ThunderscopeCoupling)thunderscopeCoupling));
+                                        hardwareControl.Request.Writer.Write(new HardwareSetCouplingRequest(channelIndex, (ThunderscopeCoupling)thunderscopeCoupling));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("TERM") && argument != null:
@@ -466,7 +452,7 @@ namespace TS.NET.Engine
                                         // CHAN1:TERM <arg>
                                         if (GetTermination(argument) is not ThunderscopeTermination thunderscopeTermination)
                                             return null;
-                                        hardwareRequestChannel.Write(new HardwareSetTerminationRequest(channelIndex, thunderscopeTermination));
+                                        hardwareControl.Request.Writer.Write(new HardwareSetTerminationRequest(channelIndex, thunderscopeTermination));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("OFFS") && argument != null:
@@ -475,14 +461,14 @@ namespace TS.NET.Engine
                                         // CHAN1:OFFS <arg>
                                         double offset = Convert.ToDouble(argument);
                                         offset = Math.Clamp(offset, -50, 50);     // Change to final values later
-                                        hardwareRequestChannel.Write(new HardwareSetVoltOffsetRequest(channelIndex, offset));
+                                        hardwareControl.Request.Writer.Write(new HardwareSetVoltOffsetRequest(channelIndex, offset));
                                         return null;
                                     }
                                 case var _ when command.StartsWith("RANG") && argument != null:
                                     {
                                         double range = Convert.ToDouble(argument);
                                         range = Math.Clamp(range, -50, 50);       // Change to final values later
-                                        hardwareRequestChannel.Write(new HardwareSetVoltFullScaleRequest(channelIndex, range));
+                                        hardwareControl.Request.Writer.Write(new HardwareSetVoltFullScaleRequest(channelIndex, range));
                                         return null;
                                     }
                                 default:
@@ -573,7 +559,7 @@ namespace TS.NET.Engine
                                                 return null;
                                             channel.PgaFilter = thunderscopeBandwidth;
 
-                                            hardwareRequestChannel.Write(new HardwareSetChannelManualControlRequest(channelIndex, channel));
+                                            hardwareControl.Request.Writer.Write(new HardwareSetChannelManualControlRequest(channelIndex, channel));
                                         }
                                         catch
                                         {
@@ -601,7 +587,7 @@ namespace TS.NET.Engine
                                             adcCal.FineGainBranch6 = Convert.ToByte(args[5]);
                                             adcCal.FineGainBranch7 = Convert.ToByte(args[6]);
                                             adcCal.FineGainBranch8 = Convert.ToByte(args[7]);
-                                            hardwareRequestChannel.Write(new HardwareSetAdcCalibrationRequest(adcCal));
+                                            hardwareControl.Request.Writer.Write(new HardwareSetAdcCalibrationRequest(adcCal));
                                         }
                                         catch
                                         {
@@ -625,36 +611,36 @@ namespace TS.NET.Engine
                             return "EEVengers,ThunderScope,NO_SERIAL,NO_VERSION\n";
                         case "STATE?":
                             {
-                                processingRequestChannel.Write(new ProcessingGetStateRequest());
-                                if (processingResponseChannel.TryRead(out var response, 500))
+                                processingControl.Request.Writer.Write(new ProcessingGetStateRequest());
+                                if (processingControl.Response.Reader.TryRead(out var response, 500))
                                 {
                                     switch (response)
                                     {
                                         case ProcessingGetStateResponse processingGetStateResponse:
                                             return $"{(processingGetStateResponse.Run ? "RUN" : "STOP")}\n";
                                         default:
-                                            logger.LogError($"STATE? - Invalid response from {nameof(processingResponseChannel)}");
+                                            logger.LogError($"STATE? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                             break;
                                     }
                                 }
-                                logger.LogError($"STATE? - No response from {nameof(processingResponseChannel)}");
+                                logger.LogError($"STATE? - No response from {nameof(processingControl.Response.Reader)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                         case "MODE?":
                             {
-                                processingRequestChannel.Write(new ProcessingGetModeRequest());
-                                if (processingResponseChannel.TryRead(out var response, 500))
+                                processingControl.Request.Writer.Write(new ProcessingGetModeRequest());
+                                if (processingControl.Response.Reader.TryRead(out var response, 500))
                                 {
                                     switch (response)
                                     {
                                         case ProcessingGetModeResponse processingGetModeResponse:
                                             return $"{processingGetModeResponse.Mode.ToString().ToUpper()}\n";
                                         default:
-                                            logger.LogError($"MODE? - Invalid response from {nameof(processingResponseChannel)}");
+                                            logger.LogError($"MODE? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                             break;
                                     }
                                 }
-                                logger.LogError($"MODE? - No response from {nameof(processingResponseChannel)}");
+                                logger.LogError($"MODE? - No response from {nameof(processingControl.Response.Reader)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                         // Deprecate soon, command is now ACQ:RATES?
@@ -688,7 +674,7 @@ namespace TS.NET.Engine
                         case var _ when command.StartsWith("RES"):
                             {
                                 var resolution = Convert.ToInt32(argument) switch { 8 => AdcResolution.EightBit, 12 => AdcResolution.TwelveBit, _ => AdcResolution.EightBit };
-                                hardwareRequestChannel.Write(new HardwareSetResolutionRequest(resolution));
+                                hardwareControl.Request.Writer.Write(new HardwareSetResolutionRequest(resolution));
                                 logger.LogDebug($"{nameof(HardwareSetResolutionRequest)} sent with argument: {resolution}");
                                 return null;
                             }
@@ -698,126 +684,126 @@ namespace TS.NET.Engine
                 else if (subject?.StartsWith("TRIG") == true)
                 {
                     // Trigger query commands
-                    while (processingResponseChannel.TryRead(out var response, 10)) { }
+                    while (processingControl.Response.Reader.TryRead(out var response, 10)) { }
                     switch (command)
                     {
                         case var _ when command.StartsWith("SOU"):
                             {
-                                processingRequestChannel.Write(new ProcessingGetTriggerSourceRequest());
-                                if (processingResponseChannel.TryRead(out var response, 500))
+                                processingControl.Request.Writer.Write(new ProcessingGetTriggerSourceRequest());
+                                if (processingControl.Response.Reader.TryRead(out var response, 500))
                                 {
                                     switch (response)
                                     {
                                         case ProcessingGetTriggerSourceResponse triggerSourceResponse:
                                             return $"CHAN{(int)triggerSourceResponse.Channel}\n";
                                         default:
-                                            logger.LogError($"TRIG:SOU? - Invalid response from {nameof(processingResponseChannel)}");
+                                            logger.LogError($"TRIG:SOU? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                             break;
                                     }
                                 }
-                                logger.LogError($"TRIG:SOU? - No response from {nameof(processingResponseChannel)}");
+                                logger.LogError($"TRIG:SOU? - No response from {nameof(processingControl.Response.Reader)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                         case var _ when command.StartsWith("TYPE"):
                             {
-                                processingRequestChannel.Write(new ProcessingGetTriggerTypeRequest());
-                                if (processingResponseChannel.TryRead(out var response, 500))
+                                processingControl.Request.Writer.Write(new ProcessingGetTriggerTypeRequest());
+                                if (processingControl.Response.Reader.TryRead(out var response, 500))
                                 {
                                     switch (response)
                                     {
                                         case ProcessingGetTriggerTypeResponse triggerTypeResponse:
                                             return $"{triggerTypeResponse.Type.ToString().ToUpper()}\n";
                                         default:
-                                            logger.LogError($"TRIG:TYPE? - Invalid response from {nameof(processingResponseChannel)}");
+                                            logger.LogError($"TRIG:TYPE? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                             break;
                                     }
                                 }
-                                logger.LogError($"TRIG:TYPE? - No response from {nameof(processingResponseChannel)}");
+                                logger.LogError($"TRIG:TYPE? - No response from {nameof(processingControl.Response.Reader)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                         case var _ when command.StartsWith("DEL"):
                             {
-                                processingRequestChannel.Write(new ProcessingGetTriggerDelayRequest());
-                                if (processingResponseChannel.TryRead(out var response, 500))
+                                processingControl.Request.Writer.Write(new ProcessingGetTriggerDelayRequest());
+                                if (processingControl.Response.Reader.TryRead(out var response, 500))
                                 {
                                     switch (response)
                                     {
                                         case ProcessingGetTriggerDelayResponse triggerDelayResponse:
                                             return $"{triggerDelayResponse.Femtoseconds}\n";
                                         default:
-                                            logger.LogError($"TRIG:DEL? - Invalid response from {nameof(processingResponseChannel)}");
+                                            logger.LogError($"TRIG:DEL? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                             break;
                                     }
                                 }
-                                logger.LogError($"TRIG:DEL? - No response from {nameof(processingResponseChannel)}");
+                                logger.LogError($"TRIG:DEL? - No response from {nameof(processingControl.Response.Reader)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                         case var _ when command.StartsWith("HOLD"):
                             {
-                                processingRequestChannel.Write(new ProcessingGetTriggerHoldoffRequest());
-                                if (processingResponseChannel.TryRead(out var response, 500))
+                                processingControl.Request.Writer.Write(new ProcessingGetTriggerHoldoffRequest());
+                                if (processingControl.Response.Reader.TryRead(out var response, 500))
                                 {
                                     switch (response)
                                     {
                                         case ProcessingGetTriggerHoldoffResponse triggerHoldoffResponse:
                                             return $"{triggerHoldoffResponse.Femtoseconds}\n";
                                         default:
-                                            logger.LogError($"TRIG:HOLD? - Invalid response from {nameof(processingResponseChannel)}");
+                                            logger.LogError($"TRIG:HOLD? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                             break;
                                     }
                                 }
-                                logger.LogError($"TRIG:HOLD? - No response from {nameof(processingResponseChannel)}");
+                                logger.LogError($"TRIG:HOLD? - No response from {nameof(processingControl.Response.Reader)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                         case var _ when command.StartsWith("INTER"):
                             {
-                                processingRequestChannel.Write(new ProcessingGetTriggerInterpolationRequest());
-                                if (processingResponseChannel.TryRead(out var response, 500))
+                                processingControl.Request.Writer.Write(new ProcessingGetTriggerInterpolationRequest());
+                                if (processingControl.Response.Reader.TryRead(out var response, 500))
                                 {
                                     switch (response)
                                     {
                                         case ProcessingGetTriggerInterpolationResponse triggerInterpolationResponse:
                                             return $"{(triggerInterpolationResponse.Enabled ? "1" : "0")}\n";
                                         default:
-                                            logger.LogError($"TRIG:INTER? - Invalid response from {nameof(processingResponseChannel)}");
+                                            logger.LogError($"TRIG:INTER? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                             break;
                                     }
                                 }
-                                logger.LogError($"TRIG:INTER? - No response from {nameof(processingResponseChannel)}");
+                                logger.LogError($"TRIG:INTER? - No response from {nameof(processingControl.Response.Reader)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                         case var _ when command.StartsWith("EDGE:LEV"):
                             {
-                                processingRequestChannel.Write(new ProcessingGetEdgeTriggerLevelRequest());
-                                if (processingResponseChannel.TryRead(out var response, 500))
+                                processingControl.Request.Writer.Write(new ProcessingGetEdgeTriggerLevelRequest());
+                                if (processingControl.Response.Reader.TryRead(out var response, 500))
                                 {
                                     switch (response)
                                     {
                                         case ProcessingGetEdgeTriggerLevelResponse triggerLevelResponse:
                                             return $"{triggerLevelResponse.LevelVolts:F6}\n";
                                         default:
-                                            logger.LogError($"TRIG:EDGE:LEV? - Invalid response from {nameof(processingResponseChannel)}");
+                                            logger.LogError($"TRIG:EDGE:LEV? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                             break;
                                     }
                                 }
-                                logger.LogError($"TRIG:EDGE:LEV? - No response from {nameof(processingResponseChannel)}");
+                                logger.LogError($"TRIG:EDGE:LEV? - No response from {nameof(processingControl.Response.Reader)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                         case var _ when command.StartsWith("EDGE:DIR"):
                             {
-                                processingRequestChannel.Write(new ProcessingGetEdgeTriggerDirectionRequest());
-                                if (processingResponseChannel.TryRead(out var response, 500))
+                                processingControl.Request.Writer.Write(new ProcessingGetEdgeTriggerDirectionRequest());
+                                if (processingControl.Response.Reader.TryRead(out var response, 500))
                                 {
                                     switch (response)
                                     {
                                         case ProcessingGetEdgeTriggerDirectionResponse triggerDirectionResponse:
                                             return $"{triggerDirectionResponse.Direction.ToString().ToUpper()}\n";
                                         default:
-                                            logger.LogError($"TRIG:EDGE:DIR? - Invalid response from {nameof(processingResponseChannel)}");
+                                            logger.LogError($"TRIG:EDGE:DIR? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                             break;
                                     }
                                 }
-                                logger.LogError($"TRIG:EDGE:DIR? - No response from {nameof(processingResponseChannel)}");
+                                logger.LogError($"TRIG:EDGE:DIR? - No response from {nameof(processingControl.Response.Reader)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                     }
@@ -829,27 +815,27 @@ namespace TS.NET.Engine
                     if (GetChannelIndex(subject) is not int channelIndex)
                         return null;
 
-                    while (hardwareResponseChannel.TryRead(out var _, 10)) { }
+                    while (hardwareControl.Response.Reader.TryRead(out var _, 10)) { }
                     switch (command)
                     {
                         case var _ when command.Equals("STATE?", StringComparison.OrdinalIgnoreCase):
                             {
-                                hardwareRequestChannel.Write(new HardwareGetEnabledRequest(channelIndex));
-                                if (hardwareResponseChannel.TryRead(out var response, 500))
+                                hardwareControl.Request.Writer.Write(new HardwareGetEnabledRequest(channelIndex));
+                                if (hardwareControl.Response.Reader.TryRead(out var response, 500))
                                 {
                                     if (response is HardwareGetEnabledResponse hardwareGetEnabledResponse)
                                     {
                                         return hardwareGetEnabledResponse.Enabled ? "ON\n" : "OFF\n";
                                     }
-                                    logger.LogError($"{subject}:STATE? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                    logger.LogError($"{subject}:STATE? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
                                 }
-                                logger.LogError($"{subject}:STATE? - No response from {nameof(hardwareResponseChannel)}");
+                                logger.LogError($"{subject}:STATE? - No response from {nameof(hardwareControl.Response.Reader)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                         case var _ when command.StartsWith("BAND", StringComparison.OrdinalIgnoreCase):
                             {
-                                hardwareRequestChannel.Write(new HardwareGetBandwidthRequest(channelIndex));
-                                if (hardwareResponseChannel.TryRead(out var response, 500))
+                                hardwareControl.Request.Writer.Write(new HardwareGetBandwidthRequest(channelIndex));
+                                if (hardwareControl.Response.Reader.TryRead(out var response, 500))
                                 {
                                     if (response is HardwareGetBandwidthResponse hardwareGetBandwidthResponse)
                                     {
@@ -866,15 +852,15 @@ namespace TS.NET.Engine
                                         };
                                         return bandwidth + "\n";
                                     }
-                                    logger.LogError($"{subject}:BAND? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                    logger.LogError($"{subject}:BAND? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
                                 }
-                                logger.LogError($"{subject}:BAND? - No response from {nameof(hardwareResponseChannel)}");
+                                logger.LogError($"{subject}:BAND? - No response from {nameof(hardwareControl.Response.Reader)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                         case var _ when command.StartsWith("COUP", StringComparison.OrdinalIgnoreCase):
                             {
-                                hardwareRequestChannel.Write(new HardwareGetCouplingRequest(channelIndex));
-                                if (hardwareResponseChannel.TryRead(out var response, 500))
+                                hardwareControl.Request.Writer.Write(new HardwareGetCouplingRequest(channelIndex));
+                                if (hardwareControl.Response.Reader.TryRead(out var response, 500))
                                 {
                                     if (response is HardwareGetCouplingResponse hardwareGetCouplingResponse)
                                     {
@@ -886,15 +872,15 @@ namespace TS.NET.Engine
                                         };
                                         return coupling + "\n";
                                     }
-                                    logger.LogError($"{subject}:COUP? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                    logger.LogError($"{subject}:COUP? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
                                 }
-                                logger.LogError($"{subject}:COUP? - No response from {nameof(hardwareResponseChannel)}");
+                                logger.LogError($"{subject}:COUP? - No response from {nameof(hardwareControl.Response.Reader)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                         case var _ when command.StartsWith("TERM", StringComparison.OrdinalIgnoreCase):
                             {
-                                hardwareRequestChannel.Write(new HardwareGetTerminationRequest(channelIndex));
-                                if (hardwareResponseChannel.TryRead(out var response, 500))
+                                hardwareControl.Request.Writer.Write(new HardwareGetTerminationRequest(channelIndex));
+                                if (hardwareControl.Response.Reader.TryRead(out var response, 500))
                                 {
                                     if (response is HardwareGetTerminationResponse hardwareGetTerminationResponse)
                                     {
@@ -906,33 +892,33 @@ namespace TS.NET.Engine
                                         };
                                         return termination + "\n";
                                     }
-                                    logger.LogError($"{subject}:TERM? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                    logger.LogError($"{subject}:TERM? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
                                 }
-                                logger.LogError($"{subject}:TERM? - No response from {nameof(hardwareResponseChannel)}");
+                                logger.LogError($"{subject}:TERM? - No response from {nameof(hardwareControl.Response.Reader)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                         case var _ when command.StartsWith("OFFS", StringComparison.OrdinalIgnoreCase):
                             {
-                                hardwareRequestChannel.Write(new HardwareGetVoltOffsetRequest(channelIndex));
-                                if (hardwareResponseChannel.TryRead(out var response, 500))
+                                hardwareControl.Request.Writer.Write(new HardwareGetVoltOffsetRequest(channelIndex));
+                                if (hardwareControl.Response.Reader.TryRead(out var response, 500))
                                 {
                                     if (response is HardwareGetVoltOffsetResponse hardwareGetVoltOffsetResponse)
                                         return $"{hardwareGetVoltOffsetResponse.VoltOffset:F6}\n";
-                                    logger.LogError($"{subject}:OFFS? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                    logger.LogError($"{subject}:OFFS? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
                                 }
-                                logger.LogError($"{subject}:OFFS? - No response from {nameof(hardwareResponseChannel)}");
+                                logger.LogError($"{subject}:OFFS? - No response from {nameof(hardwareControl.Response.Reader)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                         case var _ when command.StartsWith("RANG", StringComparison.OrdinalIgnoreCase):
                             {
-                                hardwareRequestChannel.Write(new HardwareGetVoltFullScaleRequest(channelIndex));
-                                if (hardwareResponseChannel.TryRead(out var response, 500))
+                                hardwareControl.Request.Writer.Write(new HardwareGetVoltFullScaleRequest(channelIndex));
+                                if (hardwareControl.Response.Reader.TryRead(out var response, 500))
                                 {
                                     if (response is HardwareGetVoltFullScaleResponse hardwareGetVoltFullScaleResponse)
                                         return $"{hardwareGetVoltFullScaleResponse.VoltFullScale:F6}\n";
-                                    logger.LogError($"{subject}:RANG? - Invalid response from {nameof(hardwareResponseChannel)}");
+                                    logger.LogError($"{subject}:RANG? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
                                 }
-                                logger.LogError($"{subject}:RANG? - No response from {nameof(hardwareResponseChannel)}");
+                                logger.LogError($"{subject}:RANG? - No response from {nameof(hardwareControl.Response.Reader)}");
                                 return "Error: No/bad response from channel.\n";
                             }
                     }
@@ -944,37 +930,37 @@ namespace TS.NET.Engine
 
             string GetRates()
             {
-                hardwareRequestChannel.Write(new HardwareGetRatesRequest());
-                if (hardwareResponseChannel.TryRead(out var response, 500))
+                hardwareControl.Request.Writer.Write(new HardwareGetRatesRequest());
+                if (hardwareControl.Response.Reader.TryRead(out var response, 500))
                 {
                     switch (response)
                     {
                         case HardwareGetRatesResponse hardwareGetRatesResponse:
                             return $"{string.Join(",", hardwareGetRatesResponse.SampleRatesHz)},\n";
                         default:
-                            logger.LogError($"RATES? - Invalid response from {nameof(hardwareResponseChannel)}");
+                            logger.LogError($"RATES? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
                             break;
                     }
                 }
-                logger.LogError($"RATES? - No response from {nameof(hardwareResponseChannel)}");
+                logger.LogError($"RATES? - No response from {nameof(hardwareControl.Response.Reader)}");
                 return "Error: No/bad response from channel.\n";
             }
 
             string GetRate()
             {
-                hardwareRequestChannel.Write(new HardwareGetRateRequest());
-                if (hardwareResponseChannel.TryRead(out var response, 500))
+                hardwareControl.Request.Writer.Write(new HardwareGetRateRequest());
+                if (hardwareControl.Response.Reader.TryRead(out var response, 500))
                 {
                     switch (response)
                     {
                         case HardwareGetRateResponse hardwareGetRateResponse:
                             return $"{hardwareGetRateResponse.SampleRateHz}\n";
                         default:
-                            logger.LogError($"RATE? - Invalid response from {nameof(hardwareResponseChannel)}");
+                            logger.LogError($"RATE? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
                             break;
                     }
                 }
-                logger.LogError($"RATE? - No response from {nameof(hardwareResponseChannel)}");
+                logger.LogError($"RATE? - No response from {nameof(hardwareControl.Response.Reader)}");
                 return "Error: No/bad response from channel.\n";
             }
 
@@ -1000,19 +986,19 @@ namespace TS.NET.Engine
 
             string GetDepth()
             {
-                processingRequestChannel.Write(new ProcessingGetDepthRequest());
-                if (processingResponseChannel.TryRead(out var response, 500))
+                processingControl.Request.Writer.Write(new ProcessingGetDepthRequest());
+                if (processingControl.Response.Reader.TryRead(out var response, 500))
                 {
                     switch (response)
                     {
                         case ProcessingGetDepthResponse processingGetDepthResponse:
                             return $"{processingGetDepthResponse.Depth}\n";
                         default:
-                            logger.LogError($"DEPTH? - Invalid response from {nameof(processingResponseChannel)}");
+                            logger.LogError($"DEPTH? - Invalid response from {nameof(processingControl.Response.Reader)}");
                             break;
                     }
                 }
-                logger.LogError($"DEPTH? - No response from {nameof(processingResponseChannel)}");
+                logger.LogError($"DEPTH? - No response from {nameof(processingControl.Response.Reader)}");
                 return "Error: No/bad response from channel.\n";
             }
         }

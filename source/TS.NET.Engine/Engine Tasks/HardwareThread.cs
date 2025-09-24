@@ -10,8 +10,7 @@ namespace TS.NET.Engine
         private readonly IThunderscope thunderscope;
         private readonly ThunderscopeSettings settings;
         private readonly BlockingPool<DataDto> hardwarePool;
-        private readonly BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel;
-        private readonly BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel;
+        private readonly BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl;
 
         private CancellationTokenSource? cancelTokenSource;
         private Task? taskLoop;
@@ -20,15 +19,13 @@ namespace TS.NET.Engine
             ThunderscopeSettings settings,
             IThunderscope thunderscope,
             BlockingPool<DataDto> hardwarePool,
-            BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
-            BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel)
+            BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl)
         {
             logger = loggerFactory.CreateLogger(nameof(HardwareThread));
             this.settings = settings;
             this.thunderscope = thunderscope;
             this.hardwarePool = hardwarePool;
-            this.hardwareRequestChannel = hardwareRequestChannel;
-            this.hardwareResponseChannel = hardwareResponseChannel;
+            this.hardwareControl = hardwareControl;
         }
 
         public void Start(SemaphoreSlim startSemaphore)
@@ -39,8 +36,7 @@ namespace TS.NET.Engine
                 thunderscope: thunderscope, 
                 settings: settings, 
                 hardwarePool: hardwarePool, 
-                hardwareRequestChannel: hardwareRequestChannel, 
-                hardwareResponseChannel: hardwareResponseChannel, 
+                hardwareControl: hardwareControl,
                 startSemaphore, 
                 cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
@@ -56,8 +52,7 @@ namespace TS.NET.Engine
             IThunderscope thunderscope,
             ThunderscopeSettings settings,
             BlockingPool<DataDto> hardwarePool,
-            BlockingChannelReader<HardwareRequestDto> hardwareRequestChannel,
-            BlockingChannelWriter<HardwareResponseDto> hardwareResponseChannel,
+            BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
             SemaphoreSlim startSemaphore,
             CancellationToken cancelToken)
         {
@@ -88,9 +83,9 @@ namespace TS.NET.Engine
                 {
                     cancelToken.ThrowIfCancellationRequested();
 
-                    if (hardwareRequestChannel.PeekAvailable() > 0)
+                    if (hardwareControl.Request.Reader.PeekAvailable() > 0)
                     {
-                        while (hardwareRequestChannel.TryRead(out var request))
+                        while (hardwareControl.Request.Reader.TryRead(out var request))
                         {
                             // Do configuration update, pausing acquisition if necessary
                             switch (request)
@@ -101,7 +96,7 @@ namespace TS.NET.Engine
                                     break;
                                 case HardwareStopRequest hardwareStopRequest:
                                     thunderscope.Stop();
-                                    hardwareResponseChannel.Write(new HardwareStopResponse());
+                                    hardwareControl.Response.Writer.Write(new HardwareStopResponse());
                                     logger.LogDebug($"{nameof(HardwareStopRequest)}");
                                     break;
                                 case HardwareSetRateRequest hardwareSetRateRequest:
@@ -120,7 +115,7 @@ namespace TS.NET.Engine
                                     {
                                         logger.LogDebug($"{nameof(HardwareGetRateRequest)}");
                                         var config = thunderscope.GetConfiguration();
-                                        hardwareResponseChannel.Write(new HardwareGetRateResponse(config.SampleRateHz));
+                                        hardwareControl.Response.Writer.Write(new HardwareGetRateResponse(config.SampleRateHz));
                                         logger.LogDebug($"{nameof(HardwareGetRateResponse)}");
                                         break;
                                     }
@@ -160,7 +155,7 @@ namespace TS.NET.Engine
                                                     break;
                                                 }
                                         }
-                                        hardwareResponseChannel.Write(new HardwareGetRatesResponse(rates.ToArray()));
+                                        hardwareControl.Response.Writer.Write(new HardwareGetRatesResponse(rates.ToArray()));
                                         logger.LogDebug($"{nameof(HardwareGetRatesResponse)}");
                                         break;
                                     }
@@ -169,7 +164,7 @@ namespace TS.NET.Engine
                                         logger.LogDebug($"{nameof(HardwareGetEnabledRequest)}");
                                         var config = thunderscope.GetConfiguration();
                                         var enabled = ((config.EnabledChannels >> hardwareGetEnabledRequest.ChannelIndex) & 0x01) > 0;
-                                        hardwareResponseChannel.Write(new HardwareGetEnabledResponse(enabled));
+                                        hardwareControl.Response.Writer.Write(new HardwareGetEnabledResponse(enabled));
                                         logger.LogDebug($"{nameof(HardwareGetEnabledResponse)}");
                                         break;
                                     }
@@ -177,7 +172,7 @@ namespace TS.NET.Engine
                                     {
                                         logger.LogDebug($"{nameof(HardwareGetVoltOffsetRequest)}");
                                         var frontend = thunderscope.GetChannelFrontend(hardwareGetVoltOffsetRequest.ChannelIndex);
-                                        hardwareResponseChannel.Write(new HardwareGetVoltOffsetResponse(frontend.ActualVoltOffset));
+                                        hardwareControl.Response.Writer.Write(new HardwareGetVoltOffsetResponse(frontend.ActualVoltOffset));
                                         logger.LogDebug($"{nameof(HardwareGetVoltOffsetRequest)}");
                                         break;
                                     }
@@ -185,7 +180,7 @@ namespace TS.NET.Engine
                                     {
                                         logger.LogDebug($"{nameof(HardwareGetVoltFullScaleRequest)}");
                                         var frontend = thunderscope.GetChannelFrontend(hardwareGetVoltFullScaleRequest.ChannelIndex);
-                                        hardwareResponseChannel.Write(new HardwareGetVoltFullScaleResponse(frontend.ActualVoltFullScale));
+                                        hardwareControl.Response.Writer.Write(new HardwareGetVoltFullScaleResponse(frontend.ActualVoltFullScale));
                                         logger.LogDebug($"{nameof(HardwareGetVoltFullScaleRequest)}");
                                         break;
                                     }
@@ -193,7 +188,7 @@ namespace TS.NET.Engine
                                     {
                                         logger.LogDebug($"{nameof(HardwareGetBandwidthRequest)}");
                                         var frontend = thunderscope.GetChannelFrontend(hardwareGetBandwidthRequest.ChannelIndex);
-                                        hardwareResponseChannel.Write(new HardwareGetBandwidthResponse(frontend.Bandwidth));
+                                        hardwareControl.Response.Writer.Write(new HardwareGetBandwidthResponse(frontend.Bandwidth));
                                         logger.LogDebug($"{nameof(HardwareGetBandwidthRequest)}");
                                         break;
                                     }
@@ -201,7 +196,7 @@ namespace TS.NET.Engine
                                     {
                                         logger.LogDebug($"{nameof(HardwareGetCouplingRequest)}");
                                         var frontend = thunderscope.GetChannelFrontend(hardwareGetCouplingRequest.ChannelIndex);
-                                        hardwareResponseChannel.Write(new HardwareGetCouplingResponse(frontend.Coupling));
+                                        hardwareControl.Response.Writer.Write(new HardwareGetCouplingResponse(frontend.Coupling));
                                         logger.LogDebug($"{nameof(HardwareGetCouplingRequest)}");
                                         break;
                                     }
@@ -209,7 +204,7 @@ namespace TS.NET.Engine
                                     {
                                         logger.LogDebug($"{nameof(HardwareGetTerminationRequest)}");
                                         var frontend = thunderscope.GetChannelFrontend(hardwareGetTerminationRequest.ChannelIndex);
-                                        hardwareResponseChannel.Write(new HardwareGetTerminationResponse(frontend.Termination));
+                                        hardwareControl.Response.Writer.Write(new HardwareGetTerminationResponse(frontend.Termination));
                                         logger.LogDebug($"{nameof(HardwareGetTerminationRequest)}");
                                         break;
                                     }
@@ -270,7 +265,7 @@ namespace TS.NET.Engine
                                     logger.LogWarning($"Unknown {nameof(HardwareRequestDto)}: {request}");
                                     break;
                             }
-                            if (hardwareRequestChannel.PeekAvailable() == 0)
+                            if (hardwareControl.Request.Reader.PeekAvailable() == 0)
                                 Thread.Sleep(150);
                         }
                     }

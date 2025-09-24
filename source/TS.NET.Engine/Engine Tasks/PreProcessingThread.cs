@@ -66,16 +66,6 @@ namespace TS.NET.Engine
                 logger.LogInformation("Started");
                 startSemaphore.Release();
 
-                //MovingAverageFilterI16 filter = new(8);
-                //EmaFilterI16 filter = new(0.1f);
-                //MovingAverageFilterI16_MT4 filter = new(8);
-                //MovingAverageFilterI162 filter = new(8);
-                //FirFilter filter = new FirFilter();
-                //MovingAverageFilterI16_16Points filter = new();
-                //FirFilter3 filter = new();
-                //FirFilterI8toI16 filter = new();
-                FirFilterI8toI16 filter = new();
-
                 var preProcessingDataDto = preProcessingPool.Return.Reader.Read(cancelToken);
                 preProcessingDataDto.Memory.Reset();
                 bool validDataDto = true;

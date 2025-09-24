@@ -9,10 +9,8 @@ namespace TS.NET.Engine
         private readonly ThunderscopeSettings settings;
         private readonly ThunderscopeHardwareConfig hardwareConfig;
         private readonly BlockingPool<DataDto> preProcessingPool;
-        private readonly BlockingChannelWriter<HardwareRequestDto> hardwareRequestWriter;
-        private readonly BlockingChannelReader<HardwareResponseDto> hardwareResponseReader;
-        private readonly BlockingChannelReader<ProcessingRequestDto> processingRequestReader;
-        private readonly BlockingChannelWriter<ProcessingResponseDto> processingResponseWriter;
+        private readonly BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl;
+        private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
         private readonly CaptureCircularBuffer captureBuffer;
 
         private CancellationTokenSource? cancelTokenSource;
@@ -23,20 +21,16 @@ namespace TS.NET.Engine
             ThunderscopeSettings settings,
             ThunderscopeHardwareConfig hardwareConfig,
             BlockingPool<DataDto> preProcessingPool,
-            BlockingChannelWriter<HardwareRequestDto> hardwareRequestWriter,
-            BlockingChannelReader<HardwareResponseDto> hardwareResponseReader,
-            BlockingChannelReader<ProcessingRequestDto> processingRequestReader,
-            BlockingChannelWriter<ProcessingResponseDto> processingResponseWriter,
+            BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
+            BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
             CaptureCircularBuffer captureBuffer)
         {
             logger = loggerFactory.CreateLogger(nameof(ProcessingThread));
             this.settings = settings;
             this.hardwareConfig = hardwareConfig;
             this.preProcessingPool = preProcessingPool;
-            this.hardwareRequestWriter = hardwareRequestWriter;
-            this.hardwareResponseReader = hardwareResponseReader;
-            this.processingRequestReader = processingRequestReader;
-            this.processingResponseWriter = processingResponseWriter;
+            this.hardwareControl = hardwareControl;
+            this.processingControl = processingControl;
             this.captureBuffer = captureBuffer;
         }
 
@@ -48,10 +42,8 @@ namespace TS.NET.Engine
                 settings: settings,
                 cachedHardwareConfig: hardwareConfig,
                 preProcessingPool: preProcessingPool,
-                hardwareRequestWriter: hardwareRequestWriter,
-                hardwareResponseReader: hardwareResponseReader,
-                processingRequestReader: processingRequestReader,
-                processingResponseWriter: processingResponseWriter,
+                hardwareControl: hardwareControl,
+                processingControl: processingControl,
                 captureBuffer: captureBuffer,
                 startSemaphore: startSemaphore,
                 cancelToken: cancelTokenSource.Token), TaskCreationOptions.LongRunning);
@@ -69,10 +61,8 @@ namespace TS.NET.Engine
             ThunderscopeSettings settings,
             ThunderscopeHardwareConfig cachedHardwareConfig,
             BlockingPool<DataDto> preProcessingPool,
-            BlockingChannelWriter<HardwareRequestDto> hardwareRequestWriter,
-            BlockingChannelReader<HardwareResponseDto> hardwareResponseReader,
-            BlockingChannelReader<ProcessingRequestDto> processingRequestReader,
-            BlockingChannelWriter<ProcessingResponseDto> processingResponseWriter,
+            BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
+            BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
             CaptureCircularBuffer captureBuffer,
             SemaphoreSlim startSemaphore,
             CancellationToken cancelToken)
@@ -173,7 +163,7 @@ namespace TS.NET.Engine
                 {
                     cancelToken.ThrowIfCancellationRequested();
 
-                    while (processingRequestReader.TryRead(out var request))
+                    while (processingControl.Request.Reader.TryRead(out var request))
                     {
                         switch (request)
                         {
@@ -197,46 +187,46 @@ namespace TS.NET.Engine
                                 logger.LogDebug($"{nameof(ProcessingForceDto)}");
                                 break;
                             case ProcessingGetStateRequest processingGetStateRequest:
-                                processingResponseWriter.Write(new ProcessingGetStateResponse(runMode));
+                                processingControl.Response.Writer.Write(new ProcessingGetStateResponse(runMode));
                                 logger.LogDebug($"{nameof(ProcessingGetStateRequest)}");
                                 break;
                             case ProcessingGetModeRequest processingGetModeRequest:
-                                processingResponseWriter.Write(new ProcessingGetModeResponse(processingConfig.Mode));
+                                processingControl.Response.Writer.Write(new ProcessingGetModeResponse(processingConfig.Mode));
                                 logger.LogDebug($"{nameof(ProcessingGetModeRequest)}");
                                 break;
                             case ProcessingGetDepthRequest processingGetDepthRequest:
-                                processingResponseWriter.Write(new ProcessingGetDepthResponse(processingConfig.ChannelDataLength));
+                                processingControl.Response.Writer.Write(new ProcessingGetDepthResponse(processingConfig.ChannelDataLength));
                                 logger.LogDebug($"{nameof(ProcessingGetDepthRequest)}");
                                 break;
                             case ProcessingGetTriggerSourceRequest processingGetTriggerSourceRequest:
-                                processingResponseWriter.Write(new ProcessingGetTriggerSourceResponse(processingConfig.TriggerChannel));
+                                processingControl.Response.Writer.Write(new ProcessingGetTriggerSourceResponse(processingConfig.TriggerChannel));
                                 logger.LogDebug($"{nameof(ProcessingGetTriggerSourceRequest)}");
                                 break;
                             case ProcessingGetTriggerTypeRequest processingGetTriggerTypeRequest:
-                                processingResponseWriter.Write(new ProcessingGetTriggerTypeResponse(processingConfig.TriggerType));
+                                processingControl.Response.Writer.Write(new ProcessingGetTriggerTypeResponse(processingConfig.TriggerType));
                                 logger.LogDebug($"{nameof(ProcessingGetTriggerTypeRequest)}");
                                 break;
                             case ProcessingGetTriggerDelayRequest processingGetTriggerDelayRequest:
-                                processingResponseWriter.Write(new ProcessingGetTriggerDelayResponse(processingConfig.TriggerDelayFs));
+                                processingControl.Response.Writer.Write(new ProcessingGetTriggerDelayResponse(processingConfig.TriggerDelayFs));
                                 logger.LogDebug($"{nameof(ProcessingGetTriggerDelayRequest)}");
                                 break;
                             case ProcessingGetTriggerHoldoffRequest processingGetTriggerHoldoffRequest:
-                                processingResponseWriter.Write(new ProcessingGetTriggerHoldoffResponse(processingConfig.TriggerHoldoffFs));
+                                processingControl.Response.Writer.Write(new ProcessingGetTriggerHoldoffResponse(processingConfig.TriggerHoldoffFs));
                                 logger.LogDebug($"{nameof(ProcessingGetTriggerHoldoffRequest)}");
                                 break;
                             case ProcessingGetTriggerInterpolationRequest processingGetTriggerInterpolationRequest:
-                                processingResponseWriter.Write(new ProcessingGetTriggerInterpolationResponse(processingConfig.TriggerInterpolation));
+                                processingControl.Response.Writer.Write(new ProcessingGetTriggerInterpolationResponse(processingConfig.TriggerInterpolation));
                                 logger.LogDebug($"{nameof(ProcessingGetTriggerInterpolationRequest)}");
                                 break;
                             case ProcessingGetEdgeTriggerLevelRequest processingGetEdgeTriggerLevelRequest:
                                 // Convert the internal trigger level back to volts
                                 var triggerChannelFrontend = cachedHardwareConfig.GetTriggerChannelFrontend(processingConfig.TriggerChannel);
                                 double levelVolts = (processingConfig.EdgeTriggerParameters.Level / 127.0) * (triggerChannelFrontend.ActualVoltFullScale / 2);
-                                processingResponseWriter.Write(new ProcessingGetEdgeTriggerLevelResponse(levelVolts));
+                                processingControl.Response.Writer.Write(new ProcessingGetEdgeTriggerLevelResponse(levelVolts));
                                 logger.LogDebug($"{nameof(ProcessingGetEdgeTriggerLevelRequest)}");
                                 break;
                             case ProcessingGetEdgeTriggerDirectionRequest processingGetEdgeTriggerDirectionRequest:
-                                processingResponseWriter.Write(new ProcessingGetEdgeTriggerDirectionResponse(processingConfig.EdgeTriggerParameters.Direction));
+                                processingControl.Response.Writer.Write(new ProcessingGetEdgeTriggerDirectionResponse(processingConfig.EdgeTriggerParameters.Direction));
                                 logger.LogDebug($"{nameof(ProcessingGetEdgeTriggerDirectionRequest)}");
                                 break;
                             case ProcessingSetModeDto processingSetModeDto:
@@ -613,16 +603,16 @@ namespace TS.NET.Engine
                 void StartHardware()
                 {
                     runMode = true;
-                    hardwareRequestWriter.Write(new HardwareStartRequest());
+                    hardwareControl.Request.Writer.Write(new HardwareStartRequest());
                 }
 
                 void StopHardware()
                 {
                     runMode = false;
                     forceTriggerLatch = false;
-                    hardwareRequestWriter.Write(new HardwareStopRequest());
-                    // Wait for response before clearing incomingDataChannel
-                    if (hardwareResponseReader.TryRead(out var response, 500))
+                    hardwareControl.Request.Writer.Write(new HardwareStopRequest());
+                    // Wait for response before clearing pool
+                    if (hardwareControl.Response.Reader.TryRead(out var response, 500))
                     {
                         switch (response)
                         {
