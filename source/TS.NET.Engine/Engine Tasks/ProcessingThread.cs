@@ -55,7 +55,6 @@ namespace TS.NET.Engine
             taskLoop?.Wait();
         }
 
-        // The job of this task - pull data from scope driver/simulator, shuffle if 2/4 channels, horizontal sum, trigger, and produce window segments.
         private static unsafe void Loop(
             ILogger logger,
             ThunderscopeSettings settings,
@@ -481,7 +480,6 @@ namespace TS.NET.Engine
                                 case Mode.Auto:
                                     if (cachedHardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
                                     {
-                                        // Load in the trigger buffer from the correct shuffle buffer
                                         Span<sbyte> triggerChannelBufferI8;
                                         Span<short> triggerChannelBufferI16;
                                         int triggerChannelCaptureIndex;

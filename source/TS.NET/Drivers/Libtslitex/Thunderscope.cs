@@ -337,7 +337,7 @@ namespace TS.NET.Driver.Libtslitex
                 if (channelCount == 0)
                     channelCount = 1;
                 var gain = channelCalibration[channelIndex].PgaLoadScales.First(s => s.SampleRate == cachedSampleRateHz && s.ChannelCount == channelCount).Scale;
-                return path.BufferInputVpp * (1.0/gain);
+                return path.BufferInputVpp * (1.0 / gain);
             }
 
             bool pathFound = false;
@@ -397,7 +397,7 @@ namespace TS.NET.Driver.Libtslitex
 
             // Note: if desired offset is beyond acceptable range for PGA input voltage limits, clamp it.
             // -1 to make the SCPI API match most scope vendors, i.e. if input signal has 100mV offset, send CHAN1:OFFS 0.1 to cancel it out.
-            var dacOffset = -1 * (int)((channel.RequestedVoltOffset*gainFactor) / (selectedPath.BufferInputVpp * selectedPath.TrimOffsetDacScale));
+            var dacOffset = -1 * (int)((channel.RequestedVoltOffset * gainFactor) / (selectedPath.BufferInputVpp * selectedPath.TrimOffsetDacScale));
             if (dacOffset > dacValueMaxDeviation)
                 dacOffset = dacValueMaxDeviation;
             if (dacOffset < -dacValueMaxDeviation)
@@ -405,13 +405,13 @@ namespace TS.NET.Driver.Libtslitex
             var dacValue = selectedPath.TrimOffsetDacZero - dacOffset;
 
             // Note: last resort clamping of DAC value.
-            if(dacValue < 0) 
+            if (dacValue < 0)
                 dacValue = 0;
-            if (dacValue > 4095) 
+            if (dacValue > 4095)
                 dacValue = 4095;
 
             // Note: calculate actual offset so UI can use it.
-            channel.ActualVoltOffset = ((dacValue - selectedPath.TrimOffsetDacZero) * (selectedPath.BufferInputVpp * selectedPath.TrimOffsetDacScale))/ gainFactor;
+            channel.ActualVoltOffset = ((dacValue - selectedPath.TrimOffsetDacZero) * (selectedPath.BufferInputVpp * selectedPath.TrimOffsetDacScale)) / gainFactor;
 
             var manualControl = new ThunderscopeChannelFrontendManualControl()
             {
@@ -533,6 +533,20 @@ namespace TS.NET.Driver.Libtslitex
                 throw new Exception($"Thunderscope failed to set channel {channelIndex} config ({retVal})");
 
             channelManualOverride[channelIndex] = true;
+        }
+
+        public void UserDataRead(Span<byte> buffer, int offset)
+        {
+            if (!open)
+                throw new Exception("Thunderscope not open");
+
+            unsafe
+            {
+                fixed (byte* bufferP = buffer)
+                {
+                    Interop.UserDataRead(tsHandle, bufferP, (uint)offset, (uint)buffer.Length);
+                }
+            }
         }
 
         private void UpdateFrontends()

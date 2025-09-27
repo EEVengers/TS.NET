@@ -65,6 +65,8 @@
             captureMetadata = [];
         }
 
+        // Don't need to dispose at the end of process:
+        //    https://devblogs.microsoft.com/oldnewthing/20120105-00/?p=8683
         public void Dispose()
         {
             buffer.Dispose();

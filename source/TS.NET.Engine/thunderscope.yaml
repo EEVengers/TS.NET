@@ -23,7 +23,7 @@
 #
 # Key: WaveformBufferReader
 # Value: String, with one of None/DataServer
-# Configures the reader that will access the waveform buffer
+# Configures the reader that will access the waveform buffer.
 
 HardwareDriver: libtslitex
 HardwareRevision: Rev5.1

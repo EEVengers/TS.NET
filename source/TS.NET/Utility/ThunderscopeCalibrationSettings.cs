@@ -9,7 +9,7 @@ namespace TS.NET
 
     public class ThunderscopeCalibrationSettings
     {
-        public string FileVersion { get; set; } = "0.1.0";
+        public string SchemaVersion { get; set; } = "0";
         public string DeviceSerial { get; set; } = "";
         public string CalibrationTimestamp { get; set; } = "";
         public ThunderscopeChannelCalibrationSettings Channel1 { get; set; } = ThunderscopeChannelCalibrationSettings.Default();

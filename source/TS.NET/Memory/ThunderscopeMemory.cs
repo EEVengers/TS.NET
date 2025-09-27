@@ -23,6 +23,8 @@ public unsafe class ThunderscopeMemoryRegion
     }
 
     // https://tooslowexception.com/disposable-ref-structs-in-c-8-0/
+    // Don't need to dispose at the end of process:
+    //    https://devblogs.microsoft.com/oldnewthing/20120105-00/?p=8683
     public void Dispose()
     {
         NativeMemory.AlignedFree(Pointer);
