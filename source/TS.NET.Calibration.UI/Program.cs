@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using TS.NET.Photino;
 using TS.NET.Sequencer;
 
 namespace TS.NET.Calibration.UI;

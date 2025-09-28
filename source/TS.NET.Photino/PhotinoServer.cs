@@ -4,7 +4,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 using System.Net.NetworkInformation;
 
-namespace TS.NET.Calibration.UI;
+namespace TS.NET.Photino;
 
 public class PhotinoServer
 {

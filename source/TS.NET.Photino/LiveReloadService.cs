@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Timers;
 using Timer = System.Timers.Timer;
 
-namespace TS.NET.Calibration.UI;
+namespace TS.NET.Photino;
 
 public class LiveReloadService : IDisposable
 {

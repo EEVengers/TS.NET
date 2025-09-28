@@ -16,7 +16,7 @@
     --color-zinc-600: oklch(44.2% 0.017 285.786);
     --color-zinc-700: oklch(37% 0.013 285.805);
     --color-zinc-800: oklch(27.4% 0.006 286.033);
-    --color-zinc-900: oklch(21% 0.006 285.885);
+    --color-zinc-950: oklch(14.1% 0.005 285.823);
     --color-neutral-50: oklch(98.5% 0 0);
     --color-neutral-100: oklch(97% 0 0);
     --color-neutral-400: oklch(70.8% 0 0);
@@ -195,9 +195,6 @@
   .fixed {
     position: fixed;
   }
-  .relative {
-    position: relative;
-  }
   .static {
     position: static;
   }
@@ -336,6 +333,10 @@
     border-style: var(--tw-border-style);
     border-width: 1px;
   }
+  .border-10 {
+    border-style: var(--tw-border-style);
+    border-width: 10px;
+  }
   .border-r {
     border-right-style: var(--tw-border-style);
     border-right-width: 1px;
@@ -356,8 +357,8 @@
   .bg-zinc-800 {
     background-color: var(--color-zinc-800);
   }
-  .bg-zinc-900 {
-    background-color: var(--color-zinc-900);
+  .bg-zinc-950 {
+    background-color: var(--color-zinc-950);
   }
   .p-1 {
     padding: calc(var(--spacing) * 1);
