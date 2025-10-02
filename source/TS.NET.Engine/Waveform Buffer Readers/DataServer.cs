@@ -284,28 +284,33 @@ namespace TS.NET.Engine
                         // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
                         if (captureMetadata.Triggered && captureMetadata.ProcessingConfig.TriggerInterpolation)
                         {
-                            ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetChannelReadBuffer<sbyte>(captureMetadata.TriggerChannelCaptureIndex);
-                            // Get the trigger index. If it's greater than 0, then do trigger interpolation.
-                            int triggerIndex = (int)(captureMetadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
-                            if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
+                            if (captureMetadata.ProcessingConfig.ChannelDataType == ThunderscopeDataType.I8)
                             {
-                                int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureMetadata.TriggerChannelCaptureIndex);
-                                ThunderscopeChannelFrontend triggerChannelFrontend = captureMetadata.HardwareConfig.Frontend[channelIndex];
-                                var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 255.0);
-                                var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
+                                ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetChannelReadBuffer<sbyte>(captureMetadata.TriggerChannelCaptureIndex);
+                                // Get the trigger index. If it's greater than 0, then do trigger interpolation.
+                                int triggerIndex = (int)(captureMetadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
+                                if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
+                                {
+                                    int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureMetadata.TriggerChannelCaptureIndex);
+                                    ThunderscopeChannelFrontend triggerChannelFrontend = captureMetadata.HardwareConfig.Frontend[channelIndex];
+                                    var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 255.0);
+                                    var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
 
-                                float fa = channelScale * triggerChannelBuffer[triggerIndex - 1] - channelOffset;
-                                float fb = channelScale * triggerChannelBuffer[triggerIndex] - channelOffset;
-                                float triggerLevel = channelScale * captureMetadata.ProcessingConfig.EdgeTriggerParameters.Level + channelOffset;
-                                float slope = fb - fa;
-                                float delta = triggerLevel - fa;
-                                float trigphase = delta / slope;
-                                chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
-                                if (!double.IsFinite(chHeader.trigphase))
-                                    chHeader.trigphase = 0;
-                                var delay = captureMetadata.ProcessingConfig.TriggerDelayFs - (ulong)triggerIndex * femtosecondsPerSample;
-                                chHeader.trigphase += delay;
+                                    float fa = channelScale * triggerChannelBuffer[triggerIndex - 1] - channelOffset;
+                                    float fb = channelScale * triggerChannelBuffer[triggerIndex] - channelOffset;
+                                    float triggerLevel = channelScale * captureMetadata.ProcessingConfig.EdgeTriggerParameters.Level + channelOffset;
+                                    float slope = fb - fa;
+                                    float delta = triggerLevel - fa;
+                                    float trigphase = delta / slope;
+                                    chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
+                                    if (!double.IsFinite(chHeader.trigphase))
+                                        chHeader.trigphase = 0;
+                                    var delay = captureMetadata.ProcessingConfig.TriggerDelayFs - (ulong)triggerIndex * femtosecondsPerSample;
+                                    chHeader.trigphase += delay;
+                                }
                             }
+                            else
+                                chHeader.trigphase = 0;
                         }
                         unsafe
                         {
@@ -324,7 +329,16 @@ namespace TS.NET.Engine
 
                                 Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
                                 bytesSent += (ulong)sizeof(ChannelHeader);
-                                var channelBuffer = MemoryMarshal.Cast<sbyte, byte>(captureBuffer.GetChannelReadBuffer<sbyte>(captureBufferIndex));
+                                ReadOnlySpan<byte> channelBuffer = [];
+                                switch(captureMetadata.ProcessingConfig.ChannelDataType)
+                                {
+                                    case ThunderscopeDataType.I8:
+                                        channelBuffer = MemoryMarshal.Cast<sbyte, byte>(captureBuffer.GetChannelReadBuffer<sbyte>(captureBufferIndex));
+                                        break;
+                                    case ThunderscopeDataType.I16:
+                                        channelBuffer = MemoryMarshal.Cast<short, byte>(captureBuffer.GetChannelReadBuffer<short>(captureBufferIndex));
+                                        break;
+                                }
                                 Send(channelBuffer);
                                 bytesSent += (ulong)captureMetadata.ProcessingConfig.ChannelDataLength;
                             }
