@@ -234,8 +234,8 @@
   .h-4 {
     height: calc(var(--spacing) * 4);
   }
-  .h-12 {
-    height: calc(var(--spacing) * 12);
+  .h-11 {
+    height: calc(var(--spacing) * 11);
   }
   .h-32 {
     height: calc(var(--spacing) * 32);
@@ -263,9 +263,6 @@
   }
   .w-20 {
     width: calc(var(--spacing) * 20);
-  }
-  .w-24 {
-    width: calc(var(--spacing) * 24);
   }
   .w-25 {
     width: calc(var(--spacing) * 25);
@@ -332,10 +329,6 @@
   .border {
     border-style: var(--tw-border-style);
     border-width: 1px;
-  }
-  .border-10 {
-    border-style: var(--tw-border-style);
-    border-width: 10px;
   }
   .border-r {
     border-right-style: var(--tw-border-style);

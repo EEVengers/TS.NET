@@ -42,7 +42,7 @@
                     </div>
                     <div class="flex-none">
                         <button id="sequence-button" type="button"
-                            class=" float-right border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-24 h-12 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
+                            class=" float-right border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
                             Ok
                         </button>
                     </div>
@@ -92,18 +92,18 @@
                 <div class="text-neutral-50 font-normal flex-none trim-box text-base">Calibration</div>
             </div>
             <div class="flex-none flex flex-row items-center gap-2 p-2">
-                <button id="start-button" type="button" @click="sendControlCommand('RUN')"
-                    class="flex-none border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-24 h-12 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
+                <button id="start-button" type="button"
+                    class="flex-none border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
                     Start
                 </button>
 
-                <button id="stop-button" type="button" @click="sendControlCommand('RUN')"
-                    class="flex-none border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-24 h-12 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
+                <button id="stop-button" type="button"
+                    class="flex-none border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
                     Stop
                 </button>
 
 
-                <div class="flex-none flex flex-col w-24 h-12 border border-zinc-600" x-data>
+                <div class="flex-none flex flex-col w-20 h-11 border border-zinc-600" x-data>
                     <div
                         class="flex-auto flex text-neutral-50 font-normal text-xs trim-box items-center justify-center bg-zinc-600">
                         DURATION
@@ -113,7 +113,7 @@
                         x-text="$store.headline.duration">-</div>
                 </div>
 
-                <div class="flex-none flex flex-col w-24 h-12 border border-zinc-600" x-data>
+                <div class="flex-none flex flex-col w-20 h-11 border border-zinc-600" x-data>
                     <div
                         class="flex-auto flex text-neutral-50 font-normal text-xs trim-box items-center justify-center bg-zinc-600">
                         STATUS
