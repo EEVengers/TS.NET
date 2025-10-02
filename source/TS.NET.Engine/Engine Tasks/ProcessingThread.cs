@@ -420,6 +420,7 @@ namespace TS.NET.Engine
                         {
                             processingConfig.ChannelDataType = dataDto.MemoryType;
                             captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
+                            ResetSampleBuffers();
                             logger.LogTrace("Memory type change ({channelDataType})", processingConfig.ChannelDataType);
                         }
 
@@ -780,6 +781,13 @@ namespace TS.NET.Engine
                         3 => data.Slice((data.Length / 4) * 3, data.Length / 4),
                         _ => throw new InvalidDataException()
                     };
+                }
+
+                void ResetSampleBuffers()
+                {
+                    foreach (var sampleBuffer in sampleBuffers)
+                        sampleBuffer.Reset();
+                    streamSampleCounter = 0;
                 }
             }
             catch (OperationCanceledException)

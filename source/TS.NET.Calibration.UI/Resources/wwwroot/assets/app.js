@@ -40,6 +40,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    sendMessage({ command: "app-loaded" });
+
     function updateLogView(message) {
         const logContent = document.getElementById("log-content");
         logContent.innerHTML = "";
@@ -182,8 +184,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return `${seconds.toFixed(0)}s`;
         }
     }
-
-    sendMessage({ command: "app-loaded" });
 
     sequenceButton.addEventListener("click", () => {
         const selectedSequence = document.querySelector('input[name="sequence"]:checked').value;

@@ -220,7 +220,8 @@ namespace TS.NET.Driver.Libtslitex
                                     AdcChannelMode.Quad;
 
             GetStatus();
-            config.SampleRateHz = health.AdcSampleRate;
+            config.SampleRateHz = cachedSampleRateHz;
+            config.Resolution = cachedSampleResolution;
 
             return config;
         }
