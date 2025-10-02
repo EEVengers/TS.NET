@@ -56,7 +56,8 @@ class Program
 
         var engine = new EngineManager();
         var deviceSerial = deviceIndex.ToString();
-        engine.Start(configurationFile, calibrationFile, deviceSerial);
+        if (!engine.TryStart(configurationFile, calibrationFile, deviceSerial))
+            return;
 
         DateTimeOffset startTime = DateTimeOffset.UtcNow;
         bool loop = true;

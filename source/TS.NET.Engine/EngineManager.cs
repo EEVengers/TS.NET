@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using NReco.Logging.File;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
@@ -25,7 +26,9 @@ namespace TS.NET.Engine
         private ScpiServer? scpiServer;
         private IEngineTask? waveformBufferReader;
 
-        public void Start(string configurationFile, string calibrationFile, string deviceSerial)
+        public BlockingChannel<INotificationDto>? UiNotifications;
+
+        public bool TryStart(string configurationFile, string calibrationFile, string deviceSerial)
         {
             Console.CancelKeyPress += (sender, e) => { StopLibtslitex(); Environment.Exit(0); };    // Handle Ctrl+C or Ctrl+Break event.
             AppDomain.CurrentDomain.ProcessExit += (sender, e) => { StopLibtslitex(); };            // Handle UI window close
@@ -98,16 +101,16 @@ namespace TS.NET.Engine
                 case "litex":
                 case "libtslitex":
                     {
-                        // Check for tslitex.dll
-                        if (!File.Exists("tslitex.dll"))
+                        string[] files = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "*tslitex*", SearchOption.TopDirectoryOnly);
+                        if (files.Length == 0)
                         {
-                            logger?.LogCritical($"tslitex DLL not found");
-                            return;
+                            logger?.LogCritical($"tslitex not found");
+                            return false;
                         }
                         var ts = new TS.NET.Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
 
-
-                        //ts.UserDataRead(ts)
+                        //Span<byte> userData = new byte[100];
+                        //Driver.Libtslitex.Thunderscope.UserDataRead(0, userData, 0);
 
                         ThunderscopeHardwareConfig initialHardwareConfiguration = new();
                         //initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Quad;
@@ -136,7 +139,7 @@ namespace TS.NET.Engine
                 default:
                     {
                         logger?.LogCritical($"{thunderscopeSettings.HardwareDriver} driver not supported");
-                        return;
+                        return false;
                     }
             }
 
@@ -175,6 +178,7 @@ namespace TS.NET.Engine
                 preProcessingPool: preProcessingPool,
                 hardwareControl: hardwareControl,
                 processingControl: processingControl,
+                uiNotifications: UiNotifications?.Writer,
                 captureBuffer: captureBuffer);
             processingThread.Start(startSemaphore);
 
@@ -217,7 +221,7 @@ namespace TS.NET.Engine
                     break;
                 default:
                     logger?.LogCritical($"{thunderscopeSettings.WaveformBufferReader} waveform buffer reader not supported");
-                    return;
+                    return false;
             }
             waveformBufferReader.Start(startSemaphore);
 
@@ -227,6 +231,7 @@ namespace TS.NET.Engine
             //    Thread.Sleep(3000);
             //    Environment.Exit(0);
             //}
+            return true;
         }
 
         public void Stop()

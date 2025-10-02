@@ -1,6 +1,6 @@
 {
   "SchemaVersion": "0",
-  "DeviceSerial": "",
+  "DeviceSerial": "TS0019",
   "CalibrationTimestamp": "",
   "Channel1": {
     "AttenuatorScale": 0.019666,
@@ -187,6 +187,11 @@
         "SampleRate": 1000000000,
         "ChannelCount": 1,
         "Scale": 1
+      },
+      {
+        "SampleRate": 660000000,
+        "ChannelCount": 1,
+        "Scale": 1.0608
       },
       {
         "SampleRate": 500000000,

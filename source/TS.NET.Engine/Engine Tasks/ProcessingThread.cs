@@ -11,6 +11,7 @@ namespace TS.NET.Engine
         private readonly BlockingPool<DataDto> preProcessingPool;
         private readonly BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl;
         private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
+        private readonly BlockingChannelWriter<INotificationDto>? uiNotifications;
         private readonly CaptureCircularBuffer captureBuffer;
 
         private CancellationTokenSource? cancelTokenSource;
@@ -23,6 +24,7 @@ namespace TS.NET.Engine
             BlockingPool<DataDto> preProcessingPool,
             BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
             BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
+            BlockingChannelWriter<INotificationDto>? uiNotifications,
             CaptureCircularBuffer captureBuffer)
         {
             logger = loggerFactory.CreateLogger(nameof(ProcessingThread));
@@ -31,6 +33,7 @@ namespace TS.NET.Engine
             this.preProcessingPool = preProcessingPool;
             this.hardwareControl = hardwareControl;
             this.processingControl = processingControl;
+            this.uiNotifications = uiNotifications;
             this.captureBuffer = captureBuffer;
         }
 
@@ -44,6 +47,7 @@ namespace TS.NET.Engine
                 preProcessingPool: preProcessingPool,
                 hardwareControl: hardwareControl,
                 processingControl: processingControl,
+                uiNotifications: uiNotifications,
                 captureBuffer: captureBuffer,
                 startSemaphore: startSemaphore,
                 cancelToken: cancelTokenSource.Token), TaskCreationOptions.LongRunning);
@@ -62,6 +66,7 @@ namespace TS.NET.Engine
             BlockingPool<DataDto> preProcessingPool,
             BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
             BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
+            BlockingChannelWriter<INotificationDto>? uiNotifications,
             CaptureCircularBuffer captureBuffer,
             SemaphoreSlim startSemaphore,
             CancellationToken cancelToken)
@@ -112,6 +117,8 @@ namespace TS.NET.Engine
                     BurstTriggerParameters = new BurstTriggerParameters() { WindowHighLevel = 64, WindowLowLevel = -64, MinimumInRangePeriod = 450000 },
                     BoxcarAveraging = BoxcarAveraging.None
                 };
+                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                uiNotifications?.TryWrite(new ProcessingStopDto());
 
                 // Periodic debug display variables
                 DateTimeOffset startTime = DateTimeOffset.UtcNow;
@@ -171,10 +178,12 @@ namespace TS.NET.Engine
                                 if (processingConfig.Mode == Mode.Single)
                                     singleTriggerLatch = true;
                                 StartHardware();
+                                uiNotifications?.TryWrite(processingRunDto);
                                 logger.LogDebug($"{nameof(ProcessingRunDto)}");
                                 break;
                             case ProcessingStopDto processingStopDto:
                                 StopHardware();
+                                uiNotifications?.TryWrite(processingStopDto);
                                 logger.LogDebug($"{nameof(ProcessingStopDto)}");
                                 break;
                             case ProcessingForceDto processingForceDto:
@@ -182,8 +191,9 @@ namespace TS.NET.Engine
                                 {
                                     modeAfterForce = processingConfig.Mode;
                                     forceTriggerLatch = true;
+                                    uiNotifications?.TryWrite(processingForceDto);
+                                    logger.LogDebug($"{nameof(ProcessingForceDto)}");
                                 }
-                                logger.LogDebug($"{nameof(ProcessingForceDto)}");
                                 break;
                             case ProcessingGetStateRequest processingGetStateRequest:
                                 processingControl.Response.Writer.Write(new ProcessingGetStateResponse(runMode));
@@ -250,11 +260,13 @@ namespace TS.NET.Engine
                                         processingConfig.Mode = processingSetModeDto.Mode;
                                         break;
                                 }
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(ProcessingSetModeDto)} (mode: {processingConfig.Mode})");
                                 break;
                             case ProcessingSetTriggerSourceDto processingSetTriggerSourceDto:
                                 processingConfig.TriggerChannel = processingSetTriggerSourceDto.Channel;
                                 captureBuffer.Reset();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerSourceDto)} (channel: {processingConfig.TriggerChannel})");
                                 break;
                             case ProcessingSetTriggerTypeDto processingSetTriggerTypeDto:
@@ -266,6 +278,7 @@ namespace TS.NET.Engine
                                     UpdateTriggerHorizontal(cachedHardwareConfig);
 
                                     captureBuffer.Reset();
+                                    uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (type: {processingConfig.TriggerType})");
                                 }
                                 else
@@ -279,6 +292,7 @@ namespace TS.NET.Engine
                                     processingConfig.TriggerDelayFs = processingSetTriggerDelayDto.Femtoseconds;
                                     UpdateTriggerHorizontal(cachedHardwareConfig);
                                     captureBuffer.Reset();
+                                    uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (femtoseconds: {processingConfig.TriggerDelayFs})");
                                 }
                                 else
@@ -292,6 +306,7 @@ namespace TS.NET.Engine
                                     processingConfig.TriggerHoldoffFs = processingSetTriggerHoldoffDto.Femtoseconds;
                                     UpdateTriggerHorizontal(cachedHardwareConfig);
                                     captureBuffer.Reset();
+                                    uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                     logger.LogDebug($"{nameof(ProcessingSetTriggerHoldoffDto)} (femtoseconds: {processingConfig.TriggerHoldoffFs})");
                                 }
                                 else
@@ -323,6 +338,7 @@ namespace TS.NET.Engine
                                     UpdateTriggerParameters();
 
                                     captureBuffer.Reset();
+                                    uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                     logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerLevelDto)} (level: {triggerLevel}, hysteresis: {processingConfig.EdgeTriggerParameters.Hysteresis})");
                                 }
                                 else
@@ -332,6 +348,7 @@ namespace TS.NET.Engine
                                 break;
                             case ProcessingSetTriggerInterpolationDto processingSetTriggerInterpolation:
                                 processingConfig.TriggerInterpolation = processingSetTriggerInterpolation.Enabled;
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerInterpolationDto)} (enabled: {processingSetTriggerInterpolation.Enabled})");
                                 break;
                             case ProcessingSetEdgeTriggerDirectionDto processingSetEdgeTriggerDirection:
@@ -345,6 +362,7 @@ namespace TS.NET.Engine
                                         SwitchTrigger();
                                         UpdateTriggerHorizontal(cachedHardwareConfig);
                                     }
+                                    uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                     logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerDirectionDto)} (direction: {processingSetEdgeTriggerDirection.Edge})");
                                 }
                                 else
@@ -358,6 +376,7 @@ namespace TS.NET.Engine
                                     processingConfig.ChannelDataLength = processingSetDepthDto.Samples;
                                     captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
                                     UpdateTriggerHorizontal(cachedHardwareConfig);
+                                    uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                     logger.LogDebug($"{nameof(ProcessingSetDepthDto)} ({processingConfig.ChannelDataLength})");
                                 }
                                 else
@@ -368,7 +387,8 @@ namespace TS.NET.Engine
                             case ProcessingSetBoxcarFilter processingSetBoxcarFilter:
                                 //processingConfig.BoxcarAveraging = processingSetBoxcarFilter.Averages;
                                 //processingConfig.ChannelDataType = ThunderscopeDataType.I16;
-                                logger.LogDebug($"{nameof(ProcessingSetBoxcarFilter)} (averages: {processingSetBoxcarFilter.Averages})");
+                                //uiNotifications?.TryWrite(processingSetBoxcarFilter);
+                                //logger.LogDebug($"{nameof(ProcessingSetBoxcarFilter)} (averages: {processingSetBoxcarFilter.Averages})");
                                 break;
                             default:
                                 logger.LogWarning($"Unknown ProcessingRequestDto: {request}");
@@ -376,34 +396,34 @@ namespace TS.NET.Engine
                         }
                     }
 
-                    if (preProcessingPool.Source.Reader.TryRead(out var inputDataDto, 10, cancelToken))
+                    if (preProcessingPool.Source.Reader.TryRead(out var dataDto, 10, cancelToken))
                     {
                         totalDequeueCount++;
-                        if (inputDataDto == null)
+                        if (dataDto == null)
                             break;
 
-                        if (inputDataDto.HardwareConfig.SampleRateHz != cachedHardwareConfig.SampleRateHz)
+                        if (dataDto.HardwareConfig.SampleRateHz != cachedHardwareConfig.SampleRateHz)
                         {
-                            UpdateTriggerHorizontal(inputDataDto.HardwareConfig);
+                            UpdateTriggerHorizontal(dataDto.HardwareConfig);
                             captureBuffer.Reset();
-                            logger.LogTrace("Hardware sample rate change ({sampleRateHz})", inputDataDto.HardwareConfig.SampleRateHz);
+                            logger.LogTrace("Hardware sample rate change ({sampleRateHz})", dataDto.HardwareConfig.SampleRateHz);
                         }
 
-                        if (inputDataDto.HardwareConfig.EnabledChannelsCount() != cachedHardwareConfig.EnabledChannelsCount())
+                        if (dataDto.HardwareConfig.EnabledChannelsCount() != cachedHardwareConfig.EnabledChannelsCount())
                         {
-                            processingConfig.ChannelCount = inputDataDto.HardwareConfig.EnabledChannelsCount();
+                            processingConfig.ChannelCount = dataDto.HardwareConfig.EnabledChannelsCount();
                             captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
                             logger.LogTrace("Hardware enabled channel change ({channelCount})", processingConfig.ChannelCount);
                         }
 
-                        if (inputDataDto.MemoryType != processingConfig.ChannelDataType)
+                        if (dataDto.MemoryType != processingConfig.ChannelDataType)
                         {
-                            processingConfig.ChannelDataType = inputDataDto.MemoryType;
+                            processingConfig.ChannelDataType = dataDto.MemoryType;
                             captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
                             logger.LogTrace("Memory type change ({channelDataType})", processingConfig.ChannelDataType);
                         }
 
-                        cachedHardwareConfig = inputDataDto.HardwareConfig;
+                        cachedHardwareConfig = dataDto.HardwareConfig;
 
                         switch (cachedHardwareConfig.AdcChannelMode)
                         {
@@ -412,12 +432,12 @@ namespace TS.NET.Engine
                                 switch (processingConfig.ChannelDataType)
                                 {
                                     case ThunderscopeDataType.I8:
-                                        sampleBuffers[0].Write<sbyte>(inputDataDto.Memory.DataSpanI8);
-                                        streamSampleCounter += inputDataDto.Memory.DataSpanI8.Length;
+                                        sampleBuffers[0].Write<sbyte>(dataDto.Memory.DataSpanI8);
+                                        streamSampleCounter += dataDto.Memory.DataSpanI8.Length;
                                         break;
                                     case ThunderscopeDataType.I16:
-                                        sampleBuffers[0].Write<short>(inputDataDto.Memory.DataSpanI16);
-                                        streamSampleCounter += inputDataDto.Memory.DataSpanI16.Length;
+                                        sampleBuffers[0].Write<short>(dataDto.Memory.DataSpanI16);
+                                        streamSampleCounter += dataDto.Memory.DataSpanI16.Length;
                                         break;
                                 }
                                 break;
@@ -427,7 +447,7 @@ namespace TS.NET.Engine
                                 {
                                     case ThunderscopeDataType.I8:
                                         {
-                                            var span = inputDataDto.Memory.DataSpanI8;
+                                            var span = dataDto.Memory.DataSpanI8;
                                             sampleBuffers[0].Write<sbyte>(Span2Ch(0, span));
                                             sampleBuffers[1].Write<sbyte>(Span2Ch(1, span));
                                             streamSampleCounter += span.Length / 2;
@@ -435,7 +455,7 @@ namespace TS.NET.Engine
                                         }
                                     case ThunderscopeDataType.I16:
                                         {
-                                            var span = inputDataDto.Memory.DataSpanI16;
+                                            var span = dataDto.Memory.DataSpanI16;
                                             sampleBuffers[0].Write<short>(Span2Ch(0, span));
                                             sampleBuffers[1].Write<short>(Span2Ch(1, span));
                                             streamSampleCounter += span.Length / 2;
@@ -449,7 +469,7 @@ namespace TS.NET.Engine
                                 {
                                     case ThunderscopeDataType.I8:
                                         {
-                                            var span = inputDataDto.Memory.DataSpanI8;
+                                            var span = dataDto.Memory.DataSpanI8;
                                             sampleBuffers[0].Write<sbyte>(Span4Ch(0, span));
                                             sampleBuffers[1].Write<sbyte>(Span4Ch(1, span));
                                             sampleBuffers[2].Write<sbyte>(Span4Ch(2, span));
@@ -459,7 +479,7 @@ namespace TS.NET.Engine
                                         }
                                     case ThunderscopeDataType.I16:
                                         {
-                                            var span = inputDataDto.Memory.DataSpanI16;
+                                            var span = dataDto.Memory.DataSpanI16;
                                             sampleBuffers[0].Write<short>(Span4Ch(0, span));
                                             sampleBuffers[1].Write<short>(Span4Ch(1, span));
                                             sampleBuffers[2].Write<short>(Span4Ch(2, span));
@@ -487,21 +507,21 @@ namespace TS.NET.Engine
                                         {
                                             case AdcChannelMode.Single:
                                                 triggerChannelCaptureIndex = 0;
-                                                triggerChannelBufferI8 = inputDataDto.Memory.DataSpanI8;
-                                                triggerChannelBufferI16 = inputDataDto.Memory.DataSpanI16;
+                                                triggerChannelBufferI8 = dataDto.Memory.DataSpanI8;
+                                                triggerChannelBufferI16 = dataDto.Memory.DataSpanI16;
                                                 break;
                                             case AdcChannelMode.Dual:
                                                 triggerChannelCaptureIndex = cachedHardwareConfig.GetCaptureBufferIndexForTriggerChannel(processingConfig.TriggerChannel);
                                                 triggerChannelBufferI8 = triggerChannelCaptureIndex switch
                                                 {
-                                                    0 => Span2Ch(0, inputDataDto.Memory.DataSpanI8),
-                                                    1 => Span2Ch(1, inputDataDto.Memory.DataSpanI8),
+                                                    0 => Span2Ch(0, dataDto.Memory.DataSpanI8),
+                                                    1 => Span2Ch(1, dataDto.Memory.DataSpanI8),
                                                     _ => throw new NotImplementedException()
                                                 };
                                                 triggerChannelBufferI16 = triggerChannelCaptureIndex switch
                                                 {
-                                                    0 => Span2Ch(0, inputDataDto.Memory.DataSpanI16),
-                                                    1 => Span2Ch(1, inputDataDto.Memory.DataSpanI16),
+                                                    0 => Span2Ch(0, dataDto.Memory.DataSpanI16),
+                                                    1 => Span2Ch(1, dataDto.Memory.DataSpanI16),
                                                     _ => throw new NotImplementedException()
                                                 };
                                                 break;
@@ -509,18 +529,18 @@ namespace TS.NET.Engine
                                                 triggerChannelCaptureIndex = cachedHardwareConfig.GetCaptureBufferIndexForTriggerChannel(processingConfig.TriggerChannel);
                                                 triggerChannelBufferI8 = triggerChannelCaptureIndex switch
                                                 {
-                                                    0 => Span4Ch(0, inputDataDto.Memory.DataSpanI8),
-                                                    1 => Span4Ch(1, inputDataDto.Memory.DataSpanI8),
-                                                    2 => Span4Ch(2, inputDataDto.Memory.DataSpanI8),
-                                                    3 => Span4Ch(3, inputDataDto.Memory.DataSpanI8),
+                                                    0 => Span4Ch(0, dataDto.Memory.DataSpanI8),
+                                                    1 => Span4Ch(1, dataDto.Memory.DataSpanI8),
+                                                    2 => Span4Ch(2, dataDto.Memory.DataSpanI8),
+                                                    3 => Span4Ch(3, dataDto.Memory.DataSpanI8),
                                                     _ => throw new NotImplementedException()
                                                 };
                                                 triggerChannelBufferI16 = triggerChannelCaptureIndex switch
                                                 {
-                                                    0 => Span4Ch(0, inputDataDto.Memory.DataSpanI16),
-                                                    1 => Span4Ch(1, inputDataDto.Memory.DataSpanI16),
-                                                    2 => Span4Ch(2, inputDataDto.Memory.DataSpanI16),
-                                                    3 => Span4Ch(3, inputDataDto.Memory.DataSpanI16),
+                                                    0 => Span4Ch(0, dataDto.Memory.DataSpanI16),
+                                                    1 => Span4Ch(1, dataDto.Memory.DataSpanI16),
+                                                    2 => Span4Ch(2, dataDto.Memory.DataSpanI16),
+                                                    3 => Span4Ch(3, dataDto.Memory.DataSpanI16),
                                                     _ => throw new NotImplementedException()
                                                 };
                                                 break;
@@ -537,7 +557,6 @@ namespace TS.NET.Engine
                                                 triggerI16.Process(input: triggerChannelBufferI16, ref edgeTriggerResults);
                                                 break;
                                         }
-
 
                                         if (edgeTriggerResults.CaptureEndCount > 0)
                                         {
@@ -576,7 +595,7 @@ namespace TS.NET.Engine
                         }
 
                         // Finished with the memory, return it
-                        preProcessingPool.Return.Writer.Write(inputDataDto);
+                        preProcessingPool.Return.Writer.Write(dataDto);
 
                         var elapsedTime = periodicUpdateTimer.Elapsed.TotalSeconds;
                         if (elapsedTime >= 10)
@@ -707,11 +726,17 @@ namespace TS.NET.Engine
                             switch (processingConfig.ChannelDataType)
                             {
                                 case ThunderscopeDataType.I8:
-                                    sampleBuffers[b].Read(captureBuffer.GetChannelWriteBuffer<sbyte>(b), offset);
-                                    break;
+                                    {
+                                        var buffer = captureBuffer.GetChannelWriteBuffer<sbyte>(b);
+                                        sampleBuffers[b].Read(buffer, offset);
+                                        break;
+                                    }
                                 case ThunderscopeDataType.I16:
-                                    sampleBuffers[b].Read(captureBuffer.GetChannelWriteBuffer<short>(b), offset);
-                                    break;
+                                    {
+                                        var buffer = captureBuffer.GetChannelWriteBuffer<short>(b);
+                                        sampleBuffers[b].Read(buffer, offset);
+                                        break;
+                                    }
                             }
                         }
                         var captureMetadata = new CaptureMetadata

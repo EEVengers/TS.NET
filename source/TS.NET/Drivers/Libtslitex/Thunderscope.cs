@@ -254,19 +254,33 @@ namespace TS.NET.Driver.Libtslitex
             health.VccAux = litexState.vcc_aux / 1000.0;
             health.VccBram = litexState.vcc_bram / 1000.0;
             cachedSampleRateHz = health.AdcSampleRate;
+            cachedSampleResolution = health.AdcSampleResolution == 256 ? AdcResolution.EightBit : AdcResolution.TwelveBit;
 
             return health;
         }
 
-        uint cachedSampleRateHz = 1000000000;
+        uint cachedSampleRateHz = 1_000_000_000;
         AdcResolution cachedSampleResolution = AdcResolution.EightBit;
         public void SetRate(ulong sampleRateHz)
+        {
+            SetSampleMode(sampleRateHz, cachedSampleResolution);
+        }
+
+        public void SetResolution(AdcResolution resolution)
+        {
+            uint sampleRateHz = cachedSampleRateHz;
+            if (resolution == AdcResolution.TwelveBit && sampleRateHz > 660_000_000)
+                sampleRateHz = 660_000_000;
+
+            SetSampleMode(sampleRateHz, resolution);
+        }
+
+        private void SetSampleMode(ulong sampleRateHz, AdcResolution resolution)
         {
             if (!open)
                 throw new Exception("Thunderscope not open");
 
-            //cachedSampleRateHz = (uint)sampleRateHz;  // Do not do this, GetStatus will do this and handle the frontends
-            uint resolutionValue = cachedSampleResolution switch { AdcResolution.EightBit => 256, AdcResolution.TwelveBit => 4096, _ => throw new NotImplementedException() };
+            uint resolutionValue = resolution switch { AdcResolution.EightBit => 256, AdcResolution.TwelveBit => 4096, _ => throw new NotImplementedException() };
             var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, resolutionValue);
 
             // There is a rate vs. scale relationship so update frontends
@@ -276,21 +290,6 @@ namespace TS.NET.Driver.Libtslitex
                 logger.LogTrace($"Thunderscope failed to set sample rate ({sampleRateHz}): INVALID_PARAMETER");
             else if (retVal < 0)
                 throw new Exception($"Thunderscope had an errors trying to set sample rate {sampleRateHz} ({retVal})");
-        }
-
-        public void SetResolution(AdcResolution resolution)
-        {
-            if (!open)
-                throw new Exception("Thunderscope not open");
-
-            cachedSampleResolution = resolution;
-            uint resolutionValue = cachedSampleResolution switch { AdcResolution.EightBit => 256, AdcResolution.TwelveBit => 4096, _ => throw new NotImplementedException() };
-            var retVal = Interop.SetSampleMode(tsHandle, cachedSampleRateHz, resolutionValue);
-
-            if (retVal == -2) //Invalid Parameter
-                logger.LogTrace($"Thunderscope failed to set resolution ({resolutionValue}): INVALID_PARAMETER");
-            else if (retVal < 0)
-                throw new Exception($"Thunderscope had an errors trying to set resolution {resolutionValue} ({retVal})");
         }
 
         public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)
@@ -535,10 +534,9 @@ namespace TS.NET.Driver.Libtslitex
             channelManualOverride[channelIndex] = true;
         }
 
-        public void UserDataRead(Span<byte> buffer, int offset)
+        public static void UserDataRead(uint deviceIndex, Span<byte> buffer, int offset)
         {
-            if (!open)
-                throw new Exception("Thunderscope not open");
+            var tsHandle = Interop.Open(deviceIndex, false);
 
             unsafe
             {
@@ -547,6 +545,8 @@ namespace TS.NET.Driver.Libtslitex
                     Interop.UserDataRead(tsHandle, bufferP, (uint)offset, (uint)buffer.Length);
                 }
             }
+
+            Interop.Close(tsHandle);
         }
 
         private void UpdateFrontends()

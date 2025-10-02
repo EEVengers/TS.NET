@@ -7,8 +7,15 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <Version>0.1.0</Version>
-    <InvariantGlobalization>true</InvariantGlobalization>
+
+	<!-- JIT flags -->
+	<PublishTrimmed>true</PublishTrimmed>
+	<PublishSingleFile>true</PublishSingleFile>
+	<SelfContained>true</SelfContained>
+	<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+
 	<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+	<InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +23,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
     <PackageReference Include="NetCoreServer" Version="8.0.7" />
     <PackageReference Include="NReco.Logging.File" Version="1.2.1" />
+    <PackageReference Include="Riok.Mapperly" Version="4.2.1" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageReference Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" Version="16.2.0" />
     <PackageReference Include="YamlDotNet" Version="16.2.0" />

@@ -32,12 +32,12 @@ namespace TS.NET.Engine
         {
             cancelTokenSource = new CancellationTokenSource();
             taskLoop = Task.Factory.StartNew(() => Loop(
-                logger: logger, 
-                thunderscope: thunderscope, 
-                settings: settings, 
-                hardwarePool: hardwarePool, 
+                logger: logger,
+                thunderscope: thunderscope,
+                settings: settings,
+                hardwarePool: hardwarePool,
                 hardwareControl: hardwareControl,
-                startSemaphore, 
+                startSemaphore,
                 cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         }
 
@@ -78,6 +78,8 @@ namespace TS.NET.Engine
                 var dataDto = hardwarePool.Return.Reader.Read(cancelToken);
                 dataDto.Memory.Reset();
                 bool validDataDto = true;
+                var resolution = AdcResolution.EightBit;
+                var dataType = ThunderscopeDataType.I8;
 
                 while (true)
                 {
@@ -107,6 +109,13 @@ namespace TS.NET.Engine
                                     }
                                 case HardwareSetResolutionRequest hardwareSetResolutionRequest:
                                     {
+                                        resolution = hardwareSetResolutionRequest.Resolution;
+                                        dataType = resolution switch
+                                        {
+                                            AdcResolution.EightBit => ThunderscopeDataType.I8,
+                                            AdcResolution.TwelveBit => ThunderscopeDataType.I16,
+                                            _ => throw new NotImplementedException()
+                                        };
                                         thunderscope.SetResolution(hardwareSetResolutionRequest.Resolution);
                                         logger.LogDebug($"{nameof(HardwareSetResolutionRequest)} (resolution: {hardwareSetResolutionRequest.Resolution})");
                                         break;
@@ -277,14 +286,14 @@ namespace TS.NET.Engine
                             dataDto = hardwarePool.Return.Reader.Read(cancelToken);
                             dataDto.Memory.Reset();
                             validDataDto = true;
-                        }                     
+                        }
                         if (thunderscope.TryRead(dataDto.Memory, cancelToken))
                         {
                             if (enqueueCounter == 0)
                                 logger.LogDebug("First block of data received");
                             periodicEnqueueCount++;
                             enqueueCounter++;
-                            dataDto.MemoryType = ThunderscopeDataType.I8;
+                            dataDto.MemoryType = dataType;
                             dataDto.HardwareConfig = thunderscope.GetConfiguration();
                             hardwarePool.Source.Writer.Write(dataDto, cancelToken);
                             validDataDto = false;

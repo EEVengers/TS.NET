@@ -52,7 +52,7 @@ namespace TS.NET.Engine
         {
             try
             {
-                Thread.CurrentThread.Name = "Pre-processing";
+                Thread.CurrentThread.Name = "PreProcessing";
                 if (settings.PreProcessingThreadProcessorAffinity > -1)
                 {
                     if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux())
@@ -89,13 +89,28 @@ namespace TS.NET.Engine
                             switch (hardwareDataDto.HardwareConfig.AdcChannelMode)
                             {
                                 case AdcChannelMode.Single:
-                                    hardwareDataDto.Memory.DataSpanI8.CopyTo(preProcessingDataDto.Memory.DataSpanI8);
+                                    //hardwareDataDto.Memory.DataSpanI8.CopyTo(preProcessingDataDto.Memory.DataSpanI8);
+                                    (hardwareDataDto.Memory, preProcessingDataDto.Memory) = (preProcessingDataDto.Memory, hardwareDataDto.Memory);
                                     break;
                                 case AdcChannelMode.Dual:
-                                    ShuffleI8.TwoChannels(input: hardwareDataDto.Memory.DataSpanI8, output: preProcessingDataDto.Memory.DataSpanI8);
+                                    switch (hardwareDataDto.MemoryType)
+                                    {
+                                        case ThunderscopeDataType.I8:
+                                            ShuffleI8.TwoChannels(input: hardwareDataDto.Memory.DataSpanI8, output: preProcessingDataDto.Memory.DataSpanI8);
+                                            break;
+                                        case ThunderscopeDataType.I16:
+                                            throw new NotImplementedException();
+                                    }
                                     break;
                                 case AdcChannelMode.Quad:
-                                    ShuffleI8.FourChannels(input: hardwareDataDto.Memory.DataSpanI8, output: preProcessingDataDto.Memory.DataSpanI8);
+                                    switch (hardwareDataDto.MemoryType)
+                                    {
+                                        case ThunderscopeDataType.I8:
+                                            ShuffleI8.FourChannels(input: hardwareDataDto.Memory.DataSpanI8, output: preProcessingDataDto.Memory.DataSpanI8);
+                                            break;
+                                        case ThunderscopeDataType.I16:
+                                            throw new NotImplementedException();
+                                    }
                                     break;
                             }
                             preProcessingDataDto.HardwareConfig = hardwareDataDto.HardwareConfig;
