@@ -1,8 +1,7 @@
-﻿namespace TS.NET.Engine
+﻿namespace TS.NET.Engine;
+
+internal interface IThread
 {
-    internal interface IThread
-    {
-        void Start(SemaphoreSlim startSemaphore);
-        void Stop();
-    }
+    void Start(SemaphoreSlim startSemaphore);
+    void Stop();
 }

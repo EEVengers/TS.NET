@@ -1,12 +1,11 @@
-﻿namespace TS.NET.Engine
-{
-    internal class EmptyWaveformBufferReader : IThread
-    {
-        public void Start(SemaphoreSlim startSemaphore)
-        {
-            startSemaphore.Release();
-        }
+﻿namespace TS.NET.Engine;
 
-        public void Stop() { }
+internal class EmptyWaveformBufferReader : IThread
+{
+    public void Start(SemaphoreSlim startSemaphore)
+    {
+        startSemaphore.Release();
     }
+
+    public void Stop() { }
 }
