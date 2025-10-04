@@ -31,10 +31,10 @@ class Program
 
         var window = new PhotinoWindow()
             .SetLogVerbosity(0)
-            .SetTitle("ThunderScope Calibration")
+            .SetTitle("Calibration")
             .SetIconFile(ExtractEmbeddedResourceToTempFile("icon.ico", "TS.NET.Calibration.UI"))
             .SetUseOsDefaultSize(false)
-            .SetSize(new Size(1440, 900))
+            .SetNotificationsEnabled(false)
             .Center()
             .SetResizable(true)
             .RegisterWebMessageReceivedHandler((object sender, string message) =>
@@ -130,6 +130,27 @@ class Program
                         break;
                 }
             }).Load(loadPath);
+
+        bool initialized = false;
+        var windowSizing = new WindowSizing(baseMinWidth: 1024, baseMinHeight: 768, baseWidth: 1440, baseHeight: 900);
+        window.WindowCreated += (_, _) =>
+        {
+            windowSizing.UpdateSize(window);
+            window.Center();
+            initialized = true;
+        };
+
+        window.WindowSizeChanged += (_, _) =>
+        {
+            if (initialized)
+                windowSizing.UpdateSize(window);
+        };
+
+        window.WindowLocationChanged += (_, _) =>
+        {
+            if (initialized)
+                windowSizing.UpdateSize(window);
+        };
 
         Logger.Instance.EventLogged += (logEvent) =>
         {
