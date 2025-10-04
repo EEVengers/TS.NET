@@ -1,6 +1,6 @@
 ﻿namespace TS.NET.Engine
 {
-    internal class EmptyWaveformBufferReader : IEngineTask
+    internal class EmptyWaveformBufferReader : IThread
     {
         public void Start(SemaphoreSlim startSemaphore)
         {

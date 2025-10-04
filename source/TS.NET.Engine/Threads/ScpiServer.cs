@@ -6,21 +6,21 @@ using System.Text;
 
 namespace TS.NET.Engine
 {
-    class ScpiServer : TcpServer, IEngineTask
+    class ScpiServer : TcpServer, IThread
     {
         private readonly ILogger logger;
         private readonly ThunderscopeSettings settings;
         private readonly BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl;
         private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
 
-        public ScpiServer(ILoggerFactory loggerFactory,
+        public ScpiServer(ILogger logger,
             ThunderscopeSettings settings,
             IPAddress address,
             int port,
             BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
             BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl) : base(address, port)
         {
-            logger = loggerFactory.CreateLogger(nameof(ScpiServer));
+            this.logger = logger;
             this.settings = settings;
             this.hardwareControl = hardwareControl;
             this.processingControl = processingControl;

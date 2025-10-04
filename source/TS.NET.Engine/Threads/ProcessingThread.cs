@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace TS.NET.Engine
 {
-    public class ProcessingThread : IEngineTask
+    public class ProcessingThread : IThread
     {
         private readonly ILogger logger;
         private readonly ThunderscopeSettings settings;
@@ -18,7 +18,7 @@ namespace TS.NET.Engine
         private Task? taskLoop;
 
         public ProcessingThread(
-            ILoggerFactory loggerFactory,
+            ILogger logger,
             ThunderscopeSettings settings,
             ThunderscopeHardwareConfig hardwareConfig,
             BlockingPool<DataDto> preProcessingPool,
@@ -27,7 +27,7 @@ namespace TS.NET.Engine
             BlockingChannelWriter<INotificationDto>? uiNotifications,
             CaptureCircularBuffer captureBuffer)
         {
-            logger = loggerFactory.CreateLogger(nameof(ProcessingThread));
+            this.logger = logger;
             this.settings = settings;
             this.hardwareConfig = hardwareConfig;
             this.preProcessingPool = preProcessingPool;

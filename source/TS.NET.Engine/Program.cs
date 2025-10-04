@@ -1,4 +1,7 @@
-﻿using System.CommandLine;
+﻿using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Sinks.SystemConsole.Themes;
+using System.CommandLine;
 using System.Text.Json;
 using TS.NET;
 using TS.NET.Engine;
@@ -54,7 +57,35 @@ class Program
         File.WriteAllText("thunderscope-calibration (defaults).json", json);
 #endif
 
-        var engine = new EngineManager();
+        //IConfigurationBuilder configurationBuilder = new ConfigurationBuilder().AddJsonFile("thunderscope-appsettings.json");
+        //var configuration = configurationBuilder.Build();
+
+#if DEBUG
+        var serilog = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+            .Enrich.FromLogContext()
+            .WriteTo.Console(
+                theme: AnsiConsoleTheme.Code,
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}"
+            )
+            .WriteTo.File("Logs/TS.NET.Engine .txt", rollingInterval: RollingInterval.Day)
+            .CreateLogger();
+#else
+        var serilog = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+            .Enrich.FromLogContext()
+            .WriteTo.Console(
+                theme: AnsiConsoleTheme.Code,
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}"
+            )
+            .CreateLogger();
+#endif
+        var loggerFactory = new LoggerFactory().AddSerilog(serilog);
+        var logger = loggerFactory.CreateLogger("TS.NET.Engine");
+
+        var engine = new EngineManager(loggerFactory);
         var deviceSerial = deviceIndex.ToString();
         if (!engine.TryStart(configurationFile, calibrationFile, deviceSerial))
             return;

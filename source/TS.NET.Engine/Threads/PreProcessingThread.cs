@@ -2,7 +2,7 @@
 
 namespace TS.NET.Engine
 {
-    public class PreProcessingThread : IEngineTask
+    public class PreProcessingThread : IThread
     {
         private readonly ILogger logger;
         private readonly ThunderscopeSettings settings;
@@ -13,12 +13,12 @@ namespace TS.NET.Engine
         private Task? taskLoop;
 
         public PreProcessingThread(
-            ILoggerFactory loggerFactory,
+            ILogger logger,
             ThunderscopeSettings settings,
             BlockingPool<DataDto> hardwarePool,
             BlockingPool<DataDto> preProcessingPool)
         {
-            logger = loggerFactory.CreateLogger(nameof(PreProcessingThread));
+            this.logger = logger;
             this.settings = settings;
             this.hardwarePool = hardwarePool;
             this.preProcessingPool = preProcessingPool;

@@ -8,15 +8,20 @@ namespace TS.NET.Engine
 {
     // Note: ICaptureBufferReader, if used properly, is thread safe however if multiple clients connect then it will be lossy
     // (the data sent to a client won't be sent to any others if multiple request data)
-    internal class DataServer : TcpServer, IEngineTask
+    internal class DataServer : TcpServer, IThread
     {
         private readonly ILogger logger;
         private readonly CancellationTokenSource cancellationTokenSource;
         private readonly ICaptureBufferReader captureBuffer;
 
-        public DataServer(ILoggerFactory loggerFactory, ThunderscopeSettings settings, IPAddress address, int port, ICaptureBufferReader captureBuffer) : base(address, port)
+        public DataServer(
+            ILogger logger, 
+            ThunderscopeSettings settings, 
+            IPAddress address, 
+            int port, 
+            ICaptureBufferReader captureBuffer) : base(address, port)
         {
-            logger = loggerFactory.CreateLogger(nameof(DataServer));
+            this.logger = logger;
             cancellationTokenSource = new();
             this.captureBuffer = captureBuffer;
             logger.LogDebug("Started");

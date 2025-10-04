@@ -1,7 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using NReco.Logging.File;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
@@ -17,6 +15,9 @@ namespace TS.NET.Engine
     //   By serialising the config-update/data-read it also allows for specific behaviours (like pausing acquisition on certain config updates) and ensuring a perfect match between sample-block & hardware configuration that created it.
     public class EngineManager
     {
+        private readonly ILoggerFactory loggerFactory;
+        private readonly ILogger logger;
+
         private ThunderscopeSettings? thunderscopeSettings = null;
         private IThunderscope? thunderscope = null;
 
@@ -24,9 +25,15 @@ namespace TS.NET.Engine
         private PreProcessingThread? preProcessingThread;
         private ProcessingThread? processingThread;
         private ScpiServer? scpiServer;
-        private IEngineTask? waveformBufferReader;
+        private IThread? waveformBufferReader;
 
         public BlockingChannel<INotificationDto>? UiNotifications;
+
+        public EngineManager(ILoggerFactory loggerFactory)
+        {
+            this.loggerFactory = loggerFactory;
+            logger = loggerFactory.CreateLogger(nameof(EngineManager));
+        }
 
         public bool TryStart(string configurationFile, string calibrationFile, string deviceSerial)
         {
@@ -40,26 +47,8 @@ namespace TS.NET.Engine
             // Commented out for now, more testing needed on Windows
             //using FileStream fs = new(lockFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
 
-            IConfigurationBuilder configurationBuilder = new ConfigurationBuilder().AddJsonFile(
-                "thunderscope-appsettings.json"
-            );
-            var configuration = configurationBuilder.Build();
             thunderscopeSettings = ThunderscopeSettings.FromYamlFile(configurationFile);
             var thunderscopeCalibrationSettings = ThunderscopeCalibrationSettings.FromJsonFile(calibrationFile);
-
-            var loggerFactory = LoggerFactory.Create(configure =>
-            {
-                configure
-                    .ClearProviders()
-                    .AddConfiguration(configuration.GetSection("Logging"))
-                    .AddFile(configuration.GetSection("Logging"))
-                    .AddSimpleConsole(options =>
-                    {
-                        options.SingleLine = true;
-                        options.TimestampFormat = "HH:mm:ss ";
-                    });
-            });
-            var logger = loggerFactory.CreateLogger("TS.NET.Engine");
 
             if (RuntimeInformation.ProcessArchitecture == Architecture.X86 || RuntimeInformation.ProcessArchitecture == Architecture.X64)
             {
@@ -172,7 +161,7 @@ namespace TS.NET.Engine
 
             startSemaphore.Wait();
             processingThread = new ProcessingThread(
-                loggerFactory: loggerFactory,
+                logger: loggerFactory.CreateLogger(nameof(ProcessingThread)),
                 settings: thunderscopeSettings,
                 hardwareConfig: thunderscope.GetConfiguration(),
                 preProcessingPool: preProcessingPool,
@@ -184,7 +173,7 @@ namespace TS.NET.Engine
 
             startSemaphore.Wait();
             preProcessingThread = new PreProcessingThread(
-                loggerFactory: loggerFactory,
+                logger: loggerFactory.CreateLogger(nameof(PreProcessingThread)),
                 settings: thunderscopeSettings,
                 hardwarePool: hardwarePool,
                 preProcessingPool: preProcessingPool);
@@ -192,7 +181,7 @@ namespace TS.NET.Engine
 
             startSemaphore.Wait();
             hardwareThread = new HardwareThread(
-                loggerFactory: loggerFactory,
+                logger: loggerFactory.CreateLogger(nameof(HardwareThread)),
                 settings: thunderscopeSettings,
                 thunderscope: thunderscope,
                 hardwarePool: hardwarePool,
@@ -201,7 +190,7 @@ namespace TS.NET.Engine
 
             startSemaphore.Wait();
             scpiServer = new ScpiServer(
-                loggerFactory,
+                logger: loggerFactory.CreateLogger(nameof(ScpiServer)),
                 thunderscopeSettings,
                 System.Net.IPAddress.Any,
                 5025,
@@ -213,7 +202,7 @@ namespace TS.NET.Engine
             switch (thunderscopeSettings.WaveformBufferReader)
             {
                 case "DataServer":
-                    DataServer dataServer = new(loggerFactory, thunderscopeSettings, System.Net.IPAddress.Any, 5026, captureBuffer);
+                    DataServer dataServer = new(loggerFactory.CreateLogger(nameof(DataServer)), thunderscopeSettings, System.Net.IPAddress.Any, 5026, captureBuffer);
                     waveformBufferReader = dataServer;
                     break;
                 case "None":

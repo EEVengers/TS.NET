@@ -1,6 +1,6 @@
 ﻿namespace TS.NET.Engine
 {
-    internal class MemoryMappedFile : IEngineTask
+    internal class MemoryMappedFile : IThread
     {
         public void Start(SemaphoreSlim startSemaphore)
         {
