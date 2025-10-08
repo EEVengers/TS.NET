@@ -329,7 +329,15 @@ internal class WaveformSession : TcpSession
 
                             ThunderscopeChannelFrontend thunderscopeChannel = captureMetadata.HardwareConfig.Frontend[channelIndex];
                             chHeader.channelIndex = (byte)channelIndex;
-                            chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
+                            switch(captureMetadata.ProcessingConfig.ChannelDataType)
+                            {
+                                case ThunderscopeDataType.I8:
+                                    chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
+                                    break;
+                                case ThunderscopeDataType.I16:
+                                    chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 65535.0);
+                                    break;
+                            }
                             chHeader.offset = (float)thunderscopeChannel.ActualVoltOffset;
 
                             Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
