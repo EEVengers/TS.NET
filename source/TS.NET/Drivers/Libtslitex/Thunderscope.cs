@@ -579,7 +579,7 @@ namespace TS.NET.Driver.Libtslitex
             channelManualOverride[channelIndex] = true;
         }
 
-        public void UserDataRead(Span<byte> buffer, int offset)
+        public int UserDataRead(Span<byte> buffer, int offset)
         {
             unsafe
             {
@@ -588,26 +588,26 @@ namespace TS.NET.Driver.Libtslitex
                     var retVal = Interop.UserDataRead(tsHandle, bufferP, (uint)offset, (uint)buffer.Length);
                     if (retVal < 0)
                         throw new ThunderscopeException($"Failed to get user data ({GetLibraryReturnString(retVal)})");
+                    return retVal;
                 }
             }
         }
 
-        public static void UserDataRead(uint deviceIndex, Span<byte> buffer, int offset)
+        public static int UserDataRead(uint deviceIndex, Span<byte> buffer, int offset)
         {
-            var tsHandle = Interop.Open(deviceIndex, false);
-
             unsafe
             {
                 fixed (byte* bufferP = buffer)
                 {
+                    var tsHandle = Interop.Open(deviceIndex, false);
                     Interop.UserDataRead(tsHandle, bufferP, (uint)offset, (uint)buffer.Length);
                     var retVal = Interop.UserDataRead(tsHandle, bufferP, (uint)offset, (uint)buffer.Length);
                     if (retVal < 0)
                         throw new ThunderscopeException($"Failed to get user data ({GetLibraryReturnString(retVal)})");
+                    Interop.Close(tsHandle);
+                    return retVal;
                 }
-            }
-
-            Interop.Close(tsHandle);
+            } 
         }
 
         private void UpdateFrontends()
