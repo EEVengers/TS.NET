@@ -15,6 +15,9 @@ namespace TS.NET.Driver.Libtslitex
         private ThunderscopeChannelFrontend[] channelFrontend;
         private ThunderscopeLiteXStatus health;
 
+        uint cachedSampleRateHz = 1_000_000_000;
+        AdcResolution cachedSampleResolution = AdcResolution.EightBit;
+
         /// <summary>
         /// readSegmentLengthBytes should be the same as DMA_BUFFER_SIZE in the driver. Other values may work, further research needed.
         /// </summary>
@@ -48,22 +51,23 @@ namespace TS.NET.Driver.Libtslitex
             if (tsHandle == 0)
                 throw new Exception($"Thunderscope failed to open device {devIndex} ({tsHandle})");
             open = true;
+
             SetAdcCalibration(initialHardwareConfiguration.AdcCalibration);
             for (int chan = 0; chan < 4; chan++)
             {
                 SetChannelCalibration(chan, initialHardwareConfiguration.Calibration[chan]);
-                SetChannelEnable(chan, ((initialHardwareConfiguration.EnabledChannels >> chan) & 0x01) > 0);
             }
-            SetRate(initialHardwareConfiguration.SampleRateHz);
-            SetResolution(initialHardwareConfiguration.Resolution);
-
             GetStatus();
 
-            // There is a rate/channel-count vs. scale relationship so update frontends after GetStatus has updated cachedSampleRateHz
             for (int chan = 0; chan < 4; chan++)
             {
-                SetChannelFrontend(chan, initialHardwareConfiguration.Frontend[chan]);
+                channelFrontend[chan] = initialHardwareConfiguration.Frontend[chan];
+                var chanEnabled = ((initialHardwareConfiguration.EnabledChannels >> chan) & 0x01) > 0;
+                SetChannelEnable(chan, chanEnabled, updateFrontends: false);
             }
+
+            SetSampleMode(initialHardwareConfiguration.SampleRateHz, initialHardwareConfiguration.Resolution, updateFrontends: false);
+            UpdateFrontends();
         }
 
         public void Close()
@@ -260,11 +264,9 @@ namespace TS.NET.Driver.Libtslitex
             return health;
         }
 
-        uint cachedSampleRateHz = 1_000_000_000;
-        AdcResolution cachedSampleResolution = AdcResolution.EightBit;
         public void SetRate(ulong sampleRateHz)
         {
-            SetSampleMode(sampleRateHz, cachedSampleResolution);
+            SetSampleMode(sampleRateHz, cachedSampleResolution, updateFrontends: true);
         }
 
         public void SetResolution(AdcResolution resolution)
@@ -273,10 +275,10 @@ namespace TS.NET.Driver.Libtslitex
             if (resolution == AdcResolution.TwelveBit && sampleRateHz > 660_000_000)
                 sampleRateHz = 660_000_000;
 
-            SetSampleMode(sampleRateHz, resolution);
+            SetSampleMode(sampleRateHz, resolution, updateFrontends: true);
         }
 
-        private void SetSampleMode(ulong sampleRateHz, AdcResolution resolution)
+        private void SetSampleMode(ulong sampleRateHz, AdcResolution resolution, bool updateFrontends)
         {
             if (!open)
                 throw new Exception("Thunderscope not open");
@@ -285,7 +287,8 @@ namespace TS.NET.Driver.Libtslitex
             var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, resolutionValue);
 
             // There is a rate vs. scale relationship so update frontends
-            UpdateFrontends();
+            if(updateFrontends)
+                UpdateFrontends();
 
             if (retVal == -2) //Invalid Parameter
                 logger.LogTrace($"Thunderscope failed to set sample rate ({sampleRateHz}): INVALID_PARAMETER");
@@ -343,7 +346,19 @@ namespace TS.NET.Driver.Libtslitex
             bool pathFound = false;
             ThunderscopeChannelPathCalibration selectedPath = new();
             bool attenuator = false;
-            while (true)
+            var maximumDesignRangeForTermination = channel.Termination switch
+            {
+                ThunderscopeTermination.OneMegaohm => 40.0,
+                ThunderscopeTermination.FiftyOhm => 4.0,
+                _ => throw new NotImplementedException()
+            };
+            var minimumDesignRange = 0.000008;
+            var vppTooLarge = channel.RequestedVoltFullScale > maximumDesignRangeForTermination;
+            var vppTooSmall = channel.RequestedVoltFullScale < minimumDesignRange;
+            var runRangeSearch = !vppTooSmall && !vppTooLarge;
+
+            // To do: search logic should also take into account the RequestedVoltOffset so that the attenuator can operate for large offsets;
+            while (runRangeSearch)
             {
                 // Scan through the frontend gain configurations until the actual volt range would exceed the requested voltage range
                 // Pga with no attenuator
@@ -361,10 +376,8 @@ namespace TS.NET.Driver.Libtslitex
                 }
                 if (pathFound)
                     break;
-                if (channel.Termination == ThunderscopeTermination.FiftyOhm)
-                    break;
                 attenuator = true;
-                // Pga with 1M attenuator
+                // Pga with attenuator
                 foreach (var path in channelCalibration[channelIndex].Paths)
                 {
                     var potentialVpp = CalculateInputVpp(path) / channelCalibration[channelIndex].AttenuatorScale;
@@ -382,8 +395,47 @@ namespace TS.NET.Driver.Libtslitex
 
             if (!pathFound)
             {
-                logger.LogError("No valid frontend configuration found");
-                return;
+                logger.LogWarning("No valid frontend configuration found, using nearest");
+                switch (channel.Termination)
+                {
+                    case ThunderscopeTermination.OneMegaohm:
+                        if (vppTooLarge)
+                        {
+                            selectedPath = channelCalibration[channelIndex].Paths.Last();
+                            attenuator = true;
+                            channel.RequestedVoltFullScale = maximumDesignRangeForTermination;
+                            channel.ActualVoltFullScale = CalculateInputVpp(selectedPath) / channelCalibration[channelIndex].AttenuatorScale;                          
+                        }
+                        else
+                        {
+                            selectedPath = channelCalibration[channelIndex].Paths.First();
+                            attenuator = false;
+                            channel.RequestedVoltFullScale = minimumDesignRange;
+                            channel.ActualVoltFullScale = CalculateInputVpp(selectedPath);
+                        }
+                        channel.ActualVoltOffset = 0;       // To do
+                        break;
+                    case ThunderscopeTermination.FiftyOhm:
+                        if (vppTooLarge)
+                        {
+                            // Switch off the 50R termination
+                            channel.Termination = ThunderscopeTermination.OneMegaohm;
+
+                            selectedPath = channelCalibration[channelIndex].Paths.Last();
+                            channel.RequestedVoltFullScale = maximumDesignRangeForTermination;
+                            attenuator = true;
+                        }
+                        else
+                        {
+                            selectedPath = channelCalibration[channelIndex].Paths.First();
+                            channel.RequestedVoltFullScale = minimumDesignRange;
+                            attenuator = false;
+                        }
+                        var potentialVpp = CalculateInputVpp(selectedPath);                       
+                        channel.ActualVoltFullScale = potentialVpp;
+                        channel.ActualVoltOffset = 0;       // To do
+                        break;
+                }
             }
 
             // Note: PGA input voltage should not go beyond +/-0.6V from 2.5V so that enforces a limit in some gain scenarios. 
@@ -487,7 +539,9 @@ namespace TS.NET.Driver.Libtslitex
             Interop.SetCalibration(tsHandle, (uint)channelIndex, in tsCal);
         }
 
-        public void SetChannelEnable(int channelIndex, bool enabled)
+        public void SetChannelEnable(int channelIndex, bool enabled) => SetChannelEnable(channelIndex, enabled, updateFrontends: true);
+
+        private void SetChannelEnable(int channelIndex, bool enabled, bool updateFrontends)
         {
             if (!open)
                 throw new Exception("Thunderscope not open");
@@ -508,7 +562,8 @@ namespace TS.NET.Driver.Libtslitex
             channelEnabled[channelIndex] = enabled;
 
             // There is a channel-count vs. scale relationship so update frontends
-            UpdateFrontends();
+            if(updateFrontends)
+                UpdateFrontends();
         }
 
         public void SetChannelManualControl(int channelIndex, ThunderscopeChannelFrontendManualControl channel)
@@ -552,7 +607,7 @@ namespace TS.NET.Driver.Libtslitex
 
         private void UpdateFrontends()
         {
-            GetStatus();    // Update cachedSampleRateHz
+            GetStatus();    // Update cachedSampleRateHz & cachedSampleResolution
             for (int i = 0; i < channelFrontend.Length; i++)
             {
                 if (channelEnabled[i] && !channelManualOverride[i])

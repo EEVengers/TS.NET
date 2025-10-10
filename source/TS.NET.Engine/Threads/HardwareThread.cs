@@ -181,7 +181,7 @@ internal class HardwareThread : IThread
                                 {
                                     logger.LogDebug($"{nameof(HardwareGetVoltOffsetRequest)}");
                                     var frontend = thunderscope.GetChannelFrontend(hardwareGetVoltOffsetRequest.ChannelIndex);
-                                    hardwareControl.Response.Writer.Write(new HardwareGetVoltOffsetResponse(frontend.ActualVoltOffset));
+                                    hardwareControl.Response.Writer.Write(new HardwareGetVoltOffsetResponse(frontend.RequestedVoltOffset, frontend.ActualVoltOffset));
                                     logger.LogDebug($"{nameof(HardwareGetVoltOffsetRequest)}");
                                     break;
                                 }
@@ -189,7 +189,7 @@ internal class HardwareThread : IThread
                                 {
                                     logger.LogDebug($"{nameof(HardwareGetVoltFullScaleRequest)}");
                                     var frontend = thunderscope.GetChannelFrontend(hardwareGetVoltFullScaleRequest.ChannelIndex);
-                                    hardwareControl.Response.Writer.Write(new HardwareGetVoltFullScaleResponse(frontend.ActualVoltFullScale));
+                                    hardwareControl.Response.Writer.Write(new HardwareGetVoltFullScaleResponse(frontend.RequestedVoltFullScale, frontend.ActualVoltFullScale));
                                     logger.LogDebug($"{nameof(HardwareGetVoltFullScaleRequest)}");
                                     break;
                                 }

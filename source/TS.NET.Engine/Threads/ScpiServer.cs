@@ -780,7 +780,7 @@ internal class ScpiSession : TcpSession
                                 switch (response)
                                 {
                                     case ProcessingGetEdgeTriggerLevelResponse triggerLevelResponse:
-                                        return $"{triggerLevelResponse.LevelVolts:F6}\n";
+                                        return $"{triggerLevelResponse.LevelVolts:0.######}\n";
                                     default:
                                         logger.LogError($"TRIG:EDGE:LEV? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                         break;
@@ -903,7 +903,7 @@ internal class ScpiSession : TcpSession
                             if (hardwareControl.Response.Reader.TryRead(out var response, 500))
                             {
                                 if (response is HardwareGetVoltOffsetResponse hardwareGetVoltOffsetResponse)
-                                    return $"{hardwareGetVoltOffsetResponse.VoltOffset:F6}\n";
+                                    return $"{hardwareGetVoltOffsetResponse.RequestedVoltOffset:0.######}\n";
                                 logger.LogError($"{subject}:OFFS? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
                             }
                             logger.LogError($"{subject}:OFFS? - No response from {nameof(hardwareControl.Response.Reader)}");
@@ -915,7 +915,7 @@ internal class ScpiSession : TcpSession
                             if (hardwareControl.Response.Reader.TryRead(out var response, 500))
                             {
                                 if (response is HardwareGetVoltFullScaleResponse hardwareGetVoltFullScaleResponse)
-                                    return $"{hardwareGetVoltFullScaleResponse.VoltFullScale:F6}\n";
+                                    return $"{hardwareGetVoltFullScaleResponse.RequestedVoltFullScale:0.######}\n";
                                 logger.LogError($"{subject}:RANG? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
                             }
                             logger.LogError($"{subject}:RANG? - No response from {nameof(hardwareControl.Response.Reader)}");
