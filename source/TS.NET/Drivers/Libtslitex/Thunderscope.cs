@@ -49,7 +49,7 @@ namespace TS.NET.Driver.Libtslitex
             tsHandle = Interop.Open(devIndex, false);
 
             if (tsHandle == 0)
-                throw new Exception($"Thunderscope failed to open device {devIndex} ({tsHandle})");
+                throw new ThunderscopeException($"Failed to open device {devIndex} ({tsHandle})");
             open = true;
 
             SetAdcCalibration(initialHardwareConfiguration.AdcCalibration);
@@ -72,40 +72,38 @@ namespace TS.NET.Driver.Libtslitex
 
         public void Close()
         {
-            if (!open)
-                throw new Exception("Thunderscope not open");
+            CheckOpen();
             open = false;
 
             Interop.DataEnable(tsHandle, 0);
 
-            int returnValue = Interop.Close(tsHandle);
-            if (returnValue != 0)
-                throw new Exception($"Thunderscope failed closing device ({returnValue})");
+            var retVal = Interop.Close(tsHandle);
+            if (retVal < 0)
+                throw new ThunderscopeException($"Failed closing device ({GetLibraryReturnString(retVal)})");
 
         }
 
         public void Start()
         {
-            if (!open)
-                throw new Exception("Thunderscope not open");
+            CheckOpen();
 
-            if (Interop.DataEnable(tsHandle, 1) != 0)
-                throw new Exception("Thunderscope could not start sample data");
+            var retVal = Interop.DataEnable(tsHandle, 1);
+            if (retVal < 0)
+                throw new ThunderscopeException($"Could not start ({GetLibraryReturnString(retVal)})");
         }
 
         public void Stop()
         {
-            if (!open)
-                throw new Exception("Thunderscope not open");
+            CheckOpen();
 
-            if (Interop.DataEnable(tsHandle, 0) != 0)
-                throw new Exception("");
+            var retVal = Interop.DataEnable(tsHandle, 0);
+            if (retVal < 0)
+                throw new ThunderscopeException($"Could not stop ({GetLibraryReturnString(retVal)})");
         }
 
         public void Read(ThunderscopeMemory data, CancellationToken cancellationToken)
         {
-            if (!open)
-                throw new Exception("Thunderscope not open");
+            CheckOpen();
 
             unsafe
             {
@@ -116,9 +114,9 @@ namespace TS.NET.Driver.Libtslitex
                     int readLen = Interop.Read(tsHandle, data.DataLoadPointer + dataRead, readSegmentLengthBytes);
 
                     if (readLen < 0)
-                        throw new Exception($"Thunderscope failed to read samples ({readLen})");
+                        throw new ThunderscopeException($"Failed to read samples ({readLen})");
                     else if (readLen != readSegmentLengthBytes)
-                        throw new Exception($"Thunderscope read incorrect sample length ({readLen})");
+                        throw new ThunderscopeException($"Read incorrect sample length ({readLen})");
 
                     dataRead += (ulong)readSegmentLengthBytes;
                     length -= (ulong)readSegmentLengthBytes;
@@ -142,7 +140,7 @@ namespace TS.NET.Driver.Libtslitex
                     if (readLen < 0)
                         return false;
                     else if (readLen != readSegmentLengthBytes)
-                        throw new Exception($"Thunderscope read incorrect sample length ({readLen})");
+                        throw new ThunderscopeException($"Read incorrect sample length ({readLen})");
 
                     dataRead += (ulong)readSegmentLengthBytes;
                     length -= (ulong)readSegmentLengthBytes;
@@ -153,15 +151,14 @@ namespace TS.NET.Driver.Libtslitex
 
         public ThunderscopeChannelFrontend GetChannelFrontend(int channelIndex)
         {
-            if (!open)
-                throw new Exception("Thunderscope not open");
+            CheckOpen();
 
             //var channel = new ThunderscopeChannelFrontend();
             //var tsChannel = new Interop.tsChannelParam_t();
 
             //var retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, out tsChannel);
-            //if (retVal != 0)
-            //    throw new Exception($"Thunderscope failed to get channel {channelIndex} config ({retVal})");
+            //if (retVal < 0)
+            //    throw new ThunderscopeException($"Failed to get channel {channelIndex} config ({GetLibraryReturnString(retVal)})");
 
             //channel.RequestedVoltFullScale = requestedChannelVoltScale[channelIndex];
             //channel.ActualVoltFullScale = (double)tsChannel.volt_scale_uV / 1000000.0;
@@ -184,8 +181,8 @@ namespace TS.NET.Driver.Libtslitex
             //var tsChannel = new Interop.tsChannelParam_t();
 
             //var retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, out tsChannel);
-            //if (retVal != 0)
-            //    throw new Exception($"Thunderscope failed to get channel {channelIndex} config ({retVal})");
+            //if (retVal < 0)
+            //    throw new ThunderscopeException($"Failed to get channel {channelIndex} config ({GetLibraryReturnString(retVal)})");
             //channel.Termination = tsChannel.term switch
             //{
             //    0 => ThunderscopeTermination.OneMegaohm,
@@ -197,8 +194,7 @@ namespace TS.NET.Driver.Libtslitex
 
         public ThunderscopeHardwareConfig GetConfiguration()
         {
-            if (!open)
-                throw new Exception("Thunderscope not open");
+            CheckOpen();
 
             var config = new ThunderscopeHardwareConfig();
             var channelCount = 0;
@@ -209,8 +205,8 @@ namespace TS.NET.Driver.Libtslitex
 
                 var tsChannel = new Interop.tsChannelParam_t();
                 var retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, out tsChannel);
-                if (retVal != 0)
-                    throw new Exception($"Thunderscope failed to get channel {channelIndex} config ({retVal})");
+                if (retVal < 0)
+                    throw new ThunderscopeException($"Failed to get channel {channelIndex} config ({GetLibraryReturnString(retVal)})");
 
                 if (tsChannel.active == 1)
                 {
@@ -232,23 +228,22 @@ namespace TS.NET.Driver.Libtslitex
 
         public ThunderscopeChannelCalibration GetChannelCalibration(int channelIndex)
         {
-            if (!open)
-                throw new Exception("Thunderscope not open");
+            CheckOpen();
 
             if (channelIndex >= 4 || channelIndex < 0)
-                throw new Exception($"Invalid Channel Index {channelIndex}");
+                throw new ThunderscopeException($"Invalid Channel Index {channelIndex}");
 
             return channelCalibration[channelIndex];
         }
 
         public ThunderscopeLiteXStatus GetStatus()
         {
-            if (!open)
-                throw new Exception("Thunderscope not open");
+            CheckOpen();
 
             var litexState = new Interop.tsScopeState_t();
-            if (Interop.GetStatus(tsHandle, out litexState) != 0)
-                throw new Exception("Failed to get libtslitex status");
+            var retVal = Interop.GetStatus(tsHandle, out litexState);
+            if (retVal < 0)
+                throw new ThunderscopeException($"Failed to get libtslitex status ({GetLibraryReturnString(retVal)})");
 
             health.AdcSampleRate = litexState.adc_sample_rate;
             health.AdcSampleSize = litexState.adc_sample_bits;
@@ -280,32 +275,30 @@ namespace TS.NET.Driver.Libtslitex
 
         private void SetSampleMode(ulong sampleRateHz, AdcResolution resolution, bool updateFrontends)
         {
-            if (!open)
-                throw new Exception("Thunderscope not open");
+            CheckOpen();
 
             uint resolutionValue = resolution switch { AdcResolution.EightBit => 256, AdcResolution.TwelveBit => 4096, _ => throw new NotImplementedException() };
             var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, resolutionValue);
 
             // There is a rate vs. scale relationship so update frontends
-            if(updateFrontends)
+            if (updateFrontends)
                 UpdateFrontends();
 
-            if (retVal == -2) //Invalid Parameter
-                logger.LogTrace($"Thunderscope failed to set sample rate ({sampleRateHz}): INVALID_PARAMETER");
+            if (retVal == -2)
+                logger.LogTrace($"Failed to set sample rate ({sampleRateHz}): {GetLibraryReturnString(retVal)}");
             else if (retVal < 0)
-                throw new Exception($"Thunderscope had an errors trying to set sample rate {sampleRateHz} ({retVal})");
+                throw new ThunderscopeException($"Error trying to set sample rate {sampleRateHz} ({GetLibraryReturnString(retVal)})");
         }
 
         public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)
         {
-            if (!open)
-                throw new Exception("Thunderscope not open");
+            CheckOpen();
 
             //var tsChannel = new Interop.tsChannelParam_t();
             //var retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, out tsChannel);
 
-            //if (retVal != 0)
-            //    throw new Exception($"Thunderscope failed to get channel {channelIndex} config ({retVal})");
+            //if (retVal < 0)
+            //    throw new ThunderscopeException($"Failed to get channel {channelIndex} config ({GetLibraryReturnString(retVal)})");
 
             //tsChannel.volt_scale_uV = (uint)(channel.RequestedVoltFullScale * 1000000);
             //tsChannel.volt_offset_uV = (int)(channel.RequestedVoltOffset * 1000000);
@@ -325,8 +318,8 @@ namespace TS.NET.Driver.Libtslitex
 
             //retVal = Interop.SetChannelConfig(tsHandle, (uint)channelIndex, in tsChannel);
 
-            //if (retVal != 0)
-            //    throw new Exception($"Thunderscope failed to set channel {channelIndex} config ({retVal})");
+            //if (retVal < 0)
+            //    throw new ThunderscopeException($"Failed to set channel {channelIndex} config ({GetLibraryReturnString(retVal)})");
 
             //requestedChannelVoltScale[channelIndex] = channel.RequestedVoltFullScale;
             //requestedChannelVoltOffset[channelIndex] = channel.RequestedVoltOffset;
@@ -404,7 +397,7 @@ namespace TS.NET.Driver.Libtslitex
                             selectedPath = channelCalibration[channelIndex].Paths.Last();
                             attenuator = true;
                             channel.RequestedVoltFullScale = maximumDesignRangeForTermination;
-                            channel.ActualVoltFullScale = CalculateInputVpp(selectedPath) / channelCalibration[channelIndex].AttenuatorScale;                          
+                            channel.ActualVoltFullScale = CalculateInputVpp(selectedPath) / channelCalibration[channelIndex].AttenuatorScale;
                         }
                         else
                         {
@@ -431,7 +424,7 @@ namespace TS.NET.Driver.Libtslitex
                             channel.RequestedVoltFullScale = minimumDesignRange;
                             attenuator = false;
                         }
-                        var potentialVpp = CalculateInputVpp(selectedPath);                       
+                        var potentialVpp = CalculateInputVpp(selectedPath);
                         channel.ActualVoltFullScale = potentialVpp;
                         channel.ActualVoltOffset = 0;       // To do
                         break;
@@ -484,8 +477,7 @@ namespace TS.NET.Driver.Libtslitex
 
         public void SetAdcCalibration(ThunderscopeAdcCalibration adcCal)
         {
-            if (!open)
-                throw new Exception("Thunderscope not open");
+            CheckOpen();
 
             var tsCal = new Interop.tsAdcCalibration_t();
             tsCal.branchFineGain[0] = adcCal.FineGainBranch1;
@@ -502,11 +494,10 @@ namespace TS.NET.Driver.Libtslitex
 
         public void SetChannelCalibration(int channelIndex, ThunderscopeChannelCalibration channelCalibration)
         {
-            if (!open)
-                throw new Exception("Thunderscope not open");
+            CheckOpen();
 
             if (channelIndex >= 4 || channelIndex < 0)
-                throw new Exception($"Invalid Channel Index {channelIndex}");
+                throw new ThunderscopeException($"Invalid Channel Index {channelIndex}");
 
             var tsCal = new Interop.tsChannelCalibration_t
             {
@@ -543,33 +534,31 @@ namespace TS.NET.Driver.Libtslitex
 
         private void SetChannelEnable(int channelIndex, bool enabled, bool updateFrontends)
         {
-            if (!open)
-                throw new Exception("Thunderscope not open");
+            CheckOpen();
 
             var tsChannel = new Interop.tsChannelParam_t();
             var retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, out tsChannel);
 
-            if (retVal != 0)
-                throw new Exception($"Thunderscope failed to get channel {channelIndex} config ({retVal})");
+            if (retVal < 0)
+                throw new ThunderscopeException($"Failed to get channel {channelIndex} config ({GetLibraryReturnString(retVal)})");
 
             tsChannel.active = enabled ? (byte)1 : (byte)0;
 
             retVal = Interop.SetChannelConfig(tsHandle, (uint)channelIndex, in tsChannel);
 
-            if (retVal != 0)
-                throw new Exception($"Thunderscope failed to set channel {channelIndex} config ({retVal})");
+            if (retVal < 0)
+                throw new ThunderscopeException($"Failed to set channel {channelIndex} config ({GetLibraryReturnString(retVal)})");
 
             channelEnabled[channelIndex] = enabled;
 
             // There is a channel-count vs. scale relationship so update frontends
-            if(updateFrontends)
+            if (updateFrontends)
                 UpdateFrontends();
         }
 
         public void SetChannelManualControl(int channelIndex, ThunderscopeChannelFrontendManualControl channel)
         {
-            if (!open)
-                throw new Exception("Thunderscope not open");
+            CheckOpen();
 
             var tsChannel = new Interop.tsChannelCtrl_t();
             tsChannel.atten = channel.Attenuator;
@@ -584,10 +573,23 @@ namespace TS.NET.Driver.Libtslitex
 
             var retVal = Interop.SetChannelManualControl(tsHandle, (uint)channelIndex, tsChannel);
 
-            if (retVal != 0)
-                throw new Exception($"Thunderscope failed to set channel {channelIndex} config ({retVal})");
+            if (retVal < 0)
+                throw new ThunderscopeException($"Failed to set channel {channelIndex} config ({GetLibraryReturnString(retVal)})");
 
             channelManualOverride[channelIndex] = true;
+        }
+
+        public void UserDataRead(Span<byte> buffer, int offset)
+        {
+            unsafe
+            {
+                fixed (byte* bufferP = buffer)
+                {
+                    var retVal = Interop.UserDataRead(tsHandle, bufferP, (uint)offset, (uint)buffer.Length);
+                    if (retVal < 0)
+                        throw new ThunderscopeException($"Failed to get user data ({GetLibraryReturnString(retVal)})");
+                }
+            }
         }
 
         public static void UserDataRead(uint deviceIndex, Span<byte> buffer, int offset)
@@ -599,6 +601,9 @@ namespace TS.NET.Driver.Libtslitex
                 fixed (byte* bufferP = buffer)
                 {
                     Interop.UserDataRead(tsHandle, bufferP, (uint)offset, (uint)buffer.Length);
+                    var retVal = Interop.UserDataRead(tsHandle, bufferP, (uint)offset, (uint)buffer.Length);
+                    if (retVal < 0)
+                        throw new ThunderscopeException($"Failed to get user data ({GetLibraryReturnString(retVal)})");
                 }
             }
 
@@ -613,6 +618,26 @@ namespace TS.NET.Driver.Libtslitex
                 if (channelEnabled[i] && !channelManualOverride[i])
                     SetChannelFrontend(i, channelFrontend[i]);
             }
+        }
+
+        private void CheckOpen()
+        {
+            if (!open)
+                throw new ThunderscopeException("Thunderscope not open");
+        }
+
+        private static string GetLibraryReturnString(int retValue)
+        {
+            //#define TS_STATUS_OK                (0)
+            //#define TS_STATUS_ERROR             (-1)
+            //#define TS_INVALID_PARAM            (-2)
+            return retValue switch
+            {
+                0 => "TS_STATUS_OK",
+                -1 => "TS_STATUS_ERROR",
+                -2 => "TS_INVALID_PARAM",
+                _ => "Unknown"
+            };
         }
     }
 }
