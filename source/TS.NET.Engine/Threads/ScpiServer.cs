@@ -516,14 +516,13 @@ internal class ScpiSession : TcpSession
                         // :CAL
                         switch (command)
                         {
-                            // :MANual
-                            // :MAN
-                            case var _ when command.StartsWith("MAN") && argument != null:
+                            // :FRONTEND
+                            case var _ when command.StartsWith("FRONTEND") && argument != null:
                                 {
                                     // Channel Coupling Termination Attenuator DAC DPOT PgaLadderAttenuation PgaHighGain PgaFilter
-                                    // CAL:MANUAL CHAN1 DC 1M 0 2147 4 0 1 FULL
+                                    // CAL:FRONTEND CHAN1 DC 1M 0 2147 4 0 1 FULL
                                     //    - highest gain configuration with attenuator off and maximum offset adjustment range. Adjust 2147 until midscale.
-                                    // CAL:MANUAL CHAN1 DC 1M 1 2147 4 0 1 FULL
+                                    // CAL:FRONTEND CHAN1 DC 1M 1 2147 4 0 1 FULL
                                     // 4 = 1563.5 ohms
                                     try
                                     {
@@ -567,7 +566,7 @@ internal class ScpiSession : TcpSession
                                         return null;
                                     }
                                     return null;
-                                }
+                                }                          
                             case var _ when command.StartsWith("ADC") && argument != null:
                                 {
                                     var args = argument.Split(' ');

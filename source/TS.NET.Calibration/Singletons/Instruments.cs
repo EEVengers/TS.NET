@@ -43,10 +43,10 @@ public class Instruments
         thunderScope.WriteLine("TRIG:INTER 1");
         thunderScope.WriteLine("DEPTH 1000000");
 
-        thunderScope.WriteLine("CAL:MANUAL CHAN1 DC 50 0 2786 167 0 1 20M");
-        thunderScope.WriteLine("CAL:MANUAL CHAN2 DC 50 0 2786 167 0 1 20M");
-        thunderScope.WriteLine("CAL:MANUAL CHAN3 DC 50 0 2786 167 0 1 20M");
-        thunderScope.WriteLine("CAL:MANUAL CHAN4 DC 50 0 2786 167 0 1 20M");
+        thunderScope.WriteLine("CAL:FRONTEND CHAN1 DC 50 0 2786 167 0 1 20M");
+        thunderScope.WriteLine("CAL:FRONTEND CHAN2 DC 50 0 2786 167 0 1 20M");
+        thunderScope.WriteLine("CAL:FRONTEND CHAN3 DC 50 0 2786 167 0 1 20M");
+        thunderScope.WriteLine("CAL:FRONTEND CHAN4 DC 50 0 2786 167 0 1 20M");
 
         thunderScope.WriteLine("RUN");
 
@@ -150,19 +150,19 @@ public class Instruments
 
     public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation)
     {
-        thunderScope?.WriteLine($"CAL:MANUAL CHAN{channelIndex + 1} DC 50 0 {dac} {dpot} {pgaLadderAttenuation} {(pgaPreampGain == PgaPreampGain.High ? "1" : "0")} 20M");
+        thunderScope?.WriteLine($"CAL:FRONTEND CHAN{channelIndex + 1} DC 50 0 {dac} {dpot} {pgaLadderAttenuation} {(pgaPreampGain == PgaPreampGain.High ? "1" : "0")} 20M");
         Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
     }
 
     public void SetThunderscopeCalManual1M(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation)
     {
-        thunderScope?.WriteLine($"CAL:MANUAL CHAN{channelIndex + 1} DC 1M 0 {dac} {dpot} {pgaLadderAttenuation} {(pgaPreampGain == PgaPreampGain.High ? "1" : "0")} 20M");
+        thunderScope?.WriteLine($"CAL:FRONTEND CHAN{channelIndex + 1} DC 1M 0 {dac} {dpot} {pgaLadderAttenuation} {(pgaPreampGain == PgaPreampGain.High ? "1" : "0")} 20M");
         Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
     }
 
     public void SetThunderscopeCalManual1M(int channelIndex, bool attenuator, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation)
     {
-        thunderScope?.WriteLine($"CAL:MANUAL CHAN{channelIndex + 1} DC 1M {(attenuator ? "1" : "0")} {dac} {dpot} {pgaLadderAttenuation} {(pgaPreampGain == PgaPreampGain.High ? "1" : "0")} 20M");
+        thunderScope?.WriteLine($"CAL:FRONTEND CHAN{channelIndex + 1} DC 1M {(attenuator ? "1" : "0")} {dac} {dpot} {pgaLadderAttenuation} {(pgaPreampGain == PgaPreampGain.High ? "1" : "0")} 20M");
         Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
     }
 

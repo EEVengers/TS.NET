@@ -40,8 +40,7 @@ public class WindowSizing
         int minWidth = (int)(baseMinWidth * absoluteDpi);
         int minHeight = (int)(baseMinHeight * absoluteDpi);
 
-        //window.MinSize = new Point(minWidth, minHeight);
+        window.MinSize = new Point(minWidth, minHeight);
         window.Size = new Size(width, height);
-        window.SetTitle("Test");
     }
 }
