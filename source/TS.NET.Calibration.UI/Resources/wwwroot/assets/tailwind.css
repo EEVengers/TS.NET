@@ -22,7 +22,6 @@
     --color-neutral-300: oklch(87% 0 0);
     --color-neutral-400: oklch(70.8% 0 0);
     --color-neutral-800: oklch(26.9% 0 0);
-    --color-white: #fff;
     --spacing: 0.25rem;
     --text-xs: 0.75rem;
     --text-xs--line-height: calc(1 / 0.75);
@@ -439,9 +438,6 @@
   }
   .text-red-400 {
     color: var(--color-red-400);
-  }
-  .text-white {
-    color: var(--color-white);
   }
   .text-yellow-400 {
     color: var(--color-yellow-400);

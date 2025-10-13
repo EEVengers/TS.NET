@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>ThunderScope Calibration</title>
     <link href="assets/app.css" rel="stylesheet" />
-    <link href="assets/tailwindcss.css" rel="stylesheet" />
+    <link href="assets/tailwind.css" rel="stylesheet" />
     <link href="assets/jsonTree/jsonTree.css" rel="stylesheet" />
 </head>
 
@@ -141,8 +141,8 @@
                 <div class="flex-auto flex flex-col p-2 overflow-y-auto">
                     <div class="flex-auto overflow-y-auto">
                         <table class="w-full text-left text-neutral-50 text-sm font-normal">
-                            <thead class="">
-                                <tr class="bg-zinc-800">
+                            <thead class="bg-zinc-800">
+                                <tr>
                                     <th class="p-1 w-12 font-normal">#</th>
                                     <th class="p-1 font-normal">Step name</th>
                                     <th class="p-1 w-15 font-normal">Skip?</th>
@@ -194,13 +194,13 @@
                     </div>
                 </div>
             </div>
-            <div class="flex-none flex flex-row bg-zinc-800 text-white font-normal text-sm p-2 border-zinc-600 border-t gap-2">
+            <div class="flex-none flex flex-row bg-zinc-800 font-normal text-sm p-2 border-zinc-600 border-t gap-2">
                 <div class="flex-none flex">
-                    <div x-text="$store.footer.contextHelp" class="flex-none trim-box text-neutral-300"></div>
+                    <div x-text="$store.footer.contextHelp" class="flex-none trim-box text-neutral-50"></div>
                 </div>
                 <div class="flex-auto"></div>
                 <div class="flex-none flex" @mouseenter="help('UI zoom level, use [ctrl & +], [ctrl & -], [crtl & 0], or [ctrl + mousewheel] to change it')" @mouseleave="help('')">
-                    <div x-text="$store.footer.zoom" class="flex-none trim-box text-neutral-300">Zoom: 100%</div>
+                    <div x-text="$store.footer.zoom" class="flex-none trim-box text-neutral-50">Zoom: 100%</div>
                 </div>
             </div>
         </footer>

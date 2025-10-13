@@ -1,5 +1,4 @@
 ﻿using Photino.NET;
-using System.Drawing;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;

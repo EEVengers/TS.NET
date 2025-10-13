@@ -1,1 +1,1 @@
-tailwindcss-windows-x64.exe -o .\Resources\wwwroot\assets\tailwindcss.css
+tailwindcss-windows-x64.exe -o .\Resources\wwwroot\assets\tailwind.css
