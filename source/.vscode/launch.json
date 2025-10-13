@@ -8,9 +8,10 @@
             "name": "C#: TS.NET.Engine",
             "type": "coreclr",
             "request": "launch",
-            "program": "${workspaceFolder}/bin/Debug/net9.0/TS.NET.Engine.dll",
+            "program": "${workspaceFolder}/TS.NET.Engine/bin/Debug/net9.0/TS.NET.Engine.dll",
             "internalConsoleOptions": "neverOpen",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/TS.NET.Engine"
         }
     ]
 }
