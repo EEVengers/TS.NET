@@ -8,8 +8,8 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <Version>0.1.0</Version>
 
-	<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-	<InvariantGlobalization>true</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <InvariantGlobalization>true</InvariantGlobalization>
     <RuntimeIdentifiers>win-x64; linux-x64; osx-x64; osx-arm64</RuntimeIdentifiers>
   </PropertyGroup>
 
