@@ -66,7 +66,7 @@ public class FallingEdgeTriggerI8 : ITriggerI8
     public void Process(ReadOnlySpan<sbyte> input, ref EdgeTriggerResults results)
     {
         int inputLength = input.Length;
-        int simdLength = inputLength - 32;
+        int v256Length = inputLength - Vector256<sbyte>.Count;
         results.ArmCount = 0;
         results.TriggerCount = 0;
         results.CaptureEndCount = 0;
@@ -88,19 +88,19 @@ public class FallingEdgeTriggerI8 : ITriggerI8
                         case TriggerState.Unarmed:
                             if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
-                                while (i < simdLength)
+                                while (i < v256Length)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
                                     var resultVector = Avx2.CompareEqual(Avx2.Min(armLevelVector256, inputVector), armLevelVector256);
                                     var conditionFound = Avx2.MoveMask(resultVector) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
                                     if (conditionFound)
                                         break;
-                                    i += 32;
+                                    i += Vector256<sbyte>.Count;
                                 }
                             }
                             else if (AdvSimd.Arm64.IsSupported)
                             {
-                                while (i < simdLength)
+                                while (i < v256Length)
                                 {
                                     var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
                                     var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + 16);
@@ -110,7 +110,7 @@ public class FallingEdgeTriggerI8 : ITriggerI8
                                     conditionFound |= resultVector2 != Vector128<sbyte>.Zero;
                                     if (conditionFound)
                                         break;
-                                    i += 32;
+                                    i += Vector256<sbyte>.Count;
                                 }
                             }
                             while (i < inputLength)
@@ -127,19 +127,19 @@ public class FallingEdgeTriggerI8 : ITriggerI8
                         case TriggerState.Armed:
                             if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
-                                while (i < simdLength)
+                                while (i < v256Length)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
                                     var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector256, inputVector), triggerLevelVector256);
                                     var conditionFound = Avx2.MoveMask(resultVector) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
                                     if (conditionFound)
                                         break;
-                                    i += 32;
+                                    i += Vector256<sbyte>.Count;
                                 }
                             }
                             else if (AdvSimd.Arm64.IsSupported)
                             {
-                                while (i < simdLength)
+                                while (i < v256Length)
                                 {
                                     var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
                                     var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + 16);
@@ -149,7 +149,7 @@ public class FallingEdgeTriggerI8 : ITriggerI8
                                     conditionFound |= resultVector2 != Vector128<sbyte>.Zero;
                                     if (conditionFound)
                                         break;
-                                    i += 32;
+                                    i += Vector256<sbyte>.Count;
                                 }
                             }
                             while (i < inputLength)

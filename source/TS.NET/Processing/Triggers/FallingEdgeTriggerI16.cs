@@ -4,13 +4,13 @@ using System.Runtime.Intrinsics.X86;
 
 namespace TS.NET;
 
-public class RisingEdgeTriggerI8 : ITriggerI8
+public class FallingEdgeTriggerI16 : ITriggerI16
 {
     enum TriggerState { Unarmed, Armed, InCapture, InHoldoff }
     private TriggerState triggerState = TriggerState.Unarmed;
 
-    private sbyte triggerLevel;
-    private sbyte armLevel;
+    private short triggerLevel;
+    private short armLevel;
 
     private long captureSamples;
     private long captureRemaining;
@@ -18,7 +18,7 @@ public class RisingEdgeTriggerI8 : ITriggerI8
     private long holdoffSamples;
     private long holdoffRemaining;
 
-    public RisingEdgeTriggerI8(EdgeTriggerParameters parameters)
+    public FallingEdgeTriggerI16(EdgeTriggerParameters parameters)
     {
         SetParameters(parameters);
         SetHorizontal(1000000, 0, 0);
@@ -28,19 +28,19 @@ public class RisingEdgeTriggerI8 : ITriggerI8
     {
         parameters.Hysteresis = Math.Abs(parameters.Hysteresis);
 
-        if (parameters.Level >= sbyte.MaxValue)
-            parameters.Level = sbyte.MaxValue - 1;  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms             
+        if (parameters.Level <= short.MinValue)
+            parameters.Level = short.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
 
         triggerState = TriggerState.Unarmed;
-        triggerLevel = (sbyte)parameters.Level;     // Logic = GT
+        triggerLevel = (short)parameters.Level;     // Logic = LT
 
-        if ((parameters.Level - parameters.Hysteresis) < sbyte.MinValue)
+        if((parameters.Level + parameters.Hysteresis) > short.MaxValue)
         {
-            armLevel = sbyte.MinValue;              // Logic = LTE
-        }
+            armLevel = short.MaxValue;              // Logic = GTE
+        }    
         else
         {
-            armLevel = (sbyte)(parameters.Level - parameters.Hysteresis);
+            armLevel = (short)(parameters.Level + parameters.Hysteresis);
         }
     }
 
@@ -63,23 +63,23 @@ public class RisingEdgeTriggerI8 : ITriggerI8
             triggerState = TriggerState.Unarmed;
     }
 
-    public void Process(ReadOnlySpan<sbyte> input, ref EdgeTriggerResults results)
+    public void Process(ReadOnlySpan<short> input, ref EdgeTriggerResults results)
     {
         int inputLength = input.Length;
-        int v256Length = inputLength - Vector256<sbyte>.Count;
+        int simdLength = inputLength - 32;
         results.ArmCount = 0;
         results.TriggerCount = 0;
         results.CaptureEndCount = 0;
         int i = 0;
 
-        Vector256<sbyte> triggerLevelVector256 = Vector256.Create(triggerLevel);
-        Vector256<sbyte> armLevelVector256 = Vector256.Create(armLevel);
-        Vector128<sbyte> triggerLevelVector128 = Vector128.Create(triggerLevel);
-        Vector128<sbyte> armLevelVector128 = Vector128.Create(armLevel);
+        Vector256<short> triggerLevelVector256 = Vector256.Create(triggerLevel);
+        Vector256<short> armLevelVector256 = Vector256.Create(armLevel);
+        Vector128<short> triggerLevelVector128 = Vector128.Create(triggerLevel);
+        Vector128<short> armLevelVector128 = Vector128.Create(armLevel);
 
         unsafe
         {
-            fixed (sbyte* samplesPtr = input)
+            fixed (short* samplesPtr = input)
             {
                 while (i < inputLength)
                 {
@@ -88,67 +88,36 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                         case TriggerState.Unarmed:
                             if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
-                                while (i < v256Length)
+                                while (i < simdLength)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector256, inputVector), armLevelVector256);
-                                    var conditionFound = Avx2.MoveMask(resultVector) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (conditionFound)     // Alternatively, use BitOperations.TrailingZeroCount and add the offset
+                                    var resultVector = Avx2.CompareEqual(Avx2.Min(armLevelVector256, inputVector), armLevelVector256);
+                                    // Convert 16-bit comparison results to 8-bit and extract mask
+                                    var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
+                                    var conditionFound = Avx2.MoveMask(packedResult) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
+                                    if (conditionFound)
                                         break;
-                                    i += Vector256<sbyte>.Count;
+                                    i += 32;
                                 }
                             }
                             else if (AdvSimd.Arm64.IsSupported)
                             {
-                                while (i < v256Length)
+                                while (i < simdLength)
                                 {
                                     var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
                                     var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + 16);
-                                    var resultVector1 = AdvSimd.CompareLessThanOrEqual(inputVector1, armLevelVector128);
-                                    var resultVector2 = AdvSimd.CompareLessThanOrEqual(inputVector2, armLevelVector128);
-                                    var conditionFound = resultVector1 != Vector128<sbyte>.Zero;
-                                    conditionFound |= resultVector2 != Vector128<sbyte>.Zero;
+                                    var resultVector1 = AdvSimd.CompareGreaterThanOrEqual(inputVector1, armLevelVector128);
+                                    var resultVector2 = AdvSimd.CompareGreaterThanOrEqual(inputVector2, armLevelVector128);
+                                    var conditionFound = resultVector1 != Vector128<short>.Zero;
+                                    conditionFound |= resultVector2 != Vector128<short>.Zero;
                                     if (conditionFound)
                                         break;
-                                    i += Vector256<sbyte>.Count;
-
-                                    // https://branchfree.org/2019/04/01/fitting-my-head-through-the-arm-holes-or-two-sequences-to-substitute-for-the-missing-pmovmskb-instruction-on-arm-neon/
-                                    // var inputVector = AdvSimd.Arm64.Load4xVector128AndUnzip(samplesPtr + i);
-                                    // var resultVector1 = AdvSimd.CompareLessThanOrEqual(inputVector.Value1, armLevelVector128);
-                                    // var resultVector2 = AdvSimd.CompareLessThanOrEqual(inputVector.Value2, armLevelVector128);
-                                    // var resultVector3 = AdvSimd.CompareLessThanOrEqual(inputVector.Value3, armLevelVector128);
-                                    // var resultVector4 = AdvSimd.CompareLessThanOrEqual(inputVector.Value4, armLevelVector128);
-                                    // var t0 = AdvSimd.ShiftRightAndInsert(resultVector2, resultVector1, 1);
-                                    // var t1 = AdvSimd.ShiftRightAndInsert(resultVector4, resultVector3, 1);
-                                    // var t2 = AdvSimd.ShiftRightAndInsert(t1,t0, 2);
-                                    // var t3 = AdvSimd.ShiftRightAndInsert(t2,t2, 4);
-                                    // var t4 = AdvSimd.ShiftRightLogicalNarrowingLower(t3.AsUInt16(), 4);
-                                    // var result = t4.AsUInt64()[0];
-                                    // if(result != 0)
-                                    // {
-                                    //     var offset = BitOperations.TrailingZeroCount(result);
-                                    //     i += (uint)offset;
-                                    //     break;
-                                    // }
-                                    // i += 64;
-
-                                    // var inputVector = AdvSimd.Arm64.Load4xVector128(samplesPtr + i);
-                                    // var resultVector1 = AdvSimd.CompareLessThanOrEqual(inputVector.Value1, armLevelVector128);
-                                    // var resultVector2 = AdvSimd.CompareLessThanOrEqual(inputVector.Value2, armLevelVector128);
-                                    // var resultVector3 = AdvSimd.CompareLessThanOrEqual(inputVector.Value3, armLevelVector128);
-                                    // var resultVector4 = AdvSimd.CompareLessThanOrEqual(inputVector.Value4, armLevelVector128);
-                                    // var conditionFound = resultVector1 != Vector128<sbyte>.Zero;
-                                    // conditionFound |= resultVector2 != Vector128<sbyte>.Zero;
-                                    // conditionFound |= resultVector3 != Vector128<sbyte>.Zero;
-                                    // conditionFound |= resultVector4 != Vector128<sbyte>.Zero;
-                                    // if (conditionFound)
-                                    //     break;
-                                    // i += 64;
+                                    i += 32;
                                 }
                             }
                             while (i < inputLength)
                             {
-                                if (samplesPtr[i] <= armLevel)
+                                if (samplesPtr[i] >= armLevel)
                                 {
                                     triggerState = TriggerState.Armed;
                                     results.ArmIndices[results.ArmCount++] = i;
@@ -160,34 +129,36 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                         case TriggerState.Armed:
                             if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
-                                while (i < v256Length)
+                                while (i < simdLength)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector256, inputVector), triggerLevelVector256);
-                                    var conditionFound = Avx2.MoveMask(resultVector) != 0;     // Quick way to do horizontal vector scan of byte[n] != 0
-                                    if (conditionFound)     // Alternatively, use BitOperations.TrailingZeroCount and add the offset
+                                    var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector256, inputVector), triggerLevelVector256);
+                                    // Convert 16-bit comparison results to 8-bit and extract mask
+                                    var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
+                                    var conditionFound = Avx2.MoveMask(packedResult) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
+                                    if (conditionFound)
                                         break;
-                                    i += Vector256<sbyte>.Count;
+                                    i += 32;
                                 }
                             }
                             else if (AdvSimd.Arm64.IsSupported)
                             {
-                                while (i < v256Length)
+                                while (i < simdLength)
                                 {
                                     var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
                                     var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + 16);
-                                    var resultVector1 = AdvSimd.CompareGreaterThan(inputVector1, triggerLevelVector128);
-                                    var resultVector2 = AdvSimd.CompareGreaterThan(inputVector2, triggerLevelVector128);
-                                    var conditionFound = resultVector1 != Vector128<sbyte>.Zero;
-                                    conditionFound |= resultVector2 != Vector128<sbyte>.Zero;
+                                    var resultVector1 = AdvSimd.CompareLessThan(inputVector1, triggerLevelVector128);
+                                    var resultVector2 = AdvSimd.CompareLessThan(inputVector2, triggerLevelVector128);
+                                    var conditionFound = resultVector1 != Vector128<short>.Zero;
+                                    conditionFound |= resultVector2 != Vector128<short>.Zero;
                                     if (conditionFound)
                                         break;
-                                    i += Vector256<sbyte>.Count;
+                                    i += 32;
                                 }
                             }
                             while (i < inputLength)
                             {
-                                if (samplesPtr[i] > triggerLevel)
+                                if (samplesPtr[i] < triggerLevel)
                                 {
                                     triggerState = TriggerState.InCapture;
                                     captureRemaining = captureSamples;
@@ -224,6 +195,7 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                                     }
                                 }
                             }
+
                             break;
                         case TriggerState.InHoldoff:
                             {
