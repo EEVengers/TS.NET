@@ -19,7 +19,7 @@ class Program
         Variables.Instance.SigGen1Ip = variablesFile.SigGen1Ip;
         Variables.Instance.SigGen2Ip = variablesFile.SigGen2Ip;
 
-        string loadPath = "../../../../Resources/wwwroot/index.html";
+        string loadPath = "../../../Resources/wwwroot/index.html";
 #if RELEASE
         // CreateStaticFileServer allows the use of the embedded resources
         PhotinoServer
