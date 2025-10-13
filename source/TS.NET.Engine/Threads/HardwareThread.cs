@@ -80,6 +80,9 @@ internal class HardwareThread : IThread
             bool validDataDto = true;
             var resolution = AdcResolution.EightBit;
             var dataType = ThunderscopeDataType.I8;
+#if DEBUG
+            thunderscope.Start();
+#endif
 
             while (true)
             {

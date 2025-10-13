@@ -8,20 +8,17 @@
     <Nullable>enable</Nullable>
     <Version>0.1.0</Version>
 
-    <!-- AOT flags -->
-    <!-- PublishAot does not bundle native dlls (3 of them) -->
-    <PublishAot>false</PublishAot>
-
-    <!-- JIT flags -->
-    <PublishTrimmed>true</PublishTrimmed>
-    <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <InvariantGlobalization>true</InvariantGlobalization>
     <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
     <ApplicationIcon>icon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishTrimmed>true</PublishTrimmed>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>

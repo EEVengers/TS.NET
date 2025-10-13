@@ -8,14 +8,15 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <Version>0.1.0</Version>
 
-	<!-- JIT flags -->
-	<PublishTrimmed>true</PublishTrimmed>
-	<PublishSingleFile>true</PublishSingleFile>
-	<SelfContained>true</SelfContained>
-	<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-
 	<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
 	<InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishTrimmed>true</PublishTrimmed>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>
