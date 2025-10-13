@@ -17,7 +17,7 @@ class Program
         // To do: have something better than array index. Hardware serial?
         var deviceIndexOption = new Option<int>(name: "-i", description: "The ThunderScope to use if there are multiple connected to the host.", getDefaultValue: () => { return 0; });
         var configurationFilePathOption = new Option<string>(name: "-config", description: "Configuration file to use.", getDefaultValue: () => { return "thunderscope.yaml"; });
-        var calibrationFilePathOption = new Option<string>(name: "-calibration", description: "Calibration file to use.", getDefaultValue: () => { return "thunderscope-calibration.json"; });
+        var calibrationFilePathOption = new Option<string>(name: "-calibration", description: "Calibration file to use.", getDefaultValue: () => { return ""; });
         var secondsOption = new Option<int>(name: "-seconds", description: "Run for an integer number of seconds. Useful for profiling.", getDefaultValue: () => { return 0; });
         var membenchOption = new Option<bool>(name: "-membench", description: "Run memory benchmark.", getDefaultValue: () => { return false; });
 

@@ -40,17 +40,21 @@ namespace TS.NET.Driver.Libtslitex
                 Close();
         }
 
-        public void Open(uint devIndex, ThunderscopeHardwareConfig initialHardwareConfiguration)
+        public void Open(uint devIndex)
         {
             if (open)
                 Close();
 
-            //Initialise();
             tsHandle = Interop.Open(devIndex, false);
 
             if (tsHandle == 0)
                 throw new ThunderscopeException($"Failed to open device {devIndex} ({tsHandle})");
             open = true;
+        }
+
+        public void Configure(ThunderscopeHardwareConfig initialHardwareConfiguration)
+        {
+            CheckOpen();
 
             SetAdcCalibration(initialHardwareConfiguration.AdcCalibration);
             for (int chan = 0; chan < 4; chan++)
@@ -587,27 +591,24 @@ namespace TS.NET.Driver.Libtslitex
                 {
                     var retVal = Interop.UserDataRead(tsHandle, bufferP, (uint)offset, (uint)buffer.Length);
                     if (retVal < 0)
-                        throw new ThunderscopeException($"Failed to get user data ({GetLibraryReturnString(retVal)})");
+                        throw new ThunderscopeException($"Failed to read user data ({GetLibraryReturnString(retVal)})");
                     return retVal;
                 }
             }
         }
 
-        public static int UserDataRead(uint deviceIndex, Span<byte> buffer, int offset)
+        public int UserDataWrite(Span<byte> buffer, int offset)
         {
             unsafe
             {
                 fixed (byte* bufferP = buffer)
                 {
-                    var tsHandle = Interop.Open(deviceIndex, false);
-                    Interop.UserDataRead(tsHandle, bufferP, (uint)offset, (uint)buffer.Length);
-                    var retVal = Interop.UserDataRead(tsHandle, bufferP, (uint)offset, (uint)buffer.Length);
+                    var retVal = Interop.UserDataWrite(tsHandle, bufferP, (uint)offset, (uint)buffer.Length);
                     if (retVal < 0)
-                        throw new ThunderscopeException($"Failed to get user data ({GetLibraryReturnString(retVal)})");
-                    Interop.Close(tsHandle);
+                        throw new ThunderscopeException($"Failed to write user data ({GetLibraryReturnString(retVal)})");
                     return retVal;
                 }
-            } 
+            }
         }
 
         private void UpdateFrontends()

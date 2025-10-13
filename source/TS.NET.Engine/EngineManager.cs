@@ -47,7 +47,6 @@ public class EngineManager
         //using FileStream fs = new(lockFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
 
         thunderscopeSettings = ThunderscopeSettings.FromYamlFile(configurationFile);
-        var thunderscopeCalibrationSettings = ThunderscopeCalibrationSettings.FromJsonFile(calibrationFile);
 
         if (RuntimeInformation.ProcessArchitecture == Architecture.X86 || RuntimeInformation.ProcessArchitecture == Architecture.X64)
         {
@@ -72,18 +71,12 @@ public class EngineManager
             }
         }
 
-        // Instantiate dataflow channels
-        // XDMA bufferLength 60 (~0.5 seconds worth of samples at 1GSPS, 60x8388608 = 503316480)
-        // LiteX bufferLength 3 (driver has large buffer)
-        int bufferLength = 60;
-
         switch (thunderscopeSettings.HardwareDriver.ToLower())
         {
             case "simulation":
                 {
-                    var ts = new TS.NET.Driver.Simulation.Thunderscope();
+                    var ts = new Driver.Simulation.Thunderscope();
                     thunderscope = ts;
-                    bufferLength = 3;
                     break;
                 }
             case "litex":
@@ -95,10 +88,28 @@ public class EngineManager
                         logger?.LogCritical($"tslitex not found");
                         return false;
                     }
-                    var ts = new TS.NET.Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
+                    var ts = new Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
+                    // Later this will switch to using device serial.
+                    uint deviceIndex = uint.Parse(deviceSerial);
+                    ts.Open(deviceIndex);
 
-                    //Span<byte> userData = new byte[100];
-                    //Driver.Libtslitex.Thunderscope.UserDataRead(0, userData, 0);
+                    ThunderscopeCalibrationSettings thunderscopeCalibrationSettings = new();
+                    if (File.Exists(calibrationFile))
+                    {
+                        thunderscopeCalibrationSettings = ThunderscopeCalibrationSettings.FromJsonFile(calibrationFile);
+                    }
+                    else if (ThunderscopeNonVolatileMemory.TryReadUserCalibration(ts, out var calibration))
+                    {
+                        thunderscopeCalibrationSettings = calibration!;
+                    }
+                    else if (File.Exists("thunderscope-calibration.json"))
+                    {
+                        thunderscopeCalibrationSettings = ThunderscopeCalibrationSettings.FromJsonFile(calibrationFile);
+                    }
+                    else
+                    {
+                        throw new ThunderscopeException("Could not load calibration from device or file");
+                    }
 
                     ThunderscopeHardwareConfig initialHardwareConfiguration = new();
                     //initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Quad;
@@ -117,11 +128,8 @@ public class EngineManager
                     initialHardwareConfiguration.Calibration[2] = thunderscopeCalibrationSettings.Channel3.ToDriver();
                     initialHardwareConfiguration.Calibration[3] = thunderscopeCalibrationSettings.Channel4.ToDriver();
                     initialHardwareConfiguration.AdcCalibration = thunderscopeCalibrationSettings.Adc.ToDriver();
-                    // Later this will switch to using device serial.
-                    uint deviceIndex = uint.Parse(deviceSerial);
-                    ts.Open(deviceIndex, initialHardwareConfiguration);
+                    ts.Configure(initialHardwareConfiguration);
                     thunderscope = ts;
-                    bufferLength = 3;
                     break;
                 }
             default:
@@ -132,7 +140,7 @@ public class EngineManager
         }
 
         //string bridgeNamespace = $"ThunderScope.{deviceIndex}";
-
+        int bufferLength = 3;
         BlockingPool<DataDto> hardwarePool = new(bufferLength);
         BlockingPool<DataDto> preProcessingPool = new(bufferLength);
         ThunderscopeMemoryRegion memoryRegion = new(bufferLength * 2);
@@ -223,7 +231,7 @@ public class EngineManager
     }
 
     public void Stop()
-    {            
+    {
         hardwareThread?.Stop();
         preProcessingThread?.Stop();
         processingThread?.Stop();
