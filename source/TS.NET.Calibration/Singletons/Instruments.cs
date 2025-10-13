@@ -76,7 +76,7 @@ public class Instruments
         thunderScope.Configure(hardwareConfig);
         // Start to keep the device hot
         thunderScope.Start();
-        memoryRegion = new ThunderscopeMemoryRegion(1);
+        memoryRegion = new ThunderscopeMemoryRegion(2);
 
         // Sig gen 1 (SDG2042X)
         if (Variables.Instance.SigGen1Ip != null && initSigGens)
@@ -350,8 +350,6 @@ public class Instruments
         var memory = memoryRegion!.GetSegment(0);
         // To do: allow for multi-channel reading
         var config = thunderScope!.GetConfiguration();
-        if (config.EnabledChannelsCount() != 1)
-            throw new NotImplementedException();
         // Stop/start then flush out the buffers an arbitary amount. Exact amount of flushing required TBD.
         thunderScope!.Stop();
         thunderScope!.Start();
@@ -360,17 +358,46 @@ public class Instruments
 
         var samples = memory.DataSpanI8;
 
+        Span<sbyte> channel;
+        switch (config.EnabledChannelsCount())
+        {
+            case 1:
+                channel = samples;
+                break;
+            case 2:
+                {
+                    Span<sbyte> twoChannels = memoryRegion!.GetSegment(1).DataSpanI8;
+                    ShuffleI8.TwoChannels(samples, twoChannels);
+                    var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                    var length = samples.Length / 2;
+                    channel = twoChannels.Slice(index * length, length);
+                    break;
+                }
+            case 3:
+            case 4:
+                {
+                    Span<sbyte> fourChannels = memoryRegion!.GetSegment(1).DataSpanI8;
+                    ShuffleI8.FourChannels(samples, fourChannels);
+                    var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                    var length = samples.Length / 4;
+                    channel = fourChannels.Slice(index * length, length);
+                    break;
+                }
+            default:
+                throw new NotImplementedException();
+        }
+
         average = 0;
         min = int.MaxValue;
         max = int.MinValue;
         int sum = 0;
-        foreach (var point in samples)
+        foreach (var point in channel)
         {
             sum += point;
             if (point < min) min = point;
             if (point > max) max = point;
         }
-        average = (double)sum / samples.Length;
+        average = (double)sum / channel.Length;
     }
 
     public void SetSdgChannel(int channelIndex)

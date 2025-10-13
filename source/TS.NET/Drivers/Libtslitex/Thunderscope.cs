@@ -349,7 +349,7 @@ namespace TS.NET.Driver.Libtslitex
                 ThunderscopeTermination.FiftyOhm => 4.0,
                 _ => throw new NotImplementedException()
             };
-            var minimumDesignRange = 0.000008;
+            var minimumDesignRange = 0.008;
             var vppTooLarge = channel.RequestedVoltFullScale > maximumDesignRangeForTermination;
             var vppTooSmall = channel.RequestedVoltFullScale < minimumDesignRange;
             var runRangeSearch = !vppTooSmall && !vppTooLarge;
