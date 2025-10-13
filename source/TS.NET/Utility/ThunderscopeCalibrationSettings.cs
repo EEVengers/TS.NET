@@ -36,6 +36,16 @@ namespace TS.NET
             var json = JsonSerializer.Serialize(this, SourceGenerationContext.Default.ThunderscopeCalibrationSettings);
             File.WriteAllText(path, json);
         }
+
+        public string ToJson()
+        {
+            return JsonSerializer.Serialize(this, SourceGenerationContext.Default.ThunderscopeCalibrationSettings);
+        }
+
+        public static ThunderscopeCalibrationSettings FromJson(string json)
+        {
+            return JsonSerializer.Deserialize(json, SourceGenerationContext.Default.ThunderscopeCalibrationSettings) ?? throw new ArgumentNullException();
+        }
     }
 
     public class ThunderscopePgaLoadScale

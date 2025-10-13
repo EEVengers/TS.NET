@@ -16,7 +16,6 @@ class Program
         Sequence sequence = new();
         var cancellationTokenSource = new CancellationTokenSource();
         var variablesFile = VariablesFile.FromJsonFile("variables.json");
-        Variables.Instance.ThunderScopeIp = variablesFile.ThunderScopeIp;
         Variables.Instance.SigGen1Ip = variablesFile.SigGen1Ip;
         Variables.Instance.SigGen2Ip = variablesFile.SigGen2Ip;
 

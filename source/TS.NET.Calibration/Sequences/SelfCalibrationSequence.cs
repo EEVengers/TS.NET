@@ -11,9 +11,8 @@ public class SelfCalibrationSequence : Sequence
         Steps =
         [
             new DialogStep("Cable check", uiDialog){ Title = "Cable check", Text = "All cables disconnected from channels 1-4?", Buttons = DialogButtons.YesNo, Icon = DialogIcon.Question },
-            new CalibrationFileExistsStep("Check calibration file exists"),
-            new CalibrationFileLoadStep("Load calibration file"),
             new InitialiseInstrumentsStep("Initialise instruments", initSigGens: false),
+            new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file"),
             new WarmupStep("Warmup for 20 minutes") { Skip = true },
 
             new Step("Set channel 1"){ Action = (CancellationToken cancellationToken) => {
@@ -220,10 +219,8 @@ public class SelfCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - LG L9", 3, 20) { IgnoreError = true },
             new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - LG L10", 3, 21) { IgnoreError = true },
 
-            new Step("Save calibration file"){ Action = (CancellationToken cancellationToken) => {
-                Variables.Instance.Calibration.ToJsonFile(Variables.Instance.CalibrationFileName);
-                return Sequencer.Status.Done;
-            }},
+            new SaveUserCalToFileStep("Save calibration to file"),
+            new SaveUserCalToDeviceStep("Save calibration to device"),
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.Close();

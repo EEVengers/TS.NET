@@ -4,7 +4,6 @@ namespace TS.NET.Calibration.UI;
 
 public class VariablesFile
 {
-    public required string ThunderScopeIp { get; set; }
     public required string SigGen1Ip { get; set; }
     public required string SigGen2Ip { get; set; }
 

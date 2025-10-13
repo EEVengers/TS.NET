@@ -11,10 +11,9 @@ public class BenchCalibrationSequence : Sequence
         Steps =
         [
             new DialogStep("Cable check", uiDialog){ Title = "Cable check", Text = "Cables connected from 2x SDG2042X to channels 1-4?", Buttons = DialogButtons.YesNo, Icon = DialogIcon.Question },
-            new CalibrationFileExistsStep("Check calibration file exists"),
-            new CalibrationFileLoadStep("Load calibration file"),
             new InitialiseInstrumentsStep("Initialise instruments", initSigGens: true),
-            new WarmupStep("Warmup for 20 minutes") { Skip = true },
+            new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file"),
+            new WarmupStep("Warmup for 20 minutes") { Skip = false },
 
             new Step("Set channel 1"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.SetThunderscopeChannel([0]);
@@ -379,10 +378,8 @@ public class BenchCalibrationSequence : Sequence
 
             new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
-            new Step("Save calibration file"){ Action = (CancellationToken cancellationToken) => {
-                Variables.Instance.Calibration.ToJsonFile(Variables.Instance.CalibrationFileName);
-                return Sequencer.Status.Done;
-            }},
+            new SaveUserCalToFileStep("Save calibration to file"),
+            new SaveUserCalToDeviceStep("Save calibration to device"),
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.Close();

@@ -89,7 +89,7 @@ public class Sequence
     {
         if (Steps == null)
             return;
-        int i = 0;
+        int i = 1;
         foreach (var step in Steps)
         {
             step.Index = i;

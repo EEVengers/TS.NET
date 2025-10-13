@@ -9,7 +9,6 @@ public sealed class Variables
     private double sigGenZero = 0;
 
     public string? Sequence { get; set; }
-    public string ThunderScopeIp { get; set; } = "127.0.0.1";
     public string? SigGen1Ip { get; set; }
     public string? SigGen2Ip { get; set; }
     public int FrontEndSettlingTimeMs { get; set; } = 300;
@@ -18,6 +17,7 @@ public sealed class Variables
     public double SigGenZero { get => sigGenZero; set => sigGenZero = Math.Round(value, 6); }
     public int ParametersSet { get; set; }
     public ThunderscopeCalibrationSettings Calibration { get; set; } = new();
+    public DateTimeOffset CalibrationTimestamp { get; set; }
 
     public ChannelPathConfig[] Channel1PathConfigs { get; set; } = [
         new ChannelPathConfig(PgaPreampGain.High, 0, 54, targetDPotRes: 0.76, sgAmpStep: 0.0002, sgAmpStart: 15 * 0.0002),  // 30dB + 8.86dB
