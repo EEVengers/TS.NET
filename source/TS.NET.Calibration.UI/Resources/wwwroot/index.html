@@ -10,7 +10,7 @@
     <link href="assets/jsonTree/jsonTree.css" rel="stylesheet" />
 </head>
 
-<body class="flex bg-zinc-950 w-screen h-screen">
+<body class="flex bg-zinc-950 w-screen h-screen" x-data>
 
     <!-- Sequence selection dialog -->
     <div id="sequence-dialog" class="z-1 fixed top-0 left-0 w-screen h-screen items-center justify-center">
@@ -29,28 +29,27 @@
                         <div class="flex flex-col pt-3 gap-3">
                             <label class="flex items-center">
                                 <input type="radio" name="sequence" value="self-cal"
-                                    class="form-radio h-4 w-4 text-blue-600" checked><span class="ml-2">
+                                       class="form-radio h-4 w-4 text-blue-600" checked><span class="ml-2">
                                     Self
                                     Calibration
                                 </span>
                             </label>
                             <label class="flex items-center">
                                 <input type="radio" name="sequence" value="bench-cal"
-                                    class="form-radio h-4 w-4 text-blue-600"><span class="ml-2">Bench Calibration</span>
+                                       class="form-radio h-4 w-4 text-blue-600"><span class="ml-2">Bench Calibration</span>
                             </label>
                         </div>
                     </div>
                     <div class="flex-none">
                         <button id="sequence-button" type="button"
-                            class=" float-right border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
+                                class=" float-right border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
                             Ok
                         </button>
                     </div>
                 </div>
             </div>
         </div>
-        <div
-            class="z-0 fixed top-0 left-0 w-screen h-screen items-center justify-center backdrop-blur-xs pointer-events-none">
+        <div class="z-0 fixed top-0 left-0 w-screen h-screen items-center justify-center backdrop-blur-xs pointer-events-none">
         </div>
     </div>
 
@@ -90,39 +89,37 @@
                 </div>
                 <div class="flex-none flex flex-col">
                     <div class="flex-none text-neutral-50 font-normal text-base text-md">Calibration</div>
-                    <div class="flex-none text-neutral-300 font-normal text-base text-xs">MEASURE & VALIDATE</div>
+                    <div class="flex-none text-neutral-300 font-normal text-base text-sm">Measure & Validate</div>
                 </div>
             </div>
             <div class="flex-none flex flex-row items-center gap-2 p-2">
-                <button id="start-button" type="button"
-                    class="flex-none border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
+                <button id="start-button" type="button" @mouseenter="help('Start the calibration sequence')" @mouseleave="help('')"
+                        class="flex-none border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
                     Start
                 </button>
 
-                <button id="stop-button" type="button"
-                    class="flex-none border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
+                <button id="stop-button" type="button" @mouseenter="help('Stop the calibration sequence')" @mouseleave="help('')"
+                        class="flex-none border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
                     Stop
                 </button>
 
 
-                <div class="flex-none flex flex-col w-20 h-11 border border-zinc-600" x-data>
-                    <div
-                        class="flex-auto flex text-neutral-50 font-normal text-xs trim-box items-center justify-center bg-zinc-600">
-                        DURATION
+                <div class="flex-none flex flex-col w-20 h-11 border border-zinc-600" @mouseenter="help('Duration of the calibration sequence when running')" @mouseleave="help('')">
+                    <div class="flex-auto flex text-neutral-50 font-normal text-xs trim-box items-center justify-center bg-zinc-600">
+                        Duration
                     </div>
                     <div id="headline-duration-value"
-                        class="flex-auto flex text-neutral-50 font-normal text-xs trim-box items-center justify-center"
-                        x-text="$store.headline.duration">-</div>
+                         class="flex-auto flex text-neutral-50 font-normal text-xs trim-box items-center justify-center"
+                         x-text="$store.header.duration">-</div>
                 </div>
 
-                <div class="flex-none flex flex-col w-20 h-11 border border-zinc-600" x-data>
-                    <div
-                        class="flex-auto flex text-neutral-50 font-normal text-xs trim-box items-center justify-center bg-zinc-600">
-                        STATUS
+                <div class="flex-none flex flex-col w-20 h-11 border border-zinc-600" @mouseenter="help('Status of the calibration sequence when running')" @mouseleave="help('')">
+                    <div class="flex-auto flex text-neutral-50 font-normal text-xs trim-box items-center justify-center bg-zinc-600">
+                        Status
                     </div>
                     <div id="headline-state-value"
-                        class="flex-auto flex text-neutral-50 font-normal text-xs trim-box items-center justify-center"
-                        x-text="$store.headline.state">-</div>
+                         class="flex-auto flex text-neutral-50 font-normal text-xs trim-box items-center justify-center"
+                         x-text="$store.header.status">-</div>
                 </div>
             </div>
 
@@ -135,9 +132,9 @@
             <!-- Sequence widget -->
             <div class="flex-2 flex flex-col border-r border-zinc-600">
                 <!-- Title bar -->
-                <div class="flex-none flex flex-row items-center gap-2 p-2 pl-2 pr-2 bg-zinc-800">
-                    <div class="flex-none text-neutral-50 font-normal text-xs trim-box">SEQUENCE</div>
-                    <div class="flex-auto bg-zinc-600 rounded h-full"></div>
+                <div class="flex-none flex flex-row items-center gap-2 p-2 pl-2 pr-2 bg-zinc-900" @mouseenter="help('Sequence display area')" @mouseleave="help('')">
+                    <div class="flex-none text-neutral-50 font-normal text-xs trim-box">Sequence</div>
+                    <div class="flex-auto bg-zinc-700 rounded h-full"></div>
                 </div>
                 <div class="flex-none border-b border-zinc-600"></div>
                 <!-- Content -->
@@ -164,9 +161,9 @@
             <!-- Variables widget -->
             <div class="flex-1 flex flex-col  border-zinc-600">
                 <!-- Title bar -->
-                <div class="flex-none flex flex-row items-center gap-2 p-2 pl-2 pr-2 bg-zinc-800 ">
-                    <div class="flex-none text-neutral-50 font-normal text-xs trim-box">VARIABLES</div>
-                    <div class="flex-auto bg-zinc-600 rounded h-full"></div>
+                <div class="flex-none flex flex-row items-center gap-2 p-2 pl-2 pr-2 bg-zinc-900" @mouseenter="help('Variable display area')" @mouseleave="help('')">
+                    <div class="flex-none text-neutral-50 font-normal text-xs trim-box">Variables</div>
+                    <div class="flex-auto bg-zinc-700 rounded h-full"></div>
                 </div>
                 <div class="flex-none border-b border-zinc-600"></div>
                 <!-- Content -->
@@ -180,14 +177,14 @@
         </main>
 
         <!-- Footer: Log Display -->
-        <footer class="flex-none flex">
+        <footer class="flex-none flex flex-col">
             <!-- Log widget -->
             <div class="flex-auto flex flex-col">
                 <div class="flex-none border-b border-zinc-600"></div>
                 <!-- Title bar -->
-                <div class="flex-none flex flex-row items-center gap-2 p-2 pl-2 pr-2 bg-zinc-800 ">
-                    <div class="flex-none text-neutral-50 font-normal text-xs trim-box">LOG</div>
-                    <div class="flex-auto bg-zinc-600 rounded h-full"></div>
+                <div class="flex-none flex flex-row items-center gap-2 p-2 pl-2 pr-2 bg-zinc-900" @mouseenter="help('Log display area')" @mouseleave="help('')">
+                    <div class="flex-none text-neutral-50 font-normal text-xs trim-box">Log</div>
+                    <div class="flex-auto bg-zinc-700 rounded h-full"></div>
                 </div>
                 <div class="flex-none border-b border-zinc-600"></div>
                 <!-- Content -->
@@ -197,11 +194,22 @@
                     </div>
                 </div>
             </div>
+            <div class="flex-none flex flex-row bg-zinc-800 text-white font-normal text-sm p-2 border-zinc-600 border-t gap-2">
+                <div class="flex-none flex">
+                    <div x-text="$store.footer.contextHelp" class="flex-none trim-box text-neutral-300"></div>
+                </div>
+                <div class="flex-auto"></div>
+                <div class="flex-none flex" @mouseenter="help('UI zoom level, use [ctrl & +], [ctrl & -], [crtl & 0], or [ctrl + mousewheel] to change it')" @mouseleave="help('')">
+                    <div x-text="$store.footer.zoom" class="flex-none trim-box text-neutral-300">Zoom: 100%</div>
+                </div>
+            </div>
         </footer>
     </div>
 
-    <script src="assets/jsonTree/jsonTree.js"></script>
     <script src="assets/app.js"></script>
+    <script src="assets/jsonTree/jsonTree.js"></script>
+    <script src="assets/alpine.min.js"></script>
+
 </body>
 
 </html>

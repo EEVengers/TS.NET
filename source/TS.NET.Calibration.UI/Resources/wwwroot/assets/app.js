@@ -1,3 +1,20 @@
+document.addEventListener("alpine:init", () => {
+    Alpine.store("header", {
+        duration: "-",
+        status: "-"
+    });
+    Alpine.store("footer", {
+        contextHelp: "",
+        zoom: "Zoom: 100%"
+    });
+
+    zoom();
+
+    // Detect zoom changes
+    window.addEventListener('resize', zoom);
+    window.matchMedia('screen').addEventListener('change', zoom);
+});
+
 document.addEventListener("DOMContentLoaded", () => {
     const sequenceButton = document.getElementById("sequence-button");
     const startButton = document.getElementById("start-button");
@@ -209,3 +226,15 @@ document.addEventListener("DOMContentLoaded", () => {
         sendMessage({ command: "stop-sequence" });
     });
 });
+
+function help(text) {
+    var displayText = "";
+    if (text && text.length > 0)
+        displayText = text;
+    Alpine.store('footer').contextHelp = displayText;
+}
+
+function zoom() {
+    const zoomLevel = Math.round(window.devicePixelRatio * 100);
+    Alpine.store('footer').zoom = "Zoom: " + zoomLevel + "%";
+}

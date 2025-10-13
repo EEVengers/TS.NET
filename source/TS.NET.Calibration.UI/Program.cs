@@ -132,7 +132,7 @@ class Program
             }).Load(loadPath);
 
         bool initialized = false;
-        var windowSizing = new WindowSizing(baseMinWidth: 1024, baseMinHeight: 768, baseWidth: 1440, baseHeight: 900);
+        var windowSizing = new WindowSizing(baseMinWidth: 1200, baseMinHeight: 800, baseWidth: 1440, baseHeight: 900);
         window.WindowCreated += (_, _) =>
         {
             windowSizing.UpdateSize(window);
