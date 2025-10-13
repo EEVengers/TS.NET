@@ -10,7 +10,7 @@
 
 	<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
 	<InvariantGlobalization>true</InvariantGlobalization>
-    <RuntimeIdentifiers>win-x64; linux-x64; osx-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win-x64; linux-x64; osx-x64; osx-arm64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
