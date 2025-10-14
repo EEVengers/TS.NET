@@ -1,83 +1,83 @@
-﻿using System;
+using System;
 using Xunit;
 
 namespace TS.NET.Tests;
 
-public class AnyEdgeTriggerI8Tests
+public class AnyEdgeTriggerI16Tests
 {
     [Fact]
     public void SituationA_Rising()
     {
-        var situation = AnyEdgeTriggerSituationsI8.SituationA_Rising();
+        var situation = AnyEdgeTriggerSituationsI16.SituationA_Rising();
         RunSituation(situation);
     }
 
     [Fact]
     public void SituationB_Rising()
     {
-        var situation = AnyEdgeTriggerSituationsI8.SituationB_Rising();
+        var situation = AnyEdgeTriggerSituationsI16.SituationB_Rising();
         RunSituation(situation);
     }
 
     [Fact]
     public void SituationC_Rising()
     {
-        var situation = AnyEdgeTriggerSituationsI8.SituationC_Rising();
+        var situation = AnyEdgeTriggerSituationsI16.SituationC_Rising();
         RunSituation(situation);
     }
 
     [Fact]
     public void SituationD_Rising()
     {
-        var situation = AnyEdgeTriggerSituationsI8.SituationD_Rising();
+        var situation = AnyEdgeTriggerSituationsI16.SituationD_Rising();
         RunSituation(situation);
     }
 
     [Fact]
     public void SituationE_Rising()
     {
-        var situation = AnyEdgeTriggerSituationsI8.SituationE_Rising();
+        var situation = AnyEdgeTriggerSituationsI16.SituationE_Rising();
         RunSituation(situation);
     }
 
     [Fact]
     public void SituationA_Falling()
     {
-        var situation = AnyEdgeTriggerSituationsI8.SituationA_Falling();
+        var situation = AnyEdgeTriggerSituationsI16.SituationA_Falling();
         RunSituation(situation);
     }
 
     [Fact]
     public void SituationB_Falling()
     {
-        var situation = AnyEdgeTriggerSituationsI8.SituationB_Falling();
+        var situation = AnyEdgeTriggerSituationsI16.SituationB_Falling();
         RunSituation(situation);
     }
 
     [Fact]
     public void SituationC_Falling()
     {
-        var situation = AnyEdgeTriggerSituationsI8.SituationC_Falling();
+        var situation = AnyEdgeTriggerSituationsI16.SituationC_Falling();
         RunSituation(situation);
     }
 
     [Fact]
     public void SituationD_Falling()
     {
-        var situation = AnyEdgeTriggerSituationsI8.SituationD_Falling();
+        var situation = AnyEdgeTriggerSituationsI16.SituationD_Falling();
         RunSituation(situation);
     }
 
     [Fact]
     public void SituationE_Falling()
     {
-        var situation = AnyEdgeTriggerSituationsI8.SituationE_Falling();
+        var situation = AnyEdgeTriggerSituationsI16.SituationE_Falling();
         RunSituation(situation);
     }
 
-    private static void RunSituation(EdgeTriggerSituationI8 situation)
+    private static void RunSituation(EdgeTriggerSituationI16 situation)
     {
-        var trigger = new AnyEdgeTriggerI8(situation.Parameters);
+        var trigger = new AnyEdgeTriggerI16(situation.Parameters);
         var edgeTriggerResults = new EdgeTriggerResults()
         {
             ArmIndices = new int[1000],
@@ -91,7 +91,7 @@ public class AnyEdgeTriggerI8Tests
 
         for (int i = 0; i < situation.ChunkCount; i++)
         {
-            trigger.Process(situation.Input.Span.Slice((int)(i * situation.ChunkSize), (int)situation.ChunkSize), ref edgeTriggerResults);
+            trigger.Process(situation.Input.Span.Slice((i * situation.ChunkSize), situation.ChunkSize), ref edgeTriggerResults);
         }
 
         for (int i = 0; i < situation.ExpectedWindowEndIndices.Length; i++)

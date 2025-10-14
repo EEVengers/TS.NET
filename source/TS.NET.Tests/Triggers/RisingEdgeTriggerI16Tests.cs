@@ -1,27 +1,48 @@
-﻿using System;
+using System;
 using Xunit;
 
 namespace TS.NET.Tests;
 
-public class BurstTriggerI8Tests
+public class RisingEdgeTriggerI16Tests
 {
     [Fact]
     public void SituationA()
     {
-        var situation = BurstTriggerSituations.SituationA();
+        var situation = RisingEdgeTriggerSituationsI16.SituationA();
         RunSituation(situation);
     }
 
     [Fact]
     public void SituationB()
     {
-        var situation = BurstTriggerSituations.SituationB();
+        var situation = RisingEdgeTriggerSituationsI16.SituationB();
         RunSituation(situation);
     }
 
-    private static void RunSituation(BurstTriggerSituation situation)
+    [Fact]
+    public void SituationC()
     {
-        var trigger = new BurstTriggerI8(situation.Parameters);
+        var situation = RisingEdgeTriggerSituationsI16.SituationC();
+        RunSituation(situation);
+    }
+
+    [Fact]
+    public void SituationD()
+    {
+        var situation = RisingEdgeTriggerSituationsI16.SituationD();
+        RunSituation(situation);
+    }
+
+    [Fact]
+    public void SituationE()
+    {
+        var situation = RisingEdgeTriggerSituationsI16.SituationE();
+        RunSituation(situation);
+    }
+
+    private static void RunSituation(EdgeTriggerSituationI16 situation)
+    {
+        var trigger = new RisingEdgeTriggerI16(situation.Parameters);
         var edgeTriggerResults = new EdgeTriggerResults()
         {
             ArmIndices = new int[1000],
