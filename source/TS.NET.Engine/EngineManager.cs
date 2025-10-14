@@ -104,7 +104,7 @@ public class EngineManager
                     }
                     else if (File.Exists("thunderscope-calibration.json"))
                     {
-                        thunderscopeCalibrationSettings = ThunderscopeCalibrationSettings.FromJsonFile(calibrationFile);
+                        thunderscopeCalibrationSettings = ThunderscopeCalibrationSettings.FromJsonFile("thunderscope-calibration.json");
                     }
                     else
                     {
