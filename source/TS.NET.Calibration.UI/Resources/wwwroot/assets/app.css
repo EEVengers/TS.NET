@@ -10,7 +10,7 @@
     font-family: 'Nunito';
     font-style: normal;
     font-weight: 400;
-    src: url('./fonts/nunito-v31-latin-regular.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+    src: url('./fonts/nunito-v32-latin-regular.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
 }
 
 .trim-box {
