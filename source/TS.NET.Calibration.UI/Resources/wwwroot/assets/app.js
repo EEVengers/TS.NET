@@ -118,7 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function addLogMessage(message, container) {
         const div = document.createElement("div");
-        div.className = "text-neutral-100";
+        div.className = "text-neutral-50";
         div.textContent = "[" + formatDateTime(message.timestamp) + "] " + message.message;
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
@@ -169,7 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 break;
             case "Skipped":
             default:
-                element.classList.add("text-neutral-100");
+                element.classList.add("text-neutral-50");
                 break;
         }
     }
