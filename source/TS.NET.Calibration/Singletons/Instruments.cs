@@ -233,7 +233,7 @@ public class Instruments
 
     public void SetThunderscopeRate(uint rateHz)
     {
-        thunderScope?.SetRate(1_000_000_000);
+        thunderScope?.SetRate(rateHz);
         Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
     }
 
