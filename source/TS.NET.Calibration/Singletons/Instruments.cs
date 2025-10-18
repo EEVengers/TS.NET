@@ -73,7 +73,7 @@ public class Instruments
         hardwareConfig.AdcCalibration = thunderscopeCalibrationSettings.Adc.ToDriver();
         thunderScope = new Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
         thunderScope.Open(0);
-        thunderScope.Configure(hardwareConfig);
+        thunderScope.Configure(hardwareConfig, "");
         // Start to keep the device hot
         thunderScope.Start();
         memoryRegion = new ThunderscopeMemoryRegion(2);
