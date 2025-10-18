@@ -42,4 +42,12 @@ public sealed class Logger
         LogHistory.Add(log);
         EventLogged?.Invoke(log);
     }
+
+    public void Log(LogLevel level, int stepIndex, string message)
+    {
+        var logMessage = $"Step {stepIndex} | {message}";
+        var log = new LogEvent() { Level = level, Timestamp = DateTimeOffset.Now, Message = logMessage };
+        LogHistory.Add(log);
+        EventLogged?.Invoke(log);
+    }
 }
