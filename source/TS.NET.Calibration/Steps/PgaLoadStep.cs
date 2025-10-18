@@ -17,8 +17,11 @@ public class PgaLoadStep : Step
 
             Instruments.Instance.SetThunderscopeChannel([channelIndex]);
             var reference = RunAtSampleRate(1_000_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
+            var vpp660M_1Ch = RunAtSampleRate(660_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
             var vpp500M_1Ch = RunAtSampleRate(500_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
+            var vpp330M_1Ch = RunAtSampleRate(330_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
             var vpp250M_1Ch = RunAtSampleRate(250_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
+            var vpp165M_1Ch = RunAtSampleRate(165_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
             var vpp100M_1Ch = RunAtSampleRate(100_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
 
             int[] channelIndices_2Ch = [];
@@ -47,28 +50,42 @@ public class PgaLoadStep : Step
 
             Instruments.Instance.SetThunderscopeChannel(channelIndices_2Ch);
             var vpp500M_2Ch = RunAtSampleRate(500_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
+            var vpp330M_2Ch = RunAtSampleRate(330_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
             var vpp250M_2Ch = RunAtSampleRate(250_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
+            var vpp165M_2Ch = RunAtSampleRate(165_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
             var vpp100M_2Ch = RunAtSampleRate(100_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
 
             Instruments.Instance.SetThunderscopeChannel(channelIndices_3Ch);
             var vpp250M_3Ch = RunAtSampleRate(250_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
+            var vpp165M_3Ch = RunAtSampleRate(165_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
             var vpp100M_3Ch = RunAtSampleRate(100_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
 
             Instruments.Instance.SetThunderscopeChannel([0, 1, 2, 3]);
             var vpp250M_4Ch = RunAtSampleRate(250_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
+            var vpp165M_4Ch = RunAtSampleRate(165_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
             var vpp100M_4Ch = RunAtSampleRate(100_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
 
             List<ThunderscopePgaLoadScale> pgaLoadScales = [];
             pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 1_000_000_000, ChannelCount = 1, Scale = 1.0 });
+            pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 660_000_000, ChannelCount = 1, Scale = Math.Round(reference / vpp660M_1Ch, 4) });
             pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 500_000_000, ChannelCount = 1, Scale = Math.Round(reference / vpp500M_1Ch, 4) });
-            pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 500_000_000, ChannelCount = 2, Scale = Math.Round(reference / vpp500M_2Ch, 4) });
+            pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 330_000_000, ChannelCount = 1, Scale = Math.Round(reference / vpp330M_1Ch, 4) });
             pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 250_000_000, ChannelCount = 1, Scale = Math.Round(reference / vpp250M_1Ch, 4) });
-            pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 250_000_000, ChannelCount = 2, Scale = Math.Round(reference / vpp250M_2Ch, 4) });
-            pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 250_000_000, ChannelCount = 3, Scale = Math.Round(reference / vpp250M_3Ch, 4) });
-            pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 250_000_000, ChannelCount = 4, Scale = Math.Round(reference / vpp250M_4Ch, 4) });
+            pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 165_000_000, ChannelCount = 1, Scale = Math.Round(reference / vpp165M_1Ch, 4) });
             pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 100_000_000, ChannelCount = 1, Scale = Math.Round(reference / vpp100M_1Ch, 4) });
+
+            pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 500_000_000, ChannelCount = 2, Scale = Math.Round(reference / vpp500M_2Ch, 4) });
+            pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 330_000_000, ChannelCount = 2, Scale = Math.Round(reference / vpp330M_2Ch, 4) });
+            pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 250_000_000, ChannelCount = 2, Scale = Math.Round(reference / vpp250M_2Ch, 4) });
+            pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 165_000_000, ChannelCount = 2, Scale = Math.Round(reference / vpp165M_2Ch, 4) });
             pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 100_000_000, ChannelCount = 2, Scale = Math.Round(reference / vpp100M_2Ch, 4) });
+
+            pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 250_000_000, ChannelCount = 3, Scale = Math.Round(reference / vpp250M_3Ch, 4) });
+            pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 165_000_000, ChannelCount = 3, Scale = Math.Round(reference / vpp165M_3Ch, 4) });
             pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 100_000_000, ChannelCount = 3, Scale = Math.Round(reference / vpp100M_3Ch, 4) });
+
+            pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 250_000_000, ChannelCount = 4, Scale = Math.Round(reference / vpp250M_4Ch, 4) });
+            pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 165_000_000, ChannelCount = 4, Scale = Math.Round(reference / vpp165M_4Ch, 4) });
             pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 100_000_000, ChannelCount = 4, Scale = Math.Round(reference / vpp100M_4Ch, 4) });
 
             switch (channelIndex)
