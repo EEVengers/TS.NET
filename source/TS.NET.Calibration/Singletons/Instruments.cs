@@ -74,6 +74,12 @@ public class Instruments
         thunderScope = new Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
         thunderScope.Open(0);
         thunderScope.Configure(hardwareConfig, "");
+        // Need to set manual control on all channels so that SetRate doesn't run normal logic
+        var manualControl = new ThunderscopeChannelFrontendManualControl() { Coupling = ThunderscopeCoupling.DC, Termination = ThunderscopeTermination.OneMegaohm, Attenuator = 0, DAC = 2000, DPOT = 50, PgaLadderAttenuation = 0, PgaFilter = ThunderscopeBandwidth.Bw20M, PgaHighGain = 0 };
+        thunderScope.SetChannelManualControl(0, manualControl);
+        thunderScope.SetChannelManualControl(1, manualControl);
+        thunderScope.SetChannelManualControl(2, manualControl);
+        thunderScope.SetChannelManualControl(3, manualControl);
         // Start to keep the device hot
         thunderScope.Start();
         memoryRegion = new ThunderscopeMemoryRegion(2);
