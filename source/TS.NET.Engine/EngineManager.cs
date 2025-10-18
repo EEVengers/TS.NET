@@ -128,7 +128,7 @@ public class EngineManager
                     initialHardwareConfiguration.Calibration[2] = thunderscopeCalibrationSettings.Channel3.ToDriver();
                     initialHardwareConfiguration.Calibration[3] = thunderscopeCalibrationSettings.Channel4.ToDriver();
                     initialHardwareConfiguration.AdcCalibration = thunderscopeCalibrationSettings.Adc.ToDriver();
-                    ts.Configure(initialHardwareConfiguration);
+                    ts.Configure(initialHardwareConfiguration, thunderscopeSettings.HardwareRevision);
                     thunderscope = ts;
                     break;
                 }

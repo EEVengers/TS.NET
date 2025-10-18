@@ -18,6 +18,8 @@ namespace TS.NET.Driver.Libtslitex
         uint cachedSampleRateHz = 1_000_000_000;
         AdcResolution cachedSampleResolution = AdcResolution.EightBit;
 
+        private bool beta = false;
+
         /// <summary>
         /// readSegmentLengthBytes should be the same as DMA_BUFFER_SIZE in the driver. Other values may work, further research needed.
         /// </summary>
@@ -52,9 +54,12 @@ namespace TS.NET.Driver.Libtslitex
             open = true;
         }
 
-        public void Configure(ThunderscopeHardwareConfig initialHardwareConfiguration)
+        public void Configure(ThunderscopeHardwareConfig initialHardwareConfiguration, string hardwareRevision)
         {
             CheckOpen();
+
+            if (hardwareRevision.Equals("Rev4.1", StringComparison.InvariantCultureIgnoreCase))
+                beta = true;
 
             SetAdcCalibration(initialHardwareConfiguration.AdcCalibration);
             for (int chan = 0; chan < 4; chan++)
@@ -331,7 +336,19 @@ namespace TS.NET.Driver.Libtslitex
             // To calculate:
             //channel.ActualVoltOffset;
 
-            double CalculateInputVpp(ThunderscopeChannelPathCalibration path)
+            double CalculateConnectorInputVpp(ThunderscopeChannelPathCalibration path, ThunderscopeTermination termination, bool mainAttenuator, double mainAttenuatorScale)
+            {
+                var scaleFactor = 1.0;
+                if (mainAttenuator)
+                    scaleFactor = mainAttenuatorScale;
+                // For beta units, there is a 0.2 scale factor for ThunderscopeTermination.FiftyOhm.
+                if (beta && termination == ThunderscopeTermination.FiftyOhm)
+                    scaleFactor *= 0.2;
+
+                return CalculateBufferInputVpp(path) / scaleFactor;
+            }
+
+            double CalculateBufferInputVpp(ThunderscopeChannelPathCalibration path)
             {
                 var channelCount = channelEnabled.Count(chE => chE);
                 if (channelCount == 0)
@@ -361,7 +378,7 @@ namespace TS.NET.Driver.Libtslitex
                 // Pga with no attenuator
                 foreach (var path in channelCalibration[channelIndex].Paths)
                 {
-                    var potentialVpp = CalculateInputVpp(path);
+                    var potentialVpp = CalculateConnectorInputVpp(path, channel.Termination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
                     if (potentialVpp > channel.RequestedVoltFullScale)
                     {
                         pathFound = true;
@@ -377,7 +394,7 @@ namespace TS.NET.Driver.Libtslitex
                 // Pga with attenuator
                 foreach (var path in channelCalibration[channelIndex].Paths)
                 {
-                    var potentialVpp = CalculateInputVpp(path) / channelCalibration[channelIndex].AttenuatorScale;
+                    var potentialVpp = CalculateConnectorInputVpp(path, channel.Termination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
                     if (potentialVpp > channel.RequestedVoltFullScale)
                     {
                         pathFound = true;
@@ -401,14 +418,14 @@ namespace TS.NET.Driver.Libtslitex
                             selectedPath = channelCalibration[channelIndex].Paths.Last();
                             attenuator = true;
                             channel.RequestedVoltFullScale = maximumDesignRangeForTermination;
-                            channel.ActualVoltFullScale = CalculateInputVpp(selectedPath) / channelCalibration[channelIndex].AttenuatorScale;
+                            channel.ActualVoltFullScale = CalculateConnectorInputVpp(selectedPath, channel.Termination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
                         }
                         else
                         {
                             selectedPath = channelCalibration[channelIndex].Paths.First();
                             attenuator = false;
                             channel.RequestedVoltFullScale = minimumDesignRange;
-                            channel.ActualVoltFullScale = CalculateInputVpp(selectedPath);
+                            channel.ActualVoltFullScale = CalculateConnectorInputVpp(selectedPath, channel.Termination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
                         }
                         channel.ActualVoltOffset = 0;       // To do
                         break;
@@ -428,7 +445,7 @@ namespace TS.NET.Driver.Libtslitex
                             channel.RequestedVoltFullScale = minimumDesignRange;
                             attenuator = false;
                         }
-                        var potentialVpp = CalculateInputVpp(selectedPath);
+                        var potentialVpp = CalculateConnectorInputVpp(selectedPath, channel.Termination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
                         channel.ActualVoltFullScale = potentialVpp;
                         channel.ActualVoltOffset = 0;       // To do
                         break;
@@ -437,7 +454,7 @@ namespace TS.NET.Driver.Libtslitex
 
             // Note: PGA input voltage should not go beyond +/-0.6V from 2.5V so that enforces a limit in some gain scenarios. 
             //   Datasheet says +/-0.6V. Testing shows up to +/-1.3V. Use datasheet specification.
-            var dacValueMaxDeviation = (int)((0.6 - (CalculateInputVpp(selectedPath) / 2.0)) / (selectedPath.BufferInputVpp * selectedPath.TrimOffsetDacScale));
+            var dacValueMaxDeviation = (int)((0.6 - (CalculateBufferInputVpp(selectedPath) / 2.0)) / (selectedPath.BufferInputVpp * selectedPath.TrimOffsetDacScale));
 
             // Note: attenuator is the only source of gainFactor change. Probe scaling should be accounted for at the UI level.
             double gainFactor = 1.0;
