@@ -21,6 +21,20 @@ public class WindowSizing
         this.baseHeight = baseHeight;
     }
 
+    public void Initialise(PhotinoWindow window)
+    {
+        uint newDpi = window.ScreenDpi;
+        var absoluteDpi = (double)newDpi / BaseDpi;
+
+        int width = (int)(baseWidth * absoluteDpi);
+        int height = (int)(baseHeight * absoluteDpi);
+        int minWidth = (int)(baseMinWidth * absoluteDpi);
+        int minHeight = (int)(baseMinHeight * absoluteDpi);
+
+        window.MinSize = new Point(minWidth, minHeight);
+        window.Size = new Size(width, height);
+    }
+
     public void UpdateSize(PhotinoWindow window)
     {
         uint newDpi = window.ScreenDpi;

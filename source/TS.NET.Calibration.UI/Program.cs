@@ -133,7 +133,7 @@ class Program
         var windowSizing = new WindowSizing(baseMinWidth: 1200, baseMinHeight: 800, baseWidth: 1440, baseHeight: 900);
         window.WindowCreated += (_, _) =>
         {
-            windowSizing.UpdateSize(window);
+            windowSizing.Initialise(window);
             window.Center();
             initialized = true;
         };
