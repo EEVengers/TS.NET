@@ -239,9 +239,6 @@
   .inline {
     display: inline;
   }
-  .h-4 {
-    height: calc(var(--spacing) * 4);
-  }
   .h-11 {
     height: calc(var(--spacing) * 11);
   }
@@ -256,9 +253,6 @@
   }
   .min-h-0 {
     min-height: calc(var(--spacing) * 0);
-  }
-  .w-4 {
-    width: calc(var(--spacing) * 4);
   }
   .w-12 {
     width: calc(var(--spacing) * 12);
@@ -398,6 +392,9 @@
   }
   .pr-2 {
     padding-right: calc(var(--spacing) * 2);
+  }
+  .pb-1 {
+    padding-bottom: calc(var(--spacing) * 1);
   }
   .pl-1 {
     padding-left: calc(var(--spacing) * 1);
