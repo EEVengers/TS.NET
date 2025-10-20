@@ -2,6 +2,8 @@
 
 namespace TS.NET.Driver.Libtslitex
 {
+    public record ThunderscopeLiteXDevice(uint DeviceID, uint HardwareRev, uint GatewareRev, uint LitexRev, string DevicePath, string Identity, string SerialNumber);
+
     public class Thunderscope : IThunderscope
     {
         private readonly ILogger logger;
@@ -19,6 +21,18 @@ namespace TS.NET.Driver.Libtslitex
         AdcResolution cachedSampleResolution = AdcResolution.EightBit;
 
         private bool beta = false;
+
+        public IReadOnlyList<ThunderscopeLiteXDevice> ListDevices()
+        {
+            var devices = new List<ThunderscopeLiteXDevice>();
+            uint i = 0;
+            while(Interop.ListDevices(i, out var devInfo) == 0)
+            {
+                i++;
+                devices.Add(new ThunderscopeLiteXDevice(devInfo.deviceID, devInfo.hw_id, devInfo.gw_id, devInfo.litex, devInfo.devicePath, devInfo.identity, devInfo.serialNumber));
+            }
+            return devices;
+        }
 
         /// <summary>
         /// readSegmentLengthBytes should be the same as DMA_BUFFER_SIZE in the driver. Other values may work, further research needed.
