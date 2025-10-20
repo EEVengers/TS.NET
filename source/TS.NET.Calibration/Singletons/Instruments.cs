@@ -93,7 +93,7 @@ public class Instruments
             sigGen1.WriteLine("*IDN?");
             var sigGen1Idn = sigGen1.ReadLine();
             Logger.Instance.Log(LogLevel.Debug, $"*IDN: {sigGen1Idn}");
-            if (!sigGen1Idn.StartsWith("Siglent Technologies,SDG2042X", StringComparison.OrdinalIgnoreCase))
+            if (!sigGen1Idn.StartsWith("Siglent Technologies,SDG2", StringComparison.OrdinalIgnoreCase))
                 throw new ApplicationException("Incorrect response from *IDN?");
 
             sigGen1.WriteLine("C1:OUTP OFF"); Thread.Sleep(50);
@@ -120,7 +120,7 @@ public class Instruments
             sigGen2.WriteLine("*IDN?");
             var sigGen2Idn = sigGen2.ReadLine();
             Logger.Instance.Log(LogLevel.Debug, $"*IDN: {sigGen2Idn}");
-            if (!sigGen2Idn.StartsWith("Siglent Technologies,SDG2042X", StringComparison.OrdinalIgnoreCase))
+            if (!sigGen2Idn.StartsWith("Siglent Technologies,SDG2", StringComparison.OrdinalIgnoreCase))
                 throw new ApplicationException("Incorrect response from *IDN?");
 
             sigGen2.WriteLine("C1:OUTP OFF"); Thread.Sleep(50);
