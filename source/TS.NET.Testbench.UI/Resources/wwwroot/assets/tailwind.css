@@ -251,9 +251,6 @@
   .h-60 {
     height: calc(var(--spacing) * 60);
   }
-  .h-full {
-    height: 100%;
-  }
   .h-screen {
     height: 100vh;
   }
@@ -334,9 +331,6 @@
   .overflow-y-auto {
     overflow-y: auto;
   }
-  .rounded {
-    border-radius: 0.25rem;
-  }
   .border {
     border-style: var(--tw-border-style);
     border-width: 1px;
@@ -361,9 +355,6 @@
   }
   .bg-zinc-600 {
     background-color: var(--color-zinc-600);
-  }
-  .bg-zinc-700 {
-    background-color: var(--color-zinc-700);
   }
   .bg-zinc-800 {
     background-color: var(--color-zinc-800);
