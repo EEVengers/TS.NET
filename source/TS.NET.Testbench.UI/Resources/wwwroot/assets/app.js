@@ -109,6 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const element = document.getElementById("headline-state-value");
       element.innerText = message.status;
       statusColour(element, message.status);
+      Alpine.store("header").status = message.status;
     }
   }
 
@@ -129,8 +130,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateSequenceStatus(status) {
     const element = document.getElementById("headline-state-value");
-    element.innerText = status;
     statusColour(element, status);
+    Alpine.store("header").status = status;
   }
 
   function updateStepStatus(step) {

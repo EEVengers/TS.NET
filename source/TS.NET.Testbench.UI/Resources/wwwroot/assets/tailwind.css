@@ -477,6 +477,16 @@
       --tw-inset-ring-color: var(--color-zinc-500);
     }
   }
+  .disabled\:cursor-not-allowed {
+    &:disabled {
+      cursor: not-allowed;
+    }
+  }
+  .disabled\:opacity-50 {
+    &:disabled {
+      opacity: 50%;
+    }
+  }
 }
 @property --tw-translate-x {
   syntax: "*";
