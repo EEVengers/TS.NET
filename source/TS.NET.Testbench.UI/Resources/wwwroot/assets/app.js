@@ -106,10 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
       headlineDurationValue.textContent = message.duration;
     }
     if (message.status != null) {
-      const element = document.getElementById("headline-state-value");
-      element.innerText = message.status;
-      statusColour(element, message.status);
-      Alpine.store("header").status = message.status;
+      updateSequenceStatus(message.status);
     }
   }
 
