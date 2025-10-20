@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace TS.NET.Calibration.UI;
+namespace TS.NET.Testbench.UI;
 
 public class VariablesFile
 {

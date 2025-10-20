@@ -1,6 +1,6 @@
 using TS.NET.Sequencer;
 
-namespace TS.NET.Calibration.UI;
+namespace TS.NET.Testbench.UI;
 
 public class SequenceDto : MessageDto
 {

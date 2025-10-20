@@ -1,4 +1,4 @@
-﻿namespace TS.NET.Calibration.UI;
+﻿namespace TS.NET.Testbench.UI;
 
 public class DialogDto : MessageDto
 {

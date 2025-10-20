@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
+using TS.NET.Calibration;
 
-namespace TS.NET.Calibration.UI;
+namespace TS.NET.Testbench.UI;
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.Unspecified)]
 [JsonSerializable(typeof(VariablesDto))]

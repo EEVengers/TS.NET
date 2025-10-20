@@ -2,10 +2,11 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using TS.NET.Calibration;
 using TS.NET.Photino;
 using TS.NET.Sequencer;
 
-namespace TS.NET.Calibration.UI;
+namespace TS.NET.Testbench.UI;
 
 class Program
 {
@@ -29,8 +30,8 @@ class Program
 
         var window = new PhotinoWindow()
             .SetLogVerbosity(0)
-            .SetTitle("Calibration")
-            .SetIconFile(ExtractEmbeddedResourceToTempFile("icon.ico", "TS.NET.Calibration.UI"))
+            .SetTitle("Testbench")
+            .SetIconFile(ExtractEmbeddedResourceToTempFile("icon.ico", "TS.NET.Testbench.UI"))
             .SetUseOsDefaultSize(false)
             .SetNotificationsEnabled(false)
             .Center()
