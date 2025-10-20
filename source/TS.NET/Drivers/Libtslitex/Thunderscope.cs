@@ -258,6 +258,7 @@ namespace TS.NET.Driver.Libtslitex
             health.AdcSampleSize = litexState.adc_sample_bits;
             health.AdcSampleResolution = litexState.adc_sample_resolution;
             health.AdcSamplesLost = litexState.adc_lost_buffer_count;
+            health.AdcFrameSync = (litexState.flags & 0x2) > 0;
             health.FpgaTemp = litexState.temp_c / 1000.0;
             health.VccInt = litexState.vcc_int / 1000.0;
             health.VccAux = litexState.vcc_aux / 1000.0;

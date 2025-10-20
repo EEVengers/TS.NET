@@ -9,6 +9,7 @@ namespace TS.NET.Driver.Libtslitex
         public uint AdcSampleSize;
         public uint AdcSampleResolution;
         public uint AdcSamplesLost;
+        public bool AdcFrameSync;
         public double FpgaTemp;
         public double VccInt;
         public double VccAux;
