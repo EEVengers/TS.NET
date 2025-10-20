@@ -14,6 +14,7 @@ public class Instruments
     private TcpScpiConnection? sigGen1;
     private TcpScpiConnection? sigGen2;
 
+    private const int acquisitionRegionCount = 3;
     private ThunderscopeMemoryRegion? memoryRegion;
 
     public void Initialise(bool initSigGens)
@@ -82,7 +83,7 @@ public class Instruments
         thunderScope.SetChannelManualControl(3, manualControl);
         // Start to keep the device hot
         thunderScope.Start();
-        memoryRegion = new ThunderscopeMemoryRegion(2);
+        memoryRegion = new ThunderscopeMemoryRegion(acquisitionRegionCount + 1);
 
         // Sig gen 1 (SDG2042X)
         if (Variables.Instance.SigGen1Ip != null && initSigGens)
@@ -353,57 +354,63 @@ public class Instruments
 
     public void GetThunderscopeStats(int channelIndex, out double average, out double min, out double max)
     {
-        var memory = memoryRegion!.GetSegment(0);
         // To do: allow for multi-channel reading
         var config = thunderScope!.GetConfiguration();
         // Stop/start then flush out the buffers an arbitary amount. Exact amount of flushing required TBD.
         thunderScope!.Stop();
         thunderScope!.Start();
-        for (int i = 0; i < 10; i++)
-            thunderScope!.Read(memory, new CancellationToken());
+        for (int i = 0; i < 3; i++)
+            thunderScope!.Read(memoryRegion!.GetSegment(0), new CancellationToken());
 
-        var samples = memory.DataSpanI8;
-
-        Span<sbyte> channel;
-        switch (config.EnabledChannelsCount())
-        {
-            case 1:
-                channel = samples;
-                break;
-            case 2:
-                {
-                    Span<sbyte> twoChannels = memoryRegion!.GetSegment(1).DataSpanI8;
-                    ShuffleI8.TwoChannels(samples, twoChannels);
-                    var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
-                    var length = samples.Length / 2;
-                    channel = twoChannels.Slice(index * length, length);
-                    break;
-                }
-            case 3:
-            case 4:
-                {
-                    Span<sbyte> fourChannels = memoryRegion!.GetSegment(1).DataSpanI8;
-                    ShuffleI8.FourChannels(samples, fourChannels);
-                    var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
-                    var length = samples.Length / 4;
-                    channel = fourChannels.Slice(index * length, length);
-                    break;
-                }
-            default:
-                throw new NotImplementedException();
-        }
+        for(int i = 0; i < acquisitionRegionCount; i++)
+            thunderScope!.Read(memoryRegion!.GetSegment(i), new CancellationToken());
 
         average = 0;
         min = int.MaxValue;
         max = int.MinValue;
-        int sum = 0;
-        foreach (var point in channel)
+        long sum = 0;
+        long count = 0;
+
+        for (int i = 0; i < acquisitionRegionCount; i++)
         {
-            sum += point;
-            if (point < min) min = point;
-            if (point > max) max = point;
+            var samples = memoryRegion!.GetSegment(i).DataSpanI8;
+            Span<sbyte> channel;
+            switch (config.EnabledChannelsCount())
+            {
+                case 1:
+                    channel = samples;
+                    break;
+                case 2:
+                    {
+                        Span<sbyte> twoChannels = memoryRegion!.GetSegment(acquisitionRegionCount).DataSpanI8;
+                        ShuffleI8.TwoChannels(samples, twoChannels);
+                        var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                        var length = samples.Length / 2;
+                        channel = twoChannels.Slice(index * length, length);
+                        break;
+                    }
+                case 3:
+                case 4:
+                    {
+                        Span<sbyte> fourChannels = memoryRegion!.GetSegment(acquisitionRegionCount).DataSpanI8;
+                        ShuffleI8.FourChannels(samples, fourChannels);
+                        var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                        var length = samples.Length / 4;
+                        channel = fourChannels.Slice(index * length, length);
+                        break;
+                    }
+                default:
+                    throw new NotImplementedException();
+            }
+            foreach (var point in channel)
+            {
+                sum += point;
+                if (point < min) min = point;
+                if (point > max) max = point;
+            }
+            count += channel.Length;
         }
-        average = (double)sum / channel.Length;
+        average = (double)sum / count;
     }
 
     public void SetSdgChannel(int channelIndex)
