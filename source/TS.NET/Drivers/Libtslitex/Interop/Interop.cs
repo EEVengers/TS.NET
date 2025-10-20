@@ -23,6 +23,8 @@ namespace TS.NET.Driver.Libtslitex
         {
             public uint deviceID;
             public uint hw_id;
+            public uint gw_id;
+            public uint litex;
             [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
             public string devicePath;
             [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
