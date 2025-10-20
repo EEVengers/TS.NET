@@ -23,7 +23,7 @@ public class BenchCalibrationSequence : Sequence
             new InitialiseDeviceStep("Initialise device", Variables),
             new InitialiseSigGensStep("Initialise instruments", Variables),
             new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file", Variables),
-            new WarmupStep("Warmup for 20 minutes") { Skip = true },
+            new WarmupStep("Warmup for 20 minutes") { Skip = false },
 
             new Step("Set channel 1"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.SetThunderscopeChannel([0]);
