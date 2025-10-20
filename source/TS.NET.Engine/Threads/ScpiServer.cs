@@ -234,24 +234,6 @@ internal class ScpiSession : TcpSession
                                 processingControl.Request.Writer.Write(new ProcessingSetModeDto(Mode.Stream));
                                 logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
                                 return null;
-                            // Deprecate soon, command is now ACQ:DEPTH
-                            case "DEPTH":
-                                if (argument != null)
-                                {
-                                    var depth = Convert.ToInt32(argument);
-                                    processingControl.Request.Writer.Write(new ProcessingSetDepthDto(depth));
-                                    logger.LogDebug($"{nameof(ProcessingSetDepthDto)} sent with argument: {depth}");
-                                }
-                                return null;
-                            // Deprecate soon, command is now ACQ:RATE
-                            case "RATE":
-                                if (argument != null)
-                                {
-                                    ulong rate = Convert.ToUInt64(argument);
-                                    hardwareControl.Request.Writer.Write(new HardwareSetRateRequest(rate));
-                                    logger.LogDebug($"{nameof(HardwareSetRateRequest)} sent with argument: {rate}");
-                                }
-                                return null;
                         }
                         break;
                     }
@@ -566,7 +548,7 @@ internal class ScpiSession : TcpSession
                                         return null;
                                     }
                                     return null;
-                                }                          
+                                }
                             case var _ when command.StartsWith("ADC") && argument != null:
                                 {
                                     var args = argument.Split(' ');
@@ -642,18 +624,6 @@ internal class ScpiSession : TcpSession
                             logger.LogError($"MODE? - No response from {nameof(processingControl.Response.Reader)}");
                             return "Error: No/bad response from channel.\n";
                         }
-                    // Deprecate soon, command is now ACQ:RATES?
-                    case "RATES?":
-                        return GetRates();
-                    // Deprecate soon, command is now ACQ:RATE?
-                    case "RATE?":
-                        return GetRate();
-                    // Deprecate soon, command is now ACQ:DEPTHS?
-                    case "DEPTHS?":
-                        return GetDepths();
-                    // Deprecate soon, command is now ACQ:DEPTH?
-                    case "DEPTH?":
-                        return GetDepth();
                 }
             }
             else if (subject?.StartsWith("ACQ") == true)
@@ -672,10 +642,32 @@ internal class ScpiSession : TcpSession
                         return GetDepth();
                     case var _ when command.StartsWith("RES"):
                         {
-                            var resolution = Convert.ToInt32(argument) switch { 8 => AdcResolution.EightBit, 12 => AdcResolution.TwelveBit, _ => AdcResolution.EightBit };
-                            hardwareControl.Request.Writer.Write(new HardwareSetResolutionRequest(resolution));
-                            logger.LogDebug($"{nameof(HardwareSetResolutionRequest)} sent with argument: {resolution}");
-                            return null;
+                            hardwareControl.Request.Writer.Write(new HardwareGetResolutionRequest());
+                            if (hardwareControl.Response.Reader.TryRead(out var response, 500))
+                            {
+                                if (response is HardwareGetResolutionResponse hardwareGetResolutionResponse)
+                                {
+                                    switch (hardwareGetResolutionResponse.Resolution)
+                                    {
+                                        case AdcResolution.EightBit:
+                                            return "8\n";
+                                        case AdcResolution.TwelveBit:
+                                            return "12\n";
+                                        default:
+                                            logger.LogError($"{subject}:RES? - Unhandled response from {nameof(hardwareControl.Response.Reader)}");
+                                            break;
+                                    }
+                                }
+                                else
+                                {
+                                    logger.LogError($"{subject}:RES? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                }
+                            }
+                            else
+                            {
+                                logger.LogError($"{subject}:RES? - No response from {nameof(hardwareControl.Response.Reader)}");
+                            }
+                            return "Error: No/bad response from channel.\n";
                         }
 
                 }
@@ -700,7 +692,10 @@ internal class ScpiSession : TcpSession
                                         break;
                                 }
                             }
-                            logger.LogError($"TRIG:SOU? - No response from {nameof(processingControl.Response.Reader)}");
+                            else
+                            {
+                                logger.LogError($"TRIG:SOU? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("TYPE"):
@@ -717,7 +712,10 @@ internal class ScpiSession : TcpSession
                                         break;
                                 }
                             }
-                            logger.LogError($"TRIG:TYPE? - No response from {nameof(processingControl.Response.Reader)}");
+                            else
+                            {
+                                logger.LogError($"TRIG:TYPE? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("DEL"):
@@ -734,7 +732,10 @@ internal class ScpiSession : TcpSession
                                         break;
                                 }
                             }
-                            logger.LogError($"TRIG:DEL? - No response from {nameof(processingControl.Response.Reader)}");
+                            else
+                            {
+                                logger.LogError($"TRIG:DEL? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("HOLD"):
@@ -751,7 +752,10 @@ internal class ScpiSession : TcpSession
                                         break;
                                 }
                             }
-                            logger.LogError($"TRIG:HOLD? - No response from {nameof(processingControl.Response.Reader)}");
+                            else
+                            {
+                                logger.LogError($"TRIG:HOLD? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("INTER"):
@@ -768,7 +772,10 @@ internal class ScpiSession : TcpSession
                                         break;
                                 }
                             }
-                            logger.LogError($"TRIG:INTER? - No response from {nameof(processingControl.Response.Reader)}");
+                            else
+                            {
+                                logger.LogError($"TRIG:INTER? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("EDGE:LEV"):
@@ -785,7 +792,10 @@ internal class ScpiSession : TcpSession
                                         break;
                                 }
                             }
-                            logger.LogError($"TRIG:EDGE:LEV? - No response from {nameof(processingControl.Response.Reader)}");
+                            else
+                            {
+                                logger.LogError($"TRIG:EDGE:LEV? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("EDGE:DIR"):
@@ -802,7 +812,10 @@ internal class ScpiSession : TcpSession
                                         break;
                                 }
                             }
-                            logger.LogError($"TRIG:EDGE:DIR? - No response from {nameof(processingControl.Response.Reader)}");
+                            else
+                            {
+                                logger.LogError($"TRIG:EDGE:DIR? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
                             return "Error: No/bad response from channel.\n";
                         }
                 }
@@ -826,9 +839,15 @@ internal class ScpiSession : TcpSession
                                 {
                                     return hardwareGetEnabledResponse.Enabled ? "ON\n" : "OFF\n";
                                 }
-                                logger.LogError($"{subject}:STATE? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                else
+                                {
+                                    logger.LogError($"{subject}:STATE? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                }
                             }
-                            logger.LogError($"{subject}:STATE? - No response from {nameof(hardwareControl.Response.Reader)}");
+                            else
+                            {
+                                logger.LogError($"{subject}:STATE? - No response from {nameof(hardwareControl.Response.Reader)}");
+                            }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("BAND", StringComparison.OrdinalIgnoreCase):
@@ -851,9 +870,15 @@ internal class ScpiSession : TcpSession
                                     };
                                     return bandwidth + "\n";
                                 }
-                                logger.LogError($"{subject}:BAND? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                else
+                                {
+                                    logger.LogError($"{subject}:BAND? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                }
                             }
-                            logger.LogError($"{subject}:BAND? - No response from {nameof(hardwareControl.Response.Reader)}");
+                            else
+                            {
+                                logger.LogError($"{subject}:BAND? - No response from {nameof(hardwareControl.Response.Reader)}");
+                            }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("COUP", StringComparison.OrdinalIgnoreCase):
@@ -871,9 +896,15 @@ internal class ScpiSession : TcpSession
                                     };
                                     return coupling + "\n";
                                 }
-                                logger.LogError($"{subject}:COUP? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                else
+                                {
+                                    logger.LogError($"{subject}:COUP? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                }
                             }
-                            logger.LogError($"{subject}:COUP? - No response from {nameof(hardwareControl.Response.Reader)}");
+                            else
+                            {
+                                logger.LogError($"{subject}:COUP? - No response from {nameof(hardwareControl.Response.Reader)}");
+                            }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("TERM", StringComparison.OrdinalIgnoreCase):
@@ -891,9 +922,15 @@ internal class ScpiSession : TcpSession
                                     };
                                     return termination + "\n";
                                 }
-                                logger.LogError($"{subject}:TERM? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                else
+                                {
+                                    logger.LogError($"{subject}:TERM? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                }
                             }
-                            logger.LogError($"{subject}:TERM? - No response from {nameof(hardwareControl.Response.Reader)}");
+                            else
+                            {
+                                logger.LogError($"{subject}:TERM? - No response from {nameof(hardwareControl.Response.Reader)}");
+                            }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("OFFS", StringComparison.OrdinalIgnoreCase):
@@ -905,7 +942,10 @@ internal class ScpiSession : TcpSession
                                     return $"{hardwareGetVoltOffsetResponse.RequestedVoltOffset:0.######}\n";
                                 logger.LogError($"{subject}:OFFS? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
                             }
-                            logger.LogError($"{subject}:OFFS? - No response from {nameof(hardwareControl.Response.Reader)}");
+                            else
+                            {
+                                logger.LogError($"{subject}:OFFS? - No response from {nameof(hardwareControl.Response.Reader)}");
+                            }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("RANG", StringComparison.OrdinalIgnoreCase):
@@ -914,10 +954,18 @@ internal class ScpiSession : TcpSession
                             if (hardwareControl.Response.Reader.TryRead(out var response, 500))
                             {
                                 if (response is HardwareGetVoltFullScaleResponse hardwareGetVoltFullScaleResponse)
+                                {
                                     return $"{hardwareGetVoltFullScaleResponse.RequestedVoltFullScale:0.######}\n";
-                                logger.LogError($"{subject}:RANG? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                }
+                                else
+                                {
+                                    logger.LogError($"{subject}:RANG? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                }
                             }
-                            logger.LogError($"{subject}:RANG? - No response from {nameof(hardwareControl.Response.Reader)}");
+                            else
+                            {
+                                logger.LogError($"{subject}:RANG? - No response from {nameof(hardwareControl.Response.Reader)}");
+                            }
                             return "Error: No/bad response from channel.\n";
                         }
                 }

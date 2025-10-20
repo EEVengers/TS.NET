@@ -8,6 +8,7 @@ public record HardwareSetRateRequest(ulong Rate) : HardwareRequestDto;
 public record HardwareSetResolutionRequest(AdcResolution Resolution) : HardwareRequestDto;
 public record HardwareGetRateRequest() : HardwareRequestDto;        // The current rate
 public record HardwareGetRatesRequest() : HardwareRequestDto;       // A collection of possible logical rates depending on hardware configuration, not an exhaustive list of all rates
+public record HardwareGetResolutionRequest() : HardwareRequestDto;
 
 public abstract record HardwareGetChannelFrontendRequest(int ChannelIndex) : HardwareRequestDto;
 public record HardwareGetEnabledRequest(int ChannelIndex) : HardwareGetChannelFrontendRequest(ChannelIndex);

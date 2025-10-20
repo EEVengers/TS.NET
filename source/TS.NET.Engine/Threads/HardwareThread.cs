@@ -144,19 +144,25 @@ internal class HardwareThread : IThread
                                                 switch (config.AdcChannelMode)
                                                 {
                                                     case AdcChannelMode.Single:
-                                                        rates.Add(1000000000);
-                                                        rates.Add(500000000);
-                                                        rates.Add(250000000);
-                                                        rates.Add(100000000);
+                                                        rates.Add(1_000_000_000);
+                                                        rates.Add(660_000_000);
+                                                        rates.Add(500_000_000);
+                                                        rates.Add(330_000_000);
+                                                        rates.Add(250_000_000);
+                                                        rates.Add(165_000_000);
+                                                        rates.Add(100_000_000);
                                                         break;
                                                     case AdcChannelMode.Dual:
-                                                        rates.Add(500000000);
-                                                        rates.Add(250000000);
-                                                        rates.Add(100000000);
+                                                        rates.Add(500_000_000);
+                                                        rates.Add(330_000_000);
+                                                        rates.Add(250_000_000);
+                                                        rates.Add(165_000_000);
+                                                        rates.Add(100_000_000);
                                                         break;
                                                     case AdcChannelMode.Quad:
-                                                        rates.Add(250000000);
-                                                        rates.Add(100000000);
+                                                        rates.Add(250_000_000);
+                                                        rates.Add(165_000_000);
+                                                        rates.Add(100_000_000);
                                                         break;
                                                 }
                                                 break;
@@ -169,6 +175,14 @@ internal class HardwareThread : IThread
                                     }
                                     hardwareControl.Response.Writer.Write(new HardwareGetRatesResponse(rates.ToArray()));
                                     logger.LogDebug($"{nameof(HardwareGetRatesResponse)}");
+                                    break;
+                                }
+                            case HardwareGetResolutionRequest hardwareGetResolutionRequest:
+                                {
+                                    logger.LogDebug($"{nameof(HardwareGetResolutionRequest)}");
+                                    var config = thunderscope.GetConfiguration();
+                                    hardwareControl.Response.Writer.Write(new HardwareGetResolutionResponse(config.Resolution));
+                                    logger.LogDebug($"{nameof(HardwareGetResolutionResponse)}");
                                     break;
                                 }
                             case HardwareGetEnabledRequest hardwareGetEnabledRequest:
