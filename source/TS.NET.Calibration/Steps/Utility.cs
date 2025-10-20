@@ -2,35 +2,35 @@
 
 public static class Utility
 {
-    public static ThunderscopeChannelPathCalibration GetChannelPathCalibration(int channelIndex, int pathIndex)
+    public static ThunderscopeChannelPathCalibration GetChannelPathCalibration(int channelIndex, int pathIndex, CalibrationVariables variables)
     {
         var calibration = channelIndex switch
         {
-            0 => Variables.Instance.Calibration.Channel1,
-            1 => Variables.Instance.Calibration.Channel2,
-            2 => Variables.Instance.Calibration.Channel3,
-            3 => Variables.Instance.Calibration.Channel4,
+            0 => variables.Calibration.Channel1,
+            1 => variables.Calibration.Channel2,
+            2 => variables.Calibration.Channel3,
+            3 => variables.Calibration.Channel4,
             _ => throw new NotImplementedException()
         };
         return calibration.Paths[pathIndex];
     }
 
-    public static ChannelPathConfig GetChannelPathConfig(int channelIndex, int pathIndex)
+    public static ChannelPathConfig GetChannelPathConfig(int channelIndex, int pathIndex, CalibrationVariables variables)
     {
         var pathConfigs = channelIndex switch
         {
-            0 => Variables.Instance.Channel1PathConfigs,
-            1 => Variables.Instance.Channel1PathConfigs,
-            2 => Variables.Instance.Channel1PathConfigs,
-            3 => Variables.Instance.Channel1PathConfigs,
+            0 => variables.Channel1PathConfigs,
+            1 => variables.Channel1PathConfigs,
+            2 => variables.Channel1PathConfigs,
+            3 => variables.Channel1PathConfigs,
             _ => throw new NotImplementedException()
         };
         return pathConfigs[pathIndex];
     }
 
-    public static double GetAndCheckSigGenZero(int channelIndex, ChannelPathConfig path, CancellationToken cancellationToken)
+    public static double GetAndCheckSigGenZero(int channelIndex, ChannelPathConfig path, BenchCalibrationVariables variables, CancellationToken cancellationToken)
     {
-        double zeroValue = Variables.Instance.SigGenZero;
+        double zeroValue = variables.SigGenZero;
         double average = 0;
         for (int i = 0; i < 500; i++)
         {
@@ -59,7 +59,7 @@ public static class Utility
             throw new CalibrationException($"Average check failed ({foundAverage})");
         }
 
-        Variables.Instance.SigGenZero = zeroValue;
+        variables.SigGenZero = zeroValue;
         return zeroValue;
     }
 

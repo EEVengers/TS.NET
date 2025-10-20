@@ -1,26 +1,15 @@
 ﻿namespace TS.NET.Calibration;
 
-public sealed class Variables
+public class CalibrationVariables
 {
-    private static readonly Lazy<Variables> lazy = new(() => new Variables());
-    public static Variables Instance { get { return lazy.Value; } }
-    private Variables() { }
-
-    private double sigGenZero = 0;
-
-    public string? Sequence { get; set; }
-    public string? SigGen1Ip { get; set; }
-    public string? SigGen2Ip { get; set; }
-    public int FrontEndSettlingTimeMs { get; set; } = 300;
     public string? CalibrationFileName { get; set; } = "thunderscope-calibration.json";
-
-    public double SigGenZero { get => sigGenZero; set => sigGenZero = Math.Round(value, 6); }
+    public int FrontEndSettlingTimeMs { get; set; } = 300;
     public int ParametersSet { get; set; }
     public ThunderscopeCalibrationSettings Calibration { get; set; } = new();
     public DateTimeOffset CalibrationTimestamp { get; set; }
 
     public ChannelPathConfig[] Channel1PathConfigs { get; set; } = [
-        new ChannelPathConfig(PgaPreampGain.High, 0, 54, targetDPotRes: 0.76, sgAmpStep: 0.0002, sgAmpStart: 15 * 0.0002),  // 30dB + 8.86dB
+    new ChannelPathConfig(PgaPreampGain.High, 0, 54, targetDPotRes: 0.76, sgAmpStep: 0.0002, sgAmpStart: 15 * 0.0002),  // 30dB + 8.86dB
         new ChannelPathConfig(PgaPreampGain.High, 1, 54, targetDPotRes: 0.61, sgAmpStep: 0.0003, sgAmpStart: 15 * 0.0003),  // 28dB + 8.86dB
         new ChannelPathConfig(PgaPreampGain.High, 2, 54, targetDPotRes: 0.49, sgAmpStep: 0.0004, sgAmpStart: 15 * 0.0004),  // 26dB + 8.86dB
         new ChannelPathConfig(PgaPreampGain.High, 3, 54, targetDPotRes: 0.39, sgAmpStep: 0.0005, sgAmpStart: 15 * 0.0005),  // 24dB + 8.86dB
@@ -43,7 +32,7 @@ public sealed class Variables
         new ChannelPathConfig(PgaPreampGain.Low, 8, 2, targetDPotRes: 0.25, sgAmpStep: 0.0155, sgAmpStart: 15 * 0.0155),    // -6dB + 8.86dB
         new ChannelPathConfig(PgaPreampGain.Low, 9, 1, targetDPotRes: 0.25, sgAmpStep: 0.0194, sgAmpStart: 15 * 0.0194),    // -8dB + 8.86dB
         new ChannelPathConfig(PgaPreampGain.Low, 10, 1, targetDPotRes: 0.25, sgAmpStep: 0.0244, sgAmpStart: 15 * 0.0244)    // -10dB + 8.86dB
-    ];
+];
 
     public ChannelPathConfig[] Channel2PathConfigs { get; set; } = [
         new ChannelPathConfig(PgaPreampGain.High, 0, 54, targetDPotRes: 0.76, sgAmpStep: 0.0002, sgAmpStart: 15 * 0.0002),  // 30dB + 8.86dB

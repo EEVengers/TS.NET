@@ -4,25 +4,25 @@ namespace TS.NET.Calibration;
 
 public class PgaLoadStep : Step
 {
-    public PgaLoadStep(string name, int channelIndex) : base(name)
+    public PgaLoadStep(string name, int channelIndex, BenchCalibrationVariables variables) : base(name)
     {
         // A previous step should set Instruments.Instance.EnableSdgDc(channelIndex) to enable sig gen output
         Action = (CancellationToken cancellationToken) =>
         {
-            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, 18);
-            var pathConfig = Utility.GetChannelPathConfig(channelIndex, 18);
-            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator);
+            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, 18, variables);
+            var pathConfig = Utility.GetChannelPathConfig(channelIndex, 18, variables);
+            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables);
 
-            var zeroValue = Utility.GetAndCheckSigGenZero(channelIndex, pathConfig, cancellationToken);
+            var zeroValue = Utility.GetAndCheckSigGenZero(channelIndex, pathConfig, variables, cancellationToken);
 
             Instruments.Instance.SetThunderscopeChannel([channelIndex]);
-            var reference = RunAtSampleRate(1_000_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
-            var vpp660M_1Ch = RunAtSampleRate(660_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
-            var vpp500M_1Ch = RunAtSampleRate(500_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
-            var vpp330M_1Ch = RunAtSampleRate(330_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
-            var vpp250M_1Ch = RunAtSampleRate(250_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
-            var vpp165M_1Ch = RunAtSampleRate(165_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
-            var vpp100M_1Ch = RunAtSampleRate(100_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
+            var reference = RunAtSampleRate(1_000_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
+            var vpp660M_1Ch = RunAtSampleRate(660_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
+            var vpp500M_1Ch = RunAtSampleRate(500_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
+            var vpp330M_1Ch = RunAtSampleRate(330_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
+            var vpp250M_1Ch = RunAtSampleRate(250_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
+            var vpp165M_1Ch = RunAtSampleRate(165_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
+            var vpp100M_1Ch = RunAtSampleRate(100_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
 
             int[] channelIndices_2Ch = [];
             int[] channelIndices_3Ch = [];
@@ -49,21 +49,21 @@ public class PgaLoadStep : Step
             }
 
             Instruments.Instance.SetThunderscopeChannel(channelIndices_2Ch);
-            var vpp500M_2Ch = RunAtSampleRate(500_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
-            var vpp330M_2Ch = RunAtSampleRate(330_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
-            var vpp250M_2Ch = RunAtSampleRate(250_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
-            var vpp165M_2Ch = RunAtSampleRate(165_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
-            var vpp100M_2Ch = RunAtSampleRate(100_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
+            var vpp500M_2Ch = RunAtSampleRate(500_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
+            var vpp330M_2Ch = RunAtSampleRate(330_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
+            var vpp250M_2Ch = RunAtSampleRate(250_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
+            var vpp165M_2Ch = RunAtSampleRate(165_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
+            var vpp100M_2Ch = RunAtSampleRate(100_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
 
             Instruments.Instance.SetThunderscopeChannel(channelIndices_3Ch);
-            var vpp250M_3Ch = RunAtSampleRate(250_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
-            var vpp165M_3Ch = RunAtSampleRate(165_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
-            var vpp100M_3Ch = RunAtSampleRate(100_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
+            var vpp250M_3Ch = RunAtSampleRate(250_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
+            var vpp165M_3Ch = RunAtSampleRate(165_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
+            var vpp100M_3Ch = RunAtSampleRate(100_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
 
             Instruments.Instance.SetThunderscopeChannel([0, 1, 2, 3]);
-            var vpp250M_4Ch = RunAtSampleRate(250_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
-            var vpp165M_4Ch = RunAtSampleRate(165_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
-            var vpp100M_4Ch = RunAtSampleRate(100_000_000, zeroValue, pathConfig, channelIndex, cancellationToken);
+            var vpp250M_4Ch = RunAtSampleRate(250_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
+            var vpp165M_4Ch = RunAtSampleRate(165_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
+            var vpp100M_4Ch = RunAtSampleRate(100_000_000, zeroValue, pathConfig, channelIndex, variables, cancellationToken);
 
             List<ThunderscopePgaLoadScale> pgaLoadScales = [];
             pgaLoadScales.Add(new ThunderscopePgaLoadScale() { SampleRate = 1_000_000_000, ChannelCount = 1, Scale = 1.0 });
@@ -91,30 +91,30 @@ public class PgaLoadStep : Step
             switch (channelIndex)
             {
                 case 0:
-                    Variables.Instance.Calibration.Channel1.PgaLoadScales = pgaLoadScales.ToArray();
+                    variables.Calibration.Channel1.PgaLoadScales = pgaLoadScales.ToArray();
                     break;
                 case 1:
-                    Variables.Instance.Calibration.Channel2.PgaLoadScales = pgaLoadScales.ToArray();
+                    variables.Calibration.Channel2.PgaLoadScales = pgaLoadScales.ToArray();
                     break;
                 case 2:
-                    Variables.Instance.Calibration.Channel3.PgaLoadScales = pgaLoadScales.ToArray();
+                    variables.Calibration.Channel3.PgaLoadScales = pgaLoadScales.ToArray();
                     break;
                 case 3:
-                    Variables.Instance.Calibration.Channel4.PgaLoadScales = pgaLoadScales.ToArray();
+                    variables.Calibration.Channel4.PgaLoadScales = pgaLoadScales.ToArray();
                     break;
             }
-            Variables.Instance.ParametersSet += 11;
+            variables.ParametersSet += 11;
 
             Logger.Instance.Log(LogLevel.Information, Index, Status.Passed, $"Config index: {18}");
 
-            Instruments.Instance.SetThunderscopeRate(1000000000);
+            Instruments.Instance.SetThunderscopeRate(1000000000, variables);
             return Status.Passed;
         };
     }
 
-    private static double RunAtSampleRate(uint sampleRateHz, double zeroValue, ChannelPathConfig config, int channelIndex, CancellationToken cancellationToken)
+    private static double RunAtSampleRate(uint sampleRateHz, double zeroValue, ChannelPathConfig config, int channelIndex, CalibrationVariables variables, CancellationToken cancellationToken)
     {
-        Instruments.Instance.SetThunderscopeRate(sampleRateHz);
+        Instruments.Instance.SetThunderscopeRate(sampleRateHz, variables);
         return Utility.FindVpp(channelIndex, config, zeroValue, cancellationToken);
     }
 }

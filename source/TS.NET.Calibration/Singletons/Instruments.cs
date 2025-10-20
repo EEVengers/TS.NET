@@ -17,7 +17,7 @@ public class Instruments
     private const int acquisitionRegionCount = 3;
     private ThunderscopeMemoryRegion? memoryRegion;
 
-    public void Initialise(bool initSigGens)
+    public void InitialiseThunderscope(string? calibrationFileName)
     {
         // ThunderScope
         //thunderScope = new ThunderscopeScpiConnection();
@@ -52,8 +52,10 @@ public class Instruments
         //thunderScope.WriteLine("CAL:FRONTEND CHAN4 DC 50 0 2786 167 0 1 20M");
 
         //thunderScope.WriteLine("RUN");
-        var thunderscopeCalibrationSettings = ThunderscopeCalibrationSettings.FromJsonFile(Variables.Instance.CalibrationFileName);
 
+        if (string.IsNullOrWhiteSpace(calibrationFileName))
+            throw new NotImplementedException();
+        var thunderscopeCalibrationSettings = ThunderscopeCalibrationSettings.FromJsonFile(calibrationFileName);
 
         var loggerFactory = new Microsoft.Extensions.Logging.LoggerFactory();
         var hardwareConfig = new ThunderscopeHardwareConfig
@@ -84,60 +86,60 @@ public class Instruments
         // Start to keep the device hot
         thunderScope.Start();
         memoryRegion = new ThunderscopeMemoryRegion(acquisitionRegionCount + 1);
+    }
 
-        // Sig gen 1 (SDG2042X)
-        if (Variables.Instance.SigGen1Ip != null && initSigGens)
-        {
-            sigGen1 = new TcpScpiConnection();
-            sigGen1.Open(Variables.Instance.SigGen1Ip, 5025);
-            Logger.Instance.Log(LogLevel.Debug, "SCPI connection to SDG2042X #1 opened.");
-            sigGen1.WriteLine("*IDN?");
-            var sigGen1Idn = sigGen1.ReadLine();
-            Logger.Instance.Log(LogLevel.Debug, $"*IDN: {sigGen1Idn}");
-            if (!sigGen1Idn.StartsWith("Siglent Technologies,SDG2", StringComparison.OrdinalIgnoreCase))
-                throw new ApplicationException("Incorrect response from *IDN?");
+    public void InitialiseSigGens(string? sigGen1Host, string? sigGen2Host)
+    {
+        if (string.IsNullOrWhiteSpace(sigGen1Host))
+            throw new ArgumentException();
+        if (string.IsNullOrWhiteSpace(sigGen2Host))
+            throw new ArgumentException();
 
-            sigGen1.WriteLine("C1:OUTP OFF"); Thread.Sleep(50);
-            sigGen1.WriteLine("C1:OUTP LOAD, HZ"); Thread.Sleep(50);
-            sigGen1.WriteLine("C1:OUTP PLRT, NOR"); Thread.Sleep(50);
-            sigGen1.WriteLine("C1:BSWV WVTP, DC"); Thread.Sleep(50);
-            sigGen1.WriteLine("C1:BSWV OFST, 0"); Thread.Sleep(50);
-            sigGen1.WriteLine("C1:BSWV AMP, 0"); Thread.Sleep(50);
+        sigGen1 = new TcpScpiConnection();
+        sigGen1.Open(sigGen1Host, 5025);
+        Logger.Instance.Log(LogLevel.Debug, "SCPI connection to SDG2042X #1 opened.");
+        sigGen1.WriteLine("*IDN?");
+        var sigGen1Idn = sigGen1.ReadLine();
+        Logger.Instance.Log(LogLevel.Debug, $"*IDN: {sigGen1Idn}");
+        if (!sigGen1Idn.StartsWith("Siglent Technologies,SDG2", StringComparison.OrdinalIgnoreCase))
+            throw new ApplicationException("Incorrect response from *IDN?");
 
-            sigGen1.WriteLine("C2:OUTP OFF"); Thread.Sleep(50);
-            sigGen1.WriteLine("C2:OUTP LOAD, HZ"); Thread.Sleep(50);
-            sigGen1.WriteLine("C2:OUTP PLRT, NOR"); Thread.Sleep(50);
-            sigGen1.WriteLine("C2:BSWV WVTP, DC"); Thread.Sleep(50);
-            sigGen1.WriteLine("C2:BSWV OFST, 0"); Thread.Sleep(50);
-            sigGen1.WriteLine("C2:BSWV AMP, 0"); Thread.Sleep(50);
-        }
+        sigGen1.WriteLine("C1:OUTP OFF"); Thread.Sleep(50);
+        sigGen1.WriteLine("C1:OUTP LOAD, HZ"); Thread.Sleep(50);
+        sigGen1.WriteLine("C1:OUTP PLRT, NOR"); Thread.Sleep(50);
+        sigGen1.WriteLine("C1:BSWV WVTP, DC"); Thread.Sleep(50);
+        sigGen1.WriteLine("C1:BSWV OFST, 0"); Thread.Sleep(50);
+        sigGen1.WriteLine("C1:BSWV AMP, 0"); Thread.Sleep(50);
 
-        // Sig gen 2 (SDG2042X)
-        if (Variables.Instance.SigGen2Ip != null && initSigGens)
-        {
-            sigGen2 = new TcpScpiConnection();
-            sigGen2.Open(Variables.Instance.SigGen2Ip, 5025);
-            Logger.Instance.Log(LogLevel.Debug, "SCPI connection to SDG2042X #2 opened.");
-            sigGen2.WriteLine("*IDN?");
-            var sigGen2Idn = sigGen2.ReadLine();
-            Logger.Instance.Log(LogLevel.Debug, $"*IDN: {sigGen2Idn}");
-            if (!sigGen2Idn.StartsWith("Siglent Technologies,SDG2", StringComparison.OrdinalIgnoreCase))
-                throw new ApplicationException("Incorrect response from *IDN?");
+        sigGen1.WriteLine("C2:OUTP OFF"); Thread.Sleep(50);
+        sigGen1.WriteLine("C2:OUTP LOAD, HZ"); Thread.Sleep(50);
+        sigGen1.WriteLine("C2:OUTP PLRT, NOR"); Thread.Sleep(50);
+        sigGen1.WriteLine("C2:BSWV WVTP, DC"); Thread.Sleep(50);
+        sigGen1.WriteLine("C2:BSWV OFST, 0"); Thread.Sleep(50);
+        sigGen1.WriteLine("C2:BSWV AMP, 0"); Thread.Sleep(50);
 
-            sigGen2.WriteLine("C1:OUTP OFF"); Thread.Sleep(50);
-            sigGen2.WriteLine("C1:OUTP LOAD, HZ"); Thread.Sleep(50);
-            sigGen2.WriteLine("C1:OUTP PLRT, NOR"); Thread.Sleep(50);
-            sigGen2.WriteLine("C1:BSWV WVTP, DC"); Thread.Sleep(50);
-            sigGen2.WriteLine("C1:BSWV OFST, 0"); Thread.Sleep(50);
-            sigGen2.WriteLine("C1:BSWV AMP, 0"); Thread.Sleep(50);
+        sigGen2 = new TcpScpiConnection();
+        sigGen2.Open(sigGen2Host, 5025);
+        Logger.Instance.Log(LogLevel.Debug, "SCPI connection to SDG2042X #2 opened.");
+        sigGen2.WriteLine("*IDN?");
+        var sigGen2Idn = sigGen2.ReadLine();
+        Logger.Instance.Log(LogLevel.Debug, $"*IDN: {sigGen2Idn}");
+        if (!sigGen2Idn.StartsWith("Siglent Technologies,SDG2", StringComparison.OrdinalIgnoreCase))
+            throw new ApplicationException("Incorrect response from *IDN?");
 
-            sigGen2.WriteLine("C2:OUTP OFF"); Thread.Sleep(50);
-            sigGen2.WriteLine("C2:OUTP LOAD, HZ"); Thread.Sleep(50);
-            sigGen2.WriteLine("C2:OUTP PLRT, NOR"); Thread.Sleep(50);
-            sigGen2.WriteLine("C2:BSWV WVTP, DC"); Thread.Sleep(50);
-            sigGen2.WriteLine("C2:BSWV OFST, 0"); Thread.Sleep(50);
-            sigGen2.WriteLine("C2:BSWV AMP, 0"); Thread.Sleep(50);
-        }
+        sigGen2.WriteLine("C1:OUTP OFF"); Thread.Sleep(50);
+        sigGen2.WriteLine("C1:OUTP LOAD, HZ"); Thread.Sleep(50);
+        sigGen2.WriteLine("C1:OUTP PLRT, NOR"); Thread.Sleep(50);
+        sigGen2.WriteLine("C1:BSWV WVTP, DC"); Thread.Sleep(50);
+        sigGen2.WriteLine("C1:BSWV OFST, 0"); Thread.Sleep(50);
+        sigGen2.WriteLine("C1:BSWV AMP, 0"); Thread.Sleep(50);
+
+        sigGen2.WriteLine("C2:OUTP OFF"); Thread.Sleep(50);
+        sigGen2.WriteLine("C2:OUTP LOAD, HZ"); Thread.Sleep(50);
+        sigGen2.WriteLine("C2:OUTP PLRT, NOR"); Thread.Sleep(50);
+        sigGen2.WriteLine("C2:BSWV WVTP, DC"); Thread.Sleep(50);
+        sigGen2.WriteLine("C2:BSWV OFST, 0"); Thread.Sleep(50);
+        sigGen2.WriteLine("C2:BSWV AMP, 0"); Thread.Sleep(50);
     }
 
     public void Close()
@@ -150,7 +152,7 @@ public class Instruments
 
     public bool TryReadUserCalibration(out ThunderscopeCalibrationSettings? calibration)
     {
-        if(thunderScope == null)
+        if (thunderScope == null)
         {
             var loggerFactory = new Microsoft.Extensions.Logging.LoggerFactory();
             var instance = new Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
@@ -238,10 +240,10 @@ public class Instruments
     //    Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
     //}
 
-    public void SetThunderscopeRate(uint rateHz)
+    public void SetThunderscopeRate(uint rateHz, CalibrationVariables variables)
     {
         thunderScope?.SetRate(rateHz);
-        Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
+        Thread.Sleep(variables.FrontEndSettlingTimeMs);
     }
 
     //public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation)
@@ -250,7 +252,7 @@ public class Instruments
     //    Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
     //}
 
-    public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation)
+    public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, CalibrationVariables variables)
     {
         var frontend = new ThunderscopeChannelFrontendManualControl
         {
@@ -264,7 +266,7 @@ public class Instruments
             PgaHighGain = (pgaPreampGain == PgaPreampGain.High) ? (byte)1 : (byte)0
         };
         thunderScope?.SetChannelManualControl(channelIndex, frontend);
-        Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
+        Thread.Sleep(variables.FrontEndSettlingTimeMs);
     }
 
     //public void SetThunderscopeCalManual1M(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation)
@@ -273,7 +275,7 @@ public class Instruments
     //    Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
     //}
 
-    public void SetThunderscopeCalManual1M(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation)
+    public void SetThunderscopeCalManual1M(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, CalibrationVariables variables)
     {
         var frontend = new ThunderscopeChannelFrontendManualControl
         {
@@ -287,7 +289,7 @@ public class Instruments
             PgaHighGain = (pgaPreampGain == PgaPreampGain.High) ? (byte)1 : (byte)0
         };
         thunderScope?.SetChannelManualControl(channelIndex, frontend);
-        Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
+        Thread.Sleep(variables.FrontEndSettlingTimeMs);
     }
 
     //public void SetThunderscopeCalManual1M(int channelIndex, bool attenuator, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation)
@@ -296,7 +298,7 @@ public class Instruments
     //    Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
     //}
 
-    public void SetThunderscopeCalManual1M(int channelIndex, bool attenuator, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation)
+    public void SetThunderscopeCalManual1M(int channelIndex, bool attenuator, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, CalibrationVariables variables)
     {
         var frontend = new ThunderscopeChannelFrontendManualControl
         {
@@ -310,7 +312,7 @@ public class Instruments
             PgaHighGain = (pgaPreampGain == PgaPreampGain.High) ? (byte)1 : (byte)0
         };
         thunderScope?.SetChannelManualControl(channelIndex, frontend);
-        Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
+        Thread.Sleep(variables.FrontEndSettlingTimeMs);
     }
 
     public double GetThunderscopeAverage(int channelIndex)
@@ -362,7 +364,7 @@ public class Instruments
         for (int i = 0; i < 3; i++)
             thunderScope!.Read(memoryRegion!.GetSegment(0), new CancellationToken());
 
-        for(int i = 0; i < acquisitionRegionCount; i++)
+        for (int i = 0; i < acquisitionRegionCount; i++)
             thunderScope!.Read(memoryRegion!.GetSegment(i), new CancellationToken());
 
         average = 0;

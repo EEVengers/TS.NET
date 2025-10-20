@@ -4,20 +4,20 @@ namespace TS.NET.Calibration;
 
 public class TrimOffsetDacGainStep : Step
 {
-    public TrimOffsetDacGainStep(string name, int channelIndex, int pathIndex) : base(name)
+    public TrimOffsetDacGainStep(string name, int channelIndex, int pathIndex, CalibrationVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {
-            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pathIndex);
-            var pathConfig = Utility.GetChannelPathConfig(channelIndex, pathIndex);
+            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pathIndex, variables);
+            var pathConfig = Utility.GetChannelPathConfig(channelIndex, pathIndex, variables);
 
             pathCalibration.TrimScaleDac = pathConfig.TrimScaleDacInitial;
 
-            if (!TryDacBinarySearch(channelIndex, pathCalibration, 118, 120, cancellationToken, out int pos100Dac, out double pos100Average))
+            if (!TryDacBinarySearch(channelIndex, pathCalibration, 118, 120, variables, cancellationToken, out int pos100Dac, out double pos100Average))
             {
                 throw new CalibrationException("Could not converge");
             }
-            if (!TryDacBinarySearch(channelIndex, pathCalibration, -120, -118, cancellationToken, out int neg100Dac, out double neg100Average))
+            if (!TryDacBinarySearch(channelIndex, pathCalibration, -120, -118, variables, cancellationToken, out int neg100Dac, out double neg100Average))
             {
                 throw new CalibrationException("Could not converge");
             }
@@ -25,14 +25,14 @@ public class TrimOffsetDacGainStep : Step
             var adcCountPerDacCount = Math.Abs((pos100Average - neg100Average) / (pos100Dac - neg100Dac));
             // Can also get approximate zero to narrow down search space in later step
             var zero = pos100Dac + ((neg100Dac - pos100Dac) / 2);
-            
+
             //pathConfig.AdcCountPerDacCount = adcCountPerDacCount;
             if (adcCountPerDacCount < (pathConfig.TargetDPotResolution * 1.2))
             {
                 //pathCalibration.TrimOffsetDacScaleV = Math.Round(pathConfig.AdcCountPerDacCount * (pathCalibration.BufferInputVpp / 255.0), 6);
                 pathCalibration.TrimOffsetDacScale = Math.Round(adcCountPerDacCount / 256.0, 6);
                 pathCalibration.TrimOffsetDacZero = (ushort)zero;       // Approximate zero, to speed up TrimOffsetDacZeroStep
-                Variables.Instance.ParametersSet++;
+                variables.ParametersSet++;
                 Logger.Instance.Log(LogLevel.Information, Index, Status.Passed, $"ADC count per DAC count: {adcCountPerDacCount:F3} | Ideal: {pathConfig.TargetDPotResolution:F3} | Max limit: {pathConfig.TargetDPotResolution * 1.2:F3}");
                 return Status.Passed;
             }
@@ -47,11 +47,10 @@ public class TrimOffsetDacGainStep : Step
     public bool TryDacBinarySearch(
         int channelIndex,
         ThunderscopeChannelPathCalibration pathCalibration,
-        double targetMin,
-        double targetMax,
+        double targetMin, double targetMax,
+        CalibrationVariables variables,
         CancellationToken cancellationToken,
-        out int dac,
-        out double adc
+        out int dac, out double adc
         )
     {
         int low = 0;
@@ -60,7 +59,7 @@ public class TrimOffsetDacGainStep : Step
         {
             cancellationToken.ThrowIfCancellationRequested();
             int mid = low + (high - low) / 2;
-            Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, (ushort)mid, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator);
+            Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, (ushort)mid, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables);
             var average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
             if (average >= targetMin && average <= targetMax)
             {

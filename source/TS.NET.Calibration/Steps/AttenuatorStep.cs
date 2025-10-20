@@ -4,15 +4,15 @@ namespace TS.NET.Calibration;
 
 public class AttenuatorStep : Step
 {
-    public AttenuatorStep(string name, int channelIndex) : base(name)
+    public AttenuatorStep(string name, int channelIndex, CalibrationVariables variables) : base(name)
     {
         // A previous step should set Instruments.Instance.EnableSdgDc(channelIndex) to enable sig gen output
         Action = (CancellationToken cancellationToken) =>
         {
-            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, 18);
+            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, 18, variables);
             //var pathConfig = Utility.GetChannelPathConfig(channelIndex, 18);
 
-            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, attenuator: true, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator);
+            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, attenuator: true, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables);
             Instruments.Instance.SetSdgDcOffset(channelIndex, 10);
             Thread.Sleep(1000);
             var max = Instruments.Instance.GetThunderscopeAverage(channelIndex);
@@ -35,20 +35,20 @@ public class AttenuatorStep : Step
             switch (channelIndex)
             {
                 case 0:
-                    Variables.Instance.Calibration.Channel1.AttenuatorScale = scale;
-                    Variables.Instance.ParametersSet++;
+                    variables.Calibration.Channel1.AttenuatorScale = scale;
+                    variables.ParametersSet++;
                     break;
                 case 1:
-                    Variables.Instance.Calibration.Channel2.AttenuatorScale = scale;
-                    Variables.Instance.ParametersSet++;
+                    variables.Calibration.Channel2.AttenuatorScale = scale;
+                    variables.ParametersSet++;
                     break;
                 case 2:
-                    Variables.Instance.Calibration.Channel3.AttenuatorScale = scale;
-                    Variables.Instance.ParametersSet++;
+                    variables.Calibration.Channel3.AttenuatorScale = scale;
+                    variables.ParametersSet++;
                     break;
                 case 3:
-                    Variables.Instance.Calibration.Channel4.AttenuatorScale = scale;
-                    Variables.Instance.ParametersSet++;
+                    variables.Calibration.Channel4.AttenuatorScale = scale;
+                    variables.ParametersSet++;
                     break;
             }
 

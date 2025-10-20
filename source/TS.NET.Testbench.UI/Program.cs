@@ -14,10 +14,9 @@ class Program
     static void Main(string[] args)
     {
         Sequence sequence = new();
+        IJsonVariables variables = new SelfCalibrationVariables();
         var cancellationTokenSource = new CancellationTokenSource();
         var variablesFile = VariablesFile.FromJsonFile("variables.json");
-        Variables.Instance.SigGen1Ip = variablesFile.SigGen1Ip;
-        Variables.Instance.SigGen2Ip = variablesFile.SigGen2Ip;
 
         string loadPath = "../../../Resources/wwwroot/index.html";
 #if RELEASE
@@ -80,17 +79,32 @@ class Program
                 {
                     case "app-loaded":
                         window.SendWebMessage(JsonSerializer.Serialize(LogDto.FromLog(), CamelCaseContext.Default.LogDto));
-                        window.SendWebMessage(JsonSerializer.Serialize(VariablesDto.FromVariables(), DefaultCaseContext.Default.VariablesDto));
+                        window.SendWebMessage(JsonSerializer.Serialize(VariablesDto.FromVariables(variables), DefaultCaseContext.Default.VariablesDto));
                         window.SendWebMessage(JsonSerializer.Serialize(SequenceDto.FromSequence(sequence), CamelCaseContext.Default.SequenceDto));
                         break;
                     case "load-sequence":
                         var sequenceString = json.RootElement.GetProperty("sequence").GetString();
-                        sequence = sequenceString switch
+                        switch(sequenceString)
                         {
-                            "self-cal" => new SelfCalibrationSequence(uiDialog),
-                            "bench-cal" => new BenchCalibrationSequence(uiDialog),
-                            _ => throw new InvalidDataException(),
-                        };
+                            case "self-cal":
+                                var selfCalibrationVariables = new SelfCalibrationVariables();
+                                var selfCalibrationSequence = new SelfCalibrationSequence(uiDialog, selfCalibrationVariables);
+                                variables = selfCalibrationVariables;
+                                sequence = selfCalibrationSequence;
+                                break;
+                            case "bench-cal":
+                                var benchCalibrationVariables = new BenchCalibrationVariables
+                                {
+                                    SigGen1Host = variablesFile.SigGen1Ip,
+                                    SigGen2Host = variablesFile.SigGen2Ip
+                                };
+                                var benchCalibrationSequence = new BenchCalibrationSequence(uiDialog, benchCalibrationVariables);
+                                variables = benchCalibrationVariables;
+                                sequence = benchCalibrationSequence;
+                                break;
+                            default:
+                                throw new InvalidDataException();
+                        }
                         Action<Step> uiPreStep = (Step step) =>
                         {
                             var preStep = new StepUpdateDto { Type = "step-update", Step = StepDto.FromStep(step) };
@@ -101,7 +115,7 @@ class Program
                         {
                             var postStep = new StepUpdateDto { Type = "step-update", Step = StepDto.FromStep(step) };
                             window.SendWebMessage(JsonSerializer.Serialize(postStep, CamelCaseContext.Default.StepUpdateDto));
-                            window.SendWebMessage(JsonSerializer.Serialize(VariablesDto.FromVariables(), DefaultCaseContext.Default.VariablesDto));
+                            window.SendWebMessage(JsonSerializer.Serialize(VariablesDto.FromVariables(variables), DefaultCaseContext.Default.VariablesDto));
                         };
 
                         Action<Status?> sequenceStatus = (Status? status) =>
@@ -113,14 +127,14 @@ class Program
                         sequence.PreStep += uiPreStep;
                         sequence.PostStep += uiPostStep;
                         sequence.SequenceStatusChanged += sequenceStatus;
-                        Variables.Instance.Sequence = sequence.Name;
+                        //Variables.Instance.Sequence = sequence.Name;
                         window.SendWebMessage(JsonSerializer.Serialize(SequenceDto.FromSequence(sequence), CamelCaseContext.Default.SequenceDto));
-                        window.SendWebMessage(JsonSerializer.Serialize(VariablesDto.FromVariables(), DefaultCaseContext.Default.VariablesDto));
+                        window.SendWebMessage(JsonSerializer.Serialize(VariablesDto.FromVariables(variables), DefaultCaseContext.Default.VariablesDto));
                         break;
                     case "start-sequence":
                         cancellationTokenSource = new();
                         sequence.PreRun();
-                        Variables.Instance.Sequence = sequence.Name;
+                        //Variables.Instance.Sequence = sequence.Name;
                         window.SendWebMessage(JsonSerializer.Serialize(SequenceDto.FromSequence(sequence), CamelCaseContext.Default.SequenceDto));
                         Task.Run(() => sequence.Run(cancellationTokenSource));
                         break;

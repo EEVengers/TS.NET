@@ -1,0 +1,17 @@
+﻿using System.Text.Json;
+
+namespace TS.NET.Calibration;
+
+public class BenchCalibrationVariables : CalibrationVariables, IJsonVariables
+{
+    public string? SigGen1Host { get; set; }
+    public string? SigGen2Host { get; set; }
+
+    private double sigGenZero = 0;
+    public double SigGenZero { get => sigGenZero; set => sigGenZero = Math.Round((double)value, 6); }
+
+    public string ToJson()
+    {
+        return JsonSerializer.Serialize(this, DefaultCaseContext.Default.BenchCalibrationVariables);
+    }
+}

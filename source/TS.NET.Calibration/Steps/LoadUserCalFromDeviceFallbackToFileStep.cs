@@ -4,21 +4,21 @@ namespace TS.NET.Calibration;
 
 public class LoadUserCalFromDeviceFallbackToFileStep : Step
 {
-    public LoadUserCalFromDeviceFallbackToFileStep(string name) : base(name)
+    public LoadUserCalFromDeviceFallbackToFileStep(string name, CalibrationVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {
             if(Instruments.Instance.TryReadUserCalibration(out var calibration))
             {
-                Variables.Instance.Calibration = calibration!;
-                Variables.Instance.ParametersSet = 0;
+                variables.Calibration = calibration!;
+                variables.ParametersSet = 0;
                 Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Calibration loaded from device");
                 return Status.Done;
             }
-            if (File.Exists(Variables.Instance.CalibrationFileName))
+            if (File.Exists(variables.CalibrationFileName))
             {
-                Variables.Instance.Calibration = ThunderscopeCalibrationSettings.FromJsonFile(Variables.Instance.CalibrationFileName);
-                Variables.Instance.ParametersSet = 0;
+                variables.Calibration = ThunderscopeCalibrationSettings.FromJsonFile(variables.CalibrationFileName);
+                variables.ParametersSet = 0;
                 Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Calibration loaded from file");
                 return Status.Done;
             }          

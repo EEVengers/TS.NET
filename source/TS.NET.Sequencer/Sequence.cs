@@ -85,7 +85,7 @@ public class Sequence
         Status = sequenceStatus;
     }
 
-    public void SetIndices()
+    public void SetStepIndices()
     {
         if (Steps == null)
             return;
