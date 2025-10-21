@@ -37,7 +37,7 @@ public static class Utility
             cancellationToken.ThrowIfCancellationRequested();
             var high = path.TargetDPotResolution * 2;
             var low = path.TargetDPotResolution * -2;
-            Instruments.Instance.SetSdgDcOffset(channelIndex, zeroValue);
+            Instruments.Instance.SetSdgOffset(channelIndex, zeroValue);
             Thread.Sleep(250);
             average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
             if (average >= low && average <= high)
@@ -55,7 +55,7 @@ public static class Utility
         var foundAverage = Instruments.Instance.GetThunderscopeAverage(channelIndex);
         if (foundAverage > 15 || foundAverage < -15)
         {
-            Instruments.Instance.SetSdgDcOffset(channelIndex, 0);
+            Instruments.Instance.SetSdgOffset(channelIndex, 0);
             throw new CalibrationException($"Average check failed ({foundAverage})");
         }
 
@@ -68,13 +68,13 @@ public static class Utility
         for (double amplitude = pathConfig.SigGenAmplitudeStart; amplitude <= 10; amplitude += pathConfig.SigGenAmplitudeStep)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            Instruments.Instance.SetSdgDcOffset(channelIndex, zeroValue + amplitude);
+            Instruments.Instance.SetSdgOffset(channelIndex, zeroValue + amplitude);
             Thread.Sleep(250);
             var average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
             var max = average;
 
             cancellationToken.ThrowIfCancellationRequested();
-            Instruments.Instance.SetSdgDcOffset(channelIndex, zeroValue - amplitude);
+            Instruments.Instance.SetSdgOffset(channelIndex, zeroValue - amplitude);
             Thread.Sleep(250);
             average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
             var min = average;
@@ -83,19 +83,19 @@ public static class Utility
 
             if (range >= 240)
             {
-                Instruments.Instance.SetSdgDcOffset(channelIndex, 0);
+                Instruments.Instance.SetSdgOffset(channelIndex, 0);
                 throw new CalibrationException($"Could not converge, range: {range}");
             }
             if (range > 200 && range < 240)
             {
                 var ratio = 255.0 / range;
                 var vpp = amplitude * ratio * 2;
-                Instruments.Instance.SetSdgDcOffset(channelIndex, 0);
+                Instruments.Instance.SetSdgOffset(channelIndex, 0);
                 return vpp;
             }
         }
 
-        Instruments.Instance.SetSdgDcOffset(channelIndex, 0);
+        Instruments.Instance.SetSdgOffset(channelIndex, 0);
         throw new CalibrationException("Could not converge, amplitude: 10");
     }
 }

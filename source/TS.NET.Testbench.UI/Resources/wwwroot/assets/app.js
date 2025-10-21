@@ -7,6 +7,8 @@ document.addEventListener("alpine:init", () => {
     contextHelp: "",
     zoom: "Zoom: 100%",
   });
+    Alpine.store("sequenceheader", "Sequence");
+
 
   zoom();
 
@@ -69,7 +71,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function updateSequence(message) {
+    function updateSequence(message) {
+        Alpine.store("sequenceheader", message.name);
     const sequenceTableBody = document.getElementById("sequence-table-body");
     sequenceTableBody.innerHTML = "";
     if (message.steps !== null) {

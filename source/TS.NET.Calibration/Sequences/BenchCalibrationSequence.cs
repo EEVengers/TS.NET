@@ -89,6 +89,8 @@ public class BenchCalibrationSequence : Sequence
                 return Sequencer.Status.Done;
             }},
 
+            new AdcFineGainStep("Measure & set ADC fine gain", Variables),
+
             new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L0", 0, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
             new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L1", 0, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
             new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L2", 0, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },

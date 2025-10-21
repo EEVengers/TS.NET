@@ -100,8 +100,8 @@
             <div class="flex-none flex flex-row items-center gap-2 p-2">
                 <button id="sequence-button" type="button" @mouseenter="help('Select the sequence')"
                     @mouseleave="help('')" :disabled="$store.header.status === 'Running'"
-                    class="flex-none border border-zinc-600 bg-zinc-600 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box disabled:opacity-50 disabled:cursor-not-allowed">
-                    Sequence
+                    class="flex-none border border-zinc-600 bg-zinc-600 text-neutral-50 font-normal text-xs w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box disabled:opacity-50 disabled:cursor-not-allowed">
+                    Select sequence
                 </button>
 
                 <button id="start-button" type="button" @mouseenter="help('Start the sequence')" @mouseleave="help('')"
@@ -149,7 +149,7 @@
                 <!-- Title bar -->
                 <div class="flex-none flex flex-row items-center gap-2 p-2 pl-2 pr-2 bg-zinc-800"
                     @mouseenter="help('Sequence display area')" @mouseleave="help('')">
-                    <div class="flex-none text-neutral-50 font-normal text-xs trim-box">Sequence</div>
+                    <div class="flex-none text-neutral-50 font-normal text-xs trim-box" x-text="$store.sequenceheader">Sequence</div>
                 </div>
                 <div class="flex-none border-b border-zinc-600"></div>
                 <!-- Content -->

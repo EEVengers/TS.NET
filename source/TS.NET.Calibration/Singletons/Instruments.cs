@@ -315,9 +315,24 @@ public class Instruments
         Thread.Sleep(variables.FrontEndSettlingTimeMs);
     }
 
+    public void SetThunderscopeAdcCalibration(byte[] branchFineGains)
+    {
+        thunderScope?.SetAdcCalibration(new ThunderscopeAdcCalibration()
+        {
+            FineGainBranch1 = branchFineGains[0],
+            FineGainBranch2 = branchFineGains[1],
+            FineGainBranch3 = branchFineGains[2],
+            FineGainBranch4 = branchFineGains[3],
+            FineGainBranch5 = branchFineGains[4],
+            FineGainBranch6 = branchFineGains[5],
+            FineGainBranch7 = branchFineGains[6],
+            FineGainBranch8 = branchFineGains[7]
+        });
+    }
+
     public double GetThunderscopeAverage(int channelIndex)
     {
-        GetThunderscopeStats(channelIndex, out var average, out _, out _);
+        GetThunderscopeStats(channelIndex, out var average);//, out _, out _);
         return average;
     }
 
@@ -354,7 +369,7 @@ public class Instruments
     //        throw new CalibrationException("Channel was not in waveform data");
     //}
 
-    public void GetThunderscopeStats(int channelIndex, out double average, out double min, out double max)
+    public void GetThunderscopeStats(int channelIndex, out double average)//, out double min, out double max)
     {
         // To do: allow for multi-channel reading
         var config = thunderScope!.GetConfiguration();
@@ -368,8 +383,8 @@ public class Instruments
             thunderScope!.Read(memoryRegion!.GetSegment(i), new CancellationToken());
 
         average = 0;
-        min = int.MaxValue;
-        max = int.MinValue;
+        //min = int.MaxValue;
+        //max = int.MinValue;
         long sum = 0;
         long count = 0;
 
@@ -407,12 +422,95 @@ public class Instruments
             foreach (var point in channel)
             {
                 sum += point;
-                if (point < min) min = point;
-                if (point > max) max = point;
+                //if (point < min) min = point;
+                //if (point > max) max = point;
             }
             count += channel.Length;
         }
         average = (double)sum / count;
+    }
+
+    public void GetThunderscopeFineBranches(out double[] mean, out double[] stdev)
+    {
+        thunderScope!.Stop();
+        thunderScope!.Start();
+        thunderScope!.Read(memoryRegion!.GetSegment(0), new CancellationToken());
+
+        var sampleBuffer = memoryRegion!.GetSegment(0).DataSpanI8;
+        int sampleLen = sampleBuffer.Length;
+
+        // If multiple channels are enabled, branch parsing won't be valid
+        var config = thunderScope!.GetConfiguration();
+        if (config.EnabledChannelsCount() != 1)
+            throw new CalibrationException("Fine branch analysis requires exactly one enabled channel.");
+
+        int sampleCount = sampleLen / 8;
+
+        // Branch order from HMCAD1520 datasheet, Table 27
+        var branch0 = new sbyte[sampleCount]; // D1A
+        var branch1 = new sbyte[sampleCount]; // D2A
+        var branch2 = new sbyte[sampleCount]; // D3B
+        var branch3 = new sbyte[sampleCount]; // D4B
+        var branch4 = new sbyte[sampleCount]; // D2B
+        var branch5 = new sbyte[sampleCount]; // D1B
+        var branch6 = new sbyte[sampleCount]; // D4A
+        var branch7 = new sbyte[sampleCount]; // D3A
+
+        long sumAll = 0;
+        sbyte minAll = 127;
+        sbyte maxAll = -128;
+
+        int idx = 0;
+        for (int group = 0; group < sampleCount; group++)
+        {
+            sbyte v0 = sampleBuffer[idx++]; branch0[group] = v0; sumAll += v0; if (v0 > maxAll) maxAll = v0; if (v0 < minAll) minAll = v0; // D1A
+            sbyte v1 = sampleBuffer[idx++]; branch5[group] = v1; sumAll += v1; if (v1 > maxAll) maxAll = v1; if (v1 < minAll) minAll = v1; // D1B
+            sbyte v2 = sampleBuffer[idx++]; branch1[group] = v2; sumAll += v2; if (v2 > maxAll) maxAll = v2; if (v2 < minAll) minAll = v2; // D2A
+            sbyte v3 = sampleBuffer[idx++]; branch4[group] = v3; sumAll += v3; if (v3 > maxAll) maxAll = v3; if (v3 < minAll) minAll = v3; // D2B
+            sbyte v4 = sampleBuffer[idx++]; branch7[group] = v4; sumAll += v4; if (v4 > maxAll) maxAll = v4; if (v4 < minAll) minAll = v4; // D3A
+            sbyte v5 = sampleBuffer[idx++]; branch2[group] = v5; sumAll += v5; if (v5 > maxAll) maxAll = v5; if (v5 < minAll) minAll = v5; // D3B
+            sbyte v6 = sampleBuffer[idx++]; branch6[group] = v6; sumAll += v6; if (v6 > maxAll) maxAll = v6; if (v6 < minAll) minAll = v6; // D4A
+            sbyte v7 = sampleBuffer[idx++]; branch3[group] = v7; sumAll += v7; if (v7 > maxAll) maxAll = v7; if (v7 < minAll) minAll = v7; // D4B
+        }
+
+        double meanAll = (double)sumAll / (double)(sampleCount * 8);
+
+        static double CalcMean(sbyte[] data)
+        {
+            if (data.Length == 0) return 0d;
+            long s = 0;
+            for (int i = 0; i < data.Length; i++) s += data[i];
+            return (double)s / data.Length;
+        }
+        static double CalcSampleStdDev(sbyte[] data, double mean)
+        {
+            if (data.Length <= 1) return 0d;
+            double ssd = 0d;
+            for (int i = 0; i < data.Length; i++)
+            {
+                double d = data[i] - mean;
+                ssd += d * d;
+            }
+            return Math.Sqrt(ssd / (data.Length - 1));
+        }
+
+        var branchMeans = new double[8];
+        var branchStdDevs = new double[8];
+        branchMeans[0] = CalcMean(branch0); branchStdDevs[0] = CalcSampleStdDev(branch0, branchMeans[0]);
+        branchMeans[1] = CalcMean(branch1); branchStdDevs[1] = CalcSampleStdDev(branch1, branchMeans[1]);
+        branchMeans[2] = CalcMean(branch2); branchStdDevs[2] = CalcSampleStdDev(branch2, branchMeans[2]);
+        branchMeans[3] = CalcMean(branch3); branchStdDevs[3] = CalcSampleStdDev(branch3, branchMeans[3]);
+        branchMeans[4] = CalcMean(branch4); branchStdDevs[4] = CalcSampleStdDev(branch4, branchMeans[4]);
+        branchMeans[5] = CalcMean(branch5); branchStdDevs[5] = CalcSampleStdDev(branch5, branchMeans[5]);
+        branchMeans[6] = CalcMean(branch6); branchStdDevs[6] = CalcSampleStdDev(branch6, branchMeans[6]);
+        branchMeans[7] = CalcMean(branch7); branchStdDevs[7] = CalcSampleStdDev(branch7, branchMeans[7]);
+
+        //DebugLog.Instance.Log($"ADC sample mean: {meanAll:F1}, min: {minAll}, max: {maxAll}");
+        //for (int i = 0; i < 8; i++)
+        //    DebugLog.Instance.Log($"Branch {i}: mean={branchMeans[i]:F3}, stddev={branchStdDevs[i]:F3}");
+
+        mean = branchMeans;
+        stdev = branchStdDevs;
     }
 
     public void SetSdgChannel(int channelIndex)
@@ -452,10 +550,16 @@ public class Instruments
         }
     }
 
-    public void SetSdgDcOffset(int channelIndex, double voltage)
+    public void SetSdgOffset(int channelIndex, double voltage)
     {
         GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
         sigGen.WriteLine($"{sdgChannel}:BSWV OFST, {voltage:F4}"); Thread.Sleep(50);
+    }
+
+    public void SetSdgDc(int channelIndex)
+    {
+        GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
+        sigGen.WriteLine($"{sdgChannel}:BSWV WVTP, DC"); Thread.Sleep(50);
     }
 
     public void SetSdgSine(int channelIndex, double vpp, uint freqHz)
@@ -465,7 +569,14 @@ public class Instruments
         sigGen.WriteLine($"{sdgChannel}:BSWV FRQ, {freqHz}"); Thread.Sleep(50);
         sigGen.WriteLine($"{sdgChannel}:BSWV AMP, {vpp}"); Thread.Sleep(50);
         sigGen.WriteLine($"{sdgChannel}:BSWV OFST, 0"); Thread.Sleep(50);
-        SetSdgChannel(channelIndex);
+    }
+
+    public void SetSdgNoise(int channelIndex, double stdev, double mean)
+    {
+        GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
+        sigGen.WriteLine($"{sdgChannel}:BSWV WVTP, NOISE"); Thread.Sleep(50);
+        sigGen.WriteLine($"{sdgChannel}:BSWV STDEV, {stdev}"); Thread.Sleep(50);
+        sigGen.WriteLine($"{sdgChannel}:BSWV MEAN, {mean}"); Thread.Sleep(50);
     }
 
     public void SetSdgFrequency(int channelIndex, uint frequencyHz)

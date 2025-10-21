@@ -126,6 +126,9 @@ namespace TS.NET.Driver.Libtslitex
         [DllImport(library, EntryPoint = "thunderscopeAdcCalibrationSet")] // Use runtime marshalling for now. Custom marshalling later.
         public static extern int SetAdcCalibration(nint ts, in tsAdcCalibration_t cal);
 
+        [DllImport(library, EntryPoint = "thunderscopeAdcCalibrationGet")]
+        public static extern int GetAdcCalibration(nint ts, out tsAdcCalibration_t cal);
+
         [StructLayout(LayoutKind.Sequential)]
         public struct tsChannelCtrl_t
         {
