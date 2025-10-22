@@ -1,3 +1,23 @@
+#!/usr/bin/bash
+
 cd "$(dirname "$0")"
 
+if test -f ../builds/TS.NET.Testbench.UI/linux-x64/variables.json; then
+  cp ../builds/TS.NET.Testbench.UI/linux-x64/variables.json ../variables.json
+fi
+
+if test -f ../builds/TS.NET.Testbench.UI/linux-x64/libtslitex.so; then
+  cp ../builds/TS.NET.Testbench.UI/linux-x64/libtslitex.so ../libtslitex.so
+fi
+
 dotnet publish ../source/TS.NET.Testbench.UI/TS.NET.Testbench.UI.csproj -r linux-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Testbench.UI/linux-x64
+
+if test -f ../variables.json; then
+  cp ../variables.json ../builds/TS.NET.Testbench.UI/linux-x64/variables.json
+  rm ../variables.json
+fi
+
+if test -f ../libtslitex.so; then
+  cp ../libtslitex.so ../builds/TS.NET.Testbench.UI/linux-x64/libtslitex.so
+  rm ../libtslitex.so
+fi
