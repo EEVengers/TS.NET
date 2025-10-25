@@ -261,54 +261,35 @@ public class Instruments
     //    thunderScope?.WriteLine($"CAL:FRONTEND CHAN{channelIndex + 1} DC 50 0 {dac} {dpot} {pgaLadderAttenuation} {(pgaPreampGain == PgaPreampGain.High ? "1" : "0")} 20M");
     //    Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
     //}
-
+    
     public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, CommonVariables variables)
+    {
+        SetThunderscopeCalManual50R(channelIndex, false, dac, dpot, pgaPreampGain, pgaLadderAttenuation, ThunderscopeBandwidth.Bw20M, variables);
+    }
+
+    public void SetThunderscopeCalManual50R(int channelIndex, bool attenuator, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, ThunderscopeBandwidth pgaFilter, CommonVariables variables)
     {
         var frontend = new ThunderscopeChannelFrontendManualControl
         {
             Coupling = ThunderscopeCoupling.DC,
             Termination = ThunderscopeTermination.FiftyOhm,
-            Attenuator = 0,
+            Attenuator = attenuator ? (byte)1 : (byte)0,
             DAC = dac,
             DPOT = dpot,
             PgaLadderAttenuation = pgaLadderAttenuation,
-            PgaFilter = ThunderscopeBandwidth.Bw20M,
+            PgaFilter = pgaFilter,
             PgaHighGain = (pgaPreampGain == PgaPreampGain.High) ? (byte)1 : (byte)0
         };
         thunderScope?.SetChannelManualControl(channelIndex, frontend);
         Thread.Sleep(variables.FrontEndSettlingTimeMs);
     }
-
-    //public void SetThunderscopeCalManual1M(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation)
-    //{
-    //    thunderScope?.WriteLine($"CAL:FRONTEND CHAN{channelIndex + 1} DC 1M 0 {dac} {dpot} {pgaLadderAttenuation} {(pgaPreampGain == PgaPreampGain.High ? "1" : "0")} 20M");
-    //    Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
-    //}
 
     public void SetThunderscopeCalManual1M(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, CommonVariables variables)
     {
-        var frontend = new ThunderscopeChannelFrontendManualControl
-        {
-            Coupling = ThunderscopeCoupling.DC,
-            Termination = ThunderscopeTermination.OneMegaohm,
-            Attenuator = 0,
-            DAC = dac,
-            DPOT = dpot,
-            PgaLadderAttenuation = pgaLadderAttenuation,
-            PgaFilter = ThunderscopeBandwidth.Bw20M,
-            PgaHighGain = (pgaPreampGain == PgaPreampGain.High) ? (byte)1 : (byte)0
-        };
-        thunderScope?.SetChannelManualControl(channelIndex, frontend);
-        Thread.Sleep(variables.FrontEndSettlingTimeMs);
+        SetThunderscopeCalManual1M(channelIndex, false, dac, dpot, pgaPreampGain, pgaLadderAttenuation, ThunderscopeBandwidth.Bw20M, variables);
     }
 
-    //public void SetThunderscopeCalManual1M(int channelIndex, bool attenuator, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation)
-    //{
-    //    thunderScope?.WriteLine($"CAL:FRONTEND CHAN{channelIndex + 1} DC 1M {(attenuator ? "1" : "0")} {dac} {dpot} {pgaLadderAttenuation} {(pgaPreampGain == PgaPreampGain.High ? "1" : "0")} 20M");
-    //    Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
-    //}
-
-    public void SetThunderscopeCalManual1M(int channelIndex, bool attenuator, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, CalibrationVariables variables)
+    public void SetThunderscopeCalManual1M(int channelIndex, bool attenuator, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, ThunderscopeBandwidth pgaFilter, CommonVariables variables)
     {
         var frontend = new ThunderscopeChannelFrontendManualControl
         {
@@ -318,7 +299,7 @@ public class Instruments
             DAC = dac,
             DPOT = dpot,
             PgaLadderAttenuation = pgaLadderAttenuation,
-            PgaFilter = ThunderscopeBandwidth.Bw20M,
+            PgaFilter = pgaFilter,
             PgaHighGain = (pgaPreampGain == PgaPreampGain.High) ? (byte)1 : (byte)0
         };
         thunderScope?.SetChannelManualControl(channelIndex, frontend);

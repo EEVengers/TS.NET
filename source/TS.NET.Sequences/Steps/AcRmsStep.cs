@@ -7,7 +7,7 @@ public class AcRmsStep : Step
     public double MinLimit { get; set; } = double.MinValue;
     public double MaxLimit { get; set; } = double.MaxValue;
 
-    public AcRmsStep(string name, int channelIndex, int pathIndex, ThunderscopeTermination termination, uint rateHz, CommonVariables variables) : base(name)
+    public AcRmsStep(string name, int channelIndex, int pathIndex, ThunderscopeTermination termination, ThunderscopeBandwidth bandwidth, uint rateHz, CommonVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {
@@ -15,10 +15,10 @@ public class AcRmsStep : Step
             switch (termination)
             {
                 case ThunderscopeTermination.FiftyOhm:
-                    Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables);
+                    Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, false, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, bandwidth, variables);
                     break;
                 case ThunderscopeTermination.OneMegaohm:
-                    Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables);
+                    Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, false, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, bandwidth, variables);
                     break;
             }
             Instruments.Instance.SetThunderscopeRate(rateHz, variables);
