@@ -102,7 +102,7 @@ namespace TS.NET
                     new(){ PgaLadderAttenuator = 9, BufferInputVpp = 0.777, TrimScaleDac = 1, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
                     new(){ PgaLadderAttenuator = 10, BufferInputVpp = 0.977, TrimScaleDac = 1, TrimOffsetDacScale = 0.25, TrimOffsetDacZero = 2048 },
                 ],
-                PgaLoadScales = []
+                PgaLoadScales = [new() { Scale = 1.0, ChannelCount = 1, SampleRate = 1_000_000_000 }]
             };
         }
     }

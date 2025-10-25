@@ -2,7 +2,7 @@
 
 public static class Utility
 {
-    public static ThunderscopeChannelPathCalibration GetChannelPathCalibration(int channelIndex, int pathIndex, CalibrationVariables variables)
+    public static ThunderscopeChannelPathCalibration GetChannelPathCalibration(int channelIndex, int pathIndex, CommonVariables variables)
     {
         var calibration = channelIndex switch
         {

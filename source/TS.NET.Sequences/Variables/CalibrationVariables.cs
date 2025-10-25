@@ -1,11 +1,9 @@
 ﻿namespace TS.NET.Sequences;
 
-public class CalibrationVariables
+public class CalibrationVariables : CommonVariables
 {
     public string? CalibrationFileName { get; set; } = "thunderscope-calibration.json";
-    public int FrontEndSettlingTimeMs { get; set; } = 300;
     public int ParametersSet { get; set; }
-    public ThunderscopeCalibrationSettings Calibration { get; set; } = new();
     public DateTimeOffset CalibrationTimestamp { get; set; }
 
     public ChannelPathConfig[] Channel1PathConfigs { get; set; } = [

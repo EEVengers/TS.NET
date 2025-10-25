@@ -77,7 +77,7 @@ public class Step
         {
             status = Status.Error;
             exception = ex;
-            Logger.Instance.Log(LogLevel.Error, $"Error in step: {Name}, exception: {ex.Message}");
+            Logger.Instance.Log(LogLevel.Error, $"Error in step: {Name}, {ex.GetType().Name}: {ex.Message}");
         }
         // If retries have been set up, handle that for Failed/Error and timeout
         if (Retries != null && (status == Status.Failed || status == Status.Error || timeout) && retryCount < Retries)

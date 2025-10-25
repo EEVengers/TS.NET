@@ -22,7 +22,7 @@ public class SelfCalibrationSequence : Sequence
             new DialogStep("Cable check", uiDialog){ Title = "Cable check", Text = "All cables disconnected from channels 1-4?", Buttons = DialogButtons.YesNo, Icon = DialogIcon.Question },
             new InitialiseDeviceStep("Initialise device", Variables),
             new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file", Variables),
-            new WarmupStep("Warmup for 20 minutes", seconds: 1 * 60) { Skip = false },
+            new WarmupStep("Warmup device", Variables) { Skip = false },
 
             new Step("Set channel 1"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.SetThunderscopeChannel([0]);

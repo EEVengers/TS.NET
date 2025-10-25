@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using TS.NET.Calibration;
+using TS.NET.Sequences;
 
 namespace TS.NET.Testbench.UI;
 

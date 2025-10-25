@@ -365,6 +365,8 @@ namespace TS.NET.Driver.Libtslitex
                 var channelCount = channelEnabled.Count(chE => chE);
                 if (channelCount == 0)
                     channelCount = 1;
+                if (!channelCalibration[channelIndex].PgaLoadScales.Any(s => s.SampleRate == cachedSampleRateHz && s.ChannelCount == channelCount))
+                    throw new ThunderscopeException("Calibration data does not contain a PgaLoadScale for requested configuration");
                 var gain = channelCalibration[channelIndex].PgaLoadScales.First(s => s.SampleRate == cachedSampleRateHz && s.ChannelCount == channelCount).Scale;
                 return path.BufferInputVpp * (1.0 / gain);
             }

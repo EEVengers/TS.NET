@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using TS.NET.Calibration;
+using TS.NET.Sequences;
 using TS.NET.Photino;
 using TS.NET.Sequencer;
 
@@ -86,13 +86,13 @@ class Program
                         var sequenceString = json.RootElement.GetProperty("sequence").GetString();
                         switch(sequenceString)
                         {
-                            case "self-cal":
+                            case "self-calibration":
                                 var selfCalibrationVariables = new SelfCalibrationVariables();
                                 var selfCalibrationSequence = new SelfCalibrationSequence(uiDialog, selfCalibrationVariables);
                                 variables = selfCalibrationVariables;
                                 sequence = selfCalibrationSequence;
                                 break;
-                            case "bench-cal":
+                            case "bench-calibration":
                                 var benchCalibrationVariables = new BenchCalibrationVariables
                                 {
                                     SigGen1Host = variablesFile.SigGen1Ip,
@@ -101,6 +101,12 @@ class Program
                                 var benchCalibrationSequence = new BenchCalibrationSequence(uiDialog, benchCalibrationVariables);
                                 variables = benchCalibrationVariables;
                                 sequence = benchCalibrationSequence;
+                                break;
+                            case "noise-verification":
+                                var noiseVerificationVariables = new NoiseVerificationVariables();
+                                var noiseVerificationSequence = new NoiseVerificationSequence(uiDialog, noiseVerificationVariables);
+                                variables = noiseVerificationVariables;
+                                sequence = noiseVerificationSequence;
                                 break;
                             default:
                                 throw new InvalidDataException();

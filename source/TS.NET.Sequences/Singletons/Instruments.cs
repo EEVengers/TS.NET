@@ -20,7 +20,9 @@ public class Instruments
     private ThunderscopeMemoryRegion? memoryRegion;
     private ThunderscopeMemoryRegion? shuffleRegion;
 
-    public void InitialiseThunderscope(string? calibrationFileName)
+    private uint cachedSampleRateHz = 0;
+
+    public void InitialiseThunderscope()
     {
         // ThunderScope
         //thunderScope = new ThunderscopeScpiConnection();
@@ -56,10 +58,6 @@ public class Instruments
 
         //thunderScope.WriteLine("RUN");
 
-        if (string.IsNullOrWhiteSpace(calibrationFileName))
-            throw new NotImplementedException();
-        var thunderscopeCalibrationSettings = ThunderscopeCalibrationSettings.FromJsonFile(calibrationFileName);
-
         var loggerFactory = new Microsoft.Extensions.Logging.LoggerFactory();
         var hardwareConfig = new ThunderscopeHardwareConfig
         {
@@ -72,11 +70,11 @@ public class Instruments
         hardwareConfig.Frontend[1] = ThunderscopeChannelFrontend.Default();
         hardwareConfig.Frontend[2] = ThunderscopeChannelFrontend.Default();
         hardwareConfig.Frontend[3] = ThunderscopeChannelFrontend.Default();
-        hardwareConfig.Calibration[0] = thunderscopeCalibrationSettings.Channel1.ToDriver();
-        hardwareConfig.Calibration[1] = thunderscopeCalibrationSettings.Channel2.ToDriver();
-        hardwareConfig.Calibration[2] = thunderscopeCalibrationSettings.Channel3.ToDriver();
-        hardwareConfig.Calibration[3] = thunderscopeCalibrationSettings.Channel4.ToDriver();
-        hardwareConfig.AdcCalibration = thunderscopeCalibrationSettings.Adc.ToDriver();
+        hardwareConfig.Calibration[0] = ThunderscopeChannelCalibrationSettings.Default().ToDriver();
+        hardwareConfig.Calibration[1] = ThunderscopeChannelCalibrationSettings.Default().ToDriver();
+        hardwareConfig.Calibration[2] = ThunderscopeChannelCalibrationSettings.Default().ToDriver();
+        hardwareConfig.Calibration[3] = ThunderscopeChannelCalibrationSettings.Default().ToDriver();
+        hardwareConfig.AdcCalibration = ThunderscopeAdcCalibrationSettings.Default().ToDriver();
         thunderScope = new Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
         thunderScope.Open(0);
         thunderScope.Configure(hardwareConfig, "");
@@ -221,15 +219,19 @@ public class Instruments
             {
                 case 1:
                     thunderScope?.SetRate(1_000_000_000);
+                    cachedSampleRateHz = 1_000_000_000;
                     break;
                 case 2:
                     thunderScope?.SetRate(500_000_000);
+                    cachedSampleRateHz = 500_000_000;
                     break;
                 case 3:
                     thunderScope?.SetRate(250_000_000);
+                    cachedSampleRateHz = 250_000_000;
                     break;
                 case 4:
                     thunderScope?.SetRate(250_000_000);
+                    cachedSampleRateHz = 250_000_000;
                     break;
                 default:
                     throw new NotImplementedException();
@@ -244,10 +246,14 @@ public class Instruments
     //    Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
     //}
 
-    public void SetThunderscopeRate(uint rateHz, CalibrationVariables variables)
+    public void SetThunderscopeRate(uint rateHz, CommonVariables variables)
     {
-        thunderScope?.SetRate(rateHz);
-        Thread.Sleep(variables.FrontEndSettlingTimeMs);
+        if (rateHz != cachedSampleRateHz)
+        {
+            thunderScope?.SetRate(rateHz);
+            cachedSampleRateHz = rateHz;
+            Thread.Sleep(variables.FrontEndSettlingTimeMs);
+        }
     }
 
     //public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation)
@@ -256,7 +262,7 @@ public class Instruments
     //    Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
     //}
 
-    public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, CalibrationVariables variables)
+    public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, CommonVariables variables)
     {
         var frontend = new ThunderscopeChannelFrontendManualControl
         {
@@ -279,7 +285,7 @@ public class Instruments
     //    Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
     //}
 
-    public void SetThunderscopeCalManual1M(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, CalibrationVariables variables)
+    public void SetThunderscopeCalManual1M(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, CommonVariables variables)
     {
         var frontend = new ThunderscopeChannelFrontendManualControl
         {
@@ -334,12 +340,6 @@ public class Instruments
         });
     }
 
-    public double GetThunderscopeAverage(int channelIndex)
-    {
-        GetThunderscopeStats(channelIndex, out var average);//, out _, out _);
-        return average;
-    }
-
     //public void GetThunderscopeStats(int channelIndex, out double average, out double min, out double max)
     //{
     //    thunderScope!.WriteLine("FORCE");
@@ -373,20 +373,13 @@ public class Instruments
     //        throw new CalibrationException("Channel was not in waveform data");
     //}
 
-    public void GetThunderscopeStats(int channelIndex, out double average)//, out double min, out double max)
+    public double GetThunderscopeAverage(int channelIndex)
     {
-        // To do: allow for multi-channel reading
+        // To do: check if channelIndex is one of the enabled channels
         var config = thunderScope!.GetConfiguration();
         thunderScope!.Stop();
         thunderScope!.Start();
-
         thunderScope!.Read(memoryRegion!.GetSegment(0), new CancellationToken());
-
-        average = 0;
-        //min = int.MaxValue;
-        //max = int.MinValue;
-        long sum = 0;
-        long count = 0;
 
         var samples = memoryRegion!.GetSegment(0).DataSpanI8;
         Span<sbyte> channel;
@@ -418,15 +411,15 @@ public class Instruments
                 throw new NotImplementedException();
         }
 
+        long sum = 0;
+        long count = 0;
         foreach (var point in channel)
         {
             sum += point;
-            //if (point < min) min = point;
-            //if (point > max) max = point;
         }
         count += channel.Length;
 
-        average = (double)sum / count;
+        return (double)sum / count;
     }
 
     public void GetThunderscopeFineBranches(out double[] mean, out double[] stdev)
@@ -510,6 +503,64 @@ public class Instruments
 
         mean = branchMeans;
         stdev = branchStdDevs;
+    }
+
+    /// <summary>
+    /// This is the same as AC RMS
+    /// </summary>
+    public double GetThunderscopePopulationStdDev(int channelIndex)
+    {
+        // To do: check if channelIndex is one of the enabled channels
+        var config = thunderScope!.GetConfiguration();
+        thunderScope!.Stop();
+        thunderScope!.Start();
+        thunderScope!.Read(memoryRegion!.GetSegment(0), new CancellationToken());
+
+        var samples = memoryRegion!.GetSegment(0).DataSpanI8;
+        Span<sbyte> channel;
+        switch (config.EnabledChannelsCount())
+        {
+            case 1:
+                channel = samples;
+                break;
+            case 2:
+                {
+                    Span<sbyte> twoChannels = shuffleRegion!.GetSegment(0).DataSpanI8;
+                    ShuffleI8.TwoChannels(samples, twoChannels);
+                    var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                    var length = samples.Length / 2;
+                    channel = twoChannels.Slice(index * length, length);
+                    break;
+                }
+            case 3:
+            case 4:
+                {
+                    Span<sbyte> fourChannels = shuffleRegion!.GetSegment(0).DataSpanI8;
+                    ShuffleI8.FourChannels(samples, fourChannels);
+                    var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                    var length = samples.Length / 4;
+                    channel = fourChannels.Slice(index * length, length);
+                    break;
+                }
+            default:
+                throw new NotImplementedException();
+        }
+
+        double sum = 0;
+        foreach (var point in channel)
+        {
+            sum += point;
+        }
+
+        double mean = sum / channel.Length;
+
+        double sumSquares = 0;
+        foreach (var point in channel)
+        {
+            sumSquares += Math.Pow(point - mean, 2);
+        }
+
+        return Math.Sqrt(sumSquares / channel.Length);
     }
 
     public void SetSdgChannel(int channelIndex)
