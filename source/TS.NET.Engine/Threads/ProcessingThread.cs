@@ -130,7 +130,7 @@ public class ProcessingThread : IThread
             var sampleBuffers = new AcquisitionCircularBuffer[4];
             for (int i = 0; i < 4; i++)
             {
-                sampleBuffers[i] = new AcquisitionCircularBuffer(settings.MaxCaptureLength, ThunderscopeDataType.I16);
+                sampleBuffers[i] = new AcquisitionCircularBuffer(settings.MaxCaptureLength, ThunderscopeSettings.SegmentLengthBytes, ThunderscopeDataType.I16);
             }
             captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
 
@@ -149,9 +149,9 @@ public class ProcessingThread : IThread
             ITriggerI16 triggerI16 = new RisingEdgeTriggerI16(processingConfig.EdgeTriggerParameters);
             EdgeTriggerResults edgeTriggerResults = new EdgeTriggerResults()
             {
-                ArmIndices = new int[ThunderscopeMemory.DataLength / 1000],         // 1000 samples is the minimum window width
-                TriggerIndices = new int[ThunderscopeMemory.DataLength / 1000],     // 1000 samples is the minimum window width
-                CaptureEndIndices = new int[ThunderscopeMemory.DataLength / 1000]   // 1000 samples is the minimum window width
+                ArmIndices = new int[ThunderscopeSettings.SegmentLengthBytes / 1000],         // 1000 samples is the minimum window width
+                TriggerIndices = new int[ThunderscopeSettings.SegmentLengthBytes / 1000],     // 1000 samples is the minimum window width
+                CaptureEndIndices = new int[ThunderscopeSettings.SegmentLengthBytes / 1000]   // 1000 samples is the minimum window width
             };
             bool runMode = false;
             bool forceTriggerLatch = false;

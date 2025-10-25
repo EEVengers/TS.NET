@@ -34,13 +34,10 @@ namespace TS.NET.Driver.Libtslitex
             return devices;
         }
 
-        /// <summary>
-        /// readSegmentLengthBytes should be the same as DMA_BUFFER_SIZE in the driver. Other values may work, further research needed.
-        /// </summary>
         public Thunderscope(ILoggerFactory loggerFactory, int readSegmentLengthBytes)
         {
-            if (ThunderscopeMemory.DataLength % readSegmentLengthBytes != 0)
-                throw new ArgumentException("ThunderscopeMemory.Length % readSegmentLengthBytes != 0");
+            if (readSegmentLengthBytes % (512 * 1024) != 0)
+                throw new ArgumentException("readSegmentLengthBytes % (512 * 1024) != 0");
             this.readSegmentLengthBytes = (uint)readSegmentLengthBytes;
             logger = loggerFactory.CreateLogger("Driver.LiteX");
             channelEnabled = new bool[4];
@@ -130,7 +127,7 @@ namespace TS.NET.Driver.Libtslitex
 
             unsafe
             {
-                ulong length = ThunderscopeMemory.DataLength;
+                ulong length = (ulong)data.LengthBytes;
                 ulong dataRead = 0;
                 while (length > 0)
                 {
@@ -154,8 +151,8 @@ namespace TS.NET.Driver.Libtslitex
 
             unsafe
             {
-                ulong length = ThunderscopeMemory.DataLength;
-                ulong dataRead = 0;
+                uint length = (uint)data.LengthBytes;
+                uint dataRead = 0;
                 while (length > 0)
                 {
                     int readLen = Interop.Read(tsHandle, data.DataLoadPointer + dataRead, readSegmentLengthBytes);
@@ -165,8 +162,8 @@ namespace TS.NET.Driver.Libtslitex
                     else if (readLen != readSegmentLengthBytes)
                         throw new ThunderscopeException($"Read incorrect sample length ({readLen})");
 
-                    dataRead += (ulong)readSegmentLengthBytes;
-                    length -= (ulong)readSegmentLengthBytes;
+                    dataRead += readSegmentLengthBytes;
+                    length -= readSegmentLengthBytes;
                 }
                 return true;
             }

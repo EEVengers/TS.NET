@@ -4,21 +4,24 @@ namespace TS.NET;
 
 public unsafe class ThunderscopeMemoryRegion
 {
-    private readonly uint segmentLength;
+    private readonly int segmentLengthBytes;
+    private readonly int segmentPreLengthBytes;
 
     public const int Alignment = 4096;
-    public byte* Pointer;
+    public byte* RegionPointer;
 
-    public ThunderscopeMemoryRegion(int segments)
+    public ThunderscopeMemoryRegion(int segments, int segmentLengthBytes)
     {
-        segmentLength = (ThunderscopeMemory.PreambleLength + ThunderscopeMemory.DataLength) * ThunderscopeMemory.MaximumDataByteWidth;
-        Pointer = (byte*)NativeMemory.AlignedAlloc(segmentLength * (uint)segments, Alignment);   // Intentionally not sbyte
+        this.segmentPreLengthBytes = Alignment; // Add this on to the beginning segment so that every segment has a pre-data region.
+        this.segmentLengthBytes = segmentLengthBytes;
+        var regionLengthBytes = segmentPreLengthBytes + segmentLengthBytes * segments;
+        RegionPointer = (byte*)NativeMemory.AlignedAlloc((uint)regionLengthBytes, Alignment);   // Intentionally not sbyte
     }
 
     public ThunderscopeMemory GetSegment(int index)
     {
-        var segment = new ThunderscopeMemory();
-        segment.Load(Pointer + (index * segmentLength));
+        var segment = new ThunderscopeMemory(segmentLengthBytes, segmentPreLengthBytes);
+        segment.Load(RegionPointer + (index * segmentLengthBytes));
         return segment;
     }
 
@@ -27,7 +30,7 @@ public unsafe class ThunderscopeMemoryRegion
     //    https://devblogs.microsoft.com/oldnewthing/20120105-00/?p=8683
     public void Dispose()
     {
-        NativeMemory.AlignedFree(Pointer);
+        NativeMemory.AlignedFree(RegionPointer);
     }
 }
 
@@ -39,7 +42,7 @@ public unsafe class ThunderscopeMemoryRegion
 //    public Span<sbyte> SpanI8 { get { return new Span<sbyte>(Pointer, Length); } }
 //}
 
-// Preamble is a small amount of memory before the data, to improve
+// PreLength is a small amount of memory before the data, to improve
 // the efficiency of pre-processing filters with block-based processing
 // that need to copy history data to the beginning of the block.
 public unsafe class ThunderscopeMemory
@@ -47,43 +50,45 @@ public unsafe class ThunderscopeMemory
     // 1 << 23 = 8388608 (8388608 * I8) (4194304 * I16) [should be multiple of ThunderscopeMemoryRegion.Alignment]
 
     public const int MaximumDataByteWidth = sizeof(short);
-    public const int PreambleLength = ThunderscopeMemoryRegion.Alignment;
-    public const int DataLength = (1 << 23);
 
-    private const int PreambleBytes = PreambleLength * MaximumDataByteWidth;
-    //private const int DataLengthBytes = DataLength * MaximumDataByteWidth;
+    private byte* SegmentPointer;
+    public int LengthBytes { get; private set; }
+    public int PreLengthBytes { get; private set; }
 
-    private byte* BasePointer;
+    public byte* DataLoadPointer { get { return SegmentPointer; } }
 
-    public byte* DataLoadPointer { get { return BasePointer + PreambleBytes; } }
-
-    public int PreambleUsedLength;
+    public ThunderscopeMemory(int lengthBytes, int preLengthBytes)
+    {
+        LengthBytes = lengthBytes;
+        PreLengthBytes = preLengthBytes;
+    }
 
     public Span<sbyte> DataSpanI8
     {
         get
         {
-            return new Span<sbyte>(BasePointer + PreambleBytes - PreambleUsedLength, DataLength);
+            return new Span<sbyte>(SegmentPointer, LengthBytes);
         }
     }
     public Span<short> DataSpanI16
     {
         get
         {
-            return new Span<short>(BasePointer + PreambleBytes - (PreambleUsedLength * sizeof(short)), DataLength);
+            return new Span<short>(SegmentPointer, LengthBytes / sizeof(short));
         }
     }
 
-    public Span<sbyte> FullSpanI8 { get { return new Span<sbyte>(BasePointer, PreambleLength + DataLength); } }
-    public Span<short> FullSpanI16 { get { return new Span<short>(BasePointer, PreambleLength + DataLength); } }
+    //public Span<sbyte> FullSpanI8 { get { return new Span<sbyte>(BasePointer, PreambleLength + DataLength); } }
+    //public Span<short> FullSpanI16 { get { return new Span<short>(BasePointer, PreambleLength + DataLength); } }
 
     public void Load(byte* basePointer)
     {
-        BasePointer = basePointer;
+        SegmentPointer = basePointer;
     }
 
     public void Reset()
     {
-        PreambleUsedLength = 0;
+        // no-op, delete later
+        //PreambleUsedLength = 0;
     }
 }

@@ -18,11 +18,11 @@
 # Configures the port number for the SCPI service.
 #
 # Key: DataPort
-# Value: Integer, typically 5026
+# Value: Integer, typically 5026.
 # Configures the port number for the Data service.
 #
 # Key: WaveformBufferReader
-# Value: String, with one of None/DataServer
+# Value: String, with one of None/DataServer.
 # Configures the reader that will access the waveform buffer.
 
 HardwareDriver: libtslitex
@@ -38,6 +38,10 @@ WaveformBufferReader: DataServer
 # Key: HardwareThreadProcessorAffinity 
 # Value: Integer, in range of -1 to the number of CPU cores available. -1 = not set, 0 = CPU core 0, 1 = CPU core 1, etc.
 # Configures the thread processor affinity for the hardware capture & control thread. Typically should remain as -1 to allow full control by operating system, but user may wish to experiment.
+#
+# Key: PreProcessingThreadProcessorAffinity 
+# Value: Integer, in range of -1 to the number of CPU cores available. -1 = not set, 0 = CPU core 0, 1 = CPU core 1, etc.
+# Configures the thread processor affinity for the pre-processing thread. Typically should remain as -1 to allow full control by operating system, but user may wish to experiment.
 #
 # Key: ProcessingThreadProcessorAffinity
 # Value: Integer, in range of -1 to the number of CPU cores available. -1 = not set, 0 = CPU core 0, 1 = CPU core 1, etc.

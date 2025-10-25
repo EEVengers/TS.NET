@@ -80,6 +80,7 @@ internal class HardwareThread : IThread
             bool validDataDto = true;
             var resolution = AdcResolution.EightBit;
             var dataType = ThunderscopeDataType.I8;
+            var segmentLengthBytes = ThunderscopeSettings.SegmentLengthBytes;
 #if DEBUG
             thunderscope.Start();
 #endif
@@ -343,7 +344,7 @@ internal class HardwareThread : IThread
                 if (periodicUpdateTimer.ElapsedMilliseconds >= 10000)
                 {
                     var oneSecondEnqueueCount = periodicEnqueueCount / periodicUpdateTimer.Elapsed.TotalSeconds;
-                    logger.LogDebug($"[Stream] MB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.DataLength / 1000 / 1000):F3}, MiB/sec: {(oneSecondEnqueueCount * ThunderscopeMemory.DataLength / 1024 / 1024):F3}");
+                    logger.LogDebug($"[Stream] MB/sec: {(oneSecondEnqueueCount * segmentLengthBytes / 1000 / 1000):F3}, MiB/sec: {(oneSecondEnqueueCount * segmentLengthBytes / 1024 / 1024):F3}");
 
                     if (thunderscope is Driver.Libtslitex.Thunderscope liteXThunderscope)
                     {

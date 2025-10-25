@@ -18,6 +18,8 @@ public class ThunderscopeSettings
     public int HardwareThreadProcessorAffinity { get; set; } = -1;
     public int PreProcessingThreadProcessorAffinity { get; set; } = -1;
     public int ProcessingThreadProcessorAffinity { get; set; } = -1;
+    
+    public const int SegmentLengthBytes = 8 * 1024 * 1024;
 
     public static ThunderscopeSettings Default()
     {

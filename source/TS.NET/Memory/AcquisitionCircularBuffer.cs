@@ -7,10 +7,10 @@
         private int tail;
         private long totalWritten;
 
-        public AcquisitionCircularBuffer(int maxChannelLength, ThunderscopeDataType maxDataType)
+        public AcquisitionCircularBuffer(int maxChannelLength, int segmentLengthBytes, ThunderscopeDataType maxDataType)
         {
             ArgumentOutOfRangeException.ThrowIfGreaterThan(maxChannelLength, 2_000_000_000);
-            capacity = maxChannelLength + ThunderscopeMemory.DataLength;
+            capacity = maxChannelLength + (segmentLengthBytes / maxDataType.ByteWidth());
             memory = new NativeMemoryAligned((long)capacity * maxDataType.ByteWidth());
             Reset();
         }

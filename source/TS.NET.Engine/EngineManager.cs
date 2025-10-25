@@ -143,7 +143,7 @@ public class EngineManager
         int bufferLength = 3;
         BlockingPool<DataDto> hardwarePool = new(bufferLength);
         BlockingPool<DataDto> preProcessingPool = new(bufferLength);
-        ThunderscopeMemoryRegion memoryRegion = new(bufferLength * 2);
+        ThunderscopeMemoryRegion memoryRegion = new(bufferLength * 2, ThunderscopeSettings.SegmentLengthBytes);
         for (int i = 0; i < bufferLength / 2; i++)
         {
             var dataDto = new DataDto() { Memory = memoryRegion.GetSegment(i) };

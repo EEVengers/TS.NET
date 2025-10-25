@@ -85,7 +85,7 @@ public class Instruments
         thunderScope.SetChannelManualControl(3, manualControl);
         // Start to keep the device hot
         thunderScope.Start();
-        memoryRegion = new ThunderscopeMemoryRegion(acquisitionRegionCount + 1);
+        memoryRegion = new ThunderscopeMemoryRegion(acquisitionRegionCount + 1, 8 * 1024 * 1024);
     }
 
     public void InitialiseSigGens(string? sigGen1Host, string? sigGen2Host)
