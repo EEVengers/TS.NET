@@ -13,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TS.NET.Benchmarks", "TS.NET
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TS.NET.Sequencer", "TS.NET.Sequencer\TS.NET.Sequencer.csproj", "{DB1FF06F-4083-A0F5-B953-4ADA6E8DFBB8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TS.NET.Calibration", "TS.NET.Calibration\TS.NET.Calibration.csproj", "{3A02752E-6ABD-8E01-FDC1-625196297EB9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TS.NET.Sequences", "TS.NET.Sequences\TS.NET.Sequences.csproj", "{3A02752E-6ABD-8E01-FDC1-625196297EB9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TS.NET.Testbench.UI", "TS.NET.Testbench.UI\TS.NET.Testbench.UI.csproj", "{F0E8EABF-9AF3-56E6-0091-FCA7D121B749}"
 EndProject
