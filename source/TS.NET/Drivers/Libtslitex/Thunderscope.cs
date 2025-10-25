@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace TS.NET.Driver.Libtslitex
 {
@@ -105,7 +106,23 @@ namespace TS.NET.Driver.Libtslitex
 
         public void Start()
         {
+            Start(timeoutSec: 1);
+        }
+
+        public void Start(int timeoutSec)
+        {
             CheckOpen();
+
+            DateTimeOffset start = DateTimeOffset.UtcNow;
+            while(true)
+            {
+                if (GetStatus().AdcFrameSync)
+                    break;
+                if (DateTimeOffset.UtcNow.Subtract(start).TotalSeconds >= timeoutSec)
+                    throw new ThunderscopeException("Timeout when starting, ADC frame sync failed");
+                else
+                    Thread.Sleep(10);
+            }
 
             var retVal = Interop.DataEnable(tsHandle, 1);
             if (retVal < 0)

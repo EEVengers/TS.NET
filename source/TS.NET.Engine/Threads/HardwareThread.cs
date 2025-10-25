@@ -81,8 +81,10 @@ internal class HardwareThread : IThread
             var resolution = AdcResolution.EightBit;
             var dataType = ThunderscopeDataType.I8;
             var segmentLengthBytes = ThunderscopeSettings.SegmentLengthBytes;
+            bool hardwareRunning = false;
 #if DEBUG
             thunderscope.Start();
+            hardwareRunning = true;
 #endif
 
             while (true)
@@ -98,16 +100,22 @@ internal class HardwareThread : IThread
                         {
                             case HardwareStartRequest hardwareStartRequest:
                                 thunderscope.Start();
+                                hardwareRunning = true;
                                 logger.LogDebug($"{nameof(HardwareStartRequest)}");
                                 break;
                             case HardwareStopRequest hardwareStopRequest:
                                 thunderscope.Stop();
+                                hardwareRunning = false;
                                 hardwareControl.Response.Writer.Write(new HardwareStopResponse());
                                 logger.LogDebug($"{nameof(HardwareStopRequest)}");
                                 break;
                             case HardwareSetRateRequest hardwareSetRateRequest:
                                 {
+                                    if(hardwareRunning)
+                                        thunderscope.Stop();
                                     thunderscope.SetRate(hardwareSetRateRequest.Rate);
+                                    if (hardwareRunning)
+                                        thunderscope.Start();
                                     logger.LogDebug($"{nameof(HardwareSetRateRequest)} (rate: {hardwareSetRateRequest.Rate})");
                                     break;
                                 }
@@ -120,7 +128,11 @@ internal class HardwareThread : IThread
                                         AdcResolution.TwelveBit => ThunderscopeDataType.I16,
                                         _ => throw new NotImplementedException()
                                     };
+                                    if (hardwareRunning)
+                                        thunderscope.Stop();
                                     thunderscope.SetResolution(hardwareSetResolutionRequest.Resolution);
+                                    if (hardwareRunning)
+                                        thunderscope.Start();
                                     logger.LogDebug($"{nameof(HardwareSetResolutionRequest)} (resolution: {hardwareSetResolutionRequest.Resolution})");
                                     break;
                                 }
