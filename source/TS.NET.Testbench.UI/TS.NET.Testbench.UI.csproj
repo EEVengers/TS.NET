@@ -35,7 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TS.NET.Calibration\TS.NET.Calibration.csproj" />
+    <ProjectReference Include="..\TS.NET.Sequences\TS.NET.Sequences.csproj" />
     <ProjectReference Include="..\TS.NET.Photino\TS.NET.Photino.csproj" />
   </ItemGroup>
 
