@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace TS.NET.Calibration;
+namespace TS.NET.Sequences;
 
 public class SelfCalibrationVariables : CalibrationVariables, IJsonVariables
 {

@@ -1,7 +1,7 @@
 ﻿using TS.NET.Photino;
 using TS.NET.Sequencer;
 
-namespace TS.NET.Calibration;
+namespace TS.NET.Sequences;
 
 public class BenchCalibrationSequence : Sequence
 {
@@ -23,7 +23,7 @@ public class BenchCalibrationSequence : Sequence
             new InitialiseDeviceStep("Initialise device", Variables),
             new InitialiseSigGensStep("Initialise instruments", Variables),
             new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file", Variables),
-            new WarmupStep("Warmup for 20 minutes") { Skip = false },
+            new WarmupStep("Warmup for 20 minutes", seconds: 20 * 60) { Skip = false },
 
             new Step("Set channel 1"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.SetThunderscopeChannel([0]);

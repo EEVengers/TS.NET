@@ -1,6 +1,6 @@
 ﻿using TS.NET.Sequencer;
 
-namespace TS.NET.Calibration;
+namespace TS.NET.Sequences;
 
 public class TrimOffsetDacZeroStep : Step
 {

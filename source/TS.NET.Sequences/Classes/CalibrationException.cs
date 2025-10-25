@@ -1,4 +1,4 @@
-﻿namespace TS.NET.Calibration;
+﻿namespace TS.NET.Sequences;
 
 public class CalibrationException : Exception
 {
