@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 
 namespace TS.NET.Driver.Libtslitex
 {
@@ -9,6 +8,7 @@ namespace TS.NET.Driver.Libtslitex
     {
         private readonly ILogger logger;
         private bool open = false;
+        private bool started = false;
         private nint tsHandle;
         private uint readSegmentLengthBytes;
 
@@ -27,7 +27,7 @@ namespace TS.NET.Driver.Libtslitex
         {
             var devices = new List<ThunderscopeLiteXDevice>();
             uint i = 0;
-            while(Interop.ListDevices(i, out var devInfo) == 0)
+            while (Interop.ListDevices(i, out var devInfo) == 0)
             {
                 i++;
                 devices.Add(new ThunderscopeLiteXDevice(devInfo.deviceID, devInfo.hw_id, devInfo.gw_id, devInfo.litex, devInfo.devicePath, devInfo.identity, devInfo.serialNumber));
@@ -113,29 +113,41 @@ namespace TS.NET.Driver.Libtslitex
         {
             CheckOpen();
 
-            DateTimeOffset start = DateTimeOffset.UtcNow;
-            while(true)
+            if (!started)
             {
-                if (GetStatus().AdcFrameSync)
-                    break;
-                if (DateTimeOffset.UtcNow.Subtract(start).TotalSeconds >= timeoutSec)
-                    throw new ThunderscopeException("Timeout when starting, ADC frame sync failed");
-                else
-                    Thread.Sleep(10);
+                DateTimeOffset start = DateTimeOffset.UtcNow;
+                while (true)
+                {
+                    if (GetStatus().AdcFrameSync)
+                        break;
+                    Console.WriteLine("AdcFrameSync false");
+                    if (DateTimeOffset.UtcNow.Subtract(start).TotalSeconds >= timeoutSec)
+                        throw new ThunderscopeException("Timeout when starting, ADC frame sync failed");
+                    else
+                        Thread.Sleep(10);
+                }
+                Console.WriteLine("AdcFrameSync true");
+
+                var retVal = Interop.DataEnable(tsHandle, 1);
+                if (retVal < 0)
+                    throw new ThunderscopeException($"Could not start ({GetLibraryReturnString(retVal)})");
             }
 
-            var retVal = Interop.DataEnable(tsHandle, 1);
-            if (retVal < 0)
-                throw new ThunderscopeException($"Could not start ({GetLibraryReturnString(retVal)})");
+            started = true;
         }
 
         public void Stop()
         {
             CheckOpen();
 
-            var retVal = Interop.DataEnable(tsHandle, 0);
-            if (retVal < 0)
-                throw new ThunderscopeException($"Could not stop ({GetLibraryReturnString(retVal)})");
+            if (started)
+            {
+                var retVal = Interop.DataEnable(tsHandle, 0);
+                if (retVal < 0)
+                    throw new ThunderscopeException($"Could not stop ({GetLibraryReturnString(retVal)})");
+            }
+
+            started = false;
         }
 
         public void Read(ThunderscopeMemory data, CancellationToken cancellationToken)
@@ -314,6 +326,7 @@ namespace TS.NET.Driver.Libtslitex
         private void SetSampleMode(ulong sampleRateHz, AdcResolution resolution, bool updateFrontends)
         {
             CheckOpen();
+            Stop();
 
             uint resolutionValue = resolution switch { AdcResolution.EightBit => 256, AdcResolution.TwelveBit => 4096, _ => throw new NotImplementedException() };
             var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, resolutionValue);
@@ -326,6 +339,8 @@ namespace TS.NET.Driver.Libtslitex
                 logger.LogTrace($"Failed to set sample rate ({sampleRateHz}): {GetLibraryReturnString(retVal)}");
             else if (retVal < 0)
                 throw new ThunderscopeException($"Error trying to set sample rate {sampleRateHz} ({GetLibraryReturnString(retVal)})");
+
+            Start();
         }
 
         public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)
