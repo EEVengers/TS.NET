@@ -9,6 +9,7 @@ public class AttenuatorStep : Step
         // A previous step should set Instruments.Instance.EnableSdgDc(channelIndex) to enable sig gen output
         Action = (CancellationToken cancellationToken) =>
         {
+            Instruments.Instance.SetThunderscopeRate(1_000_000_000, variables);
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, 18, variables);
             //var pathConfig = Utility.GetChannelPathConfig(channelIndex, 18);
 

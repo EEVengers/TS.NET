@@ -10,6 +10,9 @@ public class BenchCalibrationVariables : CalibrationVariables, IJsonVariables
     private double sigGenZero = 0;
     public double SigGenZero { get => sigGenZero; set => sigGenZero = Math.Round((double)value, 6); }
 
+    private double referenceVpp = 0;
+    public double ReferenceVpp { get => referenceVpp; set => referenceVpp = Math.Round((double)value, 6); }
+
     public string ToJson()
     {
         return JsonSerializer.Serialize(this, DefaultCaseContext.Default.BenchCalibrationVariables);

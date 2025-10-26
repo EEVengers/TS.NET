@@ -9,6 +9,7 @@ public class BufferInputVppStep : Step
         // A previous step should set Instruments.Instance.EnableSdgDc(channelIndex) to enable sig gen output
         Action = (CancellationToken cancellationToken) =>
         {
+            Instruments.Instance.SetThunderscopeRate(1_000_000_000, variables);
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pathIndex, variables);
             var pathConfig = Utility.GetChannelPathConfig(channelIndex, pathIndex, variables);
             Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables);

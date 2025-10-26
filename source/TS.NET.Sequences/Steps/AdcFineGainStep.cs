@@ -9,6 +9,7 @@ public class AdcFineGainStep : Step
         // A previous step should set Instruments.Instance.EnableSdgDc(channelIndex) to enable sig gen output
         Action = (CancellationToken cancellationToken) =>
         {
+            Instruments.Instance.SetThunderscopeRate(1_000_000_000, variables);
             var channelIndex = 0;
             var pathIndex = 21;
             // First set the maximum range
@@ -91,7 +92,7 @@ public class AdcFineGainStep : Step
                 Logger.Instance.Log(LogLevel.Information, Index, $"Branch {i + 1}: {(branchScale*100.0)-100.0:+0.000;-0.000}%");
             }
 
-            Logger.Instance.Log(LogLevel.Information, Index, Status.Passed, $"");
+            Logger.Instance.Log(LogLevel.Information, Index, Status.Passed);
 
             Instruments.Instance.SetSdgDc(channelIndex);
             return Status.Passed;
