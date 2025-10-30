@@ -261,7 +261,7 @@ public class Instruments
     //    thunderScope?.WriteLine($"CAL:FRONTEND CHAN{channelIndex + 1} DC 50 0 {dac} {dpot} {pgaLadderAttenuation} {(pgaPreampGain == PgaPreampGain.High ? "1" : "0")} 20M");
     //    Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
     //}
-    
+
     public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, CommonVariables variables)
     {
         SetThunderscopeCalManual50R(channelIndex, false, dac, dpot, pgaPreampGain, pgaLadderAttenuation, ThunderscopeBandwidth.Bw20M, variables);
@@ -399,8 +399,9 @@ public class Instruments
             sum += point;
         }
         count += channel.Length;
-
-        return (double)sum / count;
+        var average = (double)sum / count;
+        DebugLog.Instance.Log($"GetThunderscopeAverage: {average} (count: {count})");
+        return average;
     }
 
     public void GetThunderscopeFineBranches(out double[] mean, out double[] stdev)

@@ -11,6 +11,7 @@ public class PgaLoadStep : Step
         {
             Instruments.Instance.SetThunderscopeChannel(channelIndices, false);
             Instruments.Instance.SetThunderscopeRate(sampleRateHz, variables);
+            DebugLog.Instance.Log($"PgaLoadStep, channelIndex: {channelIndex}, channelIndices: {channelIndices}, sampleRateHz: {sampleRateHz}");
 
             var configIndex = 21;
             var pathConfig = Utility.GetChannelPathConfig(channelIndex, configIndex, variables);
