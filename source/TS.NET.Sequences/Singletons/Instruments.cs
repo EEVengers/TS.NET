@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using TS.NET.Sequencer;
 
 namespace TS.NET.Sequences;
@@ -86,8 +84,8 @@ public class Instruments
         thunderScope.SetChannelManualControl(3, manualControl);
         // Start to keep the device hot
         thunderScope.Start();
-        memoryRegion = new ThunderscopeMemoryRegion(1, 64 * 1024 * 1024);
-        shuffleRegion = new ThunderscopeMemoryRegion(1, 64 * 1024 * 1024);
+        memoryRegion = new ThunderscopeMemoryRegion(1, 8 * 1024 * 1024);
+        shuffleRegion = new ThunderscopeMemoryRegion(1, 8 * 1024 * 1024);
     }
 
     public void InitialiseSigGens(string? sigGen1Host, string? sigGen2Host)
@@ -175,7 +173,7 @@ public class Instruments
     public void WriteUserCalibration(ThunderscopeCalibrationSettings calibration)
     {
         if (thunderScope == null)
-            throw new CalibrationException("Device must be opened");
+            throw new TestbenchException("Device must be opened");
         ThunderscopeNonVolatileMemory.WriteUserCalibration(thunderScope, calibration);
     }
 
@@ -252,8 +250,12 @@ public class Instruments
         {
             thunderScope?.SetRate(rateHz);
             cachedSampleRateHz = rateHz;
-            Thread.Sleep(variables.FrontEndSettlingTimeMs);
         }
+    }
+
+    public void SetThunderscopeResolution(AdcResolution resolution)
+    {
+        thunderScope?.SetResolution(resolution);
     }
 
     //public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation)
@@ -356,8 +358,9 @@ public class Instruments
 
     public double GetThunderscopeAverage(int channelIndex)
     {
-        // To do: check if channelIndex is one of the enabled channels
         var config = thunderScope!.GetConfiguration();
+        if (!config.IsChannelIndexAnEnabledChannel(channelIndex))
+            throw new TestbenchException("Requested channel index is not an enabled channel");
         thunderScope!.Stop();
         thunderScope!.Start();
         thunderScope!.Read(memoryRegion!.GetSegment(0), new CancellationToken());
@@ -402,7 +405,7 @@ public class Instruments
             // Temporary debug min/max
             if (point > max)
                 max = point;
-            if(point < min)
+            if (point < min)
                 min = point;
         }
         count += channel.Length;
@@ -423,7 +426,7 @@ public class Instruments
         // If multiple channels are enabled, branch parsing won't be valid
         var config = thunderScope!.GetConfiguration();
         if (config.EnabledChannelsCount() != 1)
-            throw new CalibrationException("Fine branch analysis requires exactly one enabled channel.");
+            throw new TestbenchException("Fine branch analysis requires exactly one enabled channel.");
 
         int sampleCount = sampleLen / 8;
 
@@ -499,8 +502,9 @@ public class Instruments
     /// </summary>
     public double GetThunderscopePopulationStdDev(int channelIndex)
     {
-        // To do: check if channelIndex is one of the enabled channels
         var config = thunderScope!.GetConfiguration();
+        if (!config.IsChannelIndexAnEnabledChannel(channelIndex))
+            throw new TestbenchException("Requested channel index is not an enabled channel");
         thunderScope!.Stop();
         thunderScope!.Start();
         thunderScope!.Read(memoryRegion!.GetSegment(0), new CancellationToken());
@@ -552,6 +556,63 @@ public class Instruments
         return Math.Sqrt(sumSquares / channel.Length);
     }
 
+    public double GetThunderscopeVppAtFrequency(int channelIndex, double filterFrequency, double sampleFrequency, double inputVpp, AdcResolution resolution)
+    {
+        var filter = new GoertzelFilter(filterFrequency, sampleFrequency);
+        var config = thunderScope!.GetConfiguration();
+        if (!config.IsChannelIndexAnEnabledChannel(channelIndex))
+            throw new TestbenchException("Requested channel index is not an enabled channel");
+        thunderScope!.Stop();
+        thunderScope!.Start();
+        thunderScope!.Read(memoryRegion!.GetSegment(0), new CancellationToken());
+
+        var samples = memoryRegion!.GetSegment(0).DataSpanI8;
+        Span<sbyte> channel;
+        switch (config.EnabledChannelsCount())
+        {
+            case 1:
+                channel = samples;
+                break;
+            case 2:
+                {
+                    Span<sbyte> twoChannels = shuffleRegion!.GetSegment(0).DataSpanI8;
+                    ShuffleI8.TwoChannels(samples, twoChannels);
+                    var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                    var length = samples.Length / 2;
+                    channel = twoChannels.Slice(index * length, length);
+                    break;
+                }
+            case 3:
+            case 4:
+                {
+                    Span<sbyte> fourChannels = shuffleRegion!.GetSegment(0).DataSpanI8;
+                    ShuffleI8.FourChannels(samples, fourChannels);
+                    var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                    var length = samples.Length / 4;
+                    channel = fourChannels.Slice(index * length, length);
+                    break;
+                }
+            default:
+                throw new NotImplementedException();
+        }
+
+        var scaledSamples = new double[channel.Length];
+        var vPerBit = resolution switch
+        {
+            AdcResolution.EightBit => inputVpp / 256.0,
+            AdcResolution.TwelveBit => inputVpp / 4096.0,
+            _ => throw new NotImplementedException()
+        };
+        for (int i = 0; i < scaledSamples.Length; i++)
+        {
+            scaledSamples[i] = channel[i] * vPerBit;
+        }
+
+        var complexResult = filter.Process(scaledSamples);
+        var vppResult = 2 * (complexResult.Magnitude / (scaledSamples.Length / 2));
+        return vppResult;
+    }
+
     public void SetSdgChannel(int channelIndex)
     {
         switch (channelIndex)
@@ -592,7 +653,42 @@ public class Instruments
     public void SetSdgOffset(int channelIndex, double voltage)
     {
         GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
-        sigGen.WriteLine($"{sdgChannel}:BSWV OFST, {voltage:F4}"); Thread.Sleep(50);
+        sigGen.WriteLine($"{sdgChannel}:BSWV OFST, {voltage:F4}");
+
+        // Querying ensures command is executed
+        sigGen.WriteLine($"{sdgChannel}:BSWV?");
+        var response = sigGen.ReadLine();
+
+        // Parse OFST value from response
+        const string key = "OFST,";
+        var idx = response.IndexOf(key, StringComparison.OrdinalIgnoreCase);
+        if (idx < 0)
+            throw new TestbenchException($"Response does not contain an OFST field: '{response}'");
+
+        idx += key.Length;
+        var endIdx = response.IndexOf(',', idx);
+        if (endIdx < 0)
+            endIdx = response.Length;
+
+        var valueText = response.Substring(idx, endIdx - idx).Trim();
+
+        // Remove trailing 'V' if present
+        if (valueText.EndsWith("V", StringComparison.OrdinalIgnoreCase))
+            valueText = valueText[..^1];
+
+        if (!double.TryParse(valueText, System.Globalization.NumberStyles.Float,
+                             System.Globalization.CultureInfo.InvariantCulture,
+                             out var ofstValue))
+        {
+            throw new TestbenchException($"Failed to parse OFST value from '{valueText}' (response: '{response}')");
+        }
+
+        // Compare within tolerance
+        const double tolerance = 1e-4;
+        if (Math.Abs(ofstValue - voltage) > tolerance)
+        {
+            throw new TestbenchException($"Offset verification failed. Expected {voltage:F4} V, but device reports {ofstValue:F4} V.");
+        }
     }
 
     public void SetSdgDc(int channelIndex)

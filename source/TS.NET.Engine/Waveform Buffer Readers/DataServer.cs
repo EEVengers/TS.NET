@@ -199,7 +199,7 @@ internal class WaveformSession : TcpSession
                         {
                             int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureMetadata.TriggerChannelCaptureIndex);
                             ThunderscopeChannelFrontend triggerChannelFrontend = captureMetadata.HardwareConfig.Frontend[channelIndex];
-                            var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 255.0);
+                            var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 256.0);
                             var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
 
                             float fa = channelScale * triggerChannelBuffer[triggerIndex - 1] - channelOffset;
@@ -227,7 +227,7 @@ internal class WaveformSession : TcpSession
 
                             ThunderscopeChannelFrontend thunderscopeChannel = captureMetadata.HardwareConfig.Frontend[channelIndex];
                             chHeader.channelIndex = (byte)channelIndex;
-                            chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
+                            chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 256.0);
                             chHeader.offset = (float)thunderscopeChannel.ActualVoltOffset;
 
                             Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeaderOld)));
@@ -298,7 +298,7 @@ internal class WaveformSession : TcpSession
                             {
                                 int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureMetadata.TriggerChannelCaptureIndex);
                                 ThunderscopeChannelFrontend triggerChannelFrontend = captureMetadata.HardwareConfig.Frontend[channelIndex];
-                                var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 255.0);
+                                var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 256.0);
                                 var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
 
                                 float fa = channelScale * triggerChannelBuffer[triggerIndex - 1] - channelOffset;
@@ -332,10 +332,10 @@ internal class WaveformSession : TcpSession
                             switch(captureMetadata.ProcessingConfig.ChannelDataType)
                             {
                                 case ThunderscopeDataType.I8:
-                                    chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 255.0);
+                                    chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 256.0);
                                     break;
                                 case ThunderscopeDataType.I16:
-                                    chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 65535.0);
+                                    chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 65536.0);
                                     break;
                             }
                             chHeader.offset = (float)thunderscopeChannel.ActualVoltOffset;

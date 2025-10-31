@@ -14,6 +14,18 @@
             };
         }
 
+        public static bool IsChannelIndexAnEnabledChannel(this ThunderscopeHardwareConfig config, int channelIndex)
+        {
+            return channelIndex switch
+            {
+                0 => (config.EnabledChannels & 0x01) > 0,
+                1 => ((config.EnabledChannels >> 1) & 0x01) > 0,
+                2 => ((config.EnabledChannels >> 2) & 0x01) > 0,
+                3 => ((config.EnabledChannels >> 3) & 0x01) > 0,
+                _ => throw new NotImplementedException(),
+            };
+        }
+
         public static bool IsTriggerChannelAnEnabledChannel(this ThunderscopeHardwareConfig config, TriggerChannel triggerChannel)
         {
             return triggerChannel switch

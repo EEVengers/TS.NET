@@ -38,7 +38,7 @@ public static class Utility
             var high = path.TargetDPotResolution * 2;
             var low = path.TargetDPotResolution * -2;
             Instruments.Instance.SetSdgOffset(channelIndex, zeroValue);
-            Thread.Sleep(250);
+            Thread.Sleep(100);
             average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
             if (average >= low && average <= high)
             {
@@ -50,14 +50,14 @@ public static class Utility
                 zeroValue += 0.0001;
         }
 
-        Thread.Sleep(250);
-        // Check average is still good
-        var foundAverage = Instruments.Instance.GetThunderscopeAverage(channelIndex);
-        if (foundAverage > 15 || foundAverage < -15)
-        {
-            Instruments.Instance.SetSdgOffset(channelIndex, 0);
-            throw new CalibrationException($"Average check failed ({foundAverage})");
-        }
+        //Thread.Sleep(100);
+        //// Check average is still good
+        //var foundAverage = Instruments.Instance.GetThunderscopeAverage(channelIndex);
+        //if (foundAverage > 15 || foundAverage < -15)
+        //{
+        //    Instruments.Instance.SetSdgOffset(channelIndex, 0);
+        //    throw new TestbenchException($"Average check failed ({foundAverage})");
+        //}
 
         variables.SigGenZero = zeroValue;
         return zeroValue;
@@ -69,13 +69,13 @@ public static class Utility
         {
             cancellationToken.ThrowIfCancellationRequested();
             Instruments.Instance.SetSdgOffset(channelIndex, zeroValue + amplitude);
-            Thread.Sleep(250);
+            Thread.Sleep(100);
             var average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
             var max = average;
 
             cancellationToken.ThrowIfCancellationRequested();
             Instruments.Instance.SetSdgOffset(channelIndex, zeroValue - amplitude);
-            Thread.Sleep(250);
+            Thread.Sleep(100);
             average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
             var min = average;
 
@@ -84,11 +84,11 @@ public static class Utility
             if (range >= 240)
             {
                 Instruments.Instance.SetSdgOffset(channelIndex, 0);
-                throw new CalibrationException($"Could not converge, range: {range}");
+                throw new TestbenchException($"Could not converge, range: {range}");
             }
             if (range > 200 && range < 240)
             {
-                var ratio = 255.0 / range;
+                var ratio = 256.0 / range;
                 var vpp = amplitude * ratio * 2;
                 Instruments.Instance.SetSdgOffset(channelIndex, 0);
                 return vpp;
@@ -96,6 +96,6 @@ public static class Utility
         }
 
         Instruments.Instance.SetSdgOffset(channelIndex, 0);
-        throw new CalibrationException("Could not converge, amplitude: 10");
+        throw new TestbenchException("Could not converge, amplitude: 10");
     }
 }

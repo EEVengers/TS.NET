@@ -37,7 +37,7 @@ public class TrimOffsetDacZeroStep : Step
             }
             if (!solutionFound)
             {
-                throw new CalibrationException("Could not converge");
+                throw new TestbenchException("Could not converge");
             }
             return Status.Passed;
         };

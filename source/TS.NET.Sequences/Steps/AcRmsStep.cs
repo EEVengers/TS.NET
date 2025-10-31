@@ -24,7 +24,7 @@ public class AcRmsStep : Step
             Instruments.Instance.SetThunderscopeRate(rateHz, variables);
 
             var stdDev = Instruments.Instance.GetThunderscopePopulationStdDev(channelIndex);
-            var stdDevV = stdDev * (pathCalibration.BufferInputVpp / 255.0);
+            var stdDevV = stdDev * (pathCalibration.BufferInputVpp / 256.0);
 
             if (stdDevV >= MinLimit && stdDevV <= MaxLimit)
             {
