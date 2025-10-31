@@ -394,13 +394,20 @@ public class Instruments
 
         long sum = 0;
         long count = 0;
+        int min = int.MaxValue;
+        int max = int.MinValue;
         foreach (var point in channel)
         {
             sum += point;
+            // Temporary debug min/max
+            if (point > max)
+                max = point;
+            if(point < min)
+                min = point;
         }
         count += channel.Length;
         var average = (double)sum / count;
-        DebugLog.Instance.Log($"GetThunderscopeAverage: {average} (count: {count})");
+        DebugLog.Instance.Log($"GetThunderscopeAverage: {average} (count: {count}, max: {max}, min: {min}, enabled channel count: {config.EnabledChannelsCount()})");
         return average;
     }
 
