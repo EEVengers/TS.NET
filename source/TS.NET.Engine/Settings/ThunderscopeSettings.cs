@@ -16,7 +16,6 @@ public class ThunderscopeSettings
     public string WaveformBufferReader { get; set; } = "";
 
     public int HardwareThreadProcessorAffinity { get; set; } = -1;
-    public int PreProcessingThreadProcessorAffinity { get; set; } = -1;
     public int ProcessingThreadProcessorAffinity { get; set; } = -1;
     
     public const int SegmentLengthBytes = 8 * 1024 * 1024;
@@ -33,7 +32,6 @@ public class ThunderscopeSettings
             WaveformBufferReader = "DataServer",
 
             HardwareThreadProcessorAffinity = -1,
-            PreProcessingThreadProcessorAffinity = -1,
             ProcessingThreadProcessorAffinity = -1,
         };
     }

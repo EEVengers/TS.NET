@@ -8,7 +8,7 @@ public class ProcessingThread : IThread
     private readonly ILogger logger;
     private readonly ThunderscopeSettings settings;
     private readonly ThunderscopeHardwareConfig hardwareConfig;
-    private readonly BlockingPool<DataDto> preProcessingPool;
+    private readonly BlockingPool<DataDto> inputPool;
     private readonly BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl;
     private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
     private readonly BlockingChannelWriter<INotificationDto>? uiNotifications;
@@ -21,7 +21,7 @@ public class ProcessingThread : IThread
         ILogger logger,
         ThunderscopeSettings settings,
         ThunderscopeHardwareConfig hardwareConfig,
-        BlockingPool<DataDto> preProcessingPool,
+        BlockingPool<DataDto> inputPool,
         BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
         BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
         BlockingChannelWriter<INotificationDto>? uiNotifications,
@@ -30,7 +30,7 @@ public class ProcessingThread : IThread
         this.logger = logger;
         this.settings = settings;
         this.hardwareConfig = hardwareConfig;
-        this.preProcessingPool = preProcessingPool;
+        this.inputPool = inputPool;
         this.hardwareControl = hardwareControl;
         this.processingControl = processingControl;
         this.uiNotifications = uiNotifications;
@@ -44,7 +44,7 @@ public class ProcessingThread : IThread
             logger: logger,
             settings: settings,
             cachedHardwareConfig: hardwareConfig,
-            preProcessingPool: preProcessingPool,
+            inputPool: inputPool,
             hardwareControl: hardwareControl,
             processingControl: processingControl,
             uiNotifications: uiNotifications,
@@ -63,7 +63,7 @@ public class ProcessingThread : IThread
         ILogger logger,
         ThunderscopeSettings settings,
         ThunderscopeHardwareConfig cachedHardwareConfig,
-        BlockingPool<DataDto> preProcessingPool,
+        BlockingPool<DataDto> inputPool,
         BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
         BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
         BlockingChannelWriter<INotificationDto>? uiNotifications,
@@ -396,7 +396,7 @@ public class ProcessingThread : IThread
                     }
                 }
 
-                if (preProcessingPool.Source.Reader.TryRead(out var dataDto, 10, cancelToken))
+                if (inputPool.Source.Reader.TryRead(out var dataDto, 10, cancelToken))
                 {
                     totalDequeueCount++;
                     if (dataDto == null)
@@ -596,7 +596,7 @@ public class ProcessingThread : IThread
                     }
 
                     // Finished with the memory, return it
-                    preProcessingPool.Return.Writer.Write(dataDto);
+                    inputPool.Return.Writer.Write(dataDto);
 
                     var elapsedTime = periodicUpdateTimer.Elapsed.TotalSeconds;
                     if (elapsedTime >= 10)
@@ -636,11 +636,11 @@ public class ProcessingThread : IThread
                     {
                         case HardwareStopResponse hardwareStopResponse:
                             int i = 0;
-                            while (preProcessingPool.Source.Reader.TryRead(out var inputDataDto, 10, cancelToken))
+                            while (inputPool.Source.Reader.TryRead(out var inputDataDto, 10, cancelToken))
                             {
                                 i++;
                                 if (inputDataDto != null)
-                                    preProcessingPool.Return.Writer.Write(inputDataDto);
+                                    inputPool.Return.Writer.Write(inputDataDto);
                             }
                             break;
                         default:

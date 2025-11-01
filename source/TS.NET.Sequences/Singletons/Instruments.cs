@@ -15,8 +15,8 @@ public class Instruments
     private TcpScpiConnection? sigGen2;
 
     //private const int acquisitionRegionCount = 3;
-    private ThunderscopeMemoryRegion? memoryRegion;
-    private ThunderscopeMemoryRegion? shuffleRegion;
+    private ThunderscopeMemory? dataMemory;
+    private ThunderscopeMemory? shuffleMemory;
 
     private uint cachedSampleRateHz = 0;
 
@@ -84,8 +84,8 @@ public class Instruments
         thunderScope.SetChannelManualControl(3, manualControl);
         // Start to keep the device hot
         thunderScope.Start();
-        memoryRegion = new ThunderscopeMemoryRegion(1, 8 * 1024 * 1024);
-        shuffleRegion = new ThunderscopeMemoryRegion(1, 8 * 1024 * 1024);
+        dataMemory = new ThunderscopeMemory(8 * 1024 * 1024);
+        shuffleMemory = new ThunderscopeMemory(8 * 1024 * 1024);
     }
 
     public void InitialiseSigGens(string? sigGen1Host, string? sigGen2Host)
@@ -363,9 +363,9 @@ public class Instruments
             throw new TestbenchException("Requested channel index is not an enabled channel");
         thunderScope!.Stop();
         thunderScope!.Start();
-        thunderScope!.Read(memoryRegion!.GetSegment(0), new CancellationToken());
+        thunderScope!.Read(dataMemory!, new CancellationToken());
 
-        var samples = memoryRegion!.GetSegment(0).DataSpanI8;
+        var samples = dataMemory!.DataSpanI8;
         Span<sbyte> channel;
         switch (config.EnabledChannelsCount())
         {
@@ -374,7 +374,7 @@ public class Instruments
                 break;
             case 2:
                 {
-                    Span<sbyte> twoChannels = shuffleRegion!.GetSegment(0).DataSpanI8;
+                    Span<sbyte> twoChannels = shuffleMemory!.DataSpanI8;
                     ShuffleI8.TwoChannels(samples, twoChannels);
                     var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
                     var length = samples.Length / 2;
@@ -384,7 +384,7 @@ public class Instruments
             case 3:
             case 4:
                 {
-                    Span<sbyte> fourChannels = shuffleRegion!.GetSegment(0).DataSpanI8;
+                    Span<sbyte> fourChannels = shuffleMemory!.DataSpanI8;
                     ShuffleI8.FourChannels(samples, fourChannels);
                     var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
                     var length = samples.Length / 4;
@@ -418,9 +418,9 @@ public class Instruments
     {
         thunderScope!.Stop();
         thunderScope!.Start();
-        thunderScope!.Read(memoryRegion!.GetSegment(0), new CancellationToken());
+        thunderScope!.Read(dataMemory!, new CancellationToken());
 
-        var sampleBuffer = memoryRegion!.GetSegment(0).DataSpanI8;
+        var sampleBuffer = dataMemory!.DataSpanI8;
         int sampleLen = sampleBuffer.Length;
 
         // If multiple channels are enabled, branch parsing won't be valid
@@ -507,9 +507,9 @@ public class Instruments
             throw new TestbenchException("Requested channel index is not an enabled channel");
         thunderScope!.Stop();
         thunderScope!.Start();
-        thunderScope!.Read(memoryRegion!.GetSegment(0), new CancellationToken());
+        thunderScope!.Read(dataMemory!, new CancellationToken());
 
-        var samples = memoryRegion!.GetSegment(0).DataSpanI8;
+        var samples = dataMemory!.DataSpanI8;
         Span<sbyte> channel;
         switch (config.EnabledChannelsCount())
         {
@@ -518,7 +518,7 @@ public class Instruments
                 break;
             case 2:
                 {
-                    Span<sbyte> twoChannels = shuffleRegion!.GetSegment(0).DataSpanI8;
+                    Span<sbyte> twoChannels = shuffleMemory!.DataSpanI8;
                     ShuffleI8.TwoChannels(samples, twoChannels);
                     var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
                     var length = samples.Length / 2;
@@ -528,7 +528,7 @@ public class Instruments
             case 3:
             case 4:
                 {
-                    Span<sbyte> fourChannels = shuffleRegion!.GetSegment(0).DataSpanI8;
+                    Span<sbyte> fourChannels = shuffleMemory!.DataSpanI8;
                     ShuffleI8.FourChannels(samples, fourChannels);
                     var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
                     var length = samples.Length / 4;
@@ -564,9 +564,9 @@ public class Instruments
             throw new TestbenchException("Requested channel index is not an enabled channel");
         thunderScope!.Stop();
         thunderScope!.Start();
-        thunderScope!.Read(memoryRegion!.GetSegment(0), new CancellationToken());
+        thunderScope!.Read(dataMemory!, new CancellationToken());
 
-        var samples = memoryRegion!.GetSegment(0).DataSpanI8;
+        var samples = dataMemory!.DataSpanI8;
         Span<sbyte> channel;
         switch (config.EnabledChannelsCount())
         {
@@ -575,7 +575,7 @@ public class Instruments
                 break;
             case 2:
                 {
-                    Span<sbyte> twoChannels = shuffleRegion!.GetSegment(0).DataSpanI8;
+                    Span<sbyte> twoChannels = shuffleMemory!.DataSpanI8;
                     ShuffleI8.TwoChannels(samples, twoChannels);
                     var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
                     var length = samples.Length / 2;
@@ -585,7 +585,7 @@ public class Instruments
             case 3:
             case 4:
                 {
-                    Span<sbyte> fourChannels = shuffleRegion!.GetSegment(0).DataSpanI8;
+                    Span<sbyte> fourChannels = shuffleMemory!.DataSpanI8;
                     ShuffleI8.FourChannels(samples, fourChannels);
                     var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
                     var length = samples.Length / 4;

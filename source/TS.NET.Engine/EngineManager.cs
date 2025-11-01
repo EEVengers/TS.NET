@@ -21,7 +21,6 @@ public class EngineManager
     private IThunderscope? thunderscope = null;
 
     private HardwareThread? hardwareThread;
-    private PreProcessingThread? preProcessingThread;
     private ProcessingThread? processingThread;
     private ScpiServer? scpiServer;
     private IThread? waveformBufferReader;
@@ -142,18 +141,10 @@ public class EngineManager
         //string bridgeNamespace = $"ThunderScope.{deviceIndex}";
         int bufferLength = 3;
         BlockingPool<DataDto> hardwarePool = new(bufferLength);
-        BlockingPool<DataDto> preProcessingPool = new(bufferLength);
-        ThunderscopeMemoryRegion memoryRegion = new(bufferLength * 2, ThunderscopeSettings.SegmentLengthBytes);
         for (int i = 0; i < bufferLength / 2; i++)
         {
-            var dataDto = new DataDto() { Memory = memoryRegion.GetSegment(i) };
+            var dataDto = new DataDto() { Memory = new ThunderscopeMemory(ThunderscopeSettings.SegmentLengthBytes) };
             hardwarePool.Return.Writer.Write(dataDto);
-        }
-
-        for (int i = bufferLength / 2; i < bufferLength; i++)
-        {
-            var dataDto = new DataDto() { Memory = memoryRegion.GetSegment(i) };
-            preProcessingPool.Return.Writer.Write(dataDto);
         }
 
         BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl = new();
@@ -171,20 +162,12 @@ public class EngineManager
             logger: loggerFactory.CreateLogger(nameof(ProcessingThread)),
             settings: thunderscopeSettings,
             hardwareConfig: thunderscope.GetConfiguration(),
-            preProcessingPool: preProcessingPool,
+            inputPool: hardwarePool,
             hardwareControl: hardwareControl,
             processingControl: processingControl,
             uiNotifications: UiNotifications?.Writer,
             captureBuffer: captureBuffer);
         processingThread.Start(startSemaphore);
-
-        startSemaphore.Wait();
-        preProcessingThread = new PreProcessingThread(
-            logger: loggerFactory.CreateLogger(nameof(PreProcessingThread)),
-            settings: thunderscopeSettings,
-            hardwarePool: hardwarePool,
-            preProcessingPool: preProcessingPool);
-        preProcessingThread.Start(startSemaphore);
 
         startSemaphore.Wait();
         hardwareThread = new HardwareThread(
@@ -233,7 +216,6 @@ public class EngineManager
     public void Stop()
     {
         hardwareThread?.Stop();
-        preProcessingThread?.Stop();
         processingThread?.Stop();
         scpiServer?.Stop();
         waveformBufferReader?.Stop();

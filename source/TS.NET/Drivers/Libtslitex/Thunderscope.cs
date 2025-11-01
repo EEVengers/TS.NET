@@ -120,13 +120,11 @@ namespace TS.NET.Driver.Libtslitex
                 {
                     if (GetStatus().AdcFrameSync)
                         break;
-                    Console.WriteLine("AdcFrameSync false");
                     if (DateTimeOffset.UtcNow.Subtract(start).TotalSeconds >= timeoutSec)
                         throw new ThunderscopeException("Timeout when starting, ADC frame sync failed");
                     else
                         Thread.Sleep(10);
                 }
-                Console.WriteLine("AdcFrameSync true");
 
                 var retVal = Interop.DataEnable(tsHandle, 1);
                 if (retVal < 0)
