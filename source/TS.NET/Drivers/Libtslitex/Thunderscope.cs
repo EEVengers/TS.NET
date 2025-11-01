@@ -326,7 +326,10 @@ namespace TS.NET.Driver.Libtslitex
         private void SetSampleMode(ulong sampleRateHz, AdcResolution resolution, bool updateFrontends)
         {
             CheckOpen();
-            Stop();
+
+            var restart = started;
+            if(restart)
+                Stop();
 
             uint resolutionValue = resolution switch { AdcResolution.EightBit => 256, AdcResolution.TwelveBit => 4096, _ => throw new NotImplementedException() };
             var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, resolutionValue);
@@ -340,7 +343,8 @@ namespace TS.NET.Driver.Libtslitex
             else if (retVal < 0)
                 throw new ThunderscopeException($"Error trying to set sample rate {sampleRateHz} ({GetLibraryReturnString(retVal)})");
 
-            Start();
+            if(restart)
+                Start();
         }
 
         public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)
