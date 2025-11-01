@@ -1,5 +1,7 @@
 #!/bin/sh
 
+cd "$(dirname "$0")"
+
 version=$(grep '<Version>' < ../source/TS.NET.Engine/TS.NET.Engine.csproj | sed 's/.*<Version>\(.*\)<\/Version>/\1/')
 
 if test -f ../builds/TS.NET.Engine/osx-arm64/thunderscope.yaml; then
