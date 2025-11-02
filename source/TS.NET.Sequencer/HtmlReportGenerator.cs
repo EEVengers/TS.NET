@@ -41,11 +41,11 @@
             sb.AppendLine("    <table class=\"min-w-full bg-white\">");
             sb.AppendLine("        <thead class=\"bg-gray-200 text-black text-sm leading-normal\">");
             sb.AppendLine("            <tr>");
-            sb.AppendLine("                <th class=\"p-1 text-left\">#</th>");
+            sb.AppendLine("                <th class=\"p-1 pl-2 text-left\">#</th>");
             sb.AppendLine("                <th class=\"p-1 text-left\">Step name</th>");
             sb.AppendLine("                <th class=\"p-1 text-left\">Duration</th>");
             sb.AppendLine("                <th class=\"p-1 text-left\">Summary</th>");
-            sb.AppendLine("                <th class=\"p-1 text-left\">Status</th>");
+            sb.AppendLine("                <th class=\"p-1 pr-2 text-left\">Status</th>");
             sb.AppendLine("            </tr>");
             sb.AppendLine("        </thead>");
             sb.AppendLine("        <tbody class=\"text-black text-sm \">");
@@ -56,11 +56,11 @@
                 {
                     var status = step.Result?.Status ?? Status.Skipped;
                     sb.AppendLine($"            <tr class=\"even:bg-gray-100 odd:bg-white\">");
-                    sb.AppendLine($"                <td class=\"p-1 text-left whitespace-nowrap\">{step.Index}</td>");
+                    sb.AppendLine($"                <td class=\"p-1 pl-2 text-left whitespace-nowrap\">{step.Index}</td>");
                     sb.AppendLine($"                <td class=\"p-1 text-left\">{step.Name}</td>");
                     sb.AppendLine($"                <td class=\"p-1 text-left\">{HumanDuration(step.Result?.Duration)}</td>");
                     sb.AppendLine($"                <td class=\"p-1 text-left\">{step.Result?.Summary ?? "-"}</td>");
-                    sb.AppendLine($"                <td class=\"p-1 text-left {StatusTextColour(step.Result?.Status)}\">{step.Result?.Status.ToString() ?? "-"}</td>");
+                    sb.AppendLine($"                <td class=\"p-1 pr-2 text-left {StatusTextColour(step.Result?.Status)}\">{step.Result?.Status.ToString() ?? "-"}</td>");
                     sb.AppendLine("            </tr>");
 
                     if (step.Result?.Exception != null || (step.Result?.Metadata != null && step.Result.Metadata.Count > 0))

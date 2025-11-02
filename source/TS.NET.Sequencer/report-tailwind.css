@@ -252,6 +252,12 @@
   .py-15 {
     padding-block: calc(var(--spacing) * 15);
   }
+  .pr-2 {
+    padding-right: calc(var(--spacing) * 2);
+  }
+  .pl-2 {
+    padding-left: calc(var(--spacing) * 2);
+  }
   .text-center {
     text-align: center;
   }
