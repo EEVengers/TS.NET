@@ -235,6 +235,6 @@ class Program
     {
         await sequence.Run(cancellationTokenSource);
         var reportGenerator = new HtmlReportGenerator();
-        reportGenerator.Render(sequence, $"Report - {sequence.Name} {sequence.StartTimestamp:yyyy-MM-dd_HHmmss}.html");
+        reportGenerator.Render(sequence, $"Report - {sequence.Name} - {sequence.StartTimestamp:yyyy-MM-dd HHmmss}.html");
     }
 }

@@ -14,19 +14,28 @@
             sb.AppendLine("<head>");
             sb.AppendLine("    <meta charset=\"UTF-8\">");
             sb.AppendLine("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
-            sb.AppendLine($"    <title>Report: {sequence.Name}</title>");
+            sb.AppendLine($"    <title>Report - {sequence.Name} - {sequence.StartTimestamp.ToString("yyyy-MM-dd HHmmss")}</title>");
             sb.Append(GetStyles(sequence));
             sb.AppendLine("</head>");
             sb.AppendLine("<body class=\"bg-gray-200 py-4 print:p-0 print:bg-white\">");
 
             sb.AppendLine($"<div class=\"max-w-4xl mx-auto bg-white px-10 py-15 print:p-0\">");
-            sb.AppendLine($"    <h1 class=\"text-4xl text-black p-2 mb-4 text-center bg-gray-100 border-2 border-gray-900\">{sequence.Name}</h1>");
-            sb.AppendLine($"    <h1 class=\"text-4xl {StatusTextColour(sequence.Status)} p-2 mb-8 text-center bg-gray-100 border-2 border-gray-900\">{sequence.Status}</h1>");
+            sb.AppendLine($"    <h1 class=\"text-4xl text-black p-2 mb-4 text-center bg-gray-200 border-2 border-gray-900\">{sequence.Name}</h1>");
+            sb.AppendLine($"    <h1 class=\"text-4xl {StatusTextColour(sequence.Status)} p-2 mb-8 text-center bg-gray-200 border-2 border-gray-900\">{sequence.Status}</h1>");
 
-            sb.AppendLine("    <div class=\"flex flex-col gap-2 mb-8 text-sm text-black\">");
-            sb.AppendLine($"        <div>Sequence name: {sequence.Name}</div>");
-            sb.AppendLine($"        <div>Start timestamp: {sequence.StartTimestamp:F} ({sequence.TzId})</div>");
-            sb.AppendLine($"        <div>Duration: {HumanDuration(sequence.Duration)}</div>");
+            sb.AppendLine("    <div class=\"flex flex-row gap-2 mb-8 text-sm text-black\">");
+            sb.AppendLine("    <div class=\"flex flex-col gap-1\">");
+            sb.AppendLine($"        <div>Sequence name:</div>");
+            sb.AppendLine($"        <div>Start date/time:</div>");
+            sb.AppendLine($"        <div>Duration:</div>");
+            sb.AppendLine($"        <div>Device:</div>");
+            sb.AppendLine("    </div>");
+            sb.AppendLine("    <div class=\"flex flex-col gap-1\">");
+            sb.AppendLine($"        <div>{sequence.Name}</div>");
+            sb.AppendLine($"        <div>{sequence.StartTimestamp.ToString("yyyy-MM-dd HH:mm:ss")} ({sequence.TzId})</div>");
+            sb.AppendLine($"        <div>{HumanDuration(sequence.Duration)}</div>");
+            sb.AppendLine($"        <div>TS00007</div>");
+            sb.AppendLine("    </div>");
             sb.AppendLine("    </div>");
 
             sb.AppendLine("    <table class=\"min-w-full bg-white\">");
@@ -46,7 +55,7 @@
                 foreach (var step in sequence.Steps)
                 {
                     var status = step.Result?.Status ?? Status.Skipped;
-                    sb.AppendLine($"            <tr class=\"border-b border-gray-200\">");
+                    sb.AppendLine($"            <tr class=\"even:bg-gray-100 odd:bg-white\">");
                     sb.AppendLine($"                <td class=\"p-1 text-left whitespace-nowrap\">{step.Index}</td>");
                     sb.AppendLine($"                <td class=\"p-1 text-left\">{step.Name}</td>");
                     sb.AppendLine($"                <td class=\"p-1 text-left\">{HumanDuration(step.Result?.Duration)}</td>");
