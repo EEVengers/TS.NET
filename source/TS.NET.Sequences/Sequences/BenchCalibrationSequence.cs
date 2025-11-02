@@ -463,7 +463,7 @@ public class BenchCalibrationSequence : Sequence
             new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
             new SaveUserCalToFileStep("Save calibration to file", Variables),
-            //new SaveUserCalToDeviceStep("Save calibration to device", Variables),
+            new SaveUserCalToDeviceStep("Save calibration to device", Variables),
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.Close();
