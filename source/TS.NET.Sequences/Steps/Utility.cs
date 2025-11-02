@@ -65,7 +65,7 @@ public static class Utility
 
     public static double FindVpp(int channelIndex, ChannelPathConfig pathConfig, double zeroValue, CancellationToken cancellationToken)
     {
-        for (double amplitude = pathConfig.SigGenAmplitudeStart; amplitude <= 10; amplitude += pathConfig.SigGenAmplitudeStep)
+        for (double amplitude = pathConfig.SigGenAmplitudeStart; amplitude <= 5; amplitude += pathConfig.SigGenAmplitudeStep)
         {
             cancellationToken.ThrowIfCancellationRequested();
             Instruments.Instance.SetSdgOffset(channelIndex, zeroValue + amplitude);

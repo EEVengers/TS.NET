@@ -11,7 +11,6 @@ public class TrimOffsetDacGainStep : Step
             Instruments.Instance.SetThunderscopeRate(1_000_000_000, variables);
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pathIndex, variables);
             var pathConfig = Utility.GetChannelPathConfig(channelIndex, pathIndex, variables);
-            DebugLog.Instance.Log($"TrimOffsetDacGainStep, channelIndex: {channelIndex}, pathIndex: {pathIndex}");
 
             pathCalibration.TrimScaleDac = pathConfig.TrimScaleDacInitial;
 

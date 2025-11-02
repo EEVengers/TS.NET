@@ -144,6 +144,7 @@ public class Instruments
 
     public void Close()
     {
+        SetSdgChannel(-1);
         thunderScope?.Close();
         thunderScopeData?.Close();
         sigGen1?.Close();
@@ -410,7 +411,6 @@ public class Instruments
         }
         count += channel.Length;
         var average = (double)sum / count;
-        DebugLog.Instance.Log($"GetThunderscopeAverage: {average} (count: {count}, max: {max}, min: {min}, enabled channel count: {config.EnabledChannelsCount()})");
         return average;
     }
 

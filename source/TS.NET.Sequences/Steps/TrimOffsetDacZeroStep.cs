@@ -11,7 +11,6 @@ public class TrimOffsetDacZeroStep : Step
             Instruments.Instance.SetThunderscopeRate(1_000_000_000, variables);
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pathIndex, variables);
             var pathConfig = Utility.GetChannelPathConfig(channelIndex, pathIndex, variables);
-            DebugLog.Instance.Log($"TrimOffsetDacZeroStep, channelIndex: {channelIndex}, pathIndex: {pathIndex}");
 
             var high = pathConfig.TargetDPotResolution * 0.8;
             var low = pathConfig.TargetDPotResolution * -0.8;
