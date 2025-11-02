@@ -81,9 +81,9 @@
                             {
                                 switch (meta)
                                 {
-                                    case StepResultChart chart:
-                                        sb.AppendLine("                        <em class=\"text-gray-500\">Chart metadata not yet implemented in report.</em>");
-                                        break;
+                                    //case StepResultChart chart:
+                                    //    sb.AppendLine("                        <em class=\"text-gray-500\">Chart metadata not yet implemented in report.</em>");
+                                    //    break;
                                     default:
                                         sb.AppendLine("                        <em class=\"text-gray-500\">Metadata type not implemented in report generator.</em>");
                                         break;
