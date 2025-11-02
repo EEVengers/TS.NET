@@ -21,6 +21,7 @@ public class BufferInputVppStep : Step
             //pathCalibration.TrimOffsetDacScaleV = Math.Round(pathConfig.AdcCountPerDacCount * (pathCalibration.BufferInputVpp / 256.0), 6);
             variables.ParametersSet += 2;
 
+            Result!.Summary = $"Vpp: {vpp:F4}";
             Logger.Instance.Log(LogLevel.Information, Index, Status.Passed, $"Vpp: {vpp:F4}");
             return Status.Passed;
         };

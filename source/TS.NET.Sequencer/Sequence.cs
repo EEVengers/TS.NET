@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
+using TimeZoneConverter;
 
 namespace TS.NET.Sequencer;
 
@@ -8,6 +10,8 @@ public class Sequence
     public Step[]? Steps { get; set; }
     private Status? status;
     public Status? Status { get { return status; } set { status = value; SequenceStatusChanged?.Invoke(value); } }
+    public DateTimeOffset StartTimestamp { get; set; }
+    public string? TzId { get; set; }
     public TimeSpan? Duration { get; set; }
 
     public Action<Step>? PreStep;
@@ -34,6 +38,8 @@ public class Sequence
         Logger.Instance.Log(LogLevel.Information, $"Starting sequence with {Steps.Length} steps.");
         Status = Sequencer.Status.Running;
         Duration = null;
+        TzId = GetCurrentIanaTimeZoneId();
+        StartTimestamp = DateTimeOffset.Now;
 
         var stopwatch = Stopwatch.StartNew();
         bool overallTermination = false;
@@ -44,24 +50,18 @@ public class Sequence
                 overallTermination = true;
                 break;
             }
-            Steps[i].Result = new StepResult() { Status = Sequencer.Status.Running, Duration = null, Exception = null };
             PreStep?.Invoke(Steps[i]);
-            var stepResult = await Task.Run(() => Steps[i].Run(cancellationTokenSource))
-                .ContinueWith(t => t.Result);
-            Steps[i].Result = stepResult;
+            await Task.Run(() => Steps[i].Run(cancellationTokenSource));
             PostStep?.Invoke(Steps[i]);
-            if (!Steps[i].IgnoreError && (stepResult.Status == Sequencer.Status.Failed || stepResult.Status == Sequencer.Status.Error || stepResult.Status == Sequencer.Status.Cancelled))
+            if (!Steps[i].IgnoreError && (Steps[i].Result.Status == Sequencer.Status.Failed || Steps[i].Result.Status == Sequencer.Status.Error || Steps[i].Result.Status == Sequencer.Status.Cancelled))
                 break;
         }
         // Always run Cleanup step if it exists and it didn't run
         if (Steps.Any(s => s.Name == "Cleanup" && s.Result == null))
         {
             var cleanupStep = Steps.First(s => s.Name == "Cleanup");
-            cleanupStep.Result = new StepResult() { Status = Sequencer.Status.Running, Duration = null, Exception = null };
             PreStep?.Invoke(cleanupStep);
-            var stepResult = await Task.Run(() => cleanupStep.Run(cancellationTokenSource))
-                .ContinueWith(t => t.Result);
-            cleanupStep.Result = stepResult;
+            await Task.Run(() => cleanupStep.Run(cancellationTokenSource));
             PostStep?.Invoke(cleanupStep);
         }
 
@@ -95,5 +95,19 @@ public class Sequence
             step.Index = i;
             i++;
         }
+    }
+
+    public static string GetCurrentIanaTimeZoneId()
+    {
+        string localId = TimeZoneInfo.Local.Id;
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            // Convert Windows ID → IANA ID
+            return TZConvert.WindowsToIana(localId);
+        }
+
+        // On Linux/macOS, the ID is already IANA
+        return localId;
     }
 }

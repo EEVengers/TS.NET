@@ -7,7 +7,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="TimeZoneConverter" Version="7.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\TS.NET.Photino\TS.NET.Photino.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="report.css" />
+    <EmbeddedResource Include="report-tailwind.css" />
   </ItemGroup>
 
 </Project>

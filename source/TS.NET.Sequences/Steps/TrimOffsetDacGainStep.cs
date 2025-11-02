@@ -34,6 +34,7 @@ public class TrimOffsetDacGainStep : Step
                 pathCalibration.TrimOffsetDacScale = Math.Round(adcCountPerDacCount / 256.0, 6);
                 pathCalibration.TrimOffsetDacZero = (ushort)zero;       // Approximate zero, to speed up TrimOffsetDacZeroStep
                 variables.ParametersSet++;
+                Result!.Summary = $"Scale: {pathCalibration.TrimOffsetDacScale}";
                 Logger.Instance.Log(LogLevel.Information, Index, Status.Passed, $"ADC count per DAC count: {adcCountPerDacCount:F3} | Ideal: {pathConfig.TargetDPotResolution:F3} | Max limit: {pathConfig.TargetDPotResolution * 1.2:F3}");
                 return Status.Passed;
             }

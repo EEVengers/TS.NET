@@ -24,8 +24,9 @@ public class Step
         Name = name ?? throw new ArgumentNullException(nameof(name));
     }
 
-    public StepResult Run(CancellationTokenSource cancellationTokenSource)
+    public void Run(CancellationTokenSource cancellationTokenSource)
     {
+        Result = new StepResult() { Status = Status.Running, Duration = null, Exception = null, Summary = null, Metadata = [] };
         var stopwatch = Stopwatch.StartNew();
         Status status = Status.Running;
         Exception? exception = null;
@@ -93,7 +94,10 @@ public class Step
             Logger.Instance.Log(LogLevel.Information, Index, Status.Error, $"Timeout occurred");
         }
         stopwatch.Stop();
-        return new StepResult() { Status = status, Duration = stopwatch.Elapsed, Exception = exception };
+        Result.Status = status;
+        Result.Duration = stopwatch.Elapsed;
+        if (status == Status.Error && exception != null)
+            Result.Exception = exception;
     }
 
     public override string ToString() => Name;

@@ -8,10 +8,11 @@ public class LoadUserCalFromDeviceFallbackToFileStep : Step
     {
         Action = (CancellationToken cancellationToken) =>
         {
-            if(Instruments.Instance.TryReadUserCalibration(out var calibration))
+            if (Instruments.Instance.TryReadUserCalibration(out var calibration))
             {
                 variables.Calibration = calibration!;
                 variables.ParametersSet = 0;
+                Result!.Summary = $"Loaded from device";
                 Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Calibration loaded from device");
                 return Status.Done;
             }
@@ -19,9 +20,10 @@ public class LoadUserCalFromDeviceFallbackToFileStep : Step
             {
                 variables.Calibration = ThunderscopeCalibrationSettings.FromJsonFile(variables.CalibrationFileName);
                 variables.ParametersSet = 0;
+                Result!.Summary = $"Loaded from file";
                 Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Calibration loaded from file");
                 return Status.Done;
-            }          
+            }
 
             Logger.Instance.Log(LogLevel.Error, Index, Status.Error, $"Calibration not found in device or file");
             return Status.Error;

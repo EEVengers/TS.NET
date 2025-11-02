@@ -2,9 +2,9 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using TS.NET.Sequences;
 using TS.NET.Photino;
 using TS.NET.Sequencer;
+using TS.NET.Sequences;
 
 namespace TS.NET.Testbench.UI;
 
@@ -84,7 +84,7 @@ class Program
                         break;
                     case "load-sequence":
                         var sequenceString = json.RootElement.GetProperty("sequence").GetString();
-                        switch(sequenceString)
+                        switch (sequenceString)
                         {
                             case "self-calibration":
                                 var selfCalibrationVariables = new SelfCalibrationVariables();
@@ -107,6 +107,16 @@ class Program
                                 var noiseVerificationSequence = new NoiseVerificationSequence(uiDialog, noiseVerificationVariables);
                                 variables = noiseVerificationVariables;
                                 sequence = noiseVerificationSequence;
+                                break;
+                            case "bode-plot":
+                                var bodePlotVariables = new BodePlotVariables()
+                                {
+                                    SigGen1Host = variablesFile.SigGen1Ip,
+                                    SigGen2Host = variablesFile.SigGen2Ip
+                                };
+                                var bodePlotSequence = new BodePlotSequence(uiDialog, bodePlotVariables);
+                                variables = bodePlotVariables;
+                                sequence = bodePlotSequence;
                                 break;
                             default:
                                 throw new InvalidDataException();
@@ -142,7 +152,7 @@ class Program
                         sequence.PreRun();
                         //Variables.Instance.Sequence = sequence.Name;
                         window.SendWebMessage(JsonSerializer.Serialize(SequenceDto.FromSequence(sequence), CamelCaseContext.Default.SequenceDto));
-                        Task.Run(() => sequence.Run(cancellationTokenSource));
+                        RunSequenceAndReport(sequence, cancellationTokenSource);
                         break;
                     case "stop-sequence":
                         cancellationTokenSource?.Cancel();
@@ -219,5 +229,12 @@ class Program
 
             return tempFile;
         }
+    }
+
+    private async static Task RunSequenceAndReport(Sequence sequence, CancellationTokenSource cancellationTokenSource)
+    {
+        await sequence.Run(cancellationTokenSource);
+        var reportGenerator = new HtmlReportGenerator();
+        reportGenerator.Render(sequence, $"Report - {sequence.Name} {sequence.StartTimestamp:yyyy-MM-dd_HHmmss}.html");
     }
 }

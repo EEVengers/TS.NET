@@ -30,6 +30,7 @@ public class TrimOffsetDacZeroStep : Step
                 if (average >= low && average <= high)
                 {
                     variables.ParametersSet++;
+                    Result!.Summary = $"Zero: {pathCalibration.TrimOffsetDacZero}";
                     Logger.Instance.Log(LogLevel.Information, Index, Status.Passed, $"Zero: {pathCalibration.TrimOffsetDacZero} | Average: {average}");
                     return Status.Passed;
                 }

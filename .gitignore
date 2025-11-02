@@ -352,3 +352,4 @@ MigrationBackup/
 builds/
 .DS_Store
 source/TS.NET.Testbench.UI/tailwindcss-windows-x64.exe
+source/TS.NET.Sequencer/tailwindcss-windows-x64.exe

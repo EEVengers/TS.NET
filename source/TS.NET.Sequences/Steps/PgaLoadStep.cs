@@ -34,6 +34,7 @@ public class PgaLoadStep : Step
             }
             variables.ParametersSet += 1;
 
+            Result!.Summary = $"Scale: {scaleValue}";
             Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Scale: {scaleValue}");
             return Status.Done;
         };

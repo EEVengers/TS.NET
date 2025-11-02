@@ -53,6 +53,7 @@ public class AttenuatorStep : Step
                     break;
             }
 
+            Result!.Summary = $"Scale: {scale}";
             Logger.Instance.Log(LogLevel.Information, Index, Status.Passed, $"Attenuator scale: {scale}");
             return Status.Passed;
         };
