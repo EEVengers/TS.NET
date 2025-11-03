@@ -28,11 +28,13 @@ public class AcRmsStep : Step
 
             if (stdDevV >= MinLimit && stdDevV <= MaxLimit)
             {
+                Result!.Summary = $"uVrms: {stdDevV * 1e6:F4}";
                 Logger.Instance.Log(LogLevel.Information, Index, Status.Passed, $"uVrms: {stdDevV * 1e6:F4}");
                 return Status.Passed;
             }
             else
             {
+                Result!.Summary = $"uVrms: {stdDevV * 1e6:F4}";
                 Logger.Instance.Log(LogLevel.Information, Index, Status.Failed, $"uVrms: {stdDevV * 1e6:F4}");
                 return Status.Failed;
             }

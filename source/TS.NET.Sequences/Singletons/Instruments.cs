@@ -84,8 +84,8 @@ public class Instruments
         thunderScope.SetChannelManualControl(3, manualControl);
         // Start to keep the device hot
         thunderScope.Start();
-        dataMemory = new ThunderscopeMemory(8 * 1024 * 1024);
-        shuffleMemory = new ThunderscopeMemory(8 * 1024 * 1024);
+        dataMemory = new ThunderscopeMemory(32 * 1024 * 1024);
+        shuffleMemory = new ThunderscopeMemory(32 * 1024 * 1024);
     }
 
     public void InitialiseSigGens(string? sigGen1Host, string? sigGen2Host)
