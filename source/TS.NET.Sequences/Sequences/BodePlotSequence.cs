@@ -25,11 +25,6 @@ public class BodePlotSequence : Sequence
             new LoadUserCalFromDeviceStep("Load calibration from device", Variables),
             //new WarmupStep("Warmup device", Variables) { Skip = false },
 
-            new Step("Set channel 1"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([0]);
-                Instruments.Instance.SetThunderscopeRate(1_000_000_000, Variables);
-                return Sequencer.Status.Done;
-            }},
             new Step("Connect SDG2042X"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.SetSdgChannel(0);
                 cancellationToken.WaitHandle.WaitOne(2000);
@@ -38,11 +33,6 @@ public class BodePlotSequence : Sequence
 
             new BodePlotStep("Channel 1", 0, 21, 0.8, false, Variables),
 
-            new Step("Set channel 2"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([1]);
-                Instruments.Instance.SetThunderscopeRate(1_000_000_000, Variables);
-                return Sequencer.Status.Done;
-            }},
             new Step("Connect SDG2042X"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.SetSdgChannel(1);
                 cancellationToken.WaitHandle.WaitOne(2000);
@@ -51,11 +41,6 @@ public class BodePlotSequence : Sequence
 
             new BodePlotStep("Channel 2", 1, 21, 0.8, false, Variables),
 
-            new Step("Set channel 3"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([2]);
-                Instruments.Instance.SetThunderscopeRate(1_000_000_000, Variables);
-                return Sequencer.Status.Done;
-            }},
             new Step("Connect SDG2042X"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.SetSdgChannel(2);
                 cancellationToken.WaitHandle.WaitOne(2000);
@@ -64,11 +49,6 @@ public class BodePlotSequence : Sequence
 
             new BodePlotStep("Channel 3", 2, 21, 0.8, false, Variables),
 
-            new Step("Set channel 4"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([3]);
-                Instruments.Instance.SetThunderscopeRate(1_000_000_000, Variables);
-                return Sequencer.Status.Done;
-            }},
             new Step("Connect SDG2042X"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.SetSdgChannel(3);
                 cancellationToken.WaitHandle.WaitOne(2000);

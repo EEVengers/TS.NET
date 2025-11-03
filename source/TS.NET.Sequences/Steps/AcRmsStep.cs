@@ -11,6 +11,10 @@ public class AcRmsStep : Step
     {
         Action = (CancellationToken cancellationToken) =>
         {
+            Instruments.Instance.SetThunderscopeChannel([channelIndex]);
+            Instruments.Instance.SetThunderscopeResolution(AdcResolution.EightBit);
+            Instruments.Instance.SetThunderscopeRate(rateHz);
+
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pathIndex, variables);
             switch (termination)
             {
@@ -21,7 +25,6 @@ public class AcRmsStep : Step
                     Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, false, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, bandwidth, variables);
                     break;
             }
-            Instruments.Instance.SetThunderscopeRate(rateHz, variables);
 
             var stdDev = Instruments.Instance.GetThunderscopePopulationStdDev(channelIndex);
             var stdDevV = stdDev * (pathCalibration.BufferInputVpp / 256.0);

@@ -50,16 +50,18 @@ public class Sequence
                 overallTermination = true;
                 break;
             }
+            Steps[i].Result = new StepResult() { Status = Sequencer.Status.Running, Duration = null, Exception = null, Summary = null, Metadata = [] };
             PreStep?.Invoke(Steps[i]);
             await Task.Run(() => Steps[i].Run(cancellationTokenSource));
             PostStep?.Invoke(Steps[i]);
-            if (!Steps[i].IgnoreError && (Steps[i].Result.Status == Sequencer.Status.Failed || Steps[i].Result.Status == Sequencer.Status.Error || Steps[i].Result.Status == Sequencer.Status.Cancelled))
+            if (!Steps[i].IgnoreError && (Steps[i].Result!.Status == Sequencer.Status.Failed || Steps[i].Result!.Status == Sequencer.Status.Error || Steps[i].Result!.Status == Sequencer.Status.Cancelled))
                 break;
         }
         // Always run Cleanup step if it exists and it didn't run
         if (Steps.Any(s => s.Name == "Cleanup" && s.Result == null))
         {
             var cleanupStep = Steps.First(s => s.Name == "Cleanup");
+            cleanupStep.Result = new StepResult() { Status = Sequencer.Status.Running, Duration = null, Exception = null, Summary = null, Metadata = [] };
             PreStep?.Invoke(cleanupStep);
             await Task.Run(() => cleanupStep.Run(cancellationTokenSource));
             PostStep?.Invoke(cleanupStep);

@@ -8,7 +8,10 @@ public class TrimOffsetDacGainStep : Step
     {
         Action = (CancellationToken cancellationToken) =>
         {
-            Instruments.Instance.SetThunderscopeRate(1_000_000_000, variables);
+            Instruments.Instance.SetThunderscopeChannel([channelIndex]);
+            Instruments.Instance.SetThunderscopeResolution(AdcResolution.EightBit);
+            Instruments.Instance.SetThunderscopeRate(1_000_000_000);
+
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pathIndex, variables);
             var pathConfig = Utility.GetChannelPathConfig(channelIndex, pathIndex, variables);
 

@@ -8,6 +8,10 @@ public class PgaLoadSetupStep : Step
     {
         Action = (CancellationToken cancellationToken) =>
         {
+            Instruments.Instance.SetThunderscopeChannel([channelIndex]);
+            Instruments.Instance.SetThunderscopeResolution(AdcResolution.EightBit);
+            Instruments.Instance.SetThunderscopeRate(1_000_000_000);
+
             Instruments.Instance.SetSdgChannel(channelIndex);
             Instruments.Instance.SetSdgDc(channelIndex);
             Instruments.Instance.SetSdgOffset(channelIndex, 0);
@@ -20,8 +24,6 @@ public class PgaLoadSetupStep : Step
 
             Utility.GetAndCheckSigGenZero(channelIndex, pathConfig, variables, cancellationToken);
             
-            Instruments.Instance.SetThunderscopeChannel([channelIndex], false);
-            Instruments.Instance.SetThunderscopeRate(1_000_000_000, variables);
             variables.ReferenceVpp = Utility.FindVpp(channelIndex, pathConfig, variables.SigGenZero, cancellationToken);
 
             var scale = new ThunderscopePgaLoadScale() { SampleRate = 1_000_000_000, ChannelCount = 1, Scale = 1 };

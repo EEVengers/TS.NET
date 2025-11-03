@@ -24,11 +24,6 @@ public class NoiseVerificationSequence : Sequence
             new LoadUserCalFromDeviceStep("Load calibration from device", Variables),
             new WarmupStep("Warmup device", Variables) { Skip = false },
 
-            new Step("Set channel 1"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([0], setDefaultRate: true);
-                return Sequencer.Status.Done;
-            }},
-
             new AcRmsStep("Channel 1 - AC RMS - 50R, 8-bit, 1 GSPS, BW 20M, PGA HG L0", 0, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.Bw20M, 1_000_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
             // new AcRmsStep("Channel 1 - AC RMS - 50R, 500 MSPS, 20M, HG L0", 0, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.Bw20M, 500_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
             // new AcRmsStep("Channel 1 - AC RMS - 50R, 250 MSPS, 20M, HG L0", 0, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.Bw20M, 250_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
@@ -45,11 +40,6 @@ public class NoiseVerificationSequence : Sequence
             // new AcRmsStep("Channel 1 - AC RMS - 50R, 500 MSPS, FULL, HG L0", 0, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 500_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
             // new AcRmsStep("Channel 1 - AC RMS - 50R, 250 MSPS, FULL, HG L0", 0, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 250_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
             // new AcRmsStep("Channel 1 - AC RMS - 50R, 100 MSPS, FUL, HG L0", 0, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 100_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
-
-            new Step("Set channel 2"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([1], setDefaultRate: true);
-                return Sequencer.Status.Done;
-            }},
 
             new AcRmsStep("Channel 2 - AC RMS - 50R, 8-bit, 1 GSPS, BW 20M, PGA HG L0", 1, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.Bw20M, 1_000_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
             // new AcRmsStep("Channel 2 - AC RMS - 50R, 500 MSPS, 20M, HG L0", 1, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.Bw20M, 500_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
@@ -68,11 +58,6 @@ public class NoiseVerificationSequence : Sequence
             // new AcRmsStep("Channel 2 - AC RMS - 50R, 250 MSPS, FULL, HG L0", 1, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 250_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
             // new AcRmsStep("Channel 2 - AC RMS - 50R, 100 MSPS, FUL, HG L0", 1, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 100_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
 
-            new Step("Set channel 3"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([2], setDefaultRate: true);
-                return Sequencer.Status.Done;
-            }},
-
             new AcRmsStep("Channel 3 - AC RMS - 50R, 8-bit, 1 GSPS, BW 20M, PGA HG L0", 2, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.Bw20M, 1_000_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
             // new AcRmsStep("Channel 3 - AC RMS - 50R, 500 MSPS, 20M, HG L0", 2, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.Bw20M, 500_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
             // new AcRmsStep("Channel 3 - AC RMS - 50R, 250 MSPS, 20M, HG L0", 2, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.Bw20M, 250_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
@@ -89,11 +74,6 @@ public class NoiseVerificationSequence : Sequence
             // new AcRmsStep("Channel 3 - AC RMS - 50R, 500 MSPS, FULL, HG L0", 2, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 500_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
             // new AcRmsStep("Channel 3 - AC RMS - 50R, 250 MSPS, FULL, HG L0", 2, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 250_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
             // new AcRmsStep("Channel 3 - AC RMS - 50R, 100 MSPS, FUL, HG L0", 2, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 100_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
-
-            new Step("Set channel 4"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([3], setDefaultRate: true);
-                return Sequencer.Status.Done;
-            }},
 
             new AcRmsStep("Channel 4 - AC RMS - 50R, 8-bit, 1 GSPS, BW 20M, PGA HG L0", 3, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.Bw20M, 1_000_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
             // new AcRmsStep("Channel 4 - AC RMS - 50R, 500 MSPS, 20M, HG L0", 3, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.Bw20M, 500_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },

@@ -9,8 +9,6 @@ public class InitialiseDeviceStep : Step
         Action = (CancellationToken cancellationToken) =>
         {
             Instruments.Instance.InitialiseThunderscope();
-            Instruments.Instance.SetThunderscopeChannel([0]);
-            Instruments.Instance.SetThunderscopeRate(1_000_000_000, variables);
             Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Device initialised");
             return Status.Done;
         };

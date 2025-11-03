@@ -26,7 +26,7 @@ public class Step
 
     public void Run(CancellationTokenSource cancellationTokenSource)
     {
-        Result = new StepResult() { Status = Status.Running, Duration = null, Exception = null, Summary = null, Metadata = [] };
+        // Result is set in Sequence.Run so that the UI shows a Running step with PreStep?.Invoke
         var stopwatch = Stopwatch.StartNew();
         Status status = Status.Running;
         Exception? exception = null;

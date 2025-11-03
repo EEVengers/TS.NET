@@ -19,6 +19,8 @@ public class Instruments
     private ThunderscopeMemory? shuffleMemory;
 
     private uint cachedSampleRateHz = 0;
+    private AdcResolution cachedResolution = AdcResolution.EightBit;
+    private int[] cachedChannelIndices = [];
 
     public void InitialiseThunderscope()
     {
@@ -64,6 +66,10 @@ public class Instruments
             Resolution = AdcResolution.EightBit,
             EnabledChannels = 0x01
         };
+        cachedSampleRateHz = 1_000_000_000;
+        cachedResolution = AdcResolution.EightBit;
+        cachedChannelIndices = [0];
+
         hardwareConfig.Frontend[0] = ThunderscopeChannelFrontend.Default();
         hardwareConfig.Frontend[1] = ThunderscopeChannelFrontend.Default();
         hardwareConfig.Frontend[2] = ThunderscopeChannelFrontend.Default();
@@ -206,36 +212,16 @@ public class Instruments
     //        }
     //    }
     //}
-    public void SetThunderscopeChannel(int[] enabledChannelIndices, bool setDefaultRate = true)
+    public void SetThunderscopeChannel(int[] enabledChannelIndices)
     {
-        thunderScope?.SetChannelEnable(0, enabledChannelIndices.Contains(0));
-        thunderScope?.SetChannelEnable(1, enabledChannelIndices.Contains(1));
-        thunderScope?.SetChannelEnable(2, enabledChannelIndices.Contains(2));
-        thunderScope?.SetChannelEnable(3, enabledChannelIndices.Contains(3));
-        if (setDefaultRate)
+        if(!enabledChannelIndices.SequenceEqual(cachedChannelIndices))
         {
-            switch (enabledChannelIndices.Length)
-            {
-                case 1:
-                    thunderScope?.SetRate(1_000_000_000);
-                    cachedSampleRateHz = 1_000_000_000;
-                    break;
-                case 2:
-                    thunderScope?.SetRate(500_000_000);
-                    cachedSampleRateHz = 500_000_000;
-                    break;
-                case 3:
-                    thunderScope?.SetRate(250_000_000);
-                    cachedSampleRateHz = 250_000_000;
-                    break;
-                case 4:
-                    thunderScope?.SetRate(250_000_000);
-                    cachedSampleRateHz = 250_000_000;
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-
+            thunderScope?.SetChannelEnable(0, enabledChannelIndices.Contains(0));
+            thunderScope?.SetChannelEnable(1, enabledChannelIndices.Contains(1));
+            thunderScope?.SetChannelEnable(2, enabledChannelIndices.Contains(2));
+            thunderScope?.SetChannelEnable(3, enabledChannelIndices.Contains(3));
+            cachedSampleRateHz = 0;
+            cachedChannelIndices = enabledChannelIndices;
         }
     }
 
@@ -245,7 +231,7 @@ public class Instruments
     //    Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
     //}
 
-    public void SetThunderscopeRate(uint rateHz, CommonVariables variables)
+    public void SetThunderscopeRate(uint rateHz)
     {
         if (rateHz != cachedSampleRateHz)
         {
@@ -256,7 +242,11 @@ public class Instruments
 
     public void SetThunderscopeResolution(AdcResolution resolution)
     {
-        thunderScope?.SetResolution(resolution);
+        if(resolution != cachedResolution)
+        {
+            thunderScope?.SetResolution(resolution);
+            cachedResolution = resolution;
+        }
     }
 
     //public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation)
@@ -323,39 +313,6 @@ public class Instruments
             FineGainBranch8 = branchFineGains[7]
         });
     }
-
-    //public void GetThunderscopeStats(int channelIndex, out double average, out double min, out double max)
-    //{
-    //    thunderScope!.WriteLine("FORCE");
-    //    var tsDataBuffer = ArrayPool<byte>.Shared.Rent(2_000_000);
-    //    thunderScopeData!.RequestWaveform();
-    //    var waveformHeader = thunderScopeData!.ReadWaveformHeader(tsDataBuffer);
-
-    //    bool channelFound = false;
-    //    average = 0;
-    //    min = int.MaxValue;
-    //    max = int.MinValue;
-    //    for (int i = 0; i < waveformHeader.NumChannels; i++)
-    //    {
-    //        var channelHeader = thunderScopeData.ReadChannelHeader(tsDataBuffer);
-    //        var channelData = thunderScopeData.ReadChannelData<sbyte>(tsDataBuffer, channelHeader);
-    //        if (channelHeader.ChannelIndex != channelIndex)
-    //            continue;
-    //        channelFound = true;
-    //        int sum = 0;
-    //        foreach (var point in channelData)
-    //        {
-    //            sum += point;
-    //            if (point < min) min = point;
-    //            if (point > max) max = point;
-    //        }
-    //        average = (double)sum / channelData.Length;
-    //        ArrayPool<byte>.Shared.Return(tsDataBuffer);
-    //    }
-
-    //    if (!channelFound)
-    //        throw new CalibrationException("Channel was not in waveform data");
-    //}
 
     public double GetThunderscopeAverage(int channelIndex)
     {

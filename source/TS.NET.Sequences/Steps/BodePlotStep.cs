@@ -8,14 +8,17 @@ public class BodePlotStep : Step
     {
         Action = (CancellationToken cancellationToken) =>
         {
-            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, configIndex, variables);
-            //var pathConfig = Utility.GetChannelPathConfig(channelIndex, configIndex, variables);
-            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, attenuator: attenuator, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, ThunderscopeBandwidth.BwFull, variables);
             //uint rate = 660_000_000;
             uint rate = 1_000_000_000;
             var resolution = AdcResolution.EightBit;
-            Instruments.Instance.SetThunderscopeRate(rate, variables);
+
+            Instruments.Instance.SetThunderscopeChannel([channelIndex]);
             Instruments.Instance.SetThunderscopeResolution(resolution);
+            Instruments.Instance.SetThunderscopeRate(rate);
+
+            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, configIndex, variables);
+            //var pathConfig = Utility.GetChannelPathConfig(channelIndex, configIndex, variables);
+            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, attenuator: attenuator, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, ThunderscopeBandwidth.BwFull, variables);
 
             //var zeroValue = Utility.GetAndCheckSigGenZero(channelIndex, pathConfig, variables, cancellationToken);
 

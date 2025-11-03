@@ -24,11 +24,6 @@ public class SelfCalibrationSequence : Sequence
             new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file", Variables),
             new WarmupStep("Warmup device", Variables) { Skip = false },
 
-            new Step("Set channel 1"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([0]);
-                return Sequencer.Status.Done;
-            }},
-
             new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L0", 0, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
             new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L1", 0, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
             new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L2", 0, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
@@ -74,11 +69,6 @@ public class SelfCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - LG L8", 0, 19, Variables),
             new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - LG L9", 0, 20, Variables),
             new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - LG L10", 0, 21, Variables),
-
-            new Step("Set channel 2"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([1]);
-                return Sequencer.Status.Done;
-            }},
 
             new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L0", 1, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
             new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L1", 1, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
@@ -126,11 +116,6 @@ public class SelfCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - LG L9", 1, 20, Variables),
             new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - LG L10", 1, 21, Variables),
 
-            new Step("Set Channel 3"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([2]);
-                return Sequencer.Status.Done;
-            }},
-
             new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L0", 2, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
             new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L1", 2, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
             new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L2", 2, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
@@ -176,11 +161,6 @@ public class SelfCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - LG L8", 2, 19, Variables),
             new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - LG L9", 2, 20, Variables),
             new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - LG L10", 2, 21, Variables),
-
-            new Step("Set Channel 4"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([3]);
-                return Sequencer.Status.Done;
-            }},
 
             new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L0", 3, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
             new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L1", 3, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },

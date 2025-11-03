@@ -9,8 +9,9 @@ public class PgaLoadStep : Step
         // A previous step should set Instruments.Instance.EnableSdgDc(channelIndex) to enable sig gen output
         Action = (CancellationToken cancellationToken) =>
         {
-            Instruments.Instance.SetThunderscopeChannel(channelIndices, false);
-            Instruments.Instance.SetThunderscopeRate(sampleRateHz, variables);
+            Instruments.Instance.SetThunderscopeChannel(channelIndices);
+            Instruments.Instance.SetThunderscopeResolution(AdcResolution.EightBit);
+            Instruments.Instance.SetThunderscopeRate(sampleRateHz);
 
             var configIndex = 21;
             var pathConfig = Utility.GetChannelPathConfig(channelIndex, configIndex, variables);

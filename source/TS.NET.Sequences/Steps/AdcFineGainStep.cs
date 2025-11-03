@@ -9,15 +9,18 @@ public class AdcFineGainStep : Step
         // A previous step should set Instruments.Instance.EnableSdgDc(channelIndex) to enable sig gen output
         Action = (CancellationToken cancellationToken) =>
         {
-            Instruments.Instance.SetThunderscopeRate(1_000_000_000, variables);
             var channelIndex = 0;
             var pathIndex = 21;
+
+            Instruments.Instance.SetThunderscopeChannel([channelIndex]);
+            Instruments.Instance.SetThunderscopeResolution(AdcResolution.EightBit);
+            Instruments.Instance.SetThunderscopeRate(1_000_000_000);
+
             // First set the maximum range
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pathIndex, variables);
             var pathConfig = Utility.GetChannelPathConfig(channelIndex, pathIndex, variables);
             Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables);
             Instruments.Instance.SetSdgNoise(channelIndex, 0.16, 0.0);
-            Instruments.Instance.SetThunderscopeChannel([channelIndex]);
 
             Instruments.Instance.GetThunderscopeFineBranches(out var branchMean, out var branchStdev);
             var minStdev = double.MaxValue;

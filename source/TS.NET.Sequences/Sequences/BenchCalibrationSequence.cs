@@ -23,12 +23,7 @@ public class BenchCalibrationSequence : Sequence
             new InitialiseDeviceStep("Initialise device", Variables),
             new InitialiseSigGensStep("Initialise instruments", Variables),
             new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file", Variables),
-            new WarmupStep("Warmup device", Variables) { Skip = false },
-
-            new Step("Set channel 1"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([0]);
-                return Sequencer.Status.Done;
-            }},
+            new WarmupStep("Warmup device", Variables) { Skip = true },
 
             new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L0", 0, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
             new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L1", 0, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
@@ -136,10 +131,6 @@ public class BenchCalibrationSequence : Sequence
 
             new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
-            new Step("Set channel 2"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([1]);
-                return Sequencer.Status.Done; }},
-
             new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L0", 1, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
             new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L1", 1, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
             new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L2", 1, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
@@ -243,11 +234,6 @@ public class BenchCalibrationSequence : Sequence
             new PgaLoadStep("Channel 2 - measure PGA loading scale - 100 MSPS, 4 channel", 1, [0, 1, 2, 3], 100_000_000, Variables),
 
             new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
-
-            new Step("Set Channel 3"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([2]);
-                return Sequencer.Status.Done;
-            }},
 
             new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L0", 2, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
             new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L1", 2, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
@@ -353,11 +339,6 @@ public class BenchCalibrationSequence : Sequence
 
             new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
-            new Step("Set Channel 4"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeChannel([3]);
-                return Sequencer.Status.Done;
-            }},
-
             new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L0", 3, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
             new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L1", 3, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
             new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L2", 3, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
@@ -462,7 +443,7 @@ public class BenchCalibrationSequence : Sequence
 
             new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
-            new SaveUserCalToFileStep("Save calibration to file", Variables),
+            //new SaveUserCalToFileStep("Save calibration to file", Variables),
             new SaveUserCalToDeviceStep("Save calibration to device", Variables),
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
