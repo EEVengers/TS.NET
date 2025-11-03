@@ -10,6 +10,9 @@ public class StepDto
     public bool Skip { get; set; }
     public bool IgnoreError { get; set; }
 
+    // UI
+    public bool AllowSkip { get; set; }
+
     internal static StepDto FromStep(Step step)
     {
         StepResultDto? result = null;
@@ -27,7 +30,8 @@ public class StepDto
             Name = step.Name,
             Result = result,
             Skip = step.Skip,
-            IgnoreError = step.IgnoreError
+            IgnoreError = step.IgnoreError,
+            AllowSkip = step.AllowSkip
         };
     }
 

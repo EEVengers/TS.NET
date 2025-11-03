@@ -30,6 +30,10 @@ document.addEventListener("DOMContentLoaded", () => {
     window.external.sendMessage(JSON.stringify(message));
   }
 
+  window.setSkip = function (stepIndex, skip) {
+    sendMessage({ command: "set-skip", stepIndex: stepIndex, skip: skip });
+  };
+
   window.external.receiveMessage((message) => {
     const parsedMessage = JSON.parse(message);
     switch (parsedMessage.type) {
@@ -80,11 +84,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const row = document.createElement("tr");
         row.setAttribute("data-step-index", step.index);
         row.className = "border-b border-neutral-800";
+        const skipCellHtml = step.allowSkip
+          ? `<input type="checkbox" onchange="setSkip(${step.index}, this.checked)" ${step.skip ? "checked" : ""}>`
+          : (step.skip ? "Yes" : "-");
         if (step.result == null) {
           row.innerHTML = `
                     <td class="p-1">${step.index}</td>
                     <td class="p-1">${step.name}</td>
-                    <td class="p-1">${step.skip ? "Yes" : "-"}</td>
+                    <td class="p-1">${skipCellHtml}</td>
                     <td class="p-1">${step.ignoreError ? "Yes" : "-"}</td>
                     <td class="p-1">-</td>
                     <td class="p-1">-</td>`;
@@ -93,7 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td class="p-1">${step.index}</td>
                     <td class="p-1">${step.name}</td>
                     <td class="p-1">${step.skip ? "Yes" : "-"}</td>
-                    <td class="p-1">${step.ignoreError ? "Yes" : "-"}</td>
+                    <td class="p-1">${skipCellHtml}</td>
                     <td class="p-1">${step.result.duration}</td>
                     <td class="p-1">${step.result.status}</td>`;
           const statusCell = row.children[5];

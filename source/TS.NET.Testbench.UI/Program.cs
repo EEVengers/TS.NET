@@ -157,6 +157,11 @@ class Program
                     case "stop-sequence":
                         cancellationTokenSource?.Cancel();
                         break;
+                    case "set-skip":
+                        var stepIndex = json.RootElement.GetProperty("stepIndex").GetInt32();
+                        var skip = json.RootElement.GetProperty("skip").GetBoolean();
+                        sequence.Steps[stepIndex - 1].Skip = skip;
+                        break;
                 }
             }).Load(loadPath);
 
