@@ -23,7 +23,7 @@ public class BenchCalibrationSequence : Sequence
             new InitialiseDeviceStep("Initialise device", Variables),
             new InitialiseSigGensStep("Initialise instruments", Variables),
             new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file", Variables),
-            new WarmupStep("Warmup device", Variables) { Skip = true },
+            new WarmupStep("Warmup device", Variables) { Skip = false },
 
             new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L0", 0, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
             new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L1", 0, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
