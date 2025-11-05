@@ -8,6 +8,12 @@ public class DebugLog
     private static StreamWriter? streamWriter;
     private static readonly string logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DebugLog.txt");
 
+    public void Clear()
+    {
+        if (File.Exists(logFilePath))
+            File.WriteAllText(logFilePath, "");
+    }
+
     public void Log(string message)
     {
         try

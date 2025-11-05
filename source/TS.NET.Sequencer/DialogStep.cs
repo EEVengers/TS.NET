@@ -14,7 +14,7 @@ public class DialogStep : Step
         Action = (CancellationToken cancellationToken) =>
         {
             var dialogResult = uiDialog?.Invoke(new Dialog { Title = Title!, Text = Text!, Buttons = Buttons, Icon = Icon });
-            Result!.Summary = $"Operator clicked {dialogResult}";
+            Result!.Summary = $"Dialog: {dialogResult}";
             if (dialogResult == DialogResult.Ok || dialogResult == DialogResult.Yes)
                 return Status.Done;
             else

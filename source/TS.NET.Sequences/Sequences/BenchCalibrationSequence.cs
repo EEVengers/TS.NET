@@ -25,9 +25,9 @@ public class BenchCalibrationSequence : Sequence
             new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file", Variables),
             new WarmupStep("Warmup device", Variables) { Skip = false, AllowSkip = true },
 
-            new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L0", 0, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L1", 0, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L2", 0, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
+            new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L0", 0, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L1", 0, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L2", 0, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L3", 0, 3, Variables),
             new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L4", 0, 4, Variables),
             new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L5", 0, 5, Variables),
@@ -48,9 +48,9 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - LG L9", 0, 20, Variables),
             new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - LG L10", 0, 21, Variables),
 
-            new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - HG L0", 0, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - HG L1", 0, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - HG L2", 0, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
+            new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - HG L0", 0, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - HG L1", 0, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - HG L2", 0, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - HG L3", 0, 3, Variables),
             new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - HG L4", 0, 4, Variables),
             new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - HG L5", 0, 5, Variables),
@@ -86,9 +86,9 @@ public class BenchCalibrationSequence : Sequence
 
             new AdcFineGainStep("Measure & set ADC fine gain", Variables),
 
-            new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L0", 0, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L1", 0, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L2", 0, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
+            new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L0", 0, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L1", 0, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L2", 0, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L3", 0, 3, Variables),
             new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L4", 0, 4, Variables),
             new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L5", 0, 5, Variables),
@@ -131,9 +131,9 @@ public class BenchCalibrationSequence : Sequence
 
             new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
-            new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L0", 1, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L1", 1, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L2", 1, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
+            new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L0", 1, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L1", 1, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L2", 1, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L3", 1, 3, Variables),
             new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L4", 1, 4, Variables),
             new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L5", 1, 5, Variables),
@@ -154,9 +154,9 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - LG L9", 1, 20, Variables),
             new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - LG L10", 1, 21, Variables),
 
-            new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - HG L0", 1, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - HG L1", 1, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - HG L2", 1, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
+            new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - HG L0", 1, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - HG L1", 1, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - HG L2", 1, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - HG L3", 1, 3, Variables),
             new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - HG L4", 1, 4, Variables),
             new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - HG L5", 1, 5, Variables),
@@ -190,9 +190,9 @@ public class BenchCalibrationSequence : Sequence
                 return Sequencer.Status.Done;
             }},
 
-            new BufferInputVppStep("Channel 2 - measure buffer input Vpp - HG L0", 1, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new BufferInputVppStep("Channel 2 - measure buffer input Vpp - HG L1", 1, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new BufferInputVppStep("Channel 2 - measure buffer input Vpp - HG L2", 1, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
+            new BufferInputVppStep("Channel 2 - measure buffer input Vpp - HG L0", 1, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new BufferInputVppStep("Channel 2 - measure buffer input Vpp - HG L1", 1, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new BufferInputVppStep("Channel 2 - measure buffer input Vpp - HG L2", 1, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new BufferInputVppStep("Channel 2 - measure buffer input Vpp - HG L3", 1, 3, Variables),
             new BufferInputVppStep("Channel 2 - measure buffer input Vpp - HG L4", 1, 4, Variables),
             new BufferInputVppStep("Channel 2 - measure buffer input Vpp - HG L5", 1, 5, Variables),
@@ -235,9 +235,9 @@ public class BenchCalibrationSequence : Sequence
 
             new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
-            new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L0", 2, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L1", 2, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L2", 2, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
+            new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L0", 2, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L1", 2, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L2", 2, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L3", 2, 3, Variables),
             new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L4", 2, 4, Variables),
             new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L5", 2, 5, Variables),
@@ -258,9 +258,9 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - LG L9", 2, 20, Variables),
             new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - LG L10", 2, 21, Variables),
 
-            new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - HG L0", 2, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - HG L1", 2, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - HG L2", 2, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
+            new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - HG L0", 2, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - HG L1", 2, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - HG L2", 2, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - HG L3", 2, 3, Variables),
             new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - HG L4", 2, 4, Variables),
             new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - HG L5", 2, 5, Variables),
@@ -294,9 +294,9 @@ public class BenchCalibrationSequence : Sequence
                 return Sequencer.Status.Done;
             }},
 
-            new BufferInputVppStep("Channel 3 - measure buffer input Vpp - HG L0", 2, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new BufferInputVppStep("Channel 3 - measure buffer input Vpp - HG L1", 2, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new BufferInputVppStep("Channel 3 - measure buffer input Vpp - HG L2", 2, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
+            new BufferInputVppStep("Channel 3 - measure buffer input Vpp - HG L0", 2, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new BufferInputVppStep("Channel 3 - measure buffer input Vpp - HG L1", 2, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new BufferInputVppStep("Channel 3 - measure buffer input Vpp - HG L2", 2, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new BufferInputVppStep("Channel 3 - measure buffer input Vpp - HG L3", 2, 3, Variables),
             new BufferInputVppStep("Channel 3 - measure buffer input Vpp - HG L4", 2, 4, Variables),
             new BufferInputVppStep("Channel 3 - measure buffer input Vpp - HG L5", 2, 5, Variables),
@@ -339,9 +339,9 @@ public class BenchCalibrationSequence : Sequence
 
             new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
-            new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L0", 3, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L1", 3, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L2", 3, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
+            new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L0", 3, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L1", 3, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L2", 3, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L3", 3, 3, Variables),
             new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L4", 3, 4, Variables),
             new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L5", 3, 5, Variables),
@@ -362,9 +362,9 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - LG L9", 3, 20, Variables),
             new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - LG L10", 3, 21, Variables),
 
-            new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - HG L0", 3, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - HG L1", 3, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - HG L2", 3, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
+            new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - HG L0", 3, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - HG L1", 3, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - HG L2", 3, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - HG L3", 3, 3, Variables),
             new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - HG L4", 3, 4, Variables),
             new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - HG L5", 3, 5, Variables),
@@ -398,9 +398,9 @@ public class BenchCalibrationSequence : Sequence
                 return Sequencer.Status.Done;
             }},
 
-            new BufferInputVppStep("Channel 4 - measure buffer input Vpp - HG L0", 3, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new BufferInputVppStep("Channel 4 - measure buffer input Vpp - HG L1", 3, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
-            new BufferInputVppStep("Channel 4 - measure buffer input Vpp - HG L2", 3, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), Retries = 3 },
+            new BufferInputVppStep("Channel 4 - measure buffer input Vpp - HG L0", 3, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new BufferInputVppStep("Channel 4 - measure buffer input Vpp - HG L1", 3, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new BufferInputVppStep("Channel 4 - measure buffer input Vpp - HG L2", 3, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new BufferInputVppStep("Channel 4 - measure buffer input Vpp - HG L3", 3, 3, Variables),
             new BufferInputVppStep("Channel 4 - measure buffer input Vpp - HG L4", 3, 4, Variables),
             new BufferInputVppStep("Channel 4 - measure buffer input Vpp - HG L5", 3, 5, Variables),

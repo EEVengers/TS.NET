@@ -1,23 +1,27 @@
 ﻿using System.Diagnostics;
+using System.Xml.Serialization;
 
 namespace TS.NET.Sequencer;
 
+[Serializable]
 public class Step
 {
-    public int Index { get; internal set; }
-    public string Name { get; }
-    public StepResult? Result { get; internal set; }
+    public int Index { get; set; }
+    public string Name { get; set; }
     public bool Skip { get; set; }
     public bool IgnoreError { get; set; }
     public TimeSpan? Timeout { get; set; }
-    public int? Retries { get; set; }
+    public int? MaxRetries { get; set; }
+    public Result? Result { get; set; }     // Last property so the order in serialization is better
 
-    public Action<CancellationToken>? PreAction { get; set; }
-    public Func<CancellationToken, Status>? Action { get; set; }
-    public Action<CancellationToken>? PostAction { get; set; }
+    [XmlIgnore] public Action<CancellationToken>? PreAction { get; set; }
+    [XmlIgnore] public Func<CancellationToken, Status>? Action { get; set; }
+    [XmlIgnore] public Action<CancellationToken>? PostAction { get; set; }
 
     // UI
-    public bool AllowSkip { get; set; }
+    [XmlIgnore] public bool AllowSkip { get; set; }
+
+    public Step() { Name = "-"; }   // For serialization
 
     public Step(string name)
     {
@@ -68,7 +72,7 @@ public class Step
             {
                 timeout = true;
                 // If timeout occurred and there are going to be retries, log a timeout message. Otherwise an error is logged later on.
-                if (retryCount < Retries)
+                if (retryCount < MaxRetries)
                 {
                     Logger.Instance.Log(LogLevel.Information, Index, "Timeout occurred");
                 }
@@ -81,10 +85,10 @@ public class Step
             Logger.Instance.Log(LogLevel.Error, $"Error in step: {Name}, {ex.GetType().Name}: {ex.Message}");
         }
         // If retries have been set up, handle that for Failed/Error and timeout
-        if (Retries != null && (status == Status.Failed || status == Status.Error || timeout) && retryCount < Retries)
+        if (MaxRetries != null && (status == Status.Failed || status == Status.Error || timeout) && retryCount < MaxRetries)
         {
             retryCount++;
-            Logger.Instance.Log(LogLevel.Information, Index, $"Retrying step (attempt {retryCount}/{Retries})");
+            Logger.Instance.Log(LogLevel.Information, Index, $"Retrying step (attempt {retryCount}/{MaxRetries})");
             goto RunStep;
         }
         else if (timeout)
@@ -94,11 +98,24 @@ public class Step
             Logger.Instance.Log(LogLevel.Information, Index, Status.Error, $"Timeout occurred");
         }
         stopwatch.Stop();
-        Result.Status = status;
-        Result.Duration = stopwatch.Elapsed;
-        if (status == Status.Error && exception != null)
-            Result.Exception = exception;
+        if (Result != null)
+        {
+            Result.Status = status;
+            Result.Duration = stopwatch.Elapsed;
+            if (status == Status.Error && exception != null)
+                Result.Exception = exception;
+        }
     }
 
     public override string ToString() => Name;
+
+    public bool ShouldSerializeTimeout()
+    {
+        return Timeout.HasValue;
+    }
+
+    public bool ShouldSerializeMaxRetries()
+    {
+        return MaxRetries.HasValue;
+    }
 }

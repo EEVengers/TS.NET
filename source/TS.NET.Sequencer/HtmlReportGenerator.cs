@@ -2,7 +2,6 @@
 {
     using System.Reflection;
     using System.Text;
-    using static System.Runtime.InteropServices.JavaScript.JSType;
 
     public class HtmlReportGenerator
     {
@@ -63,7 +62,7 @@
                     sb.AppendLine($"                <td class=\"p-1 pr-2 text-left {StatusTextColour(step.Result?.Status)}\">{step.Result?.Status.ToString() ?? "-"}</td>");
                     sb.AppendLine("            </tr>");
 
-                    if (step.Result?.Exception != null || (step.Result?.Metadata != null && step.Result.Metadata.Count > 0))
+                    if (step.Result?.Exception != null || (step.Result?.Metadata != null && step.Result.Metadata.Length > 0))
                     {
                         sb.AppendLine("            <tr class=\"bg-gray-50\">");
                         sb.AppendLine("                <td colspan=\"5\" class=\"p-1\">");

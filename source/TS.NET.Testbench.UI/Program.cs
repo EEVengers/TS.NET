@@ -238,8 +238,20 @@ class Program
 
     private async static Task RunSequenceAndReport(Sequence sequence, CancellationTokenSource cancellationTokenSource)
     {
-        await sequence.Run(cancellationTokenSource);
-        var reportGenerator = new HtmlReportGenerator();
-        reportGenerator.Render(sequence, $"Report - {sequence.Name} - {sequence.StartTimestamp:yyyy-MM-dd HHmmss}.html");
+        try
+        {
+            await sequence.Run(cancellationTokenSource);
+
+            sequence.Steps[0].Result.Metadata = [new ResultMetadataChart() { Name = "Chart", ShowInReport = true }, new ResultMetadataTable() { Name = "Table", ShowInReport = true }];
+
+            var fileName = $"{sequence.Name} - {sequence.StartTimestamp:yyyy-MM-dd HHmmss}";
+            sequence.ToXml(fileName + ".xml");
+            var reportGenerator = new HtmlReportGenerator();
+            reportGenerator.Render(sequence, fileName + ".html");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+        }
     }
 }
