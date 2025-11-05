@@ -332,6 +332,8 @@ internal class ScpiSession : TcpSession
                                     // TRIG:DEL <arg>
                                     long delay = Convert.ToInt64(argument);
                                     logger.LogDebug($"Set trigger delay to {delay}fs");
+                                    if (delay < 0)
+                                        delay = 0;      // To do: allow negative delays
                                     processingControl.Request.Writer.Write(new ProcessingSetTriggerDelayDto((ulong)delay));
                                     return null;
                                 }
