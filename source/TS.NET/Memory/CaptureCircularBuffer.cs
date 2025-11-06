@@ -1,4 +1,6 @@
-﻿namespace TS.NET
+﻿using Microsoft.Extensions.Logging;
+
+namespace TS.NET
 {
     // Windows are copied out of multiple AcquisitionCircularBuffer into this CaptureCircularBuffer when triggered, streamed or forced.
     // This allows time for UI consumers to request multiple captures, particularly if the capture length is short (e.g. 1000 samples at ~1M captures/sec).
@@ -18,6 +20,7 @@
 
     public class CaptureCircularBuffer : IDisposable, ICaptureBufferReader
     {
+        private readonly ILogger logger;
         private readonly NativeMemoryAligned buffer;
         private readonly Lock readLock = new();     // Configure/Reset/TryStartWrite/ResetIntervalStats happen on the same thread, so no need for a WriteLock
         public Lock ReadLock { get { return readLock; } }
@@ -59,8 +62,9 @@
         public long IntervalCaptureDrops { get { return intervalCaptureDrops; } }
         public long IntervalCaptureReads { get { return intervalCaptureReads; } }
 
-        public CaptureCircularBuffer(long totalBufferLengthBytes)
+        public CaptureCircularBuffer(ILogger logger, long totalBufferLengthBytes)
         {
+            this.logger = logger;
             buffer = new NativeMemoryAligned(totalBufferLengthBytes);
             captureMetadata = [];
         }

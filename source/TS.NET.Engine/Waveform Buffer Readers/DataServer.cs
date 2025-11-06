@@ -1,161 +1,228 @@
 ﻿using Microsoft.Extensions.Logging;
-using NetCoreServer;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 namespace TS.NET.Engine;
 
-// Note: ICaptureBufferReader, if used properly, is thread safe however if multiple clients connect then it will be lossy
-// (the data sent to a client won't be sent to any others if multiple request data)
-internal class DataServer : TcpServer, IThread
+internal class DataServer : IThread
 {
     private readonly ILogger logger;
     private readonly CancellationTokenSource cancellationTokenSource;
     private readonly ICaptureBufferReader captureBuffer;
 
+    private Socket? listener;
+    private Thread? serverThread;
+    private WaveformSession? currentSession;
+    private readonly object sessionLock = new();
+
+    private readonly IPAddress address;
+    private readonly int port;
+
     public DataServer(
-        ILogger logger, 
-        ThunderscopeSettings settings, 
-        IPAddress address, 
-        int port, 
-        ICaptureBufferReader captureBuffer) : base(address, port)
+        ILogger logger,
+        ThunderscopeSettings settings,
+        IPAddress address,
+        int port,
+        ICaptureBufferReader captureBuffer)
     {
         this.logger = logger;
         cancellationTokenSource = new();
         this.captureBuffer = captureBuffer;
-        logger.LogDebug("Started");
-    }
-
-    protected override TcpSession CreateSession()
-    {
-        return new WaveformSession(this, logger, captureBuffer, cancellationTokenSource.Token);
-    }
-
-    protected override void OnError(SocketError error)
-    {
-        logger.LogDebug($"Waveform server caught an error with code {error}");
+        this.address = address;
+        this.port = port;
+        logger.LogDebug("DataServer created");
     }
 
     public void Start(SemaphoreSlim startSemaphore)
     {
-        base.Start();
+        listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        listener.Bind(new IPEndPoint(address, port));
+        listener.Listen(backlog: 1);
+        serverThread = new Thread(ListenLoop) { IsBackground = true, Name = "DataServerThread" };
+        serverThread.Start();
+        logger.LogDebug("DataServer listening");
         startSemaphore.Release();
     }
 
-    public new void Stop()
+    public void Stop()
     {
-        base.Stop();
+        cancellationTokenSource.Cancel();
+        try
+        {
+            listener?.Close();
+        }
+        catch { }
+        lock (sessionLock)
+            currentSession?.Stop();
+        serverThread?.Join();
+        lock (sessionLock)
+        {
+            currentSession?.Join();
+            currentSession = null;
+        }
+        logger.LogDebug("DataServer stopped");
+    }
+
+    private void ListenLoop()
+    {
+        var token = cancellationTokenSource.Token;
+        while (!token.IsCancellationRequested)
+        {
+            try
+            {
+                var client = listener!.Accept();
+                logger.LogDebug($"Client accepted: {client.RemoteEndPoint}");
+                lock (sessionLock)
+                {
+                    if (currentSession is { IsRunning: true })
+                    {
+                        logger.LogDebug("A session is already active; rejecting new connection");
+                        try { client.Shutdown(SocketShutdown.Both); } catch { }
+                        try { client.Close(); } catch { }
+                        continue;
+                    }
+
+                    var session = new WaveformSession(client, logger, captureBuffer, cancellationTokenSource.Token, OnSessionClosed);
+                    currentSession = session;
+                    session.Start();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                break;
+            }
+            catch (SocketException ex)
+            {
+                if (token.IsCancellationRequested) break;
+                logger.LogDebug($"Accept error: {ex.SocketErrorCode}");
+                Thread.Sleep(50);
+            }
+            catch (Exception ex)
+            {
+                if (token.IsCancellationRequested) break;
+                logger.LogDebug($"Accept exception: {ex.Message}");
+                Thread.Sleep(50);
+            }
+        }
+    }
+
+    private void OnSessionClosed(WaveformSession session)
+    {
+        lock (sessionLock)
+        {
+            if (ReferenceEquals(currentSession, session))
+                currentSession = null;
+        }
     }
 }
 
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal struct WaveformHeaderOld
-{
-    internal uint seqnum;
-    internal ushort numChannels;
-    internal ulong fsPerSample;
-    internal long triggerFs;
-    internal double hwWaveformsPerSec;
-
-    public override string ToString()
-    {
-        return $"seqnum: {seqnum}, numChannels: {numChannels}, fsPerSample: {fsPerSample}, triggerFs: {triggerFs}, hwWaveformsPerSec: {hwWaveformsPerSec}";
-    }
-}
-
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal struct WaveformHeader
-{
-    internal byte version;      // Starts from 1
-    internal uint seqnum;
-    internal ushort numChannels;
-    internal ulong fsPerSample;
-    internal long triggerFs;
-    internal double hwWaveformsPerSec;
-
-    public override string ToString()
-    {
-        return $"seqnum: {seqnum}, numChannels: {numChannels}, fsPerSample: {fsPerSample}, triggerFs: {triggerFs}";
-    }
-}
-
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal struct ChannelHeaderOld
-{
-    internal byte channelIndex;
-    internal ulong depth;
-    internal float scale;
-    internal float offset;
-    internal float trigphase;
-    internal byte clipping;
-    public override string ToString()
-    {
-        return $"chNum: {channelIndex}, depth: {depth}, scale: {scale}, offset: {offset}, trigphase: {trigphase}, clipping: {clipping}";
-    }
-}
-
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal struct ChannelHeader
-{
-    internal byte channelIndex;
-    internal ulong depth;
-    internal float scale;
-    internal float offset;
-    internal float trigphase;
-    internal byte clipping;
-    internal byte dataType;             // ThunderscopeDataType, I8 = 2, I16 = 4
-    public override string ToString()
-    {
-        return $"chNum: {channelIndex}, depth: {depth}, scale: {scale}, offset: {offset}, trigphase: {trigphase}";
-    }
-}
-
-internal class WaveformSession : TcpSession
+internal class WaveformSession
 {
     private readonly ILogger logger;
     private readonly ICaptureBufferReader captureBuffer;
     private readonly CancellationToken cancellationToken;
+    private readonly Socket socket;
+    private readonly Thread thread;
+    private readonly Action<WaveformSession> onClose;
     private uint sequenceNumber = 0;
 
-    public WaveformSession(TcpServer server, ILogger logger, ICaptureBufferReader captureBuffer, CancellationToken cancellationToken) : base(server)
+    public bool IsRunning { get; private set; }
+
+    public WaveformSession(Socket socket, ILogger logger, ICaptureBufferReader captureBuffer, CancellationToken cancellationToken, Action<WaveformSession> onClose)
     {
+        this.socket = socket;
         this.logger = logger;
         this.captureBuffer = captureBuffer;
         this.cancellationToken = cancellationToken;
+        this.onClose = onClose;
+        thread = new Thread(Run) { IsBackground = true, Name = $"WaveformSession-{socket.GetHashCode()}" };
     }
 
-    protected override void OnConnected()
+    public void Start()
     {
-        logger.LogDebug($"Waveform session with Id {Id} connected!");
+        IsRunning = true;
+        logger.LogDebug($"Waveform session started ({socket.RemoteEndPoint})");
+        thread.Start();
     }
 
-    protected override void OnDisconnected()
+    public void Stop()
     {
-        logger.LogDebug($"Waveform session with Id {Id} disconnected!");
+        try { socket.Shutdown(SocketShutdown.Both); } catch { }
+        try { socket.Close(); } catch { }
     }
 
-    protected override void OnReceived(byte[] buffer, long offset, long size)
-    {
-        if (size == 0)
-            return;
+    public void Join() => thread.Join();
 
-        switch (buffer[0])
+    private void Run()
+    {
+        Span<byte> cmdBuf = stackalloc byte[1];
+        try
         {
-            case (byte)'K':         // Scopehal old format.
-                SendScopehalOld();
-                break;
-            case (byte)'S':         // 'S'copehal new format, with version field for futureproofing.
-                SendScopehal();
-                break;
-                //case (byte)'T':         // 'T'S.NET format, with idempotency by transmitting full instrument & processing configuration with data.
-        }
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                int read = 0;
+                try
+                {
+                    read = socket.Receive(cmdBuf);
+                }
+                catch (SocketException se)
+                {
+                    logger.LogDebug($"Receive error {se.SocketErrorCode}");
+                    break;
+                }
+                if (read == 0)
+                    break; // disconnect
 
+                byte cmd = cmdBuf[0];
+                switch (cmd)
+                {
+                    case (byte)'K':
+                        SendScopehalOld();
+                        break;
+                    case (byte)'S':
+                        var sw = Stopwatch.StartNew();
+                        SendScopehal();
+                        sw.Stop();
+                        logger.LogDebug($"SendScopehal() - {sw.Elapsed.TotalMicroseconds} us");
+                        break;
+                    default:
+                        // Ignore unknown command
+                        break;
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            logger.LogDebug($"Session exception: {ex.Message}");
+        }
+        finally
+        {
+            IsRunning = false;
+            onClose(this);
+            Stop();
+            logger.LogDebug("Waveform session ended");
+        }
     }
 
-    protected override void OnError(SocketError error)
+    private void SendAll(ReadOnlySpan<byte> data)
     {
-        logger.LogDebug($"Chat TCP session caught an error with code {error}");
+        while (!data.IsEmpty)
+        {
+            int sent = 0;
+            try
+            {
+                sent = socket.Send(data);
+            }
+            catch (SocketException se)
+            {
+                logger.LogDebug($"Send error {se.SocketErrorCode}");
+                throw;
+            }
+            data = data[sent..];
+        }
     }
 
     private void SendScopehalOld()
@@ -163,37 +230,28 @@ internal class WaveformSession : TcpSession
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
-
             bool noCapturesAvailable = false;
             lock (captureBuffer.ReadLock)
             {
                 if (captureBuffer.TryStartRead(out var captureMetadata))
                 {
                     ulong femtosecondsPerSample = 1000000000000000 / captureMetadata.HardwareConfig.SampleRateHz;
-
                     WaveformHeaderOld header = new()
                     {
                         seqnum = sequenceNumber,
                         numChannels = captureMetadata.ProcessingConfig.ChannelCount,
                         fsPerSample = femtosecondsPerSample,
                         triggerFs = (long)captureMetadata.ProcessingConfig.TriggerDelayFs,
-                        hwWaveformsPerSec = 0// bridge.Monitoring.Processing.BridgeWritesPerSec
+                        hwWaveformsPerSec = 0
                     };
-
                     ChannelHeaderOld chHeader = new()
                     {
-                        // All other values set later
                         depth = (ulong)captureMetadata.ProcessingConfig.ChannelDataLength,
                         clipping = 0
                     };
-
-                    ulong bytesSent = 0;
-
-                    // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
                     if (captureMetadata.Triggered && captureMetadata.ProcessingConfig.TriggerInterpolation)
                     {
                         ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetChannelReadBuffer<sbyte>(captureMetadata.TriggerChannelCaptureIndex);
-                        // Get the trigger index. If it's greater than 0, then do trigger interpolation.
                         int triggerIndex = (int)(captureMetadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
                         if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
                         {
@@ -201,7 +259,6 @@ internal class WaveformSession : TcpSession
                             ThunderscopeChannelFrontend triggerChannelFrontend = captureMetadata.HardwareConfig.Frontend[channelIndex];
                             var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 256.0);
                             var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
-
                             float fa = channelScale * triggerChannelBuffer[triggerIndex - 1] - channelOffset;
                             float fb = channelScale * triggerChannelBuffer[triggerIndex] - channelOffset;
                             float triggerLevel = captureMetadata.ProcessingConfig.EdgeTriggerParameters.LevelV + channelOffset;
@@ -217,24 +274,17 @@ internal class WaveformSession : TcpSession
                     }
                     unsafe
                     {
-                        Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeaderOld)));
-                        bytesSent += (ulong)sizeof(WaveformHeaderOld);
-
+                        SendAll(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeaderOld)));
                         for (byte captureBufferIndex = 0; captureBufferIndex < captureBuffer.ChannelCount; captureBufferIndex++)
                         {
-                            // Map captureBufferIndex to channelIndex
                             int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
-
                             ThunderscopeChannelFrontend thunderscopeChannel = captureMetadata.HardwareConfig.Frontend[channelIndex];
                             chHeader.channelIndex = (byte)channelIndex;
                             chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 256.0);
                             chHeader.offset = (float)thunderscopeChannel.ActualVoltOffset;
-
-                            Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeaderOld)));
-                            bytesSent += (ulong)sizeof(ChannelHeaderOld);
+                            SendAll(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeaderOld)));
                             var channelBuffer = MemoryMarshal.Cast<sbyte, byte>(captureBuffer.GetChannelReadBuffer<sbyte>(captureBufferIndex));
-                            Send(channelBuffer);
-                            bytesSent += (ulong)captureMetadata.ProcessingConfig.ChannelDataLength;
+                            SendAll(channelBuffer);
                         }
                     }
                     sequenceNumber++;
@@ -242,14 +292,10 @@ internal class WaveformSession : TcpSession
                     break;
                 }
                 else
-                {
                     noCapturesAvailable = true;
-                }
             }
             if (noCapturesAvailable)
-            {
                 Thread.Sleep(10);
-            }
         }
     }
 
@@ -259,14 +305,12 @@ internal class WaveformSession : TcpSession
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
-
             lock (captureBuffer.ReadLock)
             {
-                if (captureBuffer.TryStartRead(out var captureMetadata))      // Add timeout parameter and eliminate Thread.Sleep
+                if (captureBuffer.TryStartRead(out var captureMetadata))
                 {
                     noCapturesAvailable = false;
                     ulong femtosecondsPerSample = 1000000000000000 / captureMetadata.HardwareConfig.SampleRateHz;
-
                     WaveformHeader header = new()
                     {
                         version = 1,
@@ -276,60 +320,21 @@ internal class WaveformSession : TcpSession
                         triggerFs = (long)captureMetadata.ProcessingConfig.TriggerDelayFs,
                         hwWaveformsPerSec = captureMetadata.CapturesPerSec
                     };
-
                     ChannelHeader chHeader = new()
                     {
-                        // All other values set later
                         depth = (ulong)captureMetadata.ProcessingConfig.ChannelDataLength,
-                        dataType = (byte)captureMetadata.ProcessingConfig.ChannelDataType
+                        dataType = (byte)captureMetadata.ProcessingConfig.ChannelDataType,
+                        trigphase = 0
                     };
-
-                    ulong bytesSent = 0;
-
-                    // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
-                    if (captureMetadata.Triggered && captureMetadata.ProcessingConfig.TriggerInterpolation)
-                    {
-                        if (captureMetadata.ProcessingConfig.ChannelDataType == ThunderscopeDataType.I8)
-                        {
-                            ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetChannelReadBuffer<sbyte>(captureMetadata.TriggerChannelCaptureIndex);
-                            // Get the trigger index. If it's greater than 0, then do trigger interpolation.
-                            int triggerIndex = (int)(captureMetadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
-                            if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
-                            {
-                                int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureMetadata.TriggerChannelCaptureIndex);
-                                ThunderscopeChannelFrontend triggerChannelFrontend = captureMetadata.HardwareConfig.Frontend[channelIndex];
-                                var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 256.0);
-                                var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
-
-                                float fa = channelScale * triggerChannelBuffer[triggerIndex - 1] - channelOffset;
-                                float fb = channelScale * triggerChannelBuffer[triggerIndex] - channelOffset;
-                                float triggerLevel = captureMetadata.ProcessingConfig.EdgeTriggerParameters.LevelV + channelOffset;
-                                float slope = fb - fa;
-                                float delta = triggerLevel - fa;
-                                float trigphase = delta / slope;
-                                chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
-                                if (!double.IsFinite(chHeader.trigphase))
-                                    chHeader.trigphase = 0;
-                                var delay = captureMetadata.ProcessingConfig.TriggerDelayFs - (ulong)triggerIndex * femtosecondsPerSample;
-                                chHeader.trigphase += delay;
-                            }
-                        }
-                        else
-                            chHeader.trigphase = 0;
-                    }
                     unsafe
                     {
-                        Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
-                        bytesSent += (ulong)sizeof(WaveformHeader);
-
+                        SendAll(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
                         for (byte captureBufferIndex = 0; captureBufferIndex < captureBuffer.ChannelCount; captureBufferIndex++)
                         {
-                            // Map captureBufferIndex to channelIndex
                             int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
-
                             ThunderscopeChannelFrontend thunderscopeChannel = captureMetadata.HardwareConfig.Frontend[channelIndex];
                             chHeader.channelIndex = (byte)channelIndex;
-                            switch(captureMetadata.ProcessingConfig.ChannelDataType)
+                            switch (captureMetadata.ProcessingConfig.ChannelDataType)
                             {
                                 case ThunderscopeDataType.I8:
                                     chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 256.0);
@@ -339,11 +344,9 @@ internal class WaveformSession : TcpSession
                                     break;
                             }
                             chHeader.offset = (float)thunderscopeChannel.ActualVoltOffset;
-
-                            Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
-                            bytesSent += (ulong)sizeof(ChannelHeader);
+                            SendAll(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
                             ReadOnlySpan<byte> channelBuffer = [];
-                            switch(captureMetadata.ProcessingConfig.ChannelDataType)
+                            switch (captureMetadata.ProcessingConfig.ChannelDataType)
                             {
                                 case ThunderscopeDataType.I8:
                                     var channelDataI8 = captureBuffer.GetChannelReadBuffer<sbyte>(captureBufferIndex);
@@ -354,8 +357,7 @@ internal class WaveformSession : TcpSession
                                     channelBuffer = MemoryMarshal.Cast<short, byte>(channelDataI16);
                                     break;
                             }
-                            Send(channelBuffer);
-                            bytesSent += (ulong)captureMetadata.ProcessingConfig.ChannelDataLength;
+                            SendAll(channelBuffer);
                         }
                     }
                     sequenceNumber++;
@@ -363,14 +365,10 @@ internal class WaveformSession : TcpSession
                     break;
                 }
                 else
-                {
                     noCapturesAvailable = true;
-                }
             }
             if (noCapturesAvailable)
-            {
                 Thread.Sleep(10);
-            }
         }
     }
 }
