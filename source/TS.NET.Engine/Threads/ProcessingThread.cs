@@ -183,7 +183,7 @@ public class ProcessingThread : IThread
                     switch (request)
                     {
                         case ProcessingRun processingRun:
-                            ResetProcessing();
+                            ResetAll();
                             if (processingConfig.Mode == Mode.Single)
                                 singleTriggerLatch = true;
                             StartHardware();
@@ -274,7 +274,7 @@ public class ProcessingThread : IThread
                                     processingConfig.Mode = processingSetMode.Mode;
                                     break;
                             }
-                            ResetProcessing();
+                            ResetAll();
                             uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                             logger.LogDebug($"{nameof(ProcessingSetMode)} (mode: {processingConfig.Mode})");
                             break;
@@ -282,7 +282,7 @@ public class ProcessingThread : IThread
                             if (processingConfig.ChannelDataLength != processingSetDepth.Samples)
                             {
                                 processingConfig.ChannelDataLength = processingSetDepth.Samples;
-                                ResetProcessing();
+                                ResetAll();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(ProcessingSetDepth)} ({processingConfig.ChannelDataLength})");
                             }
@@ -296,7 +296,7 @@ public class ProcessingThread : IThread
                             {
                                 processingConfig.SampleRateHz = processingSetRate.Rate;
                                 UpdateRateAndCoerce(forceRateUpdate: true);
-                                ResetProcessing();
+                                ResetAll();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(ProcessingSetRate)} ({processingConfig.SampleRateHz})");
                             }
@@ -318,7 +318,7 @@ public class ProcessingThread : IThread
 
                                 UpdateRateAndCoerce(forceRateUpdate: false);
                                 hardwareControl.Request.Writer.Write(new HardwareSetResolution(processingSetResolution.Resolution));
-                                ResetProcessing();
+                                ResetAll();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(ProcessingSetResolution)} ({processingSetResolution.Resolution})");
                             }
@@ -482,7 +482,7 @@ public class ProcessingThread : IThread
                     if (dataDto.HardwareConfig.EnabledChannelsCount() != cachedHardwareConfig.EnabledChannelsCount())
                     {
                         processingConfig.ChannelCount = dataDto.HardwareConfig.EnabledChannelsCount();
-                        ResetProcessing();
+                        ResetAll();
                         logger.LogDebug("Hardware enabled channel change ({channelCount})", processingConfig.ChannelCount);
                     }
 
@@ -860,7 +860,7 @@ public class ProcessingThread : IThread
                     hardwareControl.Request.Writer.Write(new HardwareSetRate(processingConfig.SampleRateHz));
             }
 
-            void ResetProcessing()
+            void ResetAll()
             {
                 // Reset sample buffers
                 foreach (var sampleBuffer in sampleBuffers)
