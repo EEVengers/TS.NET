@@ -94,22 +94,22 @@ internal class HardwareThread : IThread
                     // Do configuration update, pausing acquisition if necessary
                     switch (request)
                     {
-                        case HardwareStartRequest hardwareStartRequest:
+                        case HardwareStart hardwareStartRequest:
                             thunderscope.Start();
-                            logger.LogDebug($"{nameof(HardwareStartRequest)}");
+                            logger.LogDebug($"{nameof(HardwareStart)}");
                             break;
                         case HardwareStopRequest hardwareStopRequest:
                             thunderscope.Stop();
                             hardwareControl.Response.Writer.Write(new HardwareStopResponse());
                             logger.LogDebug($"{nameof(HardwareStopRequest)}");
                             break;
-                        case HardwareSetRateRequest hardwareSetRateRequest:
+                        case HardwareSetRate hardwareSetRateRequest:
                             {
                                 thunderscope.SetRate(hardwareSetRateRequest.Rate);
-                                logger.LogDebug($"{nameof(HardwareSetRateRequest)} (rate: {hardwareSetRateRequest.Rate})");
+                                logger.LogDebug($"{nameof(HardwareSetRate)} (rate: {hardwareSetRateRequest.Rate})");
                                 break;
                             }
-                        case HardwareSetResolutionRequest hardwareSetResolutionRequest:
+                        case HardwareSetResolution hardwareSetResolutionRequest:
                             {
                                 resolution = hardwareSetResolutionRequest.Resolution;
                                 dataType = resolution switch
@@ -119,7 +119,7 @@ internal class HardwareThread : IThread
                                     _ => throw new NotImplementedException()
                                 };
                                 thunderscope.SetResolution(hardwareSetResolutionRequest.Resolution);
-                                logger.LogDebug($"{nameof(HardwareSetResolutionRequest)} (resolution: {hardwareSetResolutionRequest.Resolution})");
+                                logger.LogDebug($"{nameof(HardwareSetResolution)} (resolution: {hardwareSetResolutionRequest.Resolution})");
                                 break;
                             }
                         case HardwareGetRateRequest hardwareGetRateRequest:
@@ -128,55 +128,6 @@ internal class HardwareThread : IThread
                                 var config = thunderscope.GetConfiguration();
                                 hardwareControl.Response.Writer.Write(new HardwareGetRateResponse(config.SampleRateHz));
                                 logger.LogDebug($"{nameof(HardwareGetRateResponse)}");
-                                break;
-                            }
-                        case HardwareGetRatesRequest hardwareGetRatesRequest:
-                            {
-                                logger.LogDebug($"{nameof(HardwareGetRatesRequest)}");
-                                var config = thunderscope.GetConfiguration();
-                                // Create driver & hardware configuration specific response
-                                List<ulong> rates = [];
-                                switch (thunderscope)
-                                {
-                                    case Driver.Libtslitex.Thunderscope liteXThunderscope:
-                                        {
-                                            switch (config.AdcChannelMode)
-                                            {
-                                                case AdcChannelMode.Single:
-                                                    if (config.Resolution == AdcResolution.EightBit)
-                                                        rates.Add(1_000_000_000);
-                                                    rates.Add(660_000_000);
-                                                    rates.Add(500_000_000);
-                                                    rates.Add(330_000_000);
-                                                    rates.Add(250_000_000);
-                                                    rates.Add(165_000_000);
-                                                    rates.Add(100_000_000);
-                                                    break;
-                                                case AdcChannelMode.Dual:
-                                                    if (config.Resolution == AdcResolution.EightBit)
-                                                        rates.Add(500_000_000);
-                                                    rates.Add(330_000_000);
-                                                    rates.Add(250_000_000);
-                                                    rates.Add(165_000_000);
-                                                    rates.Add(100_000_000);
-                                                    break;
-                                                case AdcChannelMode.Quad:
-                                                    if (config.Resolution == AdcResolution.EightBit)
-                                                        rates.Add(250_000_000);
-                                                    rates.Add(165_000_000);
-                                                    rates.Add(100_000_000);
-                                                    break;
-                                            }
-                                            break;
-                                        }
-                                    case Driver.Simulation.Thunderscope simulationThunderscope:
-                                        {
-                                            rates.Add(1000000000);
-                                            break;
-                                        }
-                                }
-                                hardwareControl.Response.Writer.Write(new HardwareGetRatesResponse(rates.ToArray()));
-                                logger.LogDebug($"{nameof(HardwareGetRatesResponse)}");
                                 break;
                             }
                         case HardwareGetResolutionRequest hardwareGetResolutionRequest:
@@ -236,10 +187,10 @@ internal class HardwareThread : IThread
                                 logger.LogDebug($"{nameof(HardwareGetTerminationRequest)}");
                                 break;
                             }
-                        case HardwareSetEnabledRequest hardwareSetEnabledRequest:
+                        case HardwareSetEnabled hardwareSetEnabledRequest:
                             {
-                                var channelIndex = ((HardwareSetEnabledRequest)request).ChannelIndex;
-                                logger.LogDebug($"{nameof(HardwareSetEnabledRequest)} (channel: {channelIndex}, enabled: {hardwareSetEnabledRequest.Enabled})");
+                                var channelIndex = ((HardwareSetEnabled)request).ChannelIndex;
+                                logger.LogDebug($"{nameof(HardwareSetEnabled)} (channel: {channelIndex}, enabled: {hardwareSetEnabledRequest.Enabled})");
                                 thunderscope.SetChannelEnable(channelIndex, hardwareSetEnabledRequest.Enabled);
                                 break;
                             }
@@ -249,24 +200,24 @@ internal class HardwareThread : IThread
                                 var channelFrontend = thunderscope.GetChannelFrontend(channelIndex);
                                 switch (request)
                                 {
-                                    case HardwareSetVoltOffsetRequest hardwareSetOffsetRequest:
-                                        logger.LogDebug($"{nameof(HardwareSetVoltOffsetRequest)} (channel: {channelIndex}, offset: {hardwareSetOffsetRequest.VoltOffset})");
+                                    case HardwareSetVoltOffset hardwareSetOffsetRequest:
+                                        logger.LogDebug($"{nameof(HardwareSetVoltOffset)} (channel: {channelIndex}, offset: {hardwareSetOffsetRequest.VoltOffset})");
                                         channelFrontend.RequestedVoltOffset = hardwareSetOffsetRequest.VoltOffset;
                                         break;
-                                    case HardwareSetVoltFullScaleRequest hardwareSetVdivRequest:
-                                        logger.LogDebug($"{nameof(HardwareSetVoltFullScaleRequest)} (channel: {channelIndex}, scale: {hardwareSetVdivRequest.VoltFullScale})");
+                                    case HardwareSetVoltFullScale hardwareSetVdivRequest:
+                                        logger.LogDebug($"{nameof(HardwareSetVoltFullScale)} (channel: {channelIndex}, scale: {hardwareSetVdivRequest.VoltFullScale})");
                                         channelFrontend.RequestedVoltFullScale = hardwareSetVdivRequest.VoltFullScale;
                                         break;
-                                    case HardwareSetBandwidthRequest hardwareSetBandwidthRequest:
-                                        logger.LogDebug($"{nameof(HardwareSetBandwidthRequest)} (channel: {channelIndex}, bandwidth: {hardwareSetBandwidthRequest.Bandwidth})");
+                                    case HardwareSetBandwidth hardwareSetBandwidthRequest:
+                                        logger.LogDebug($"{nameof(HardwareSetBandwidth)} (channel: {channelIndex}, bandwidth: {hardwareSetBandwidthRequest.Bandwidth})");
                                         channelFrontend.Bandwidth = hardwareSetBandwidthRequest.Bandwidth;
                                         break;
-                                    case HardwareSetCouplingRequest hardwareSetCouplingRequest:
-                                        logger.LogDebug($"{nameof(HardwareSetCouplingRequest)} (channel: {channelIndex}, coupling: {hardwareSetCouplingRequest.Coupling})");
+                                    case HardwareSetCoupling hardwareSetCouplingRequest:
+                                        logger.LogDebug($"{nameof(HardwareSetCoupling)} (channel: {channelIndex}, coupling: {hardwareSetCouplingRequest.Coupling})");
                                         channelFrontend.Coupling = hardwareSetCouplingRequest.Coupling;
                                         break;
-                                    case HardwareSetTerminationRequest hardwareSetTerminationRequest:
-                                        logger.LogDebug($"{nameof(HardwareSetTerminationRequest)} (channel: {channelIndex}, termination: {hardwareSetTerminationRequest.Termination})");
+                                    case HardwareSetTermination hardwareSetTerminationRequest:
+                                        logger.LogDebug($"{nameof(HardwareSetTermination)} (channel: {channelIndex}, termination: {hardwareSetTerminationRequest.Termination})");
                                         channelFrontend.Termination = hardwareSetTerminationRequest.Termination;
                                         break;
                                     default:
@@ -276,7 +227,7 @@ internal class HardwareThread : IThread
                                 thunderscope.SetChannelFrontend(channelIndex, channelFrontend);
                                 break;
                             }
-                        case HardwareSetChannelManualControlRequest hardwareSetChannelManualControlRequest:
+                        case HardwareSetChannelManualControl hardwareSetChannelManualControlRequest:
                             {
                                 var channelIndex = hardwareSetChannelManualControlRequest.ChannelIndex;
                                 var channel = hardwareSetChannelManualControlRequest.Channel;
@@ -284,7 +235,7 @@ internal class HardwareThread : IThread
                                 ((Driver.Libtslitex.Thunderscope)thunderscope).SetChannelManualControl(channelIndex, channel);
                                 break;
                             }
-                        case HardwareSetAdcCalibrationRequest hardwareSetAdcCalibrationRequest:
+                        case HardwareSetAdcCalibration hardwareSetAdcCalibrationRequest:
                             {
                                 ((Driver.Libtslitex.Thunderscope)thunderscope).SetAdcCalibration(hardwareSetAdcCalibrationRequest.AdcCalibration);
                                 break;

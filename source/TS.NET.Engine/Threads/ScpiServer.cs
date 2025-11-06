@@ -207,32 +207,32 @@ internal class ScpiSession : TcpSession
                         {
                             case "START":   //Obsolete
                             case "RUN":
-                                processingControl.Request.Writer.Write(new ProcessingRunDto());
-                                logger.LogDebug($"{nameof(ProcessingRunDto)} sent");
+                                processingControl.Request.Writer.Write(new ProcessingRun());
+                                logger.LogDebug($"{nameof(ProcessingRun)} sent");
                                 return null;
                             case "STOP":
-                                processingControl.Request.Writer.Write(new ProcessingStopDto());
-                                logger.LogDebug($"{nameof(ProcessingStopDto)} sent");
+                                processingControl.Request.Writer.Write(new ProcessingStop());
+                                logger.LogDebug($"{nameof(ProcessingStop)} sent");
                                 return null;
                             case "FORCE":
-                                processingControl.Request.Writer.Write(new ProcessingForceDto());
-                                logger.LogDebug($"{nameof(ProcessingForceDto)} sent");
+                                processingControl.Request.Writer.Write(new ProcessingForce());
+                                logger.LogDebug($"{nameof(ProcessingForce)} sent");
                                 return null;
                             case "SINGLE":
-                                processingControl.Request.Writer.Write(new ProcessingSetModeDto(Mode.Single));
-                                logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
+                                processingControl.Request.Writer.Write(new ProcessingSetMode(Mode.Single));
+                                logger.LogDebug($"{nameof(ProcessingSetMode)} sent");
                                 return null;
                             case "NORMAL":
-                                processingControl.Request.Writer.Write(new ProcessingSetModeDto(Mode.Normal));
-                                logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
+                                processingControl.Request.Writer.Write(new ProcessingSetMode(Mode.Normal));
+                                logger.LogDebug($"{nameof(ProcessingSetMode)} sent");
                                 return null;
                             case "AUTO":
-                                processingControl.Request.Writer.Write(new ProcessingSetModeDto(Mode.Auto));
-                                logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
+                                processingControl.Request.Writer.Write(new ProcessingSetMode(Mode.Auto));
+                                logger.LogDebug($"{nameof(ProcessingSetMode)} sent");
                                 return null;
                             case "STREAM":
-                                processingControl.Request.Writer.Write(new ProcessingSetModeDto(Mode.Stream));
-                                logger.LogDebug($"{nameof(ProcessingSetModeDto)} sent");
+                                processingControl.Request.Writer.Write(new ProcessingSetMode(Mode.Stream));
+                                logger.LogDebug($"{nameof(ProcessingSetMode)} sent");
                                 return null;
                         }
                         break;
@@ -246,22 +246,22 @@ internal class ScpiSession : TcpSession
                             case var _ when command.StartsWith("RATE") && argument != null:
                                 {
                                     ulong rate = Convert.ToUInt64(argument);
-                                    hardwareControl.Request.Writer.Write(new HardwareSetRateRequest(rate));
-                                    logger.LogDebug($"{nameof(HardwareSetRateRequest)} sent with argument: {rate}");
+                                    processingControl.Request.Writer.Write(new ProcessingSetRate(rate));
+                                    logger.LogDebug($"{nameof(ProcessingSetRate)} sent with argument: {rate}");
                                     return null;
                                 }
                             case var _ when command.StartsWith("DEPTH") && argument != null:
                                 {
                                     var depth = Convert.ToInt32(argument);
-                                    processingControl.Request.Writer.Write(new ProcessingSetDepthDto(depth));
-                                    logger.LogDebug($"{nameof(ProcessingSetDepthDto)} sent with argument: {depth}");
+                                    processingControl.Request.Writer.Write(new ProcessingSetDepth(depth));
+                                    logger.LogDebug($"{nameof(ProcessingSetDepth)} sent with argument: {depth}");
                                     return null;
                                 }
                             case var _ when command.StartsWith("RES") && argument != null:
                                 {
                                     var resolution = Convert.ToInt32(argument) switch { 8 => AdcResolution.EightBit, 12 => AdcResolution.TwelveBit, _ => AdcResolution.EightBit };
-                                    hardwareControl.Request.Writer.Write(new HardwareSetResolutionRequest(resolution));
-                                    logger.LogDebug($"{nameof(HardwareSetResolutionRequest)} sent with argument: {resolution}");
+                                    processingControl.Request.Writer.Write(new ProcessingSetResolution(resolution));
+                                    logger.LogDebug($"{nameof(ProcessingSetResolution)} sent with argument: {resolution}");
                                     return null;
                                 }
 
@@ -296,7 +296,7 @@ internal class ScpiSession : TcpSession
                                         triggerChannel = (TriggerChannel)source;
                                     }
                                     logger.LogDebug($"Set trigger source to {triggerChannel}");
-                                    processingControl.Request.Writer.Write(new ProcessingSetTriggerSourceDto(triggerChannel));
+                                    processingControl.Request.Writer.Write(new ProcessingSetTriggerSource(triggerChannel));
                                     return null;
                                 }
                             case var _ when command.StartsWith("TYPE") && argument != null:
@@ -323,7 +323,7 @@ internal class ScpiSession : TcpSession
                                     }
 
                                     logger.LogDebug($"Set trigger type to {triggerType}");
-                                    processingControl.Request.Writer.Write(new ProcessingSetTriggerTypeDto(triggerType.Value));
+                                    processingControl.Request.Writer.Write(new ProcessingSetTriggerType(triggerType.Value));
                                     return null;
                                 }
                             case var _ when command.StartsWith("DEL") && argument != null:
@@ -334,7 +334,7 @@ internal class ScpiSession : TcpSession
                                     logger.LogDebug($"Set trigger delay to {delay}fs");
                                     if (delay < 0)
                                         delay = 0;      // To do: allow negative delays
-                                    processingControl.Request.Writer.Write(new ProcessingSetTriggerDelayDto((ulong)delay));
+                                    processingControl.Request.Writer.Write(new ProcessingSetTriggerDelay((ulong)delay));
                                     return null;
                                 }
                             case var _ when command.StartsWith("HOLD") && argument != null:
@@ -343,7 +343,7 @@ internal class ScpiSession : TcpSession
                                     // TRIG:HOLD <arg>
                                     long holdoff = Convert.ToInt64(argument);
                                     logger.LogDebug($"Set trigger holdoff to {holdoff}fs");
-                                    processingControl.Request.Writer.Write(new ProcessingSetTriggerHoldoffDto((ulong)holdoff));
+                                    processingControl.Request.Writer.Write(new ProcessingSetTriggerHoldoff((ulong)holdoff));
                                     return null;
                                 }
                             case var _ when command.StartsWith("INTER") && argument != null:
@@ -359,16 +359,16 @@ internal class ScpiSession : TcpSession
                                         _ => true       // Default to true
                                     };
                                     logger.LogDebug($"Set trigger interpolation to {enabled}V");
-                                    processingControl.Request.Writer.Write(new ProcessingSetTriggerInterpolationDto(enabled));
+                                    processingControl.Request.Writer.Write(new ProcessingSetTriggerInterpolation(enabled));
                                     return null;
                                 }
                             case var _ when command.StartsWith("EDGE:LEV") && argument != null:
                                 {
                                     // TRIGger:EDGE:LEVel <arg>
                                     // TRIG:EDGE:LEV <arg>
-                                    double level = Convert.ToDouble(argument);
+                                    float level = (float)Convert.ToDouble(argument);
                                     logger.LogDebug($"Set trigger level to {level}V");
-                                    processingControl.Request.Writer.Write(new ProcessingSetEdgeTriggerLevelDto(level));
+                                    processingControl.Request.Writer.Write(new ProcessingSetEdgeTriggerLevel(level));
                                     return null;
                                 }
                             case var _ when command.StartsWith("EDGE:DIR") && argument != null:
@@ -384,7 +384,7 @@ internal class ScpiSession : TcpSession
                                         "ANY" => EdgeDirection.Any,
                                         _ => throw new NotImplementedException()
                                     };
-                                    processingControl.Request.Writer.Write(new ProcessingSetEdgeTriggerDirectionDto(type));
+                                    processingControl.Request.Writer.Write(new ProcessingSetEdgeTriggerDirection(type));
                                     return null;
                                 }
                         }
@@ -400,7 +400,8 @@ internal class ScpiSession : TcpSession
                         {
                             case "ON" or "OFF":
                                 {
-                                    hardwareControl.Request.Writer.Write(new HardwareSetEnabledRequest(channelIndex, command == "ON"));
+                                    logger.LogWarning("To do: use ProcessingSetEnabled");
+                                    hardwareControl.Request.Writer.Write(new HardwareSetEnabled(channelIndex, command == "ON"));
                                     return null;
                                 }
                             case var _ when command.StartsWith("BAND") && argument != null:
@@ -409,7 +410,7 @@ internal class ScpiSession : TcpSession
                                     // CHAN1:BAND <arg>
                                     if (GetBandwidth(argument) is not ThunderscopeBandwidth thunderscopeBandwidth)
                                         return null;
-                                    hardwareControl.Request.Writer.Write(new HardwareSetBandwidthRequest(channelIndex, thunderscopeBandwidth));
+                                    hardwareControl.Request.Writer.Write(new HardwareSetBandwidth(channelIndex, thunderscopeBandwidth));
                                     return null;
                                 }
                             case var _ when command.StartsWith("COUP") && argument != null:
@@ -427,7 +428,7 @@ internal class ScpiSession : TcpSession
                                         logger.LogWarning("Coupling parameter not recognised");
                                         return null;
                                     }
-                                    hardwareControl.Request.Writer.Write(new HardwareSetCouplingRequest(channelIndex, (ThunderscopeCoupling)thunderscopeCoupling));
+                                    hardwareControl.Request.Writer.Write(new HardwareSetCoupling(channelIndex, (ThunderscopeCoupling)thunderscopeCoupling));
                                     return null;
                                 }
                             case var _ when command.StartsWith("TERM") && argument != null:
@@ -436,7 +437,7 @@ internal class ScpiSession : TcpSession
                                     // CHAN1:TERM <arg>
                                     if (GetTermination(argument) is not ThunderscopeTermination thunderscopeTermination)
                                         return null;
-                                    hardwareControl.Request.Writer.Write(new HardwareSetTerminationRequest(channelIndex, thunderscopeTermination));
+                                    hardwareControl.Request.Writer.Write(new HardwareSetTermination(channelIndex, thunderscopeTermination));
                                     return null;
                                 }
                             case var _ when command.StartsWith("OFFS") && argument != null:
@@ -445,14 +446,14 @@ internal class ScpiSession : TcpSession
                                     // CHAN1:OFFS <arg>
                                     double offset = Convert.ToDouble(argument);
                                     offset = Math.Clamp(offset, -50, 50);     // Change to final values later
-                                    hardwareControl.Request.Writer.Write(new HardwareSetVoltOffsetRequest(channelIndex, offset));
+                                    hardwareControl.Request.Writer.Write(new HardwareSetVoltOffset(channelIndex, offset));
                                     return null;
                                 }
                             case var _ when command.StartsWith("RANG") && argument != null:
                                 {
                                     double range = Convert.ToDouble(argument);
                                     range = Math.Clamp(range, -50, 50);       // Change to final values later
-                                    hardwareControl.Request.Writer.Write(new HardwareSetVoltFullScaleRequest(channelIndex, range));
+                                    hardwareControl.Request.Writer.Write(new HardwareSetVoltFullScale(channelIndex, range));
                                     return null;
                                 }
                             default:
@@ -542,7 +543,7 @@ internal class ScpiSession : TcpSession
                                             return null;
                                         channel.PgaFilter = thunderscopeBandwidth;
 
-                                        hardwareControl.Request.Writer.Write(new HardwareSetChannelManualControlRequest(channelIndex, channel));
+                                        hardwareControl.Request.Writer.Write(new HardwareSetChannelManualControl(channelIndex, channel));
                                     }
                                     catch
                                     {
@@ -570,7 +571,7 @@ internal class ScpiSession : TcpSession
                                         adcCal.FineGainBranch6 = Convert.ToByte(args[5]);
                                         adcCal.FineGainBranch7 = Convert.ToByte(args[6]);
                                         adcCal.FineGainBranch8 = Convert.ToByte(args[7]);
-                                        hardwareControl.Request.Writer.Write(new HardwareSetAdcCalibrationRequest(adcCal));
+                                        hardwareControl.Request.Writer.Write(new HardwareSetAdcCalibration(adcCal));
                                     }
                                     catch
                                     {
@@ -644,30 +645,30 @@ internal class ScpiSession : TcpSession
                         return GetDepth();
                     case var _ when command.StartsWith("RES"):
                         {
-                            hardwareControl.Request.Writer.Write(new HardwareGetResolutionRequest());
-                            if (hardwareControl.Response.Reader.TryRead(out var response, 500))
+                            processingControl.Request.Writer.Write(new ProcessingGetResolutionRequest());
+                            if (processingControl.Response.Reader.TryRead(out var response, 500))
                             {
-                                if (response is HardwareGetResolutionResponse hardwareGetResolutionResponse)
+                                if (response is ProcessingGetResolutionResponse processingGetResolutionResponse)
                                 {
-                                    switch (hardwareGetResolutionResponse.Resolution)
+                                    switch (processingGetResolutionResponse.Resolution)
                                     {
                                         case AdcResolution.EightBit:
                                             return "8\n";
                                         case AdcResolution.TwelveBit:
                                             return "12\n";
                                         default:
-                                            logger.LogError($"{subject}:RES? - Unhandled response from {nameof(hardwareControl.Response.Reader)}");
+                                            logger.LogError($"{subject}:RES? - Unhandled response from {nameof(processingControl.Response.Reader)}");
                                             break;
                                     }
                                 }
                                 else
                                 {
-                                    logger.LogError($"{subject}:RES? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                    logger.LogError($"{subject}:RES? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                 }
                             }
                             else
                             {
-                                logger.LogError($"{subject}:RES? - No response from {nameof(hardwareControl.Response.Reader)}");
+                                logger.LogError($"{subject}:RES? - No response from {nameof(processingControl.Response.Reader)}");
                             }
                             return "Error: No/bad response from channel.\n";
                         }
@@ -979,37 +980,37 @@ internal class ScpiSession : TcpSession
 
         string GetRates()
         {
-            hardwareControl.Request.Writer.Write(new HardwareGetRatesRequest());
-            if (hardwareControl.Response.Reader.TryRead(out var response, 500))
+            processingControl.Request.Writer.Write(new ProcessingGetRatesRequest());
+            if (processingControl.Response.Reader.TryRead(out var response, 500))
             {
                 switch (response)
                 {
-                    case HardwareGetRatesResponse hardwareGetRatesResponse:
-                        return $"{string.Join(",", hardwareGetRatesResponse.SampleRatesHz)},\n";
+                    case ProcessingGetRatesResponse processingGetRatesResponse:
+                        return $"{string.Join(",", processingGetRatesResponse.SampleRatesHz)},\n";
                     default:
-                        logger.LogError($"RATES? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                        logger.LogError($"RATES? - Invalid response from {nameof(processingControl.Response.Reader)}");
                         break;
                 }
             }
-            logger.LogError($"RATES? - No response from {nameof(hardwareControl.Response.Reader)}");
+            logger.LogError($"RATES? - No response from {nameof(processingControl.Response.Reader)}");
             return "Error: No/bad response from channel.\n";
         }
 
         string GetRate()
         {
-            hardwareControl.Request.Writer.Write(new HardwareGetRateRequest());
-            if (hardwareControl.Response.Reader.TryRead(out var response, 500))
+            processingControl.Request.Writer.Write(new ProcessingGetRateRequest());
+            if (processingControl.Response.Reader.TryRead(out var response, 500))
             {
                 switch (response)
                 {
-                    case HardwareGetRateResponse hardwareGetRateResponse:
-                        return $"{hardwareGetRateResponse.SampleRateHz}\n";
+                    case ProcessingGetRateResponse processingGetRateResponse:
+                        return $"{processingGetRateResponse.SampleRateHz}\n";
                     default:
-                        logger.LogError($"RATE? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                        logger.LogError($"RATE? - Invalid response from {nameof(processingControl.Response.Reader)}");
                         break;
                 }
             }
-            logger.LogError($"RATE? - No response from {nameof(hardwareControl.Response.Reader)}");
+            logger.LogError($"RATE? - No response from {nameof(processingControl.Response.Reader)}");
             return "Error: No/bad response from channel.\n";
         }
 

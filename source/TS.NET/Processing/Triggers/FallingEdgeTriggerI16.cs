@@ -18,29 +18,30 @@ public class FallingEdgeTriggerI16 : ITriggerI16
     private long holdoffSamples;
     private long holdoffRemaining;
 
-    public FallingEdgeTriggerI16(EdgeTriggerParameters parameters)
+    public FallingEdgeTriggerI16(EdgeTriggerParameters parameters, AdcResolution adcResolution, double triggerChannelVpp)
     {
-        SetParameters(parameters);
+        SetParameters(parameters, adcResolution, triggerChannelVpp);
         SetHorizontal(1000000, 0, 0);
     }
 
-    public void SetParameters(EdgeTriggerParameters parameters)
+    public void SetParameters(EdgeTriggerParameters parameters, AdcResolution adcResolution, double triggerChannelVpp)
     {
-        parameters.Hysteresis = Math.Abs(parameters.Hysteresis);
+        int hysteresisCount = TriggerUtility.HysteresisValue(adcResolution, parameters.HysteresisPercent);
+        int levelCount = TriggerUtility.LevelValue(adcResolution, parameters.LevelV, triggerChannelVpp);
 
-        if (parameters.Level <= short.MinValue)
-            parameters.Level = short.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
+        if (levelCount <= TriggerUtility.AdcMin(adcResolution))
+            levelCount = TriggerUtility.AdcMin(adcResolution) + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
 
         triggerState = TriggerState.Unarmed;
-        triggerLevel = (short)parameters.Level;     // Logic = LT
+        triggerLevel = (short)levelCount;     // Logic = LT
 
-        if((parameters.Level + parameters.Hysteresis) > short.MaxValue)
+        if((levelCount + hysteresisCount) > TriggerUtility.AdcMax(adcResolution))
         {
-            armLevel = short.MaxValue;              // Logic = GTE
+            armLevel = (short)TriggerUtility.AdcMax(adcResolution);        // Logic = GTE
         }    
         else
         {
-            armLevel = (short)(parameters.Level + parameters.Hysteresis);
+            armLevel = (short)(levelCount + hysteresisCount);
         }
     }
 

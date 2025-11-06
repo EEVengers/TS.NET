@@ -18,29 +18,30 @@ public class FallingEdgeTriggerI8 : ITriggerI8
     private long holdoffSamples;
     private long holdoffRemaining;
 
-    public FallingEdgeTriggerI8(EdgeTriggerParameters parameters)
+    public FallingEdgeTriggerI8(EdgeTriggerParameters parameters, double triggerChannelVpp)
     {
-        SetParameters(parameters);
+        SetParameters(parameters, triggerChannelVpp);
         SetHorizontal(1000000, 0, 0);
     }
 
-    public void SetParameters(EdgeTriggerParameters parameters)
+    public void SetParameters(EdgeTriggerParameters parameters, double triggerChannelVpp)
     {
-        parameters.Hysteresis = Math.Abs(parameters.Hysteresis);
+        int hysteresisCount = TriggerUtility.HysteresisValue(AdcResolution.EightBit, parameters.HysteresisPercent);
+        int levelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.LevelV, triggerChannelVpp);
 
-        if (parameters.Level <= sbyte.MinValue)
-            parameters.Level = sbyte.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
+        if (levelCount <= sbyte.MinValue)
+            levelCount = sbyte.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
 
         triggerState = TriggerState.Unarmed;
-        triggerLevel = (sbyte)parameters.Level;     // Logic = LT
+        triggerLevel = (sbyte)levelCount;     // Logic = LT
 
-        if((parameters.Level + parameters.Hysteresis) > sbyte.MaxValue)
+        if((levelCount + hysteresisCount) > sbyte.MaxValue)
         {
             armLevel = sbyte.MaxValue;              // Logic = GTE
         }    
         else
         {
-            armLevel = (sbyte)(parameters.Level + parameters.Hysteresis);
+            armLevel = (sbyte)(levelCount + hysteresisCount);
         }
     }
 

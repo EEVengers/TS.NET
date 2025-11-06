@@ -4,8 +4,13 @@ public abstract record ProcessingResponseDto();
 
 //public record ProcessingGetRateResponseDto(uint SampleRate) : ProcessingResponseDto();
 public record ProcessingGetStateResponse(bool Run) : ProcessingResponseDto();
+
+public record ProcessingGetRatesResponse(ulong[] SampleRatesHz) : ProcessingResponseDto;
+
 public record ProcessingGetModeResponse(Mode Mode) : ProcessingResponseDto();
 public record ProcessingGetDepthResponse(int Depth) : ProcessingResponseDto();
+public record ProcessingGetRateResponse(ulong SampleRateHz) : ProcessingResponseDto;
+public record ProcessingGetResolutionResponse(AdcResolution Resolution) : ProcessingResponseDto();
 
 // Trigger query responses
 public record ProcessingGetTriggerSourceResponse(TriggerChannel Channel) : ProcessingResponseDto();

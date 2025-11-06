@@ -18,33 +18,30 @@ public class RisingEdgeTriggerI16 : ITriggerI16
     private long holdoffSamples;
     private long holdoffRemaining;
 
-    public RisingEdgeTriggerI16(EdgeTriggerParameters parameters)
+    public RisingEdgeTriggerI16(EdgeTriggerParameters parameters, AdcResolution adcResolution, double triggerChannelVpp)
     {
-        SetParameters(parameters);
+        SetParameters(parameters, adcResolution, triggerChannelVpp);
         SetHorizontal(1000000, 0, 0);
     }
 
-    public void SetParameters(EdgeTriggerParameters parameters)
+    public void SetParameters(EdgeTriggerParameters parameters, AdcResolution adcResolution, double triggerChannelVpp)
     {
-        // Bodge, probably need to change EdgeTriggerParameters to either normalised full range, or volts
-        parameters.Hysteresis *= 256;
-        parameters.Level *= 256;
+        int hysteresisCount = TriggerUtility.HysteresisValue(adcResolution, parameters.HysteresisPercent);
+        int levelCount = TriggerUtility.LevelValue(adcResolution, parameters.LevelV, triggerChannelVpp);
 
-        parameters.Hysteresis = Math.Abs(parameters.Hysteresis);
-
-        if (parameters.Level >= short.MaxValue)
-            parameters.Level = short.MaxValue - 1;  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms             
+        if (levelCount >= TriggerUtility.AdcMax(adcResolution))
+            levelCount = TriggerUtility.AdcMax(adcResolution) - 1;  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms             
 
         triggerState = TriggerState.Unarmed;
-        triggerLevel = (short)parameters.Level;     // Logic = GT
+        triggerLevel = (short)levelCount;     // Logic = GT
 
-        if ((parameters.Level - parameters.Hysteresis) < short.MinValue)
+        if ((levelCount - hysteresisCount) < TriggerUtility.AdcMin(adcResolution))
         {
-            armLevel = short.MinValue;              // Logic = LTE
+            armLevel = (short)TriggerUtility.AdcMin(adcResolution);     // Logic = LTE
         }
         else
         {
-            armLevel = (short)(parameters.Level - parameters.Hysteresis);
+            armLevel = (short)(levelCount - hysteresisCount);
         }
     }
 

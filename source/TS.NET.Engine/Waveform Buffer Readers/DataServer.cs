@@ -204,7 +204,7 @@ internal class WaveformSession : TcpSession
 
                             float fa = channelScale * triggerChannelBuffer[triggerIndex - 1] - channelOffset;
                             float fb = channelScale * triggerChannelBuffer[triggerIndex] - channelOffset;
-                            float triggerLevel = channelScale * captureMetadata.ProcessingConfig.EdgeTriggerParameters.Level + channelOffset;
+                            float triggerLevel = captureMetadata.ProcessingConfig.EdgeTriggerParameters.LevelV + channelOffset;
                             float slope = fb - fa;
                             float delta = triggerLevel - fa;
                             float trigphase = delta / slope;
@@ -303,7 +303,7 @@ internal class WaveformSession : TcpSession
 
                                 float fa = channelScale * triggerChannelBuffer[triggerIndex - 1] - channelOffset;
                                 float fb = channelScale * triggerChannelBuffer[triggerIndex] - channelOffset;
-                                float triggerLevel = channelScale * captureMetadata.ProcessingConfig.EdgeTriggerParameters.Level + channelOffset;
+                                float triggerLevel = captureMetadata.ProcessingConfig.EdgeTriggerParameters.LevelV + channelOffset;
                                 float slope = fb - fa;
                                 float delta = triggerLevel - fa;
                                 float trigphase = delta / slope;
@@ -346,10 +346,12 @@ internal class WaveformSession : TcpSession
                             switch(captureMetadata.ProcessingConfig.ChannelDataType)
                             {
                                 case ThunderscopeDataType.I8:
-                                    channelBuffer = MemoryMarshal.Cast<sbyte, byte>(captureBuffer.GetChannelReadBuffer<sbyte>(captureBufferIndex));
+                                    var channelDataI8 = captureBuffer.GetChannelReadBuffer<sbyte>(captureBufferIndex);
+                                    channelBuffer = MemoryMarshal.Cast<sbyte, byte>(channelDataI8);
                                     break;
                                 case ThunderscopeDataType.I16:
-                                    channelBuffer = MemoryMarshal.Cast<short, byte>(captureBuffer.GetChannelReadBuffer<short>(captureBufferIndex));
+                                    var channelDataI16 = captureBuffer.GetChannelReadBuffer<short>(captureBufferIndex);
+                                    channelBuffer = MemoryMarshal.Cast<short, byte>(channelDataI16);
                                     break;
                             }
                             Send(channelBuffer);

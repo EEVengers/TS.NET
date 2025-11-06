@@ -7,6 +7,8 @@ namespace TS.NET
     {
         // If the contents of this struct changes, consider incrementing the BuildVersion on ThunderscopeBridgeHeader
 
+        public AdcResolution AdcResolution;
+        public ulong SampleRateHz;
         public ushort ChannelCount;     // From 1 to ThunderscopeBridgeHeader.MaxChannelCount
         public int ChannelDataLength;   // From 1 to ThunderscopeBridgeHeader.MaxChannelDataLength
         public ThunderscopeDataType ChannelDataType;

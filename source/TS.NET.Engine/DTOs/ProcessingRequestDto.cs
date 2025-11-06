@@ -2,18 +2,38 @@
 
 public abstract record ProcessingRequestDto();
 
-// Control
-public record ProcessingRunDto() : ProcessingRequestDto, INotificationDto;
-public record ProcessingStopDto() : ProcessingRequestDto, INotificationDto;
-public record ProcessingForceDto() : ProcessingRequestDto, INotificationDto;
-public record ProcessingSetModeDto(Mode Mode) : ProcessingRequestDto, INotificationDto;
-public record ProcessingSetDepthDto(int Samples) : ProcessingRequestDto, INotificationDto;
+// Only DTOs that generate a response, have "Request" in the name. 
 
+// State
+public record ProcessingRun() : ProcessingRequestDto, INotificationDto;
+public record ProcessingStop() : ProcessingRequestDto, INotificationDto;
+public record ProcessingForce() : ProcessingRequestDto, INotificationDto;
+
+public record ProcessingGetRatesRequest() : ProcessingRequestDto;       // A collection of possible logical rates depending on hardware configuration, not an exhaustive list of all rates
+
+// Set
+public record ProcessingSetMode(Mode Mode) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetDepth(int Samples) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetRate(ulong Rate) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetResolution(AdcResolution Resolution) : ProcessingRequestDto, INotificationDto;
+
+public record ProcessingSetTriggerSource(TriggerChannel Channel) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetTriggerType(TriggerType Type) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetTriggerDelay(ulong Femtoseconds) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetTriggerHoldoff(ulong Femtoseconds) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetTriggerInterpolation(bool Enabled) : ProcessingRequestDto, INotificationDto;
+
+public record ProcessingSetEdgeTriggerLevel(float LevelVolts) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetEdgeTriggerDirection(EdgeDirection Edge) : ProcessingRequestDto, INotificationDto;
+
+// Get
 public record ProcessingGetStateRequest() : ProcessingRequestDto;
+
 public record ProcessingGetModeRequest() : ProcessingRequestDto;
 public record ProcessingGetDepthRequest() : ProcessingRequestDto;
+public record ProcessingGetRateRequest() : ProcessingRequestDto;
+public record ProcessingGetResolutionRequest() : ProcessingRequestDto;
 
-// Trigger query requests
 public record ProcessingGetTriggerSourceRequest() : ProcessingRequestDto;
 public record ProcessingGetTriggerTypeRequest() : ProcessingRequestDto;
 public record ProcessingGetTriggerDelayRequest() : ProcessingRequestDto;
@@ -22,20 +42,3 @@ public record ProcessingGetTriggerInterpolationRequest() : ProcessingRequestDto;
 
 public record ProcessingGetEdgeTriggerLevelRequest() : ProcessingRequestDto;
 public record ProcessingGetEdgeTriggerDirectionRequest() : ProcessingRequestDto;
-
-// Trigger configuration
-public record ProcessingSetTriggerSourceDto(TriggerChannel Channel) : ProcessingRequestDto, INotificationDto;
-public record ProcessingSetTriggerTypeDto(TriggerType Type) : ProcessingRequestDto, INotificationDto;
-public record ProcessingSetTriggerDelayDto(ulong Femtoseconds) : ProcessingRequestDto, INotificationDto;
-public record ProcessingSetTriggerHoldoffDto(ulong Femtoseconds) : ProcessingRequestDto, INotificationDto;
-public record ProcessingSetTriggerInterpolationDto(bool Enabled) : ProcessingRequestDto, INotificationDto;
-
-// EdgeTriggerParameters { Level = 0, Hysteresis = 5, Direction = EdgeDirection.Rising }
-public record ProcessingSetEdgeTriggerLevelDto(double LevelVolts) : ProcessingRequestDto, INotificationDto;
-//public record ProcessingSetEdgeTriggerHysteresisDto(int Hysteresis) : ProcessingRequestDto;
-public record ProcessingSetEdgeTriggerDirectionDto(EdgeDirection Edge) : ProcessingRequestDto, INotificationDto;
-
-// BurstTriggerParameters { WindowHighLevel = 64, WindowLowLevel = -64, MinimumInRangePeriod = 450000 }
-// ...
-
-public record ProcessingSetBoxcarFilter(BoxcarAveraging Averages) : ProcessingRequestDto;

@@ -18,40 +18,41 @@ public class AnyEdgeTriggerI16 : ITriggerI16
     private long holdoffSamples;
     private long holdoffRemaining;
 
-    public AnyEdgeTriggerI16(EdgeTriggerParameters parameters)
+    public AnyEdgeTriggerI16(EdgeTriggerParameters parameters, AdcResolution resolution, double triggerChannelVpp)
     {
-        SetParameters(parameters);
+        SetParameters(parameters, resolution, triggerChannelVpp);
         SetHorizontal(1000000, 0, 0);
     }
 
-    public void SetParameters(EdgeTriggerParameters parameters)
+    public void SetParameters(EdgeTriggerParameters parameters, AdcResolution adcResolution, double triggerChannelVpp)
     {
-        parameters.Hysteresis = Math.Abs(parameters.Hysteresis);
+        int hysteresisCount = TriggerUtility.HysteresisValue(adcResolution, parameters.HysteresisPercent);
+        int levelCount = TriggerUtility.LevelValue(adcResolution, parameters.LevelV, triggerChannelVpp);
 
-        if (parameters.Level <= short.MinValue)
-            parameters.Level = short.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
-        if (parameters.Level >= short.MaxValue)
-            parameters.Level = short.MaxValue - 1;  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms
+        if (levelCount <= TriggerUtility.AdcMin(adcResolution))
+            levelCount = TriggerUtility.AdcMin(adcResolution) + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
+        if (levelCount >= TriggerUtility.AdcMax(adcResolution))
+            levelCount = TriggerUtility.AdcMax(adcResolution) - 1;  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms
 
         triggerState = TriggerState.Unarmed;
-        triggerLevel = (short)parameters.Level;
+        triggerLevel = (short)levelCount;
 
-        if ((parameters.Level + parameters.Hysteresis) > short.MaxValue)
+        if ((levelCount + hysteresisCount) > TriggerUtility.AdcMax(adcResolution))
         {
-            upperArmLevel = short.MaxValue;              // Logic = GTE
+            upperArmLevel = (short)TriggerUtility.AdcMax(adcResolution);    // Logic = GTE
         }
         else
         {
-            upperArmLevel = (short)(parameters.Level + parameters.Hysteresis);
+            upperArmLevel = (short)(levelCount + hysteresisCount);
         }
 
-        if ((parameters.Level - parameters.Hysteresis) < short.MinValue)
+        if ((levelCount - hysteresisCount) < TriggerUtility.AdcMin(adcResolution))
         {
-            lowerArmLevel = short.MinValue;              // Logic = GTE
+            lowerArmLevel = (short)TriggerUtility.AdcMin(adcResolution);    // Logic = LTE
         }
         else
         {
-            lowerArmLevel = (short)(parameters.Level - parameters.Hysteresis);
+            lowerArmLevel = (short)(levelCount - hysteresisCount);
         }
     }
 

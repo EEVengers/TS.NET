@@ -101,11 +101,19 @@ public class ProcessingThread : IThread
                 AdcChannelMode.Single => 1,
                 _ => throw new NotImplementedException()
             };
+            var initialChannelDataType = cachedHardwareConfig.Resolution switch
+            {
+                AdcResolution.EightBit => ThunderscopeDataType.I8,
+                AdcResolution.TwelveBit => ThunderscopeDataType.I16,
+                _ => throw new NotImplementedException()
+            };
             var processingConfig = new ThunderscopeProcessingConfig
             {
+                AdcResolution = cachedHardwareConfig.Resolution,
+                SampleRateHz = 1_000_000_000,
                 ChannelCount = initialChannelCount,
                 ChannelDataLength = 1000,
-                ChannelDataType = ThunderscopeDataType.I8,
+                ChannelDataType = initialChannelDataType,
                 Mode = Mode.Auto,
                 TriggerChannel = TriggerChannel.Channel1,
                 TriggerType = TriggerType.Edge,
@@ -113,12 +121,12 @@ public class ProcessingThread : IThread
                 TriggerHoldoffFs = 0,
                 TriggerInterpolation = true,
                 AutoTimeoutMs = 1000,
-                EdgeTriggerParameters = new EdgeTriggerParameters() { Level = 0, Hysteresis = 5, Direction = EdgeDirection.Rising },
+                EdgeTriggerParameters = new EdgeTriggerParameters() { LevelV = 0, HysteresisPercent = 5, Direction = EdgeDirection.Rising },
                 BurstTriggerParameters = new BurstTriggerParameters() { WindowHighLevel = 64, WindowLowLevel = -64, MinimumInRangePeriod = 450000 },
                 BoxcarAveraging = BoxcarAveraging.None
             };
             uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
-            uiNotifications?.TryWrite(new ProcessingStopDto());
+            uiNotifications?.TryWrite(new ProcessingStop());
 
             // Periodic debug display variables
             DateTimeOffset startTime = DateTimeOffset.UtcNow;
@@ -145,8 +153,9 @@ public class ProcessingThread : IThread
             // forceTriggerLatch: disregards the Trigger Mode, push update immediately and set forceTrigger to false. If a standard trigger happened at the same time as a force, the force is ignored so the bridge only updates once.
             // singleTriggerLatch: used in Single mode to stop the trigger subsystem after a trigger.
 
-            ITriggerI8 triggerI8 = new RisingEdgeTriggerI8(processingConfig.EdgeTriggerParameters);
-            ITriggerI16 triggerI16 = new RisingEdgeTriggerI16(processingConfig.EdgeTriggerParameters);
+            ITriggerI8 triggerI8 = new RisingEdgeTriggerI8(processingConfig.EdgeTriggerParameters, 1);
+            ITriggerI16 triggerI16 = new RisingEdgeTriggerI16(processingConfig.EdgeTriggerParameters, AdcResolution.TwelveBit, 1);
+
             EdgeTriggerResults edgeTriggerResults = new EdgeTriggerResults()
             {
                 ArmIndices = new int[ThunderscopeSettings.SegmentLengthBytes / 1000],         // 1000 samples is the minimum window width
@@ -173,28 +182,243 @@ public class ProcessingThread : IThread
                 {
                     switch (request)
                     {
-                        case ProcessingRunDto processingRunDto:
-                            captureBuffer.Reset();
+                        case ProcessingRun processingRun:
+                            ResetProcessing();
                             if (processingConfig.Mode == Mode.Single)
                                 singleTriggerLatch = true;
                             StartHardware();
-                            uiNotifications?.TryWrite(processingRunDto);
-                            logger.LogDebug($"{nameof(ProcessingRunDto)}");
+                            uiNotifications?.TryWrite(processingRun);
+                            logger.LogDebug($"{nameof(ProcessingRun)}");
                             break;
-                        case ProcessingStopDto processingStopDto:
+                        case ProcessingStop processingStop:
                             StopHardware();
-                            uiNotifications?.TryWrite(processingStopDto);
-                            logger.LogDebug($"{nameof(ProcessingStopDto)}");
+                            uiNotifications?.TryWrite(processingStop);
+                            logger.LogDebug($"{nameof(ProcessingStop)}");
                             break;
-                        case ProcessingForceDto processingForceDto:
+                        case ProcessingForce processingForce:
                             if (runMode)        // FORCE is ignored if not in runMode.
                             {
                                 modeAfterForce = processingConfig.Mode;
                                 forceTriggerLatch = true;
-                                uiNotifications?.TryWrite(processingForceDto);
-                                logger.LogDebug($"{nameof(ProcessingForceDto)}");
+                                uiNotifications?.TryWrite(processingForce);
+                                logger.LogDebug($"{nameof(ProcessingForce)}");
                             }
                             break;
+                        case ProcessingGetRatesRequest processingGetRatesRequest:
+                            {
+                                logger.LogDebug($"{nameof(ProcessingGetRatesRequest)}");
+                                List<ulong> rates = [];
+                                switch (settings.HardwareDriver.ToLower())
+                                {
+                                    case "litex":
+                                    case "libtslitex":
+                                        {
+                                            switch (processingConfig.ChannelCount)
+                                            {
+                                                case 1:
+                                                    if (processingConfig.AdcResolution == AdcResolution.EightBit)
+                                                        rates.Add(1_000_000_000);
+                                                    rates.Add(660_000_000);
+                                                    rates.Add(500_000_000);
+                                                    rates.Add(330_000_000);
+                                                    rates.Add(250_000_000);
+                                                    rates.Add(165_000_000);
+                                                    rates.Add(100_000_000);
+                                                    break;
+                                                case 2:
+                                                    if (processingConfig.AdcResolution == AdcResolution.EightBit)
+                                                        rates.Add(500_000_000);
+                                                    rates.Add(330_000_000);
+                                                    rates.Add(250_000_000);
+                                                    rates.Add(165_000_000);
+                                                    rates.Add(100_000_000);
+                                                    break;
+                                                case 3:
+                                                case 4:
+                                                    if (processingConfig.AdcResolution == AdcResolution.EightBit)
+                                                        rates.Add(250_000_000);
+                                                    rates.Add(165_000_000);
+                                                    rates.Add(100_000_000);
+                                                    break;
+                                            }
+                                            break;
+                                        }
+                                    case "simulation":
+                                        {
+                                            rates.Add(1000000000);
+                                            break;
+                                        }
+                                }
+                                processingControl.Response.Writer.Write(new ProcessingGetRatesResponse(rates.ToArray()));
+                                logger.LogDebug($"{nameof(ProcessingGetRatesResponse)}");
+                                break;
+                            }
+                        case ProcessingSetMode processingSetMode:
+                            singleTriggerLatch = false;
+                            switch (processingSetMode.Mode)
+                            {
+                                case Mode.Normal:                // NORMAL/STREAM/AUTO use RUN/STOP on user demand
+                                case Mode.Stream:
+                                    processingConfig.Mode = processingSetMode.Mode;
+                                    break;
+                                case Mode.Auto:
+                                    autoTimeoutTimer.Restart();
+                                    processingConfig.Mode = processingSetMode.Mode;
+                                    break;
+                                case Mode.Single:                // SINGLE forces runMode.
+                                    if (runMode != true)
+                                    {
+                                        StartHardware();
+                                    }
+                                    singleTriggerLatch = true;
+                                    processingConfig.Mode = processingSetMode.Mode;
+                                    break;
+                            }
+                            ResetProcessing();
+                            uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                            logger.LogDebug($"{nameof(ProcessingSetMode)} (mode: {processingConfig.Mode})");
+                            break;
+                        case ProcessingSetDepth processingSetDepth:
+                            if (processingConfig.ChannelDataLength != processingSetDepth.Samples)
+                            {
+                                processingConfig.ChannelDataLength = processingSetDepth.Samples;
+                                ResetProcessing();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetDepth)} ({processingConfig.ChannelDataLength})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetDepth)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetRate processingSetRate:
+                            if (processingConfig.SampleRateHz != processingSetRate.Rate)
+                            {
+                                processingConfig.SampleRateHz = processingSetRate.Rate;
+                                UpdateRateAndCoerce(forceRateUpdate: true);
+                                ResetProcessing();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetRate)} ({processingConfig.SampleRateHz})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetRate)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetResolution processingSetResolution:
+                            if (processingConfig.AdcResolution != processingSetResolution.Resolution)
+                            {
+                                processingConfig.AdcResolution = processingSetResolution.Resolution;
+                                processingConfig.ChannelDataType = processingSetResolution.Resolution switch
+                                {
+                                    AdcResolution.EightBit => ThunderscopeDataType.I8,
+                                    AdcResolution.TwelveBit => ThunderscopeDataType.I16,
+                                    _ => throw new NotImplementedException()
+                                };
+
+                                UpdateRateAndCoerce(forceRateUpdate: false);
+                                hardwareControl.Request.Writer.Write(new HardwareSetResolution(processingSetResolution.Resolution));
+                                ResetProcessing();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetResolution)} ({processingSetResolution.Resolution})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetResolution)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetTriggerSource processingSetTriggerSourceDto:
+                            if (processingConfig.TriggerChannel != processingSetTriggerSourceDto.Channel)
+                            {
+                                processingConfig.TriggerChannel = processingSetTriggerSourceDto.Channel;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerSource)} (channel: {processingConfig.TriggerChannel})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerSource)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetTriggerType processingSetTriggerTypeDto:
+                            if (processingConfig.TriggerType != processingSetTriggerTypeDto.Type)
+                            {
+                                processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerType)} (type: {processingConfig.TriggerType})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerType)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetTriggerDelay processingSetTriggerDelayDto:
+                            if (processingConfig.TriggerDelayFs != processingSetTriggerDelayDto.Femtoseconds)
+                            {
+                                processingConfig.TriggerDelayFs = processingSetTriggerDelayDto.Femtoseconds;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerDelay)} (femtoseconds: {processingConfig.TriggerDelayFs})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerDelay)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetTriggerHoldoff processingSetTriggerHoldoffDto:
+                            if (processingConfig.TriggerHoldoffFs != processingSetTriggerHoldoffDto.Femtoseconds)
+                            {
+                                processingConfig.TriggerHoldoffFs = processingSetTriggerHoldoffDto.Femtoseconds;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerHoldoff)} (femtoseconds: {processingConfig.TriggerHoldoffFs})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerDelay)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetTriggerInterpolation processingSetTriggerInterpolation:
+                            if (processingConfig.TriggerInterpolation != processingSetTriggerInterpolation.Enabled)
+                            {
+                                processingConfig.TriggerInterpolation = processingSetTriggerInterpolation.Enabled;
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerInterpolation)} (enabled: {processingSetTriggerInterpolation.Enabled})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetTriggerInterpolation)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetEdgeTriggerLevel processingSetTriggerLevelDto:
+                            var requestedTriggerLevel = processingSetTriggerLevelDto.LevelVolts;
+                            if (requestedTriggerLevel != processingConfig.EdgeTriggerParameters.LevelV)
+                            {
+                                processingConfig.EdgeTriggerParameters.LevelV = requestedTriggerLevel;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerLevel)} (level: {processingConfig.EdgeTriggerParameters.LevelV}, hysteresis %: {processingConfig.EdgeTriggerParameters.HysteresisPercent})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerLevel)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetEdgeTriggerDirection processingSetEdgeTriggerDirection:
+                            if (processingConfig.EdgeTriggerParameters.Direction != processingSetEdgeTriggerDirection.Edge)
+                            {
+                                processingConfig.EdgeTriggerParameters.Direction = processingSetEdgeTriggerDirection.Edge;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerDirection)} (direction: {processingSetEdgeTriggerDirection.Edge})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerDirection)} (no change)");
+                            }
+                            break;
+
                         case ProcessingGetStateRequest processingGetStateRequest:
                             processingControl.Response.Writer.Write(new ProcessingGetStateResponse(runMode));
                             logger.LogDebug($"{nameof(ProcessingGetStateRequest)}");
@@ -206,6 +430,14 @@ public class ProcessingThread : IThread
                         case ProcessingGetDepthRequest processingGetDepthRequest:
                             processingControl.Response.Writer.Write(new ProcessingGetDepthResponse(processingConfig.ChannelDataLength));
                             logger.LogDebug($"{nameof(ProcessingGetDepthRequest)}");
+                            break;
+                        case ProcessingGetRateRequest processingGetRateRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetRateResponse(processingConfig.SampleRateHz));
+                            logger.LogDebug($"{nameof(ProcessingGetRateRequest)}");
+                            break;
+                        case ProcessingGetResolutionRequest processingGetResolutionRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetResolutionResponse(processingConfig.AdcResolution));
+                            logger.LogDebug($"{nameof(ProcessingGetResolutionRequest)}");
                             break;
                         case ProcessingGetTriggerSourceRequest processingGetTriggerSourceRequest:
                             processingControl.Response.Writer.Write(new ProcessingGetTriggerSourceResponse(processingConfig.TriggerChannel));
@@ -228,167 +460,12 @@ public class ProcessingThread : IThread
                             logger.LogDebug($"{nameof(ProcessingGetTriggerInterpolationRequest)}");
                             break;
                         case ProcessingGetEdgeTriggerLevelRequest processingGetEdgeTriggerLevelRequest:
-                            // Convert the internal trigger level back to volts
-                            var triggerChannelFrontend = cachedHardwareConfig.GetTriggerChannelFrontend(processingConfig.TriggerChannel);
-                            double levelVolts = (processingConfig.EdgeTriggerParameters.Level / 127.0) * (triggerChannelFrontend.ActualVoltFullScale / 2);
-                            processingControl.Response.Writer.Write(new ProcessingGetEdgeTriggerLevelResponse(levelVolts));
+                            processingControl.Response.Writer.Write(new ProcessingGetEdgeTriggerLevelResponse(processingConfig.EdgeTriggerParameters.LevelV));
                             logger.LogDebug($"{nameof(ProcessingGetEdgeTriggerLevelRequest)}");
                             break;
                         case ProcessingGetEdgeTriggerDirectionRequest processingGetEdgeTriggerDirectionRequest:
                             processingControl.Response.Writer.Write(new ProcessingGetEdgeTriggerDirectionResponse(processingConfig.EdgeTriggerParameters.Direction));
                             logger.LogDebug($"{nameof(ProcessingGetEdgeTriggerDirectionRequest)}");
-                            break;
-                        case ProcessingSetModeDto processingSetModeDto:
-                            singleTriggerLatch = false;
-                            captureBuffer.Reset();              // To do: consider if resetting capture buffer is right in all mode change scenarios
-                            switch (processingSetModeDto.Mode)
-                            {
-                                case Mode.Normal:                // NORMAL/STREAM/AUTO use RUN/STOP on user demand
-                                case Mode.Stream:
-                                    processingConfig.Mode = processingSetModeDto.Mode;
-                                    break;
-                                case Mode.Auto:
-                                    autoTimeoutTimer.Restart();
-                                    processingConfig.Mode = processingSetModeDto.Mode;
-                                    break;
-                                case Mode.Single:                // SINGLE forces runMode.
-                                    if (runMode != true)
-                                    {
-                                        StartHardware();
-                                    }
-                                    singleTriggerLatch = true;
-                                    processingConfig.Mode = processingSetModeDto.Mode;
-                                    break;
-                            }
-                            uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
-                            logger.LogDebug($"{nameof(ProcessingSetModeDto)} (mode: {processingConfig.Mode})");
-                            break;
-                        case ProcessingSetTriggerSourceDto processingSetTriggerSourceDto:
-                            processingConfig.TriggerChannel = processingSetTriggerSourceDto.Channel;
-                            captureBuffer.Reset();
-                            uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
-                            logger.LogDebug($"{nameof(ProcessingSetTriggerSourceDto)} (channel: {processingConfig.TriggerChannel})");
-                            break;
-                        case ProcessingSetTriggerTypeDto processingSetTriggerTypeDto:
-                            if (processingConfig.TriggerType != processingSetTriggerTypeDto.Type)
-                            {
-                                processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
-
-                                SwitchTrigger();
-                                UpdateTriggerHorizontal(cachedHardwareConfig);
-
-                                captureBuffer.Reset();
-                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
-                                logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (type: {processingConfig.TriggerType})");
-                            }
-                            else
-                            {
-                                logger.LogDebug($"{nameof(ProcessingSetTriggerTypeDto)} (no change)");
-                            }
-                            break;
-                        case ProcessingSetTriggerDelayDto processingSetTriggerDelayDto:
-                            if (processingConfig.TriggerDelayFs != processingSetTriggerDelayDto.Femtoseconds)
-                            {
-                                processingConfig.TriggerDelayFs = processingSetTriggerDelayDto.Femtoseconds;
-                                UpdateTriggerHorizontal(cachedHardwareConfig);
-                                captureBuffer.Reset();
-                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
-                                logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (femtoseconds: {processingConfig.TriggerDelayFs})");
-                            }
-                            else
-                            {
-                                logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (no change)");
-                            }
-                            break;
-                        case ProcessingSetTriggerHoldoffDto processingSetTriggerHoldoffDto:
-                            if (processingConfig.TriggerHoldoffFs != processingSetTriggerHoldoffDto.Femtoseconds)
-                            {
-                                processingConfig.TriggerHoldoffFs = processingSetTriggerHoldoffDto.Femtoseconds;
-                                UpdateTriggerHorizontal(cachedHardwareConfig);
-                                captureBuffer.Reset();
-                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
-                                logger.LogDebug($"{nameof(ProcessingSetTriggerHoldoffDto)} (femtoseconds: {processingConfig.TriggerHoldoffFs})");
-                            }
-                            else
-                            {
-                                logger.LogDebug($"{nameof(ProcessingSetTriggerDelayDto)} (no change)");
-                            }
-                            break;
-                        case ProcessingSetEdgeTriggerLevelDto processingSetTriggerLevelDto:
-                            var requestedTriggerLevel = processingSetTriggerLevelDto.LevelVolts;
-                            // Convert the voltage to Int8
-
-                            if (processingConfig.TriggerChannel == TriggerChannel.None)
-                            {
-                                logger.LogWarning($"Could not set trigger level {requestedTriggerLevel}");
-                                break;
-                            }
-                            var triggerChannel = cachedHardwareConfig.GetTriggerChannelFrontend(processingConfig.TriggerChannel);
-
-                            if ((requestedTriggerLevel > triggerChannel.ActualVoltFullScale / 2) || (requestedTriggerLevel < -triggerChannel.ActualVoltFullScale / 2))
-                            {
-                                logger.LogWarning($"Could not set trigger level {requestedTriggerLevel}");
-                                break;
-                            }
-
-                            sbyte triggerLevel = (sbyte)((requestedTriggerLevel / (triggerChannel.ActualVoltFullScale / 2)) * 127f);
-                            if (triggerLevel != processingConfig.EdgeTriggerParameters.Level)
-                            {
-                                processingConfig.EdgeTriggerParameters.Level = triggerLevel;
-                                UpdateTriggerParameters();
-
-                                captureBuffer.Reset();
-                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
-                                logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerLevelDto)} (level: {triggerLevel}, hysteresis: {processingConfig.EdgeTriggerParameters.Hysteresis})");
-                            }
-                            else
-                            {
-                                logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerLevelDto)} (no change)");
-                            }
-                            break;
-                        case ProcessingSetTriggerInterpolationDto processingSetTriggerInterpolation:
-                            processingConfig.TriggerInterpolation = processingSetTriggerInterpolation.Enabled;
-                            uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
-                            logger.LogDebug($"{nameof(ProcessingSetTriggerInterpolationDto)} (enabled: {processingSetTriggerInterpolation.Enabled})");
-                            break;
-                        case ProcessingSetEdgeTriggerDirectionDto processingSetEdgeTriggerDirection:
-                            if (processingConfig.EdgeTriggerParameters.Direction != processingSetEdgeTriggerDirection.Edge)
-                            {
-                                processingConfig.EdgeTriggerParameters.Direction = processingSetEdgeTriggerDirection.Edge;
-
-                                if (processingConfig.TriggerType == TriggerType.Edge)
-                                {
-                                    // Normally a trigger parameter update would call "UpdateTriggerParameters()" but this is a special case where "SwitchTrigger()" is needed as the edge changed.
-                                    SwitchTrigger();
-                                    UpdateTriggerHorizontal(cachedHardwareConfig);
-                                }
-                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
-                                logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerDirectionDto)} (direction: {processingSetEdgeTriggerDirection.Edge})");
-                            }
-                            else
-                            {
-                                logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerDirectionDto)} (no change)");
-                            }
-                            break;
-                        case ProcessingSetDepthDto processingSetDepthDto:
-                            if (processingConfig.ChannelDataLength != processingSetDepthDto.Samples)
-                            {
-                                processingConfig.ChannelDataLength = processingSetDepthDto.Samples;
-                                captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
-                                UpdateTriggerHorizontal(cachedHardwareConfig);
-                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
-                                logger.LogDebug($"{nameof(ProcessingSetDepthDto)} ({processingConfig.ChannelDataLength})");
-                            }
-                            else
-                            {
-                                logger.LogDebug($"{nameof(ProcessingSetDepthDto)} (no change)");
-                            }
-                            break;
-                        case ProcessingSetBoxcarFilter processingSetBoxcarFilter:
-                            //processingConfig.BoxcarAveraging = processingSetBoxcarFilter.Averages;
-                            //processingConfig.ChannelDataType = ThunderscopeDataType.I16;
-                            //uiNotifications?.TryWrite(processingSetBoxcarFilter);
-                            //logger.LogDebug($"{nameof(ProcessingSetBoxcarFilter)} (averages: {processingSetBoxcarFilter.Averages})");
                             break;
                         default:
                             logger.LogWarning($"Unknown ProcessingRequestDto: {request}");
@@ -402,26 +479,32 @@ public class ProcessingThread : IThread
                     if (dataDto == null)
                         break;
 
-                    if (dataDto.HardwareConfig.SampleRateHz != cachedHardwareConfig.SampleRateHz)
-                    {
-                        UpdateTriggerHorizontal(dataDto.HardwareConfig);
-                        captureBuffer.Reset();
-                        logger.LogTrace("Hardware sample rate change ({sampleRateHz})", dataDto.HardwareConfig.SampleRateHz);
-                    }
-
                     if (dataDto.HardwareConfig.EnabledChannelsCount() != cachedHardwareConfig.EnabledChannelsCount())
                     {
                         processingConfig.ChannelCount = dataDto.HardwareConfig.EnabledChannelsCount();
-                        captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
-                        logger.LogTrace("Hardware enabled channel change ({channelCount})", processingConfig.ChannelCount);
+                        ResetProcessing();
+                        logger.LogDebug("Hardware enabled channel change ({channelCount})", processingConfig.ChannelCount);
+                    }
+
+                    if (dataDto.HardwareConfig.SampleRateHz != processingConfig.SampleRateHz)
+                    {
+                        logger.LogWarning("Dropped buffer (mismatched rates)");
+                        inputPool.Return.Writer.Write(dataDto);
+                        continue;   // Drop the buffer
+                    }
+
+                    if (dataDto.HardwareConfig.Resolution != processingConfig.AdcResolution)
+                    {
+                        logger.LogWarning("Dropped buffer (mismatched resolution)");
+                        inputPool.Return.Writer.Write(dataDto);
+                        continue;   // Drop the buffer
                     }
 
                     if (dataDto.MemoryType != processingConfig.ChannelDataType)
                     {
-                        processingConfig.ChannelDataType = dataDto.MemoryType;
-                        captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
-                        ResetSampleBuffers();
-                        logger.LogTrace("Memory type change ({channelDataType})", processingConfig.ChannelDataType);
+                        logger.LogWarning("Dropped buffer (mismatched channel data type)");
+                        inputPool.Return.Writer.Write(dataDto);
+                        continue;   // Drop the buffer
                     }
 
                     cachedHardwareConfig = dataDto.HardwareConfig;
@@ -563,7 +646,12 @@ public class ProcessingThread : IThread
                                     {
                                         for (int i = 0; i < edgeTriggerResults.CaptureEndCount; i++)
                                         {
-                                            int offset = triggerChannelBufferI8.Length - edgeTriggerResults.CaptureEndIndices[i];
+                                            int offset = processingConfig.ChannelDataType switch
+                                            {
+                                                ThunderscopeDataType.I8 => triggerChannelBufferI8.Length - edgeTriggerResults.CaptureEndIndices[i],
+                                                ThunderscopeDataType.I16 => triggerChannelBufferI16.Length - edgeTriggerResults.CaptureEndIndices[i],
+                                                _ => throw new NotImplementedException()
+                                            };
                                             Capture(triggered: true, triggerChannelCaptureIndex, offset);
 
                                             if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
@@ -621,7 +709,7 @@ public class ProcessingThread : IThread
             void StartHardware()
             {
                 runMode = true;
-                hardwareControl.Request.Writer.Write(new HardwareStartRequest());
+                hardwareControl.Request.Writer.Write(new HardwareStart());
             }
 
             void StopHardware()
@@ -646,74 +734,6 @@ public class ProcessingThread : IThread
                         default:
                             throw new UnreachableException($"Invalid response to {nameof(HardwareStopRequest)}");
                     }
-                }
-                SwitchTrigger();    // Reset trigger so that if the trigger has been left in an ARM state, it doesn't prematurely trigger
-            }
-
-            void SwitchTrigger()
-            {
-                triggerI8 = processingConfig.TriggerType switch
-                {
-                    TriggerType.Edge => processingConfig.EdgeTriggerParameters.Direction switch
-                    {
-                        EdgeDirection.Rising => new RisingEdgeTriggerI8(processingConfig.EdgeTriggerParameters),
-                        EdgeDirection.Falling => new FallingEdgeTriggerI8(processingConfig.EdgeTriggerParameters),
-                        EdgeDirection.Any => new AnyEdgeTriggerI8(processingConfig.EdgeTriggerParameters),
-                        _ => throw new NotImplementedException()
-                    },
-                    TriggerType.Burst => new BurstTriggerI8(processingConfig.BurstTriggerParameters),
-                    _ => throw new NotImplementedException()
-                };
-                triggerI16 = processingConfig.TriggerType switch
-                {
-                    TriggerType.Edge => processingConfig.EdgeTriggerParameters.Direction switch
-                    {
-                        EdgeDirection.Rising => new RisingEdgeTriggerI16(processingConfig.EdgeTriggerParameters),
-                        EdgeDirection.Falling => throw new NotImplementedException(),
-                        EdgeDirection.Any => throw new NotImplementedException(),
-                        _ => throw new NotImplementedException()
-                    },
-                    TriggerType.Burst => throw new NotImplementedException(),
-                    _ => throw new NotImplementedException()
-                };
-            }
-
-            void UpdateTriggerHorizontal(ThunderscopeHardwareConfig hardwareConfig)
-            {
-                ulong femtosecondsPerSample = 1000000000000000 / hardwareConfig.SampleRateHz;
-                long windowTriggerPosition = (long)(processingConfig.TriggerDelayFs / femtosecondsPerSample);
-                long additionalHoldoff = (long)(processingConfig.TriggerHoldoffFs / femtosecondsPerSample);
-                logger.LogTrace($"{additionalHoldoff}");
-                triggerI8.SetHorizontal(processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
-                triggerI16.SetHorizontal(processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
-            }
-
-            void UpdateTriggerParameters()
-            {
-                switch (triggerI8)
-                {
-                    case RisingEdgeTriggerI8 risingEdgeTriggerI8:
-                        risingEdgeTriggerI8.SetParameters(processingConfig.EdgeTriggerParameters);
-                        break;
-                    case FallingEdgeTriggerI8 fallingEdgeTriggerI8:
-                        fallingEdgeTriggerI8.SetParameters(processingConfig.EdgeTriggerParameters);
-                        break;
-                    case AnyEdgeTriggerI8 anyEdgeTriggerI8:
-                        anyEdgeTriggerI8.SetParameters(processingConfig.EdgeTriggerParameters);
-                        break;
-                    case BurstTriggerI8 burstTriggerI8:
-                        burstTriggerI8.SetParameters(processingConfig.BurstTriggerParameters);
-                        break;
-                    default:
-                        throw new NotImplementedException();
-                }
-                switch (triggerI16)
-                {
-                    case RisingEdgeTriggerI16 risingEdgeTriggerI16:
-                        risingEdgeTriggerI16.SetParameters(processingConfig.EdgeTriggerParameters);
-                        break;
-                    default:
-                        throw new NotImplementedException();
                 }
             }
 
@@ -783,11 +803,117 @@ public class ProcessingThread : IThread
                 };
             }
 
-            void ResetSampleBuffers()
+            void UpdateRateAndCoerce(bool forceRateUpdate)
             {
+                bool rateChanged = false;
+                switch (processingConfig.AdcResolution)
+                {
+                    case AdcResolution.EightBit:
+                        switch (processingConfig.ChannelCount)
+                        {
+                            case 2:
+                                if (processingConfig.SampleRateHz > 500_000_000)
+                                {
+                                    processingConfig.SampleRateHz = 500_000_000;
+                                    rateChanged = true;
+                                }
+                                break;
+                            case 3:
+                            case 4:
+                                if (processingConfig.SampleRateHz > 250_000_000)
+                                {
+                                    processingConfig.SampleRateHz = 250_000_000;
+                                    rateChanged = true;
+                                }
+                                break;
+                        }
+                        break;
+                    case AdcResolution.TwelveBit:
+                        switch (processingConfig.ChannelCount)
+                        {
+                            case 1:
+                                if (processingConfig.SampleRateHz > 660_000_000)
+                                {
+                                    processingConfig.SampleRateHz = 660_000_000;
+                                    rateChanged = true;
+                                }
+                                break;
+                            case 2:
+                                if (processingConfig.SampleRateHz > 330_000_000)
+                                {
+                                    processingConfig.SampleRateHz = 330_000_000;
+                                    rateChanged = true;
+                                }
+                                break;
+                            case 3:
+                            case 4:
+                                if (processingConfig.SampleRateHz > 165_000_000)
+                                {
+                                    processingConfig.SampleRateHz = 165_000_000;
+                                    rateChanged = true;
+                                }
+                                break;
+                        }
+                        break;
+                }
+                if(rateChanged || forceRateUpdate)
+                    hardwareControl.Request.Writer.Write(new HardwareSetRate(processingConfig.SampleRateHz));
+            }
+
+            void ResetProcessing()
+            {
+                // Reset sample buffers
                 foreach (var sampleBuffer in sampleBuffers)
                     sampleBuffer.Reset();
                 streamSampleCounter = 0;
+
+                // Reset capture buffers
+                captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
+
+                ResetTrigger();
+            }
+
+            void ResetTrigger()
+            {
+                // Reset triggers
+                if (processingConfig.TriggerChannel == TriggerChannel.None)
+                {
+                    logger.LogWarning($"Trigger channel set to None");
+                    return;
+                }
+                var triggerChannel = cachedHardwareConfig.GetTriggerChannelFrontend(processingConfig.TriggerChannel);
+
+                triggerI8 = processingConfig.TriggerType switch
+                {
+                    TriggerType.Edge => processingConfig.EdgeTriggerParameters.Direction switch
+                    {
+                        EdgeDirection.Rising => new RisingEdgeTriggerI8(processingConfig.EdgeTriggerParameters, triggerChannel.ActualVoltFullScale),
+                        EdgeDirection.Falling => new FallingEdgeTriggerI8(processingConfig.EdgeTriggerParameters, triggerChannel.ActualVoltFullScale),
+                        EdgeDirection.Any => new AnyEdgeTriggerI8(processingConfig.EdgeTriggerParameters, triggerChannel.ActualVoltFullScale),
+                        _ => throw new NotImplementedException()
+                    },
+                    TriggerType.Burst => new BurstTriggerI8(processingConfig.BurstTriggerParameters),
+                    _ => throw new NotImplementedException()
+                };
+                triggerI16 = processingConfig.TriggerType switch
+                {
+                    TriggerType.Edge => processingConfig.EdgeTriggerParameters.Direction switch
+                    {
+                        EdgeDirection.Rising => new RisingEdgeTriggerI16(processingConfig.EdgeTriggerParameters, processingConfig.AdcResolution, triggerChannel.ActualVoltFullScale),
+                        EdgeDirection.Falling => throw new NotImplementedException(),
+                        EdgeDirection.Any => throw new NotImplementedException(),
+                        _ => throw new NotImplementedException()
+                    },
+                    TriggerType.Burst => throw new NotImplementedException(),
+                    _ => throw new NotImplementedException()
+                };
+
+                // Set trigger horizontal parameters
+                ulong femtosecondsPerSample = 1000000000000000 / processingConfig.SampleRateHz;
+                long windowTriggerPosition = (long)(processingConfig.TriggerDelayFs / femtosecondsPerSample);
+                long additionalHoldoff = (long)(processingConfig.TriggerHoldoffFs / femtosecondsPerSample);
+                triggerI8.SetHorizontal(processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
+                triggerI16.SetHorizontal(processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
             }
         }
         catch (OperationCanceledException)

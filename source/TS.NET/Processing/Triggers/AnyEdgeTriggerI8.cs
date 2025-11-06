@@ -18,40 +18,41 @@ public class AnyEdgeTriggerI8 : ITriggerI8
     private long holdoffSamples;
     private long holdoffRemaining;
 
-    public AnyEdgeTriggerI8(EdgeTriggerParameters parameters)
+    public AnyEdgeTriggerI8(EdgeTriggerParameters parameters, double triggerChannelVpp)
     {
-        SetParameters(parameters);
+        SetParameters(parameters, triggerChannelVpp);
         SetHorizontal(1000000, 0, 0);
     }
 
-    public void SetParameters(EdgeTriggerParameters parameters)
+    public void SetParameters(EdgeTriggerParameters parameters, double triggerChannelVpp)
     {
-        parameters.Hysteresis = Math.Abs(parameters.Hysteresis);
+        int hysteresisCount = (int)((parameters.HysteresisPercent / 100.0) * 256);
+        sbyte levelCount = (sbyte)Math.Clamp(Math.Round(parameters.LevelV * 128), sbyte.MinValue, sbyte.MaxValue);
 
-        if (parameters.Level <= sbyte.MinValue)
-            parameters.Level = sbyte.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
-        if (parameters.Level >= sbyte.MaxValue)
-            parameters.Level = sbyte.MaxValue - 1;  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms
+        if (levelCount <= sbyte.MinValue)
+            levelCount = sbyte.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
+        if (levelCount >= sbyte.MaxValue)
+            levelCount = sbyte.MaxValue - 1;  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms
 
         triggerState = TriggerState.Unarmed;
-        triggerLevel = (sbyte)parameters.Level;
+        triggerLevel = (sbyte)levelCount;
 
-        if ((parameters.Level + parameters.Hysteresis) > sbyte.MaxValue)
+        if ((levelCount + hysteresisCount) > sbyte.MaxValue)
         {
             upperArmLevel = sbyte.MaxValue;              // Logic = GTE
         }
         else
         {
-            upperArmLevel = (sbyte)(parameters.Level + parameters.Hysteresis);
+            upperArmLevel = (sbyte)(levelCount + hysteresisCount);
         }
 
-        if ((parameters.Level - parameters.Hysteresis) < sbyte.MinValue)
+        if ((levelCount - hysteresisCount) < sbyte.MinValue)
         {
-            lowerArmLevel = sbyte.MinValue;              // Logic = GTE
+            lowerArmLevel = sbyte.MinValue;              // Logic = LTE
         }
         else
         {
-            lowerArmLevel = (sbyte)(parameters.Level - parameters.Hysteresis);
+            lowerArmLevel = (sbyte)(levelCount - hysteresisCount);
         }
     }
 
