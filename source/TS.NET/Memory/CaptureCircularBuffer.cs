@@ -131,11 +131,14 @@ namespace TS.NET
             }
             internalIntervalCaptureTotal++;
 
-            if (currentCaptureCount == maxCaptureCount)
+            lock(readLock)
             {
-                captureDrops++;
-                intervalCaptureDrops++;
-                return false;
+                if (currentCaptureCount == maxCaptureCount)
+                {
+                    captureDrops++;
+                    intervalCaptureDrops++;
+                    FinishRead();       // Remove oldest buffer
+                }
             }
             writeInProgress = true;
             return true;
