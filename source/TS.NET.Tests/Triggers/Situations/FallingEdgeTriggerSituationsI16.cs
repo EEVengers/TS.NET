@@ -9,7 +9,7 @@ internal class FallingEdgeTriggerSituationsI16
     {
         var situation = new EdgeTriggerSituationI16()
         {
-            Parameters = new EdgeTriggerParameters(Level: -20, Hysteresis: 10, EdgeDirection.Falling),
+            Parameters = new EdgeTriggerParameters(LevelV: -20, HysteresisPercent: 5, EdgeDirection.Falling),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -32,7 +32,7 @@ internal class FallingEdgeTriggerSituationsI16
     {
         var situation = new EdgeTriggerSituationI16()
         {
-            Parameters = new EdgeTriggerParameters(Level: -20, Hysteresis: 10, EdgeDirection.Falling),
+            Parameters = new EdgeTriggerParameters(LevelV: -20, HysteresisPercent: 5, EdgeDirection.Falling),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -56,7 +56,7 @@ internal class FallingEdgeTriggerSituationsI16
     {
         var situation = new EdgeTriggerSituationI16()
         {
-            Parameters = new EdgeTriggerParameters(Level: -20, Hysteresis: 10, EdgeDirection.Falling),
+            Parameters = new EdgeTriggerParameters(LevelV: -20, HysteresisPercent: 5, EdgeDirection.Falling),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -81,7 +81,7 @@ internal class FallingEdgeTriggerSituationsI16
     {
         var situation = new EdgeTriggerSituationI16()
         {
-            Parameters = new EdgeTriggerParameters(Level: -20, Hysteresis: 10, EdgeDirection.Falling),
+            Parameters = new EdgeTriggerParameters(LevelV: -20, HysteresisPercent: 5, EdgeDirection.Falling),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -104,7 +104,7 @@ internal class FallingEdgeTriggerSituationsI16
     {
         var situation = new EdgeTriggerSituationI16()
         {
-            Parameters = new EdgeTriggerParameters(Level: -20, Hysteresis: 10, EdgeDirection.Falling),
+            Parameters = new EdgeTriggerParameters(LevelV: -20, HysteresisPercent: 5, EdgeDirection.Falling),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,

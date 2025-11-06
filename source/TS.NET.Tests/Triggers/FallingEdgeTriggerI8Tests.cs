@@ -42,7 +42,7 @@ public class FallingEdgeTriggerI8Tests
 
     private static void RunSituation(EdgeTriggerSituationI8 situation)
     {
-        var trigger = new FallingEdgeTriggerI8(situation.Parameters);
+        var trigger = new FallingEdgeTriggerI8(situation.Parameters, 256);
         var edgeTriggerResults = new EdgeTriggerResults()
         {
             ArmIndices = new int[1000],

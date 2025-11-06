@@ -153,8 +153,9 @@ public class ProcessingThread : IThread
             // forceTriggerLatch: disregards the Trigger Mode, push update immediately and set forceTrigger to false. If a standard trigger happened at the same time as a force, the force is ignored so the bridge only updates once.
             // singleTriggerLatch: used in Single mode to stop the trigger subsystem after a trigger.
 
-            ITriggerI8 triggerI8 = new RisingEdgeTriggerI8(processingConfig.EdgeTriggerParameters, 1);
-            ITriggerI16 triggerI16 = new RisingEdgeTriggerI16(processingConfig.EdgeTriggerParameters, AdcResolution.TwelveBit, 1);
+            ITriggerI8 triggerI8 = null;
+            ITriggerI16 triggerI16 = null;
+            ResetTrigger();
 
             EdgeTriggerResults edgeTriggerResults = new EdgeTriggerResults()
             {

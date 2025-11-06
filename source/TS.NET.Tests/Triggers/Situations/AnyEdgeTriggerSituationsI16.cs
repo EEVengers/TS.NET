@@ -6,7 +6,7 @@ internal class AnyEdgeTriggerSituationsI16
     {
         var situation = new EdgeTriggerSituationI16()
         {
-            Parameters = new EdgeTriggerParameters(Level: 20, Hysteresis: 10, EdgeDirection.Any),
+            Parameters = new EdgeTriggerParameters(LevelV: 20, HysteresisPercent: 5, EdgeDirection.Any),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -25,7 +25,7 @@ internal class AnyEdgeTriggerSituationsI16
     {
         var situation = new EdgeTriggerSituationI16()
         {
-            Parameters = new EdgeTriggerParameters(Level: -20, Hysteresis: 10, EdgeDirection.Any),
+            Parameters = new EdgeTriggerParameters(LevelV: -20, HysteresisPercent: 5, EdgeDirection.Any),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -44,7 +44,7 @@ internal class AnyEdgeTriggerSituationsI16
     {
         var situation = new EdgeTriggerSituationI16()
         {
-            Parameters = new EdgeTriggerParameters(Level: 20, Hysteresis: 10, EdgeDirection.Any),
+            Parameters = new EdgeTriggerParameters(LevelV: 20, HysteresisPercent: 5, EdgeDirection.Any),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -64,7 +64,7 @@ internal class AnyEdgeTriggerSituationsI16
     {
         var situation = new EdgeTriggerSituationI16()
         {
-            Parameters = new EdgeTriggerParameters(Level: -20, Hysteresis: 10, EdgeDirection.Any),
+            Parameters = new EdgeTriggerParameters(LevelV: -20, HysteresisPercent: 5, EdgeDirection.Any),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -84,7 +84,7 @@ internal class AnyEdgeTriggerSituationsI16
     {
         var situation = new EdgeTriggerSituationI16()
         {
-            Parameters = new EdgeTriggerParameters(Level: 20, Hysteresis: 10, EdgeDirection.Any),
+            Parameters = new EdgeTriggerParameters(LevelV: 20, HysteresisPercent: 5, EdgeDirection.Any),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -105,7 +105,7 @@ internal class AnyEdgeTriggerSituationsI16
     {
         var situation = new EdgeTriggerSituationI16()
         {
-            Parameters = new EdgeTriggerParameters(Level: -20, Hysteresis: 10, EdgeDirection.Any),
+            Parameters = new EdgeTriggerParameters(LevelV: -20, HysteresisPercent: 5, EdgeDirection.Any),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -126,7 +126,7 @@ internal class AnyEdgeTriggerSituationsI16
     {
         var situation = new EdgeTriggerSituationI16()
         {
-            Parameters = new EdgeTriggerParameters(Level: 20, Hysteresis: 10, EdgeDirection.Any),
+            Parameters = new EdgeTriggerParameters(LevelV: 20, HysteresisPercent: 5, EdgeDirection.Any),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -145,7 +145,7 @@ internal class AnyEdgeTriggerSituationsI16
     {
         var situation = new EdgeTriggerSituationI16()
         {
-            Parameters = new EdgeTriggerParameters(Level: -20, Hysteresis: 10, EdgeDirection.Any),
+            Parameters = new EdgeTriggerParameters(LevelV: -20, HysteresisPercent: 5, EdgeDirection.Any),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -164,7 +164,7 @@ internal class AnyEdgeTriggerSituationsI16
     {
         var situation = new EdgeTriggerSituationI16()
         {
-            Parameters = new EdgeTriggerParameters(Level: 20, Hysteresis: 10, EdgeDirection.Any),
+            Parameters = new EdgeTriggerParameters(LevelV: 20, HysteresisPercent: 5, EdgeDirection.Any),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -183,7 +183,7 @@ internal class AnyEdgeTriggerSituationsI16
     {
         var situation = new EdgeTriggerSituationI16()
         {
-            Parameters = new EdgeTriggerParameters(Level: -20, Hysteresis: 10, EdgeDirection.Any),
+            Parameters = new EdgeTriggerParameters(LevelV: -20, HysteresisPercent: 5, EdgeDirection.Any),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,

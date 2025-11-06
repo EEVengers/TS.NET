@@ -24,7 +24,7 @@ public class RisingEdgeTriggerI8 : ITriggerI8
         SetHorizontal(1000000, 0, 0);
     }
 
-    public void SetParameters(EdgeTriggerParameters parameters, double triggerChannelVpp)
+    private void SetParameters(EdgeTriggerParameters parameters, double triggerChannelVpp)
     {
         int hysteresisCount = TriggerUtility.HysteresisValue(AdcResolution.EightBit, parameters.HysteresisPercent);
         int levelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.LevelV, triggerChannelVpp);

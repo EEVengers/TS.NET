@@ -24,7 +24,7 @@ public class AnyEdgeTriggerI8 : ITriggerI8
         SetHorizontal(1000000, 0, 0);
     }
 
-    public void SetParameters(EdgeTriggerParameters parameters, double triggerChannelVpp)
+    private void SetParameters(EdgeTriggerParameters parameters, double triggerChannelVpp)
     {
         int hysteresisCount = (int)((parameters.HysteresisPercent / 100.0) * 256);
         sbyte levelCount = (sbyte)Math.Clamp(Math.Round(parameters.LevelV * 128), sbyte.MinValue, sbyte.MaxValue);

@@ -28,7 +28,7 @@ public class BurstTriggerI8 : ITriggerI8
         SetHorizontal(1000000, 500000, 0);
     }
 
-    public void SetParameters(BurstTriggerParameters parameters)
+    private void SetParameters(BurstTriggerParameters parameters)
     {
         windowHighLevel = (sbyte)parameters.WindowHighLevel;
         windowLowLevel = (sbyte)parameters.WindowLowLevel;

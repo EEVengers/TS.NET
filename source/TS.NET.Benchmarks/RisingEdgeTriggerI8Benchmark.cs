@@ -11,7 +11,7 @@ namespace TS.NET.Benchmarks
         private void* inputP_50percent;
 
         private readonly Memory<int> captureEndIndicesU64 = new int[byteBufferSize / 64];
-        private readonly RisingEdgeTriggerI8 trigger = new(new EdgeTriggerParameters());
+        private readonly RisingEdgeTriggerI8 trigger = new(new EdgeTriggerParameters() { LevelV = 0, HysteresisPercent = 5, Direction = EdgeDirection.Rising }, 1);
         private EdgeTriggerResults edgeTriggerResults = new()
         {
             ArmIndices = new int[1000],
@@ -47,7 +47,6 @@ namespace TS.NET.Benchmarks
         public void RisingEdge1()
         {
             var input = new Span<sbyte>((sbyte*)inputP_DC, byteBufferSize); 
-            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Rising });
             trigger.SetHorizontal(1000000, 0, 0);
             // Processing 120 blocks of 8MiB is an approximation of 1 second of production usage
             for (int i = 0; i < 120; i++)
@@ -58,7 +57,6 @@ namespace TS.NET.Benchmarks
         public void RisingEdge2()
         {
             var input = new Span<sbyte>((sbyte*)inputP_50percent, byteBufferSize); 
-            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Rising });
             trigger.SetHorizontal(1000000, 0, 0);
             // Processing 120 blocks of 8MiB is an approximation of 1 second of production usage
             for (int i = 0; i < 120; i++)
@@ -69,7 +67,6 @@ namespace TS.NET.Benchmarks
         public void RisingEdge3()
         {
             var input = new Span<sbyte>((sbyte*)inputP_500MHz, byteBufferSize); 
-            trigger.SetParameters(new EdgeTriggerParameters() { Level = 0, Hysteresis = 10, Direction = EdgeDirection.Rising });
             trigger.SetHorizontal(1000000, 0, 0);
             // Processing 120 blocks of 8MiB is an approximation of 1 second of production usage
             for (int i = 0; i < 120; i++)
