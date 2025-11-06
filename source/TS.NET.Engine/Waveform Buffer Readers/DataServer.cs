@@ -12,15 +12,12 @@ internal class DataServer : IThread
     
     private readonly ICaptureBufferReader captureBuffer;
 
-    private Socket? listener;
-    private WaveformSession? currentSession;
-    private readonly object sessionLock = new();
-
     private readonly IPAddress address;
     private readonly int port;
 
     private CancellationTokenSource? cancelTokenSource;
     private Task? taskListener;
+    private Task? taskClient;
 
     public DataServer(
         ILogger logger,
@@ -38,11 +35,7 @@ internal class DataServer : IThread
     public void Start(SemaphoreSlim startSemaphore)
     {
         cancelTokenSource = new CancellationTokenSource();
-        listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        listener.Bind(new IPEndPoint(address, port));
-        listener.Listen(backlog: 1);
-        taskListener = Task.Factory.StartNew(() => ListenLoop(logger, listener, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
-
+        taskListener = Task.Factory.StartNew(() => ListenerLoop(logger, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
         startSemaphore.Release();
     }
 
@@ -50,33 +43,24 @@ internal class DataServer : IThread
     {
         cancelTokenSource?.Cancel();
         taskListener?.Wait();
-        try
-        {
-            listener?.Close();
-        }
-        catch { }
-
-        lock (sessionLock)
-            currentSession?.Stop();
-
-        lock (sessionLock)
-        {
-            currentSession?.Join();
-            currentSession = null;
-        }
+        taskClient?.Wait();
+        taskClient = null;
     }
 
-    private void ListenLoop(ILogger logger, Socket listener, CancellationToken cancelToken)
+    private void ListenerLoop(ILogger logger, CancellationToken cancelToken)
     {
+        var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        listener.Bind(new IPEndPoint(address, port));
+        listener.Listen(backlog: 1);
+
         while (!cancelToken.IsCancellationRequested)
         {
             try
             {
                 var client = listener!.Accept();
                 logger.LogDebug($"Client accepted: {client.RemoteEndPoint}");
-                lock (sessionLock)
-                {
-                    if (currentSession is { IsRunning: true })
+
+                    if (taskClient != null)
                     {
                         logger.LogDebug("A session is already active; rejecting new connection");
                         try { client.Shutdown(SocketShutdown.Both); } catch { }
@@ -84,10 +68,7 @@ internal class DataServer : IThread
                         continue;
                     }
 
-                    var session = new WaveformSession(client, logger, captureBuffer, cancelTokenSource.Token, OnSessionClosed);
-                    currentSession = session;
-                    session.Start();
-                }
+                    taskClient = Task.Factory.StartNew(() => ClientLoop(logger, client, cancelTokenSource.Token), TaskCreationOptions.LongRunning);              
             }
             catch (ObjectDisposedException)
             {
@@ -106,66 +87,21 @@ internal class DataServer : IThread
                 Thread.Sleep(50);
             }
         }
+
+        listener.Close();
     }
 
-    private void OnSessionClosed(WaveformSession session)
-    {
-        lock (sessionLock)
-        {
-            if (ReferenceEquals(currentSession, session))
-                currentSession = null;
-        }
-    }
-}
-
-internal class WaveformSession
-{
-    private readonly ILogger logger;
-    private readonly ICaptureBufferReader captureBuffer;
-    private readonly CancellationToken cancellationToken;
-    private readonly Socket socket;
-    private readonly Thread thread;
-    private readonly Action<WaveformSession> onClose;
-    private uint sequenceNumber = 0;
-
-    public bool IsRunning { get; private set; }
-
-    public WaveformSession(Socket socket, ILogger logger, ICaptureBufferReader captureBuffer, CancellationToken cancellationToken, Action<WaveformSession> onClose)
-    {
-        this.socket = socket;
-        this.logger = logger;
-        this.captureBuffer = captureBuffer;
-        this.cancellationToken = cancellationToken;
-        this.onClose = onClose;
-        thread = new Thread(Run) { IsBackground = true, Name = $"WaveformSession-{socket.GetHashCode()}" };
-    }
-
-    public void Start()
-    {
-        IsRunning = true;
-        logger.LogDebug($"Waveform session started ({socket.RemoteEndPoint})");
-        thread.Start();
-    }
-
-    public void Stop()
-    {
-        try { socket.Shutdown(SocketShutdown.Both); } catch { }
-        try { socket.Close(); } catch { }
-    }
-
-    public void Join() => thread.Join();
-
-    private void Run()
+    private void ClientLoop(ILogger logger, Socket client, CancellationToken cancelToken)
     {
         Span<byte> cmdBuf = stackalloc byte[1];
         try
         {
-            while (!cancellationToken.IsCancellationRequested)
+            while (!cancelToken.IsCancellationRequested)
             {
                 int read = 0;
                 try
                 {
-                    read = socket.Receive(cmdBuf);
+                    read = client.Receive(cmdBuf);
                 }
                 catch (SocketException se)
                 {
@@ -179,11 +115,11 @@ internal class WaveformSession
                 switch (cmd)
                 {
                     case (byte)'K':
-                        SendScopehalOld();
+                        SendScopehalOld(client, cancelTokenSource.Token);
                         break;
                     case (byte)'S':
                         var sw = Stopwatch.StartNew();
-                        SendScopehal();
+                        SendScopehal(client, cancelTokenSource.Token);
                         sw.Stop();
                         logger.LogDebug($"SendScopehal() - {sw.Elapsed.TotalMicroseconds} us");
                         break;
@@ -200,36 +136,16 @@ internal class WaveformSession
         }
         finally
         {
-            IsRunning = false;
-            onClose(this);
-            Stop();
-            logger.LogDebug("Waveform session ended");
+
         }
     }
 
-    private void SendAll(ReadOnlySpan<byte> data)
-    {
-        while (!data.IsEmpty)
-        {
-            int sent = 0;
-            try
-            {
-                sent = socket.Send(data);
-            }
-            catch (SocketException se)
-            {
-                logger.LogDebug($"Send error {se.SocketErrorCode}");
-                throw;
-            }
-            data = data[sent..];
-        }
-    }
-
-    private void SendScopehalOld()
+    private uint sequenceNumber = 0;
+    private void SendScopehalOld(Socket socket, CancellationToken cancelToken)
     {
         while (true)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            cancelToken.ThrowIfCancellationRequested();
             bool noCapturesAvailable = false;
             lock (captureBuffer.ReadLock)
             {
@@ -274,7 +190,7 @@ internal class WaveformSession
                     }
                     unsafe
                     {
-                        SendAll(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeaderOld)));
+                        socket.Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeaderOld)));
                         for (byte captureBufferIndex = 0; captureBufferIndex < captureBuffer.ChannelCount; captureBufferIndex++)
                         {
                             int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
@@ -282,9 +198,9 @@ internal class WaveformSession
                             chHeader.channelIndex = (byte)channelIndex;
                             chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 256.0);
                             chHeader.offset = (float)thunderscopeChannel.ActualVoltOffset;
-                            SendAll(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeaderOld)));
+                            socket.Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeaderOld)));
                             var channelBuffer = MemoryMarshal.Cast<sbyte, byte>(captureBuffer.GetChannelReadBuffer<sbyte>(captureBufferIndex));
-                            SendAll(channelBuffer);
+                            socket.Send(channelBuffer);
                         }
                     }
                     sequenceNumber++;
@@ -299,12 +215,12 @@ internal class WaveformSession
         }
     }
 
-    private void SendScopehal()
+    private void SendScopehal(Socket socket, CancellationToken cancelToken)
     {
         bool noCapturesAvailable = false;
         while (true)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            cancelToken.ThrowIfCancellationRequested();
             lock (captureBuffer.ReadLock)
             {
                 if (captureBuffer.TryStartRead(out var captureMetadata))
@@ -328,7 +244,7 @@ internal class WaveformSession
                     };
                     unsafe
                     {
-                        SendAll(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
+                        socket.Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
                         for (byte captureBufferIndex = 0; captureBufferIndex < captureBuffer.ChannelCount; captureBufferIndex++)
                         {
                             int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
@@ -344,7 +260,7 @@ internal class WaveformSession
                                     break;
                             }
                             chHeader.offset = (float)thunderscopeChannel.ActualVoltOffset;
-                            SendAll(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
+                            socket.Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeader)));
                             ReadOnlySpan<byte> channelBuffer = [];
                             switch (captureMetadata.ProcessingConfig.ChannelDataType)
                             {
@@ -357,7 +273,7 @@ internal class WaveformSession
                                     channelBuffer = MemoryMarshal.Cast<short, byte>(channelDataI16);
                                     break;
                             }
-                            SendAll(channelBuffer);
+                            socket.Send(channelBuffer);
                         }
                     }
                     sequenceNumber++;
