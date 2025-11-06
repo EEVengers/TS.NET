@@ -152,7 +152,7 @@ public class EngineManager
 
         long captureBufferBytes = ((long)thunderscopeSettings.MaxCaptureLength) * 4 * ThunderscopeDataType.I16.ByteWidth();
         logger?.LogDebug($"{nameof(CaptureCircularBuffer)} bytes: {captureBufferBytes}");
-        var captureBuffer = new CaptureCircularBuffer(captureBufferBytes);
+        var captureBuffer = new CaptureCircularBuffer(loggerFactory.CreateLogger(nameof(CaptureCircularBuffer)), captureBufferBytes);
 
         // Start threads
         SemaphoreSlim startSemaphore = new(1);

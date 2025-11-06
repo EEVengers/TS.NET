@@ -1,24 +1,26 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Diagnostics;
 
 namespace TS.NET.Engine;
 
 internal class DataServer : IThread
 {
     private readonly ILogger logger;
-    private readonly CancellationTokenSource cancellationTokenSource;
+    
     private readonly ICaptureBufferReader captureBuffer;
 
     private Socket? listener;
-    private Thread? serverThread;
     private WaveformSession? currentSession;
     private readonly object sessionLock = new();
 
     private readonly IPAddress address;
     private readonly int port;
+
+    private CancellationTokenSource? cancelTokenSource;
+    private Task? taskListener;
 
     public DataServer(
         ILogger logger,
@@ -28,47 +30,45 @@ internal class DataServer : IThread
         ICaptureBufferReader captureBuffer)
     {
         this.logger = logger;
-        cancellationTokenSource = new();
-        this.captureBuffer = captureBuffer;
         this.address = address;
         this.port = port;
-        logger.LogDebug("DataServer created");
+        this.captureBuffer = captureBuffer;
     }
 
     public void Start(SemaphoreSlim startSemaphore)
     {
+        cancelTokenSource = new CancellationTokenSource();
         listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         listener.Bind(new IPEndPoint(address, port));
         listener.Listen(backlog: 1);
-        serverThread = new Thread(ListenLoop) { IsBackground = true, Name = "DataServerThread" };
-        serverThread.Start();
-        logger.LogDebug("DataServer listening");
+        taskListener = Task.Factory.StartNew(() => ListenLoop(logger, listener, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+
         startSemaphore.Release();
     }
 
     public void Stop()
     {
-        cancellationTokenSource.Cancel();
+        cancelTokenSource?.Cancel();
+        taskListener?.Wait();
         try
         {
             listener?.Close();
         }
         catch { }
+
         lock (sessionLock)
             currentSession?.Stop();
-        serverThread?.Join();
+
         lock (sessionLock)
         {
             currentSession?.Join();
             currentSession = null;
         }
-        logger.LogDebug("DataServer stopped");
     }
 
-    private void ListenLoop()
+    private void ListenLoop(ILogger logger, Socket listener, CancellationToken cancelToken)
     {
-        var token = cancellationTokenSource.Token;
-        while (!token.IsCancellationRequested)
+        while (!cancelToken.IsCancellationRequested)
         {
             try
             {
@@ -84,7 +84,7 @@ internal class DataServer : IThread
                         continue;
                     }
 
-                    var session = new WaveformSession(client, logger, captureBuffer, cancellationTokenSource.Token, OnSessionClosed);
+                    var session = new WaveformSession(client, logger, captureBuffer, cancelTokenSource.Token, OnSessionClosed);
                     currentSession = session;
                     session.Start();
                 }
@@ -95,13 +95,13 @@ internal class DataServer : IThread
             }
             catch (SocketException ex)
             {
-                if (token.IsCancellationRequested) break;
+                if (cancelToken.IsCancellationRequested) break;
                 logger.LogDebug($"Accept error: {ex.SocketErrorCode}");
                 Thread.Sleep(50);
             }
             catch (Exception ex)
             {
-                if (token.IsCancellationRequested) break;
+                if (cancelToken.IsCancellationRequested) break;
                 logger.LogDebug($"Accept exception: {ex.Message}");
                 Thread.Sleep(50);
             }

@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace TS.NET.Engine;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
