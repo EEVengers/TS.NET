@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -9,15 +8,18 @@ namespace TS.NET.Engine;
 internal class DataServer : IThread
 {
     private readonly ILogger logger;
-    
-    private readonly ICaptureBufferReader captureBuffer;
-
+    private readonly ThunderscopeSettings settings;
     private readonly IPAddress address;
     private readonly int port;
+    private readonly ICaptureBufferReader captureBuffer;
 
-    private CancellationTokenSource? cancelTokenSource;
+    private CancellationTokenSource? listenerCancelTokenSource;
     private Task? taskListener;
-    private Task? taskClient;
+    private Socket? socketListener;
+
+    private CancellationTokenSource? sessionCancelTokenSource;
+    private Task? taskSession;
+    private Socket? socketSession;
 
     public DataServer(
         ILogger logger,
@@ -27,6 +29,7 @@ internal class DataServer : IThread
         ICaptureBufferReader captureBuffer)
     {
         this.logger = logger;
+        this.settings = settings;
         this.address = address;
         this.port = port;
         this.captureBuffer = captureBuffer;
@@ -34,109 +37,105 @@ internal class DataServer : IThread
 
     public void Start(SemaphoreSlim startSemaphore)
     {
-        cancelTokenSource = new CancellationTokenSource();
-        taskListener = Task.Factory.StartNew(() => ListenerLoop(logger, cancelTokenSource.Token), TaskCreationOptions.LongRunning);
+        listenerCancelTokenSource = new CancellationTokenSource();
+        taskListener = Task.Factory.StartNew(() => ListenerLoop(logger, listenerCancelTokenSource.Token), TaskCreationOptions.LongRunning);
         startSemaphore.Release();
     }
 
     public void Stop()
     {
-        cancelTokenSource?.Cancel();
+        listenerCancelTokenSource?.Cancel();
+        sessionCancelTokenSource?.Cancel();
+        socketListener?.Close();
+        socketSession?.Close();
         taskListener?.Wait();
-        taskClient?.Wait();
-        taskClient = null;
+        taskSession?.Wait();
     }
 
     private void ListenerLoop(ILogger logger, CancellationToken cancelToken)
     {
-        var listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        listener.Bind(new IPEndPoint(address, port));
-        listener.Listen(backlog: 1);
-
-        while (!cancelToken.IsCancellationRequested)
-        {
-            try
-            {
-                var client = listener!.Accept();
-                logger.LogDebug($"Client accepted: {client.RemoteEndPoint}");
-
-                    if (taskClient != null)
-                    {
-                        logger.LogDebug("A session is already active; rejecting new connection");
-                        try { client.Shutdown(SocketShutdown.Both); } catch { }
-                        try { client.Close(); } catch { }
-                        continue;
-                    }
-
-                    taskClient = Task.Factory.StartNew(() => ClientLoop(logger, client, cancelTokenSource.Token), TaskCreationOptions.LongRunning);              
-            }
-            catch (ObjectDisposedException)
-            {
-                break;
-            }
-            catch (SocketException ex)
-            {
-                if (cancelToken.IsCancellationRequested) break;
-                logger.LogDebug($"Accept error: {ex.SocketErrorCode}");
-                Thread.Sleep(50);
-            }
-            catch (Exception ex)
-            {
-                if (cancelToken.IsCancellationRequested) break;
-                logger.LogDebug($"Accept exception: {ex.Message}");
-                Thread.Sleep(50);
-            }
-        }
-
-        listener.Close();
-    }
-
-    private void ClientLoop(ILogger logger, Socket client, CancellationToken cancelToken)
-    {
-        Span<byte> cmdBuf = stackalloc byte[1];
+        socketListener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        socketListener.Bind(new IPEndPoint(address, port));
+        socketListener.Listen(backlog: 1);
+        logger.LogInformation($"Socket opened {socketListener.LocalEndPoint}");
         try
         {
-            while (!cancelToken.IsCancellationRequested)
+            while (true)
             {
+                cancelToken.ThrowIfCancellationRequested();
+                var session = socketListener!.Accept();
+                if (socketSession != null)
+                {
+                    logger.LogInformation($"Dropping session {socketSession?.RemoteEndPoint} and accepting new session");
+                    try { socketSession?.Shutdown(SocketShutdown.Both); } catch { }
+                    try { socketSession?.Close(); } catch { }
+                    sessionCancelTokenSource?.Cancel();
+                }
+                logger.LogInformation($"Session accepted {session.RemoteEndPoint}");
+                sessionCancelTokenSource = new CancellationTokenSource();
+                taskSession = Task.Factory.StartNew(() => SessionLoop(logger, session, sessionCancelTokenSource.Token), TaskCreationOptions.LongRunning);
+                socketSession = session;
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (SocketException ex)
+        {
+            logger.LogDebug($"SocketException: {ex.SocketErrorCode}");
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug($"Exception: {ex.Message}");
+        }
+        finally
+        {
+            if (!cancelToken.IsCancellationRequested)
+                logger.LogCritical($"Socket closed");
+            else
+                logger.LogDebug($"Socket closed");
+            socketListener = null;
+        }
+    }
+
+    private void SessionLoop(ILogger logger, Socket client, CancellationToken cancelToken)
+    {
+        try
+        {
+            Span<byte> cmdBuf = stackalloc byte[1];
+            while (true)
+            {
+                cancelToken.ThrowIfCancellationRequested();
                 int read = 0;
-                try
-                {
-                    read = client.Receive(cmdBuf);
-                }
-                catch (SocketException se)
-                {
-                    logger.LogDebug($"Receive error {se.SocketErrorCode}");
-                    break;
-                }
+                read = client.Receive(cmdBuf);
                 if (read == 0)
-                    break; // disconnect
+                    break;
 
                 byte cmd = cmdBuf[0];
                 switch (cmd)
                 {
                     case (byte)'K':
-                        SendScopehalOld(client, cancelTokenSource.Token);
+                        SendScopehalOld(client, cancelToken);
                         break;
                     case (byte)'S':
-                        var sw = Stopwatch.StartNew();
-                        SendScopehal(client, cancelTokenSource.Token);
-                        sw.Stop();
-                        logger.LogDebug($"SendScopehal() - {sw.Elapsed.TotalMicroseconds} us");
+                        SendScopehal(client, cancelToken);
                         break;
                     default:
-                        // Ignore unknown command
                         break;
                 }
             }
         }
         catch (OperationCanceledException) { }
+        catch (SocketException se)
+        {
+            logger.LogDebug($"SocketException {se.SocketErrorCode}");
+        }
         catch (Exception ex)
         {
-            logger.LogDebug($"Session exception: {ex.Message}");
+            logger.LogDebug($"Exception: {ex.Message}");
         }
         finally
         {
-
+            logger.LogInformation($"Session dropped");
+            socketSession = null;
         }
     }
 
@@ -147,6 +146,7 @@ internal class DataServer : IThread
         {
             cancelToken.ThrowIfCancellationRequested();
             bool noCapturesAvailable = false;
+
             lock (captureBuffer.ReadLock)
             {
                 if (captureBuffer.TryStartRead(out var captureMetadata))
