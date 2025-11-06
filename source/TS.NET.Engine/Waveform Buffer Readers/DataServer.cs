@@ -38,7 +38,7 @@ internal class DataServer : IThread
     public void Start(SemaphoreSlim startSemaphore)
     {
         listenerCancelTokenSource = new CancellationTokenSource();
-        taskListener = Task.Factory.StartNew(() => ListenerLoop(logger, listenerCancelTokenSource.Token), TaskCreationOptions.LongRunning);
+        taskListener = Task.Factory.StartNew(() => LoopListener(logger, listenerCancelTokenSource.Token), TaskCreationOptions.LongRunning);
         startSemaphore.Release();
     }
 
@@ -52,7 +52,7 @@ internal class DataServer : IThread
         taskSession?.Wait();
     }
 
-    private void ListenerLoop(ILogger logger, CancellationToken cancelToken)
+    private void LoopListener(ILogger logger, CancellationToken cancelToken)
     {
         socketListener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         socketListener.Bind(new IPEndPoint(address, port));
@@ -73,7 +73,7 @@ internal class DataServer : IThread
                 }
                 logger.LogInformation($"Session accepted {session.RemoteEndPoint}");
                 sessionCancelTokenSource = new CancellationTokenSource();
-                taskSession = Task.Factory.StartNew(() => SessionLoop(logger, session, sessionCancelTokenSource.Token), TaskCreationOptions.LongRunning);
+                taskSession = Task.Factory.StartNew(() => LoopSession(logger, session, sessionCancelTokenSource.Token), TaskCreationOptions.LongRunning);
                 socketSession = session;
             }
         }
@@ -96,7 +96,7 @@ internal class DataServer : IThread
         }
     }
 
-    private void SessionLoop(ILogger logger, Socket client, CancellationToken cancelToken)
+    private void LoopSession(ILogger logger, Socket client, CancellationToken cancelToken)
     {
         try
         {

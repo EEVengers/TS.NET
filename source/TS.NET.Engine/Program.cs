@@ -65,20 +65,16 @@ class Program
             .MinimumLevel.Debug()
             .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
             .Enrich.FromLogContext()
-            .WriteTo.Console(
-                theme: AnsiConsoleTheme.Code,
-                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}"
+            .WriteTo.Console(theme: AnsiConsoleTheme.Code, outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}"
             )
-            .WriteTo.File("Logs/TS.NET.Engine .txt", rollingInterval: RollingInterval.Day)
+            .WriteTo.File("Logs/TS.NET.Engine .txt", rollingInterval: RollingInterval.Day, outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
 #else
         var serilog = new LoggerConfiguration()
             .MinimumLevel.Information()
             .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
             .Enrich.FromLogContext()
-            .WriteTo.Console(
-                theme: AnsiConsoleTheme.Code,
-                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}"
+            .WriteTo.Console(theme: AnsiConsoleTheme.Code, outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}"
             )
             .CreateLogger();
 #endif

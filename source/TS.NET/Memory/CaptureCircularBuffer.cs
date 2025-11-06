@@ -92,6 +92,13 @@ namespace TS.NET
                 this.channelCaptureLength = channelCaptureLength;
 
                 maxCaptureCount = (int)(buffer.LengthBytes / potentialTotalCaptureLengthBytes);
+
+                int uiWaveformDisplayRate = 30;
+                if (maxCaptureCount > uiWaveformDisplayRate)
+                {
+                    maxCaptureCount = uiWaveformDisplayRate;   // Coerce for now until flow control mechanism in place
+                    logger.LogDebug($"CaptureCircularBuffer maxCaptureCount coerced to {maxCaptureCount}");
+                }
                 wraparoundOffset = maxCaptureCount * potentialTotalCaptureLength;
 
                 currentCaptureCount = 0;

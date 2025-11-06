@@ -321,7 +321,7 @@ public class Instruments
             throw new TestbenchException("Requested channel index is not an enabled channel");
         thunderScope!.Stop();
         thunderScope!.Start();
-        thunderScope!.Read(dataMemory!, new CancellationToken());
+        thunderScope!.Read(dataMemory!);
 
         var samples = dataMemory!.DataSpanI8;
         Span<sbyte> channel;
@@ -375,7 +375,7 @@ public class Instruments
     {
         thunderScope!.Stop();
         thunderScope!.Start();
-        thunderScope!.Read(dataMemory!, new CancellationToken());
+        thunderScope!.Read(dataMemory!);
 
         var sampleBuffer = dataMemory!.DataSpanI8;
         int sampleLen = sampleBuffer.Length;
@@ -464,7 +464,7 @@ public class Instruments
             throw new TestbenchException("Requested channel index is not an enabled channel");
         thunderScope!.Stop();
         thunderScope!.Start();
-        thunderScope!.Read(dataMemory!, new CancellationToken());
+        thunderScope!.Read(dataMemory!);
 
         var samples = dataMemory!.DataSpanI8;
         Span<sbyte> channel;
@@ -521,7 +521,7 @@ public class Instruments
             throw new TestbenchException("Requested channel index is not an enabled channel");
         thunderScope!.Stop();
         thunderScope!.Start();
-        thunderScope!.Read(dataMemory!, new CancellationToken());
+        thunderScope!.Read(dataMemory!);
 
         var samples = dataMemory!.DataSpanI8;
         Span<sbyte> channel;
