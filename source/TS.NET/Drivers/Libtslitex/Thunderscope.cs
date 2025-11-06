@@ -148,7 +148,7 @@ namespace TS.NET.Driver.Libtslitex
             started = false;
         }
 
-        public void Read(ThunderscopeMemory data, CancellationToken cancellationToken)
+        public void Read(ThunderscopeMemory data)
         {
             CheckOpen();
 
@@ -171,7 +171,7 @@ namespace TS.NET.Driver.Libtslitex
             }
         }
 
-        public bool TryRead(ThunderscopeMemory data, CancellationToken cancellationToken)
+        public bool TryRead(ThunderscopeMemory data)
         {
             if (!open)
                 return false;

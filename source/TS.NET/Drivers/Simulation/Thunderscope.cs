@@ -32,7 +32,7 @@
             return config;
         }
 
-        public void Read(ThunderscopeMemory data, CancellationToken cancellationToken)
+        public void Read(ThunderscopeMemory data)
         {
             // To do: maintain phase counter and then generate or use pre-computed waveform in real-time so frequency can be configurable.
             var dataSpan = data.DataSpanI8;
@@ -63,11 +63,11 @@
             totalTimeSec += dataSpan.Length / sampleRateHz;
         }
 
-        public bool TryRead(ThunderscopeMemory data, CancellationToken cancellationToken)
+        public bool TryRead(ThunderscopeMemory data)
         {
             if (!running)
                 return false;
-            Read(data, cancellationToken);
+            Read(data);
             return true;
         }
 

@@ -244,8 +244,6 @@ internal class HardwareThread : IThread
                             logger.LogWarning($"Unknown {nameof(HardwareRequestDto)}: {request}");
                             break;
                     }
-                    if (hardwareControl.Request.Reader.PeekAvailable() == 0)
-                        Thread.Sleep(150);
                 }
 
                 try
@@ -255,7 +253,7 @@ internal class HardwareThread : IThread
                         dataDto = hardwarePool.Return.Reader.Read(cancelToken);
                         validDataDto = true;
                     }
-                    if (thunderscope.TryRead(memory, cancelToken))
+                    if (thunderscope.TryRead(memory))
                     {
                         if (enqueueCounter == 0)
                             logger.LogDebug("First block of data received");

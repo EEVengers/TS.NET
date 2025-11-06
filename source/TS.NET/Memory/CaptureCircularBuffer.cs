@@ -92,19 +92,8 @@ namespace TS.NET
                 this.channelCaptureLength = channelCaptureLength;
 
                 maxCaptureCount = (int)(buffer.LengthBytes / potentialTotalCaptureLengthBytes);
-                if (maxCaptureCount > 2)
-                {
-                    maxCaptureCount = 2;   // Coerce for now until "stale data" logic implemented where UI is too slow to pull all the data
-                }
                 wraparoundOffset = maxCaptureCount * potentialTotalCaptureLength;
-                Reset();
-            }
-        }
 
-        public void Reset()
-        {
-            lock (readLock)
-            {
                 currentCaptureCount = 0;
                 captureTotal = 0;
                 captureDrops = 0;
