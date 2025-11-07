@@ -411,7 +411,7 @@ namespace TS.NET.Driver.Libtslitex
             var maximumDesignRangeForTermination = channel.RequestedTermination switch
             {
                 ThunderscopeTermination.OneMegaohm => 40.0,
-                ThunderscopeTermination.FiftyOhm => 5.0,
+                ThunderscopeTermination.FiftyOhm => 5.0 * (2 * 1.41 * 1.1),     // 5Vrms with 10% headroom
                 _ => throw new NotImplementedException()
             };
             var minimumDesignRange = 0.008;
