@@ -81,6 +81,8 @@ internal class HardwareThread : IThread
             var dataType = ThunderscopeDataType.I8;
             var segmentLengthBytes = ThunderscopeSettings.SegmentLengthBytes;
             var memory = new ThunderscopeMemory(ThunderscopeSettings.SegmentLengthBytes);
+
+            logger.LogDebug($"Block size: {ThunderscopeSettings.SegmentLengthBytes}");
 #if DEBUG
             thunderscope.Start();
 #endif
@@ -183,7 +185,7 @@ internal class HardwareThread : IThread
                             {
                                 logger.LogDebug($"{nameof(HardwareGetTerminationRequest)}");
                                 var frontend = thunderscope.GetChannelFrontend(hardwareGetTerminationRequest.ChannelIndex);
-                                hardwareControl.Response.Writer.Write(new HardwareGetTerminationResponse(frontend.Termination));
+                                hardwareControl.Response.Writer.Write(new HardwareGetTerminationResponse(frontend.RequestedTermination, frontend.ActualTermination));
                                 logger.LogDebug($"{nameof(HardwareGetTerminationRequest)}");
                                 break;
                             }
@@ -218,7 +220,7 @@ internal class HardwareThread : IThread
                                         break;
                                     case HardwareSetTermination hardwareSetTerminationRequest:
                                         logger.LogDebug($"{nameof(HardwareSetTermination)} (channel: {channelIndex}, termination: {hardwareSetTerminationRequest.Termination})");
-                                        channelFrontend.Termination = hardwareSetTerminationRequest.Termination;
+                                        channelFrontend.RequestedTermination = hardwareSetTerminationRequest.Termination;
                                         break;
                                     default:
                                         logger.LogWarning($"Unknown {nameof(HardwareSetChannelFrontendRequest)}: {request}");

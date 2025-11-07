@@ -6,27 +6,22 @@ namespace TS.NET
     public struct ThunderscopeChannelFrontend
     {
         public ThunderscopeCoupling Coupling;
-        public ThunderscopeTermination Termination;
+        public ThunderscopeTermination RequestedTermination;
         public double RequestedVoltFullScale;
         public double RequestedVoltOffset;
         public ThunderscopeBandwidth Bandwidth;
 
         // Calculated data
-        //public bool Attenuator1MOhm;
-        //public bool Attenuator50Ohm;
-        //public ushort PgaConfigWord;
-        //public double ActualSystemGain;
+        public ThunderscopeTermination ActualTermination;
         public double ActualVoltFullScale;
         public double ActualVoltOffset;
-        //public ushort TrimOffsetDac;
-        //public ushort TrimSensitivityDac;
 
         public static ThunderscopeChannelFrontend Default()
         {
             return new ThunderscopeChannelFrontend()
             {
                 Coupling = ThunderscopeCoupling.DC,
-                Termination = ThunderscopeTermination.OneMegaohm,
+                RequestedTermination = ThunderscopeTermination.OneMegaohm,
                 RequestedVoltFullScale = 0.8,
                 RequestedVoltOffset = 0,
                 Bandwidth = ThunderscopeBandwidth.BwFull

@@ -12,4 +12,4 @@ public record HardwareGetVoltOffsetResponse(double RequestedVoltOffset, double A
 public record HardwareGetVoltFullScaleResponse(double RequestedVoltFullScale, double ActualVoltFullScale) : HardwareResponseDto;
 public record HardwareGetBandwidthResponse(ThunderscopeBandwidth Bandwidth) : HardwareResponseDto;
 public record HardwareGetCouplingResponse(ThunderscopeCoupling Coupling) : HardwareResponseDto;
-public record HardwareGetTerminationResponse(ThunderscopeTermination Termination) : HardwareResponseDto;
+public record HardwareGetTerminationResponse(ThunderscopeTermination RequestedTermination, ThunderscopeTermination ActualTermination) : HardwareResponseDto;

@@ -408,16 +408,17 @@ namespace TS.NET.Driver.Libtslitex
             bool pathFound = false;
             ThunderscopeChannelPathCalibration selectedPath = new();
             bool attenuator = false;
-            var maximumDesignRangeForTermination = channel.Termination switch
+            var maximumDesignRangeForTermination = channel.RequestedTermination switch
             {
                 ThunderscopeTermination.OneMegaohm => 40.0,
-                ThunderscopeTermination.FiftyOhm => 4.0,
+                ThunderscopeTermination.FiftyOhm => 5.0,
                 _ => throw new NotImplementedException()
             };
             var minimumDesignRange = 0.008;
             var vppTooLarge = channel.RequestedVoltFullScale > maximumDesignRangeForTermination;
             var vppTooSmall = channel.RequestedVoltFullScale < minimumDesignRange;
             var runRangeSearch = !vppTooSmall && !vppTooLarge;
+            channel.ActualTermination = channel.RequestedTermination;       // True in most cases, there is below that can change it
 
             // To do: search logic should also take into account the RequestedVoltOffset so that the attenuator can operate for large offsets;
             while (runRangeSearch)
@@ -426,7 +427,7 @@ namespace TS.NET.Driver.Libtslitex
                 // Pga with no attenuator
                 foreach (var path in channelCalibration[channelIndex].Paths)
                 {
-                    var potentialVpp = CalculateConnectorInputVpp(path, channel.Termination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
+                    var potentialVpp = CalculateConnectorInputVpp(path, channel.RequestedTermination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
                     if (potentialVpp > channel.RequestedVoltFullScale)
                     {
                         pathFound = true;
@@ -442,7 +443,7 @@ namespace TS.NET.Driver.Libtslitex
                 // Pga with attenuator
                 foreach (var path in channelCalibration[channelIndex].Paths)
                 {
-                    var potentialVpp = CalculateConnectorInputVpp(path, channel.Termination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
+                    var potentialVpp = CalculateConnectorInputVpp(path, channel.RequestedTermination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
                     if (potentialVpp > channel.RequestedVoltFullScale)
                     {
                         pathFound = true;
@@ -458,7 +459,7 @@ namespace TS.NET.Driver.Libtslitex
             if (!pathFound)
             {
                 logger.LogWarning("No valid frontend configuration found, using nearest");
-                switch (channel.Termination)
+                switch (channel.RequestedTermination)
                 {
                     case ThunderscopeTermination.OneMegaohm:
                         if (vppTooLarge)
@@ -466,14 +467,14 @@ namespace TS.NET.Driver.Libtslitex
                             selectedPath = channelCalibration[channelIndex].Paths.Last();
                             attenuator = true;
                             channel.RequestedVoltFullScale = maximumDesignRangeForTermination;
-                            channel.ActualVoltFullScale = CalculateConnectorInputVpp(selectedPath, channel.Termination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
+                            channel.ActualVoltFullScale = CalculateConnectorInputVpp(selectedPath, channel.RequestedTermination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
                         }
                         else
                         {
                             selectedPath = channelCalibration[channelIndex].Paths.First();
                             attenuator = false;
                             channel.RequestedVoltFullScale = minimumDesignRange;
-                            channel.ActualVoltFullScale = CalculateConnectorInputVpp(selectedPath, channel.Termination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
+                            channel.ActualVoltFullScale = CalculateConnectorInputVpp(selectedPath, channel.RequestedTermination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
                         }
                         channel.ActualVoltOffset = 0;       // To do
                         break;
@@ -481,7 +482,8 @@ namespace TS.NET.Driver.Libtslitex
                         if (vppTooLarge)
                         {
                             // Switch off the 50R termination
-                            channel.Termination = ThunderscopeTermination.OneMegaohm;
+                            channel.ActualTermination = ThunderscopeTermination.OneMegaohm;
+                            logger.LogWarning("Termination changed to 1M");
 
                             selectedPath = channelCalibration[channelIndex].Paths.Last();
                             channel.RequestedVoltFullScale = maximumDesignRangeForTermination;
@@ -493,7 +495,7 @@ namespace TS.NET.Driver.Libtslitex
                             channel.RequestedVoltFullScale = minimumDesignRange;
                             attenuator = false;
                         }
-                        var potentialVpp = CalculateConnectorInputVpp(selectedPath, channel.Termination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
+                        var potentialVpp = CalculateConnectorInputVpp(selectedPath, channel.RequestedTermination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
                         channel.ActualVoltFullScale = potentialVpp;
                         channel.ActualVoltOffset = 0;       // To do
                         break;
@@ -530,7 +532,7 @@ namespace TS.NET.Driver.Libtslitex
             var manualControl = new ThunderscopeChannelFrontendManualControl()
             {
                 Coupling = channel.Coupling,
-                Termination = channel.Termination,
+                Termination = channel.ActualTermination,
                 Attenuator = attenuator ? (byte)1 : (byte)0,
                 DAC = (ushort)dacValue,
                 DPOT = selectedPath.TrimScaleDac,

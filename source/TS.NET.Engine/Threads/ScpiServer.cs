@@ -869,7 +869,7 @@ internal class ScpiSession : TcpSession
                                         ThunderscopeBandwidth.Bw200M => "200M",
                                         ThunderscopeBandwidth.Bw100M => "100M",
                                         ThunderscopeBandwidth.Bw20M => "20M",
-                                        _ => hardwareGetBandwidthResponse.Bandwidth.ToString().ToUpper()
+                                        _ => throw new NotImplementedException()
                                     };
                                     return bandwidth + "\n";
                                 }
@@ -895,7 +895,7 @@ internal class ScpiSession : TcpSession
                                     {
                                         ThunderscopeCoupling.DC => "DC",
                                         ThunderscopeCoupling.AC => "AC",
-                                        _ => hardwareGetCouplingResponse.Coupling.ToString().ToUpper()
+                                        _ => throw new NotImplementedException()
                                     };
                                     return coupling + "\n";
                                 }
@@ -917,11 +917,12 @@ internal class ScpiSession : TcpSession
                             {
                                 if (response is HardwareGetTerminationResponse hardwareGetTerminationResponse)
                                 {
-                                    string termination = hardwareGetTerminationResponse.Termination switch
+                                    // RANG/OFFS returns requested values (requested can be changed by driver), TERM returns actual
+                                    string termination = hardwareGetTerminationResponse.ActualTermination switch
                                     {
                                         ThunderscopeTermination.OneMegaohm => "1M",
                                         ThunderscopeTermination.FiftyOhm => "50",
-                                        _ => hardwareGetTerminationResponse.Termination.ToString().ToUpper()
+                                        _ => throw new NotImplementedException()
                                     };
                                     return termination + "\n";
                                 }
