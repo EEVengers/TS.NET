@@ -18,11 +18,12 @@ public class AdcBranchGainsStep : Step
             Instruments.Instance.SetThunderscopeRate(rateHz);
             Instruments.Instance.SetThunderscopeAdcCalibration(branchFineGains);        // Reset to all zero
 
+            Instruments.Instance.SetSdgNoise(channelIndex, 0.16, 0.0);
+
             // First set the maximum range
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pathIndex, variables);
             var pathConfig = Utility.GetChannelPathConfig(channelIndex, pathIndex, variables);
             Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables);
-            Instruments.Instance.SetSdgNoise(channelIndex, 0.16, 0.0);
 
             List<ResultMetadata> metadata = [];
 

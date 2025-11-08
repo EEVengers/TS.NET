@@ -1,7 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace TS.NET.Engine;
 
@@ -242,6 +244,44 @@ internal class DataServer : IThread
                         dataType = (byte)captureMetadata.ProcessingConfig.ChannelDataType,
                         trigphase = 0
                     };
+
+                    // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
+                    if (captureMetadata.Triggered && captureMetadata.ProcessingConfig.TriggerInterpolation)
+                    {
+
+                        switch (captureMetadata.ProcessingConfig.ChannelDataType)
+                        {
+                            case ThunderscopeDataType.I8:
+                                {
+                                    ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetChannelReadBuffer<sbyte>(captureMetadata.TriggerChannelCaptureIndex);
+                                    int triggerIndex = (int)(captureMetadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
+                                    if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
+                                    {
+                                        chHeader.trigphase = CalculateTriggerInterpolation(triggerChannelBuffer[triggerIndex - 1], triggerChannelBuffer[triggerIndex]);
+                                    }
+                                    else
+                                    {
+                                        chHeader.trigphase = 0;
+                                    }
+                                }
+                                break;
+                            case ThunderscopeDataType.I16:
+                                {
+                                    ReadOnlySpan<short> triggerChannelBuffer = captureBuffer.GetChannelReadBuffer<short>(captureMetadata.TriggerChannelCaptureIndex);
+                                    int triggerIndex = (int)(captureMetadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
+                                    if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
+                                    {
+                                        chHeader.trigphase = CalculateTriggerInterpolation(triggerChannelBuffer[triggerIndex - 1], triggerChannelBuffer[triggerIndex]);
+                                    }
+                                    else
+                                    {
+                                        chHeader.trigphase = 0;
+                                    }
+                                }
+                                break;
+                        }
+                    }
+
                     unsafe
                     {
                         socket.Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
@@ -279,6 +319,32 @@ internal class DataServer : IThread
                     sequenceNumber++;
                     captureBuffer.FinishRead();
                     break;
+
+                    float CalculateTriggerInterpolation(int pointA, int pointB)
+                    {
+                        int triggerIndex = (int)(captureMetadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
+                        int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureMetadata.TriggerChannelCaptureIndex);
+                        ThunderscopeChannelFrontend triggerChannelFrontend = captureMetadata.HardwareConfig.Frontend[channelIndex];
+                        var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 256.0);     // 8-bit
+                        if (captureMetadata.ProcessingConfig.AdcResolution == AdcResolution.TwelveBit)
+                            channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 65536.0);   // 16-bit
+                        var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
+
+                        float fa = channelScale * pointA - channelOffset;
+                        float fb = channelScale * pointB - channelOffset;
+                        float triggerLevel = captureMetadata.ProcessingConfig.EdgeTriggerParameters.LevelV + channelOffset;
+                        float slope = fb - fa;
+                        float delta = triggerLevel - fa;
+                        float trigphase = delta / slope;
+                        if (trigphase > 1.0f || trigphase < -1.0f)
+                            trigphase = 0.0f;
+                        var result = femtosecondsPerSample * (1 - trigphase);
+                        if (!double.IsFinite(result))
+                            result = 0;
+                        var delay = captureMetadata.ProcessingConfig.TriggerDelayFs - (ulong)triggerIndex * femtosecondsPerSample;
+                        result += delay;
+                        return result;
+                    }
                 }
                 else
                     noCapturesAvailable = true;

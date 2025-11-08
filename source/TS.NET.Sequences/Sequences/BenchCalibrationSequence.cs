@@ -71,20 +71,16 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - LG L9", 0, 20, Variables),
             new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - LG L10", 0, 21, Variables),
 
-            new Step("Connect SDG2042X"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetSdgChannel(0);
-                cancellationToken.WaitHandle.WaitOne(2000);
-                return Sequencer.Status.Done;
-            }},
-            new Step("Find SDG2042X zero"){ Action = (CancellationToken cancellationToken) => {
+            new Step("Find signal generator zero"){ Action = (CancellationToken cancellationToken) => {
                 var pathConfig = Utility.GetChannelPathConfig(0, 0, Variables);
                 var pathCalibration = Utility.GetChannelPathCalibration(0, 0, Variables);
                 Instruments.Instance.SetThunderscopeCalManual1M(0, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, Variables);
+                Instruments.Instance.SetSdgChannel(0);
                 Utility.GetAndCheckSigGenZero(0, pathConfig, Variables, cancellationToken);
                 return Sequencer.Status.Done;
             }},
 
-            new AdcBranchGainsStep("Measure & set ADC fine gain", 0, 1_000_000_000, Variables),
+            new AdcBranchGainsStep("Channel 1 - ADC branch gains", 0, 1_000_000_000, Variables),
 
             new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L0", 0, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L1", 0, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
@@ -129,7 +125,7 @@ public class BenchCalibrationSequence : Sequence
             new PgaLoadStep("Channel 1 - measure PGA loading scale - 165 MSPS, 4 channel", 0, [0, 1, 2, 3], 165_000_000, Variables),
             new PgaLoadStep("Channel 1 - measure PGA loading scale - 100 MSPS, 4 channel", 0, [0, 1, 2, 3], 100_000_000, Variables),
 
-            new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
             new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L0", 1, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L1", 1, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
@@ -177,15 +173,11 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - LG L9", 1, 20, Variables),
             new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - LG L10", 1, 21, Variables),
 
-            new Step("Connect SDG2042X"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetSdgChannel(1);
-                cancellationToken.WaitHandle.WaitOne(2000);
-                return Sequencer.Status.Done;
-            }},
-            new Step("Find SDG2042X zero"){ Action = (CancellationToken cancellationToken) => {
+            new Step("Find signal generator zero"){ Action = (CancellationToken cancellationToken) => {
                 var pathConfig = Utility.GetChannelPathConfig(1, 0, Variables);
                 var pathCalibration = Utility.GetChannelPathCalibration(1, 0, Variables);
                 Instruments.Instance.SetThunderscopeCalManual1M(1, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, Variables);
+                Instruments.Instance.SetSdgChannel(1);
                 Utility.GetAndCheckSigGenZero(1, pathConfig, Variables, cancellationToken);
                 return Sequencer.Status.Done;
             }},
@@ -233,7 +225,7 @@ public class BenchCalibrationSequence : Sequence
             new PgaLoadStep("Channel 2 - measure PGA loading scale - 165 MSPS, 4 channel", 1, [0, 1, 2, 3], 165_000_000, Variables),
             new PgaLoadStep("Channel 2 - measure PGA loading scale - 100 MSPS, 4 channel", 1, [0, 1, 2, 3], 100_000_000, Variables),
 
-            new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
             new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L0", 2, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L1", 2, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
@@ -281,15 +273,11 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - LG L9", 2, 20, Variables),
             new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - LG L10", 2, 21, Variables),
 
-            new Step("Connect SDG2042X"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetSdgChannel(2);
-                cancellationToken.WaitHandle.WaitOne(2000);
-                return Sequencer.Status.Done;
-            }},
-            new Step("Find SDG2042X zero"){ Action = (CancellationToken cancellationToken) => {
+            new Step("Find signal generator zero"){ Action = (CancellationToken cancellationToken) => {
                 var pathConfig = Utility.GetChannelPathConfig(2, 0, Variables);
                 var pathCalibration = Utility.GetChannelPathCalibration(2, 0, Variables);
                 Instruments.Instance.SetThunderscopeCalManual1M(2, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, Variables);
+                Instruments.Instance.SetSdgChannel(2);
                 Utility.GetAndCheckSigGenZero(2, pathConfig, Variables, cancellationToken);
                 return Sequencer.Status.Done;
             }},
@@ -337,7 +325,7 @@ public class BenchCalibrationSequence : Sequence
             new PgaLoadStep("Channel 3 - measure PGA loading scale - 165 MSPS, 4 channel", 2, [0, 1, 2, 3], 165_000_000, Variables),
             new PgaLoadStep("Channel 3 - measure PGA loading scale - 100 MSPS, 4 channel", 2, [0, 1, 2, 3], 100_000_000, Variables),
 
-            new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
             new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L0", 3, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L1", 3, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
@@ -385,15 +373,11 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - LG L9", 3, 20, Variables),
             new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - LG L10", 3, 21, Variables),
 
-            new Step("Connect SDG2042X"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetSdgChannel(3);
-                cancellationToken.WaitHandle.WaitOne(2000);
-                return Sequencer.Status.Done;
-            }},
-            new Step("Find SDG2042X zero"){ Action = (CancellationToken cancellationToken) => {
+            new Step("Find signal generator zero"){ Action = (CancellationToken cancellationToken) => {
                 var pathConfig = Utility.GetChannelPathConfig(3, 0, Variables);
                 var pathCalibration = Utility.GetChannelPathCalibration(3, 0, Variables);
                 Instruments.Instance.SetThunderscopeCalManual1M(3, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, Variables);
+                Instruments.Instance.SetSdgChannel(3);
                 Utility.GetAndCheckSigGenZero(3, pathConfig, Variables, cancellationToken);
                 return Sequencer.Status.Done;
             }},
@@ -441,10 +425,10 @@ public class BenchCalibrationSequence : Sequence
             new PgaLoadStep("Channel 4 - measure PGA loading scale - 165 MSPS, 4 channel", 3, [0, 1, 2, 3], 165_000_000, Variables),
             new PgaLoadStep("Channel 4 - measure PGA loading scale - 100 MSPS, 4 channel", 3, [0, 1, 2, 3], 100_000_000, Variables),
 
-            new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
-            new SaveUserCalToFileStep("Save calibration to file", Variables),
-            new SaveUserCalToDeviceStep("Save calibration to device", Variables),
+            new SaveUserCalToFileStep("Save calibration to file", Variables) { AllowSkip = true },
+            new SaveUserCalToDeviceStep("Save calibration to device", Variables) { AllowSkip = true },
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.Close();
