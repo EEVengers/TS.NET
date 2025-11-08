@@ -41,7 +41,7 @@
             sb.AppendLine("        <thead class=\"bg-gray-200 text-black text-sm leading-normal\">");
             sb.AppendLine("            <tr>");
             sb.AppendLine("                <th class=\"p-1 pl-2 text-left font-normal\">#</th>");
-            sb.AppendLine("                <th class=\"p-1 text-left font-normal\">Step name</th>");
+            sb.AppendLine("                <th class=\"p-1 pl-2 text-left font-normal\">Step name</th>");
             sb.AppendLine("                <th class=\"p-1 text-left font-normal\">Duration</th>");
             sb.AppendLine("                <th class=\"p-1 text-left font-normal\">Summary</th>");
             sb.AppendLine("                <th class=\"p-1 pr-2 text-left font-normal\">Status</th>");
@@ -59,7 +59,7 @@
                     else
                         sb.AppendLine($"            <tr class=\"border-b border-gray-300\">");
                     sb.AppendLine($"                <td class=\"p-1 pl-2 text-left whitespace-nowrap\">{step.Index}</td>");
-                    sb.AppendLine($"                <td class=\"p-1 text-left\">{step.Name}</td>");
+                    sb.AppendLine($"                <td class=\"p-1 pl-2 text-left\">{step.Name}</td>");
                     sb.AppendLine($"                <td class=\"p-1 text-left\">{HumanDuration(step.Result?.Duration)}</td>");
                     sb.AppendLine($"                <td class=\"p-1 text-left\">{step.Result?.Summary ?? "-"}</td>");
                     sb.AppendLine($"                <td class=\"p-1 pr-2 text-left {StatusTextColour(step.Result?.Status)}\">{step.Result?.Status.ToString() ?? "-"}</td>");
@@ -68,7 +68,7 @@
                     if (step.Result?.Exception != null || (step.Result?.Metadata != null && step.Result.Metadata.Length > 0))
                     {
                         sb.AppendLine("            <tr class=\"border-b border-gray-300\">");
-                        sb.AppendLine("                <td class=\"p-2 bg-gray-200\">");
+                        sb.AppendLine("                <td class=\"p-2 bg-gray-100\">");
                         sb.AppendLine("                <td colspan=\"4\" class=\"p-2\">");
                         sb.AppendLine("                    <div class=\"text-sm\">");
 
