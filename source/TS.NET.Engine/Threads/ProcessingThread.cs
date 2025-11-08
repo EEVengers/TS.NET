@@ -480,7 +480,7 @@ public class ProcessingThread : IThread
                     if (dataDto == null)
                         break;
 
-                    if (dataDto.HardwareConfig.EnabledChannelsCount() != cachedHardwareConfig.EnabledChannelsCount())
+                    if (dataDto.HardwareConfig.EnabledChannelsCount() != processingConfig.ChannelCount)
                     {
                         processingConfig.ChannelCount = dataDto.HardwareConfig.EnabledChannelsCount();
                         ResetAll();
@@ -490,6 +490,9 @@ public class ProcessingThread : IThread
                     if (dataDto.HardwareConfig.SampleRateHz != processingConfig.SampleRateHz)
                     {
                         logger.LogWarning("Dropped buffer (mismatched rates)");
+                        // Coerce and drop - later use ProcessingSetEnabled
+                        processingConfig.SampleRateHz = dataDto.HardwareConfig.SampleRateHz;
+                        ResetAll();
                         inputPool.Return.Writer.Write(dataDto);
                         continue;   // Drop the buffer
                     }
