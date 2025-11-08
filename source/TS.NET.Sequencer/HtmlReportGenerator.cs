@@ -33,18 +33,18 @@
             sb.AppendLine($"        <div>{sequence.Name}</div>");
             sb.AppendLine($"        <div>{sequence.StartTimestamp.ToString("yyyy-MM-dd HH:mm:ss")} ({sequence.TzId})</div>");
             sb.AppendLine($"        <div>{HumanDuration(sequence.Duration)}</div>");
-            sb.AppendLine($"        <div>TS00007</div>");
+            sb.AppendLine($"        <div>TS0019</div>");
             sb.AppendLine("    </div>");
             sb.AppendLine("    </div>");
 
             sb.AppendLine("    <table class=\"min-w-full bg-white\">");
             sb.AppendLine("        <thead class=\"bg-gray-200 text-black text-sm leading-normal\">");
             sb.AppendLine("            <tr>");
-            sb.AppendLine("                <th class=\"p-1 pl-2 text-left\">#</th>");
-            sb.AppendLine("                <th class=\"p-1 text-left\">Step name</th>");
-            sb.AppendLine("                <th class=\"p-1 text-left\">Duration</th>");
-            sb.AppendLine("                <th class=\"p-1 text-left\">Summary</th>");
-            sb.AppendLine("                <th class=\"p-1 pr-2 text-left\">Status</th>");
+            sb.AppendLine("                <th class=\"p-1 pl-2 text-left font-normal\">#</th>");
+            sb.AppendLine("                <th class=\"p-1 text-left font-normal\">Step name</th>");
+            sb.AppendLine("                <th class=\"p-1 text-left font-normal\">Duration</th>");
+            sb.AppendLine("                <th class=\"p-1 text-left font-normal\">Summary</th>");
+            sb.AppendLine("                <th class=\"p-1 pr-2 text-left font-normal\">Status</th>");
             sb.AppendLine("            </tr>");
             sb.AppendLine("        </thead>");
             sb.AppendLine("        <tbody class=\"text-black text-sm \">");
@@ -54,7 +54,10 @@
                 foreach (var step in sequence.Steps)
                 {
                     var status = step.Result?.Status ?? Status.Skipped;
-                    sb.AppendLine($"            <tr class=\"even:bg-gray-100 odd:bg-white\">");
+                    if (step.Result?.Exception != null || (step.Result?.Metadata != null && step.Result.Metadata.Length > 0))
+                        sb.AppendLine($"            <tr class=\"\">");
+                    else
+                        sb.AppendLine($"            <tr class=\"border-b border-gray-300\">");
                     sb.AppendLine($"                <td class=\"p-1 pl-2 text-left whitespace-nowrap\">{step.Index}</td>");
                     sb.AppendLine($"                <td class=\"p-1 text-left\">{step.Name}</td>");
                     sb.AppendLine($"                <td class=\"p-1 text-left\">{HumanDuration(step.Result?.Duration)}</td>");
@@ -64,8 +67,9 @@
 
                     if (step.Result?.Exception != null || (step.Result?.Metadata != null && step.Result.Metadata.Length > 0))
                     {
-                        sb.AppendLine("            <tr class=\"bg-gray-50\">");
-                        sb.AppendLine("                <td colspan=\"5\" class=\"p-1\">");
+                        sb.AppendLine("            <tr class=\"border-b border-gray-300\">");
+                        sb.AppendLine("                <td class=\"p-2 bg-gray-200\">");
+                        sb.AppendLine("                <td colspan=\"4\" class=\"p-2\">");
                         sb.AppendLine("                    <div class=\"text-sm\">");
 
                         if (step.Result.Exception != null)
@@ -76,10 +80,52 @@
 
                         if (step.Result.Metadata != null)
                         {
+                            bool firstMetadataItem = true;
                             foreach (var meta in step.Result.Metadata)
                             {
                                 switch (meta)
                                 {
+                                    case ResultMetadataTable table:
+                                        if (!table.ShowInReport)
+                                            break; // Skip rendering if flagged off
+                                        if (firstMetadataItem)
+                                        {
+                                            sb.AppendLine($"<div class=\"pb-2 text-xs underline\">{table.Name}</div>");
+                                            firstMetadataItem = false;
+                                        }
+                                        else
+                                            sb.AppendLine($"<div class=\"py-2 text-xs underline\">{table.Name}</div>");
+                                        sb.AppendLine("<table class=\"text-xs border border-gray-400\">");
+                                        if (table.Headers != null && table.Headers.Length > 0)
+                                        {
+                                            sb.AppendLine("<thead>");
+                                            sb.AppendLine("<tr>");
+                                            foreach (var h in table.Headers)
+                                            {
+                                                sb.AppendLine($"<th class=\"px-2 py-1 border-b border-gray-400 text-left font-normal\">{h}</th>");
+                                            }
+                                            sb.AppendLine("</tr>");
+                                            sb.AppendLine("</thead>");
+                                        }
+                                        if (table.Rows != null && table.Rows.Length > 0)
+                                        {
+                                            sb.AppendLine("<tbody>");
+                                            foreach (var row in table.Rows)
+                                            {
+                                                sb.AppendLine("<tr>");
+                                                if (row != null)
+                                                {
+                                                    foreach (var cell in row)
+                                                    {
+                                                        sb.AppendLine($"<td class=\"px-2 py-1 border-b border-gray-300\">{cell}</td>");
+                                                    }
+                                                }
+                                                sb.AppendLine("</tr>");
+                                            }
+                                            sb.AppendLine("</tbody>");
+                                        }
+                                        sb.AppendLine("</table>");
+                                        break;
                                     //case StepResultChart chart:
                                     //    sb.AppendLine("                        <em class=\"text-gray-500\">Chart metadata not yet implemented in report.</em>");
                                     //    break;
@@ -120,7 +166,7 @@
 
         private static string StatusTextColour(Status? status)
         {
-            switch(status)
+            switch (status)
             {
                 case Status.Running:
                 case Status.Cancelled:
@@ -136,7 +182,7 @@
                     return "text-black";
                 default:
                     throw new NotImplementedException();
-            }    
+            }
         }
 
         private static string GetStyles(Sequence sequence)
@@ -152,7 +198,7 @@
                     {
                         var content = reader.ReadToEnd();
                         content = content.Replace("[@top-center content]", sequence.Name);
-                        content = content.Replace("[@top-right content]", "Device: TS00007");
+                        content = content.Replace("[@top-right content]", "Device: TS0019");
                         content = content.Replace("[@bottom-left content]", sequence.StartTimestamp.ToString("yyyy-MM-dd HH:mm:ss"));
                         sb.Append(content);
                     }

@@ -241,9 +241,6 @@ class Program
         try
         {
             await sequence.Run(cancellationTokenSource);
-
-            sequence.Steps[0].Result.Metadata = [new ResultMetadataChart() { Name = "Chart", ShowInReport = true }, new ResultMetadataTable() { Name = "Table", ShowInReport = true }];
-
             var fileName = $"{sequence.Name} - {sequence.StartTimestamp:yyyy-MM-dd HHmmss}";
             sequence.ToXml(fileName + ".xml");
             var reportGenerator = new HtmlReportGenerator();

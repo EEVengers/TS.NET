@@ -2,6 +2,7 @@
 {
     public class ResultMetadataTable : ResultMetadata
     {
-        public string TableProperty { get; set; }
+        public string[] Headers { get; set; }
+        public string[][] Rows { get; set; }
     }
 }
