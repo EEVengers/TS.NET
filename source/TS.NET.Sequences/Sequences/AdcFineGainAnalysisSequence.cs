@@ -25,12 +25,6 @@ public class AdcFineGainAnalysisSequence : Sequence
             new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file", Variables),
             new WarmupStep("Warmup device", Variables) { Skip = false, AllowSkip = true },
 
-            new Step("Connect SDG2042X - Channel 1"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetSdgChannel(0);
-                cancellationToken.WaitHandle.WaitOne(2000);
-                return Sequencer.Status.Done;
-            }},
-
             new AdcBranchGainsStep("ADC branch gains - Channel 1 - 1 GSPS", 0, 1_000_000_000, Variables),
             new AdcBranchGainsStep("ADC branch gains - Channel 1 - 660 MSPS", 0, 660_000_000, Variables),
             new AdcBranchGainsStep("ADC branch gains - Channel 1 - 500 MSPS", 0, 500_000_000, Variables),
@@ -39,11 +33,13 @@ public class AdcFineGainAnalysisSequence : Sequence
             new AdcBranchGainsStep("ADC branch gains - Channel 1 - 165 MSPS", 0, 165_000_000, Variables),
             new AdcBranchGainsStep("ADC branch gains - Channel 1 - 100 MSPS", 0, 100_000_000, Variables),
 
-            new Step("Connect SDG2042X - Channel 3"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetSdgChannel(2);
-                cancellationToken.WaitHandle.WaitOne(2000);
-                return Sequencer.Status.Done;
-            }},
+            new AdcBranchGainsStep("ADC branch gains - Channel 2 - 1 GSPS", 1, 1_000_000_000, Variables),
+            new AdcBranchGainsStep("ADC branch gains - Channel 2 - 660 MSPS", 1, 660_000_000, Variables),
+            new AdcBranchGainsStep("ADC branch gains - Channel 2 - 500 MSPS", 1, 500_000_000, Variables),
+            new AdcBranchGainsStep("ADC branch gains - Channel 2 - 330 MSPS", 1, 330_000_000, Variables),
+            new AdcBranchGainsStep("ADC branch gains - Channel 2 - 250 MSPS", 1, 250_000_000, Variables),
+            new AdcBranchGainsStep("ADC branch gains - Channel 2 - 165 MSPS", 1, 165_000_000, Variables),
+            new AdcBranchGainsStep("ADC branch gains - Channel 2 - 100 MSPS", 1, 100_000_000, Variables),
 
             new AdcBranchGainsStep("ADC branch gains - Channel 3 - 1 GSPS", 2, 1_000_000_000, Variables),
             new AdcBranchGainsStep("ADC branch gains - Channel 3 - 660 MSPS", 2, 660_000_000, Variables),
@@ -53,7 +49,15 @@ public class AdcFineGainAnalysisSequence : Sequence
             new AdcBranchGainsStep("ADC branch gains - Channel 3 - 165 MSPS", 2, 165_000_000, Variables),
             new AdcBranchGainsStep("ADC branch gains - Channel 3 - 100 MSPS", 2, 100_000_000, Variables),
 
-            new Step("Disconnect SDG2042X"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
+            new AdcBranchGainsStep("ADC branch gains - Channel 4 - 1 GSPS", 3, 1_000_000_000, Variables),
+            new AdcBranchGainsStep("ADC branch gains - Channel 4 - 660 MSPS", 3, 660_000_000, Variables),
+            new AdcBranchGainsStep("ADC branch gains - Channel 4 - 500 MSPS", 3, 500_000_000, Variables),
+            new AdcBranchGainsStep("ADC branch gains - Channel 4 - 330 MSPS", 3, 330_000_000, Variables),
+            new AdcBranchGainsStep("ADC branch gains - Channel 4 - 250 MSPS", 3, 250_000_000, Variables),
+            new AdcBranchGainsStep("ADC branch gains - Channel 4 - 165 MSPS", 3, 165_000_000, Variables),
+            new AdcBranchGainsStep("ADC branch gains - Channel 4 - 100 MSPS", 3, 100_000_000, Variables),
+
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.Close();

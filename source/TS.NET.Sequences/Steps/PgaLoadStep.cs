@@ -16,7 +16,7 @@ public class PgaLoadStep : Step
             var configIndex = 21;
             var pathConfig = Utility.GetChannelPathConfig(channelIndex, configIndex, variables);
             var vpp = Utility.FindVpp(channelIndex, pathConfig, variables.SigGenZero, cancellationToken);
-            var scaleValue = Math.Round(variables.ReferenceVpp / vpp, 4);
+            var scaleValue = Math.Round(variables.ReferenceVpp / vpp, 3);
             var scale = new ThunderscopePgaLoadScale() { SampleRate = sampleRateHz, ChannelCount = (byte)channelIndices.Length, Scale = scaleValue };
             switch (channelIndex)
             {

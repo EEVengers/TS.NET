@@ -105,7 +105,7 @@ public class Instruments
 
         sigGen1 = new TcpScpiConnection();
         sigGen1.Open(sigGen1Host, 5025);
-        Logger.Instance.Log(LogLevel.Debug, "SCPI connection to SDG2042X #1 opened.");
+        Logger.Instance.Log(LogLevel.Debug, "SCPI connection to signal generator #1 opened.");
         sigGen1.WriteLine("*IDN?");
         var sigGen1Idn = sigGen1.ReadLine();
         Logger.Instance.Log(LogLevel.Debug, $"*IDN: {sigGen1Idn}");
@@ -128,7 +128,7 @@ public class Instruments
 
         sigGen2 = new TcpScpiConnection();
         sigGen2.Open(sigGen2Host, 5025);
-        Logger.Instance.Log(LogLevel.Debug, "SCPI connection to SDG2042X #2 opened.");
+        Logger.Instance.Log(LogLevel.Debug, "SCPI connection to signal generator #2 opened.");
         sigGen2.WriteLine("*IDN?");
         var sigGen2Idn = sigGen2.ReadLine();
         Logger.Instance.Log(LogLevel.Debug, $"*IDN: {sigGen2Idn}");
