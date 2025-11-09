@@ -64,10 +64,10 @@ public class FallingEdgeTriggerI16 : ITriggerI16
             triggerState = TriggerState.Unarmed;
     }
 
-    public void Process(ReadOnlySpan<short> input, ref EdgeTriggerResults results)
+    public void Process(ReadOnlySpan<short> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
         int inputLength = input.Length;
-        int simdLength = inputLength - 32;
+        int v256Length = inputLength - Vector256<short>.Count;
         results.ArmCount = 0;
         results.TriggerCount = 0;
         results.CaptureEndCount = 0;
@@ -89,7 +89,7 @@ public class FallingEdgeTriggerI16 : ITriggerI16
                         case TriggerState.Unarmed:
                             if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
-                                while (i < simdLength)
+                                while (i < v256Length)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
                                     var resultVector = Avx2.CompareEqual(Avx2.Min(armLevelVector256, inputVector), armLevelVector256);
@@ -103,7 +103,7 @@ public class FallingEdgeTriggerI16 : ITriggerI16
                             }
                             else if (AdvSimd.Arm64.IsSupported)
                             {
-                                while (i < simdLength)
+                                while (i < v256Length)
                                 {
                                     var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
                                     var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + 16);
@@ -121,7 +121,7 @@ public class FallingEdgeTriggerI16 : ITriggerI16
                                 if (samplesPtr[i] >= armLevel)
                                 {
                                     triggerState = TriggerState.Armed;
-                                    results.ArmIndices[results.ArmCount++] = i;
+                                    results.ArmIndices[results.ArmCount++] = sampleStartIndex + (ulong)i;
                                     break;
                                 }
                                 i++;
@@ -130,7 +130,7 @@ public class FallingEdgeTriggerI16 : ITriggerI16
                         case TriggerState.Armed:
                             if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
-                                while (i < simdLength)
+                                while (i < v256Length)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
                                     var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector256, inputVector), triggerLevelVector256);
@@ -144,7 +144,7 @@ public class FallingEdgeTriggerI16 : ITriggerI16
                             }
                             else if (AdvSimd.Arm64.IsSupported)
                             {
-                                while (i < simdLength)
+                                while (i < v256Length)
                                 {
                                     var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
                                     var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + 16);
@@ -163,7 +163,7 @@ public class FallingEdgeTriggerI16 : ITriggerI16
                                 {
                                     triggerState = TriggerState.InCapture;
                                     captureRemaining = captureSamples;
-                                    results.TriggerIndices[results.TriggerCount++] = i;
+                                    results.TriggerIndices[results.TriggerCount++] = sampleStartIndex + (ulong)i;
                                     break;
                                 }
                                 i++;
@@ -184,7 +184,7 @@ public class FallingEdgeTriggerI16 : ITriggerI16
                                 }
                                 if (captureRemaining == 0)
                                 {
-                                    results.CaptureEndIndices[results.CaptureEndCount++] = i;
+                                    results.CaptureEndIndices[results.CaptureEndCount++] = sampleStartIndex + (ulong)i;
                                     if (holdoffSamples > 0)
                                     {
                                         triggerState = TriggerState.InHoldoff;

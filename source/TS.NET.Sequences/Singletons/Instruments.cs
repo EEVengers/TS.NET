@@ -63,10 +63,13 @@ public class Instruments
         var loggerFactory = new Microsoft.Extensions.Logging.LoggerFactory();
         var hardwareConfig = new ThunderscopeHardwareConfig
         {
-            AdcChannelMode = AdcChannelMode.Single,
-            SampleRateHz = 1_000_000_000,
-            Resolution = AdcResolution.EightBit,
-            EnabledChannels = 0x01
+            Acquisition = new ThunderscopeAcquisitionConfig()
+            {
+                AdcChannelMode = AdcChannelMode.Single,
+                EnabledChannels = 0x01,
+                SampleRateHz = 1_000_000_000,
+                Resolution = AdcResolution.EightBit
+            }
         };
         cachedSampleRateHz = 1_000_000_000;
         cachedResolution = AdcResolution.EightBit;
@@ -321,7 +324,7 @@ public class Instruments
     public double GetThunderscopeAverage(int channelIndex)
     {
         var config = thunderScope!.GetConfiguration();
-        if (!config.IsChannelIndexAnEnabledChannel(channelIndex))
+        if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
             throw new TestbenchException("Requested channel index is not an enabled channel");
         thunderScope!.Stop();
         thunderScope!.Start();
@@ -329,7 +332,7 @@ public class Instruments
 
         var samples = dataMemory!.DataSpanI8;
         Span<sbyte> channel;
-        switch (config.EnabledChannelsCount())
+        switch (config.Acquisition.EnabledChannelsCount())
         {
             case 1:
                 channel = samples;
@@ -338,7 +341,7 @@ public class Instruments
                 {
                     Span<sbyte> twoChannels = shuffleMemory!.DataSpanI8;
                     ShuffleI8.TwoChannels(samples, twoChannels);
-                    var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                    var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
                     var length = samples.Length / 2;
                     channel = twoChannels.Slice(index * length, length);
                     break;
@@ -348,7 +351,7 @@ public class Instruments
                 {
                     Span<sbyte> fourChannels = shuffleMemory!.DataSpanI8;
                     ShuffleI8.FourChannels(samples, fourChannels);
-                    var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                    var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
                     var length = samples.Length / 4;
                     channel = fourChannels.Slice(index * length, length);
                     break;
@@ -386,7 +389,7 @@ public class Instruments
 
         // If multiple channels are enabled, branch parsing won't be valid
         var config = thunderScope!.GetConfiguration();
-        if (config.EnabledChannelsCount() != 1)
+        if (config.Acquisition.EnabledChannelsCount() != 1)
             throw new TestbenchException("Fine branch analysis requires exactly one enabled channel.");
 
         int sampleCount = sampleLen / 8;
@@ -464,7 +467,7 @@ public class Instruments
     public double GetThunderscopePopulationStdDev(int channelIndex)
     {
         var config = thunderScope!.GetConfiguration();
-        if (!config.IsChannelIndexAnEnabledChannel(channelIndex))
+        if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
             throw new TestbenchException("Requested channel index is not an enabled channel");
         thunderScope!.Stop();
         thunderScope!.Start();
@@ -472,7 +475,7 @@ public class Instruments
 
         var samples = dataMemory!.DataSpanI8;
         Span<sbyte> channel;
-        switch (config.EnabledChannelsCount())
+        switch (config.Acquisition.EnabledChannelsCount())
         {
             case 1:
                 channel = samples;
@@ -481,7 +484,7 @@ public class Instruments
                 {
                     Span<sbyte> twoChannels = shuffleMemory!.DataSpanI8;
                     ShuffleI8.TwoChannels(samples, twoChannels);
-                    var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                    var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
                     var length = samples.Length / 2;
                     channel = twoChannels.Slice(index * length, length);
                     break;
@@ -491,7 +494,7 @@ public class Instruments
                 {
                     Span<sbyte> fourChannels = shuffleMemory!.DataSpanI8;
                     ShuffleI8.FourChannels(samples, fourChannels);
-                    var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                    var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
                     var length = samples.Length / 4;
                     channel = fourChannels.Slice(index * length, length);
                     break;
@@ -521,7 +524,7 @@ public class Instruments
     {
         var filter = new GoertzelFilter(filterFrequency, sampleFrequency);
         var config = thunderScope!.GetConfiguration();
-        if (!config.IsChannelIndexAnEnabledChannel(channelIndex))
+        if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
             throw new TestbenchException("Requested channel index is not an enabled channel");
         thunderScope!.Stop();
         thunderScope!.Start();
@@ -529,7 +532,7 @@ public class Instruments
 
         var samples = dataMemory!.DataSpanI8;
         Span<sbyte> channel;
-        switch (config.EnabledChannelsCount())
+        switch (config.Acquisition.EnabledChannelsCount())
         {
             case 1:
                 channel = samples;
@@ -538,7 +541,7 @@ public class Instruments
                 {
                     Span<sbyte> twoChannels = shuffleMemory!.DataSpanI8;
                     ShuffleI8.TwoChannels(samples, twoChannels);
-                    var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                    var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
                     var length = samples.Length / 2;
                     channel = twoChannels.Slice(index * length, length);
                     break;
@@ -548,7 +551,7 @@ public class Instruments
                 {
                     Span<sbyte> fourChannels = shuffleMemory!.DataSpanI8;
                     ShuffleI8.FourChannels(samples, fourChannels);
-                    var index = config.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                    var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
                     var length = samples.Length / 4;
                     channel = fourChannels.Slice(index * length, length);
                     break;

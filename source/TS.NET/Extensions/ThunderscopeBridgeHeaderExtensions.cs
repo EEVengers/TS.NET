@@ -14,7 +14,7 @@
             };
         }
 
-        public static bool IsChannelIndexAnEnabledChannel(this ThunderscopeHardwareConfig config, int channelIndex)
+        public static bool IsChannelIndexAnEnabledChannel(this ThunderscopeAcquisitionConfig config, int channelIndex)
         {
             return channelIndex switch
             {
@@ -26,7 +26,7 @@
             };
         }
 
-        public static bool IsTriggerChannelAnEnabledChannel(this ThunderscopeHardwareConfig config, TriggerChannel triggerChannel)
+        public static bool IsTriggerChannelAnEnabledChannel(this ThunderscopeAcquisitionConfig config, TriggerChannel triggerChannel)
         {
             return triggerChannel switch
             {
@@ -39,7 +39,7 @@
             };
         }
 
-        public static ushort EnabledChannelsCount(this ThunderscopeHardwareConfig config)
+        public static ushort EnabledChannelsCount(this ThunderscopeAcquisitionConfig config)
         {
             return config.EnabledChannels switch
             {
@@ -63,7 +63,7 @@
             };
         }
 
-        public static int GetChannelIndexByCaptureBufferIndex(this ThunderscopeHardwareConfig config, int position)
+        public static int GetChannelIndexByCaptureBufferIndex(this ThunderscopeAcquisitionConfig config, int position)
         {
             int counter = 0;
             for (int i = 0; i < 4; i++)
@@ -78,7 +78,7 @@
             return 0;
         }
 
-        public static int GetCaptureBufferIndexForTriggerChannel(this ThunderscopeHardwareConfig config, TriggerChannel triggerChannel)
+        public static int GetCaptureBufferIndexForTriggerChannel(this ThunderscopeAcquisitionConfig config, TriggerChannel triggerChannel)
         {
             // To do: simplify this horror
             int triggerChannelIndex = ((int)triggerChannel) - 1;

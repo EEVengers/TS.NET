@@ -13,7 +13,7 @@ internal class BurstTriggerSituation
     public int ChunkCount;
 
     public Memory<sbyte> Input;
-    public Memory<int> ExpectedWindowEndIndices;
+    public Memory<ulong> ExpectedWindowEndIndices;
 }
 
 internal class BurstTriggerSituations
@@ -34,7 +34,7 @@ internal class BurstTriggerSituations
             ChunkCount = 1
         };
         situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
-        situation.ExpectedWindowEndIndices = new int[1];
+        situation.ExpectedWindowEndIndices = new ulong[1];
         situation.Input.Span.Fill(sbyte.MaxValue);
         situation.Input.Span.Slice(1000, 1000).Fill(0);
         situation.ExpectedWindowEndIndices.Span[0] = 12000;
@@ -57,7 +57,7 @@ internal class BurstTriggerSituations
             ChunkCount = 1
         };
         situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
-        situation.ExpectedWindowEndIndices = new int[1];
+        situation.ExpectedWindowEndIndices = new ulong[1];
         situation.Input.Span.Fill(sbyte.MaxValue);
         situation.Input.Span.Slice(1000, 995).Fill(0);       // Should be ignored
         situation.Input.Span.Slice(10000, 1000).Fill(0);

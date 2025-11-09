@@ -75,10 +75,10 @@ public class AnyEdgeTriggerI16 : ITriggerI16
             triggerState = TriggerState.Unarmed;
     }
 
-    public void Process(ReadOnlySpan<short> input, ref EdgeTriggerResults results)
+    public void Process(ReadOnlySpan<short> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
         int inputLength = input.Length;
-        int simdLength = inputLength - 32;
+        int v256Length = inputLength - Vector256<short>.Count;
         results.ArmCount = 0;
         results.TriggerCount = 0;
         results.CaptureEndCount = 0;
@@ -100,7 +100,7 @@ public class AnyEdgeTriggerI16 : ITriggerI16
                             // The arming code has rising-edge-priority.
                             if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
-                                while (i < simdLength)
+                                while (i < v256Length)
                                 {
                                     uint resultCount = 0;
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
@@ -124,13 +124,13 @@ public class AnyEdgeTriggerI16 : ITriggerI16
                                 if (samplesPtr[i] <= lowerArmLevel)
                                 {
                                     triggerState = TriggerState.ArmedRisingEdge;
-                                    results.ArmIndices[results.ArmCount++] = i;
+                                    results.ArmIndices[results.ArmCount++] = sampleStartIndex + (ulong)i;
                                     break;
                                 }
                                 if (samplesPtr[i] >= upperArmLevel)
                                 {
                                     triggerState = TriggerState.ArmedFallingEdge;
-                                    results.ArmIndices[results.ArmCount++] = i;
+                                    results.ArmIndices[results.ArmCount++] = sampleStartIndex + (ulong)i;
                                     break;
                                 }
                                 i++;
@@ -139,7 +139,7 @@ public class AnyEdgeTriggerI16 : ITriggerI16
                         case TriggerState.ArmedRisingEdge:
                             if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
-                                while (i < simdLength)
+                                while (i < v256Length)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
                                     var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector, inputVector), triggerLevelVector);
@@ -157,7 +157,7 @@ public class AnyEdgeTriggerI16 : ITriggerI16
                                 {
                                     triggerState = TriggerState.InCapture;
                                     captureRemaining = captureSamples;
-                                    results.TriggerIndices[results.TriggerCount++] = i;
+                                    results.TriggerIndices[results.TriggerCount++] = sampleStartIndex + (ulong)i;
                                     break;
                                 }
                                 i++;
@@ -166,7 +166,7 @@ public class AnyEdgeTriggerI16 : ITriggerI16
                         case TriggerState.ArmedFallingEdge:
                             if (Avx2.IsSupported)       // Const after JIT/AOT
                             {
-                                while (i < simdLength)
+                                while (i < v256Length)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
                                     var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector, inputVector), triggerLevelVector);
@@ -184,7 +184,7 @@ public class AnyEdgeTriggerI16 : ITriggerI16
                                 {
                                     triggerState = TriggerState.InCapture;
                                     captureRemaining = captureSamples;
-                                    results.TriggerIndices[results.TriggerCount++] = i;
+                                    results.TriggerIndices[results.TriggerCount++] = sampleStartIndex + (ulong)i;
                                     break;
                                 }
                                 i++;
@@ -205,7 +205,7 @@ public class AnyEdgeTriggerI16 : ITriggerI16
                                 }
                                 if (captureRemaining == 0)
                                 {
-                                    results.CaptureEndIndices[results.CaptureEndCount++] = i;
+                                    results.CaptureEndIndices[results.CaptureEndCount++] = sampleStartIndex + (ulong)i;
                                     if (holdoffSamples > 0)
                                     {
                                         triggerState = TriggerState.InHoldoff;

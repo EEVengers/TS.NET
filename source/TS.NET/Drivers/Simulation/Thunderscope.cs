@@ -21,9 +21,13 @@
         {
             var config = new ThunderscopeHardwareConfig()
             {
-                AdcChannelMode = AdcChannelMode.Single,
-                SampleRateHz = (ulong)sampleRateHz,
-                EnabledChannels = 0x01
+                Acquisition = new ThunderscopeAcquisitionConfig()
+                {
+                    AdcChannelMode = AdcChannelMode.Single,
+                    EnabledChannels = 0x01,
+                    SampleRateHz = (ulong)sampleRateHz,
+                    Resolution = AdcResolution.EightBit
+                },
             };
             config.Frontend[0].ActualVoltFullScale = 1;
             config.Frontend[1].ActualVoltFullScale = 1;
@@ -63,8 +67,12 @@
             totalTimeSec += dataSpan.Length / sampleRateHz;
         }
 
-        public bool TryRead(ThunderscopeMemory data)
+        public bool TryRead(ThunderscopeMemory data, out ThunderscopeHardwareConfig hardwareConfig, out ulong sampleStartIndex, out int sampleLength)
         {
+            hardwareConfig = new ThunderscopeHardwareConfig();
+            sampleStartIndex = 0;
+            sampleLength = 0;
+            throw new NotImplementedException();
             if (!running)
                 return false;
             Read(data);

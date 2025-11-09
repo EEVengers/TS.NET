@@ -80,9 +80,9 @@ public class AnyEdgeTriggerI8Tests
         var trigger = new AnyEdgeTriggerI8(situation.Parameters, 256);
         var edgeTriggerResults = new EdgeTriggerResults()
         {
-            ArmIndices = new int[1000],
-            TriggerIndices = new int[1000],
-            CaptureEndIndices = new int[1000]
+            ArmIndices = new ulong[1000],
+            TriggerIndices = new ulong[1000],
+            CaptureEndIndices = new ulong[1000]
         };
         trigger.SetHorizontal(situation.WindowWidth, situation.WindowTriggerPosition, situation.AdditionalHoldoff);
 
@@ -91,7 +91,7 @@ public class AnyEdgeTriggerI8Tests
 
         for (int i = 0; i < situation.ChunkCount; i++)
         {
-            trigger.Process(situation.Input.Span.Slice((int)(i * situation.ChunkSize), (int)situation.ChunkSize), ref edgeTriggerResults);
+            trigger.Process(situation.Input.Span.Slice((int)(i * situation.ChunkSize), (int)situation.ChunkSize), 0, ref edgeTriggerResults);
         }
 
         for (int i = 0; i < situation.ExpectedWindowEndIndices.Length; i++)

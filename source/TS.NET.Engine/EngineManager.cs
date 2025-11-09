@@ -114,10 +114,13 @@ public class EngineManager
                     //initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Quad;
                     //initialHardwareConfiguration.EnabledChannels = 0x0F;
                     //initialHardwareConfiguration.SampleRateHz = 250000000;
-                    initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Single;
-                    initialHardwareConfiguration.EnabledChannels = 0x01;
-                    initialHardwareConfiguration.SampleRateHz = 1000000000;
-                    initialHardwareConfiguration.Resolution = AdcResolution.EightBit;
+                    initialHardwareConfiguration.Acquisition = new ThunderscopeAcquisitionConfig
+                    {
+                        AdcChannelMode = AdcChannelMode.Single,
+                        EnabledChannels = 0x01,
+                        SampleRateHz = 1000000000,
+                        Resolution = AdcResolution.EightBit
+                    };
                     initialHardwareConfiguration.Frontend[0] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Frontend[1] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Frontend[2] = ThunderscopeChannelFrontend.Default();

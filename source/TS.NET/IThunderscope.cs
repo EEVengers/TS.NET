@@ -10,7 +10,7 @@
         void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel);
         void SetChannelCalibration(int channelIndex, ThunderscopeChannelCalibration channelCalibration);
         void Read(ThunderscopeMemory data);
-        bool TryRead(ThunderscopeMemory data);
+        bool TryRead(ThunderscopeMemory data, out ThunderscopeHardwareConfig hardwareConfig, out ulong sampleStartIndex, out int sampleLength);
         ThunderscopeHardwareConfig GetConfiguration();
         void SetRate(ulong sampleRateHz);
         void SetResolution(AdcResolution resolution);

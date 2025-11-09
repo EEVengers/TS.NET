@@ -153,7 +153,7 @@ internal class DataServer : IThread
             {
                 if (captureBuffer.TryStartRead(out var captureMetadata))
                 {
-                    ulong femtosecondsPerSample = 1000000000000000 / captureMetadata.HardwareConfig.SampleRateHz;
+                    ulong femtosecondsPerSample = 1000000000000000 / captureMetadata.HardwareConfig.Acquisition.SampleRateHz;
                     WaveformHeaderOld header = new()
                     {
                         seqnum = sequenceNumber,
@@ -173,7 +173,7 @@ internal class DataServer : IThread
                         int triggerIndex = (int)(captureMetadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
                         if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
                         {
-                            int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureMetadata.TriggerChannelCaptureIndex);
+                            int channelIndex = captureMetadata.HardwareConfig.Acquisition.GetChannelIndexByCaptureBufferIndex(captureMetadata.TriggerChannelCaptureIndex);
                             ThunderscopeChannelFrontend triggerChannelFrontend = captureMetadata.HardwareConfig.Frontend[channelIndex];
                             var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 256.0);
                             var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
@@ -195,7 +195,7 @@ internal class DataServer : IThread
                         socket.Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeaderOld)));
                         for (byte captureBufferIndex = 0; captureBufferIndex < captureBuffer.ChannelCount; captureBufferIndex++)
                         {
-                            int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
+                            int channelIndex = captureMetadata.HardwareConfig.Acquisition.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
                             ThunderscopeChannelFrontend thunderscopeChannel = captureMetadata.HardwareConfig.Frontend[channelIndex];
                             chHeader.channelIndex = (byte)channelIndex;
                             chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 256.0);
@@ -228,7 +228,7 @@ internal class DataServer : IThread
                 if (captureBuffer.TryStartRead(out var captureMetadata))
                 {
                     noCapturesAvailable = false;
-                    ulong femtosecondsPerSample = 1000000000000000 / captureMetadata.HardwareConfig.SampleRateHz;
+                    ulong femtosecondsPerSample = 1000000000000000 / captureMetadata.HardwareConfig.Acquisition.SampleRateHz;
                     WaveformHeader header = new()
                     {
                         version = 1,
@@ -287,7 +287,7 @@ internal class DataServer : IThread
                         socket.Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeader)));
                         for (byte captureBufferIndex = 0; captureBufferIndex < captureBuffer.ChannelCount; captureBufferIndex++)
                         {
-                            int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
+                            int channelIndex = captureMetadata.HardwareConfig.Acquisition.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
                             ThunderscopeChannelFrontend thunderscopeChannel = captureMetadata.HardwareConfig.Frontend[channelIndex];
                             chHeader.channelIndex = (byte)channelIndex;
                             switch (captureMetadata.ProcessingConfig.ChannelDataType)
@@ -323,7 +323,7 @@ internal class DataServer : IThread
                     float CalculateTriggerInterpolation(int pointA, int pointB)
                     {
                         int triggerIndex = (int)(captureMetadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
-                        int channelIndex = captureMetadata.HardwareConfig.GetChannelIndexByCaptureBufferIndex(captureMetadata.TriggerChannelCaptureIndex);
+                        int channelIndex = captureMetadata.HardwareConfig.Acquisition.GetChannelIndexByCaptureBufferIndex(captureMetadata.TriggerChannelCaptureIndex);
                         ThunderscopeChannelFrontend triggerChannelFrontend = captureMetadata.HardwareConfig.Frontend[channelIndex];
                         var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 256.0);     // 8-bit
                         if (captureMetadata.ProcessingConfig.AdcResolution == AdcResolution.TwelveBit)

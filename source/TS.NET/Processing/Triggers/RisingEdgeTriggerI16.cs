@@ -64,7 +64,7 @@ public class RisingEdgeTriggerI16 : ITriggerI16
             triggerState = TriggerState.Unarmed;
     }
 
-    public void Process(ReadOnlySpan<short> input, ref EdgeTriggerResults results)
+    public void Process(ReadOnlySpan<short> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
         int inputLength = input.Length;
         int v256Length = inputLength - Vector256<short>.Count;
@@ -121,7 +121,7 @@ public class RisingEdgeTriggerI16 : ITriggerI16
                                 if (samplesPtr[i] <= armLevel)
                                 {
                                     triggerState = TriggerState.Armed;
-                                    results.ArmIndices[results.ArmCount++] = i;
+                                    results.ArmIndices[results.ArmCount++] = sampleStartIndex + (ulong)i;
                                     break;
                                 }
                                 i++;
@@ -163,7 +163,7 @@ public class RisingEdgeTriggerI16 : ITriggerI16
                                 {
                                     triggerState = TriggerState.InCapture;
                                     captureRemaining = captureSamples;
-                                    results.TriggerIndices[results.TriggerCount++] = i;
+                                    results.TriggerIndices[results.TriggerCount++] = sampleStartIndex + (ulong)i;
                                     break;
                                 }
                                 i++;
@@ -184,7 +184,7 @@ public class RisingEdgeTriggerI16 : ITriggerI16
                                 }
                                 if (captureRemaining == 0)
                                 {
-                                    results.CaptureEndIndices[results.CaptureEndCount++] = i;
+                                    results.CaptureEndIndices[results.CaptureEndCount++] = sampleStartIndex + (ulong)i;
                                     if (holdoffSamples > 0)
                                     {
                                         triggerState = TriggerState.InHoldoff;

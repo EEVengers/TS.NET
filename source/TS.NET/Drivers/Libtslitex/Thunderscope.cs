@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Threading.Channels;
 
 namespace TS.NET.Driver.Libtslitex
 {
@@ -11,6 +12,7 @@ namespace TS.NET.Driver.Libtslitex
         private bool started = false;
         private nint tsHandle;
         private uint readSegmentLengthBytes;
+        private ulong sampleStartIndex = 0;
 
         private bool[] channelEnabled;
         private bool[] channelManualOverride;
@@ -83,25 +85,24 @@ namespace TS.NET.Driver.Libtslitex
             for (int chan = 0; chan < 4; chan++)
             {
                 channelFrontend[chan] = initialHardwareConfiguration.Frontend[chan];
-                var chanEnabled = ((initialHardwareConfiguration.EnabledChannels >> chan) & 0x01) > 0;
+                var chanEnabled = ((initialHardwareConfiguration.Acquisition.EnabledChannels >> chan) & 0x01) > 0;
                 SetChannelEnable(chan, chanEnabled, updateFrontends: false);
             }
 
-            SetSampleMode(initialHardwareConfiguration.SampleRateHz, initialHardwareConfiguration.Resolution, updateFrontends: false);
+            SetSampleMode(initialHardwareConfiguration.Acquisition.SampleRateHz, initialHardwareConfiguration.Acquisition.Resolution, updateFrontends: false);
             UpdateFrontends();
         }
 
         public void Close()
         {
             CheckOpen();
-            open = false;
-
-            Interop.DataEnable(tsHandle, 0);
+            Stop();
 
             var retVal = Interop.Close(tsHandle);
             if (retVal < 0)
                 throw new ThunderscopeException($"Failed closing device ({GetLibraryReturnString(retVal)})");
 
+            open = false;
         }
 
         public void Start()
@@ -129,6 +130,7 @@ namespace TS.NET.Driver.Libtslitex
                 var retVal = Interop.DataEnable(tsHandle, 1);
                 if (retVal < 0)
                     throw new ThunderscopeException($"Could not start ({GetLibraryReturnString(retVal)})");
+                sampleStartIndex = 0;
             }
 
             started = true;
@@ -171,10 +173,15 @@ namespace TS.NET.Driver.Libtslitex
             }
         }
 
-        public bool TryRead(ThunderscopeMemory data)
+        public bool TryRead(ThunderscopeMemory data, out ThunderscopeHardwareConfig hardwareConfig, out ulong sampleStartIndex, out int sampleLength)
         {
             if (!open)
+            {
+                hardwareConfig = GetConfiguration();
+                sampleStartIndex = this.sampleStartIndex;
+                sampleLength = 0;
                 return false;
+            }
 
             unsafe
             {
@@ -185,13 +192,33 @@ namespace TS.NET.Driver.Libtslitex
                     int readLen = Interop.Read(tsHandle, data.DataLoadPointer + dataRead, readSegmentLengthBytes);
 
                     if (readLen < 0)
+                    {
+                        hardwareConfig = GetConfiguration();
+                        sampleStartIndex = this.sampleStartIndex;
+                        sampleLength = 0;
                         return false;
+                    }
                     else if (readLen != readSegmentLengthBytes)
                         throw new ThunderscopeException($"Read incorrect sample length ({readLen})");
 
                     dataRead += readSegmentLengthBytes;
                     length -= readSegmentLengthBytes;
                 }
+                hardwareConfig = GetConfiguration();
+                sampleStartIndex = this.sampleStartIndex;
+
+                sampleLength = hardwareConfig.Acquisition.AdcChannelMode switch
+                {
+                    AdcChannelMode.Single => data.LengthBytes,
+                    AdcChannelMode.Dual => data.LengthBytes / 2,
+                    AdcChannelMode.Quad => data.LengthBytes / 4,
+                    _ => throw new NotImplementedException()
+                };
+                if (cachedSampleResolution == AdcResolution.TwelveBit)
+                    sampleLength /= 2;
+
+                this.sampleStartIndex += (ulong)sampleLength;
+
                 return true;
             }
         }
@@ -244,7 +271,6 @@ namespace TS.NET.Driver.Libtslitex
             CheckOpen();
 
             var config = new ThunderscopeHardwareConfig();
-            var channelCount = 0;
 
             for (int channelIndex = 0; channelIndex < 4; channelIndex++)
             {
@@ -255,22 +281,29 @@ namespace TS.NET.Driver.Libtslitex
                 if (retVal < 0)
                     throw new ThunderscopeException($"Failed to get channel {channelIndex} config ({GetLibraryReturnString(retVal)})");
 
-                if (tsChannel.active == 1)
-                {
-                    config.EnabledChannels |= (byte)(1 << channelIndex);
-                    channelCount++;
-                }
+                // This class should be tracking enabled channels, override here anyway
+                channelEnabled[channelIndex] = (tsChannel.active == 1);
             }
-
-            config.AdcChannelMode = (channelCount == 1) ? AdcChannelMode.Single :
-                                    (channelCount == 2) ? AdcChannelMode.Dual :
-                                    AdcChannelMode.Quad;
-
-            GetStatus();
-            config.SampleRateHz = cachedSampleRateHz;
-            config.Resolution = cachedSampleResolution;
-
+            config.Acquisition = GetAcquisitionConfig();
             return config;
+        }
+
+        private ThunderscopeAcquisitionConfig GetAcquisitionConfig()
+        {
+            var acquisitionConfig = new ThunderscopeAcquisitionConfig();
+            var channelCount = channelEnabled.Count(chE => chE);
+            acquisitionConfig.AdcChannelMode = (channelCount == 1) ? AdcChannelMode.Single :
+                        (channelCount == 2) ? AdcChannelMode.Dual :
+                        AdcChannelMode.Quad;
+            for (int i = 0; i < 4; i++)
+            {
+                if (channelEnabled[i])
+                    acquisitionConfig.EnabledChannels |= (byte)(1 << i);
+            }
+            GetStatus();
+            acquisitionConfig.SampleRateHz = cachedSampleRateHz;
+            acquisitionConfig.Resolution = cachedSampleResolution;
+            return acquisitionConfig;
         }
 
         public ThunderscopeChannelCalibration GetChannelCalibration(int channelIndex)
@@ -326,7 +359,7 @@ namespace TS.NET.Driver.Libtslitex
             CheckOpen();
 
             var restart = started;
-            if(restart)
+            if (restart)
                 Stop();
 
             uint resolutionValue = resolution switch { AdcResolution.EightBit => 256, AdcResolution.TwelveBit => 4096, _ => throw new NotImplementedException() };
@@ -341,7 +374,7 @@ namespace TS.NET.Driver.Libtslitex
             else if (retVal < 0)
                 throw new ThunderscopeException($"Error trying to set sample rate {sampleRateHz} ({GetLibraryReturnString(retVal)})");
 
-            if(restart)
+            if (restart)
                 Start();
         }
 

@@ -75,7 +75,7 @@ public class AnyEdgeTriggerI8 : ITriggerI8
             triggerState = TriggerState.Unarmed;
     }
 
-    public void Process(ReadOnlySpan<sbyte> input, ref EdgeTriggerResults results)
+    public void Process(ReadOnlySpan<sbyte> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
         int inputLength = input.Length;
         int v256Length = inputLength - Vector256<sbyte>.Count;
@@ -120,13 +120,13 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                                 if (samplesPtr[i] <= lowerArmLevel)
                                 {
                                     triggerState = TriggerState.ArmedRisingEdge;
-                                    results.ArmIndices[results.ArmCount++] = i;
+                                    results.ArmIndices[results.ArmCount++] = sampleStartIndex + (ulong)i;
                                     break;
                                 }
                                 if (samplesPtr[i] >= upperArmLevel)
                                 {
                                     triggerState = TriggerState.ArmedFallingEdge;
-                                    results.ArmIndices[results.ArmCount++] = i;
+                                    results.ArmIndices[results.ArmCount++] = sampleStartIndex + (ulong)i;
                                     break;
                                 }
                                 i++;
@@ -151,7 +151,7 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                                 {
                                     triggerState = TriggerState.InCapture;
                                     captureRemaining = captureSamples;
-                                    results.TriggerIndices[results.TriggerCount++] = i;
+                                    results.TriggerIndices[results.TriggerCount++] = sampleStartIndex + (ulong)i;
                                     break;
                                 }
                                 i++;
@@ -176,7 +176,7 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                                 {
                                     triggerState = TriggerState.InCapture;
                                     captureRemaining = captureSamples;
-                                    results.TriggerIndices[results.TriggerCount++] = i;
+                                    results.TriggerIndices[results.TriggerCount++] = sampleStartIndex + (ulong)i;
                                     break;
                                 }
                                 i++;
@@ -197,7 +197,7 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                                 }
                                 if (captureRemaining == 0)
                                 {
-                                    results.CaptureEndIndices[results.CaptureEndCount++] = i;
+                                    results.CaptureEndIndices[results.CaptureEndCount++] = sampleStartIndex + (ulong)i;
                                     if (holdoffSamples > 0)
                                     {
                                         triggerState = TriggerState.InHoldoff;

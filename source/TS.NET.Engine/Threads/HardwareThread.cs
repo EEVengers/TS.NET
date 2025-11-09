@@ -128,7 +128,7 @@ internal class HardwareThread : IThread
                             {
                                 logger.LogDebug($"{nameof(HardwareGetRateRequest)}");
                                 var config = thunderscope.GetConfiguration();
-                                hardwareControl.Response.Writer.Write(new HardwareGetRateResponse(config.SampleRateHz));
+                                hardwareControl.Response.Writer.Write(new HardwareGetRateResponse(config.Acquisition.SampleRateHz));
                                 logger.LogDebug($"{nameof(HardwareGetRateResponse)}");
                                 break;
                             }
@@ -136,7 +136,7 @@ internal class HardwareThread : IThread
                             {
                                 logger.LogDebug($"{nameof(HardwareGetResolutionRequest)}");
                                 var config = thunderscope.GetConfiguration();
-                                hardwareControl.Response.Writer.Write(new HardwareGetResolutionResponse(config.Resolution));
+                                hardwareControl.Response.Writer.Write(new HardwareGetResolutionResponse(config.Acquisition.Resolution));
                                 logger.LogDebug($"{nameof(HardwareGetResolutionResponse)}");
                                 break;
                             }
@@ -144,7 +144,7 @@ internal class HardwareThread : IThread
                             {
                                 logger.LogDebug($"{nameof(HardwareGetEnabledRequest)}");
                                 var config = thunderscope.GetConfiguration();
-                                var enabled = ((config.EnabledChannels >> hardwareGetEnabledRequest.ChannelIndex) & 0x01) > 0;
+                                var enabled = ((config.Acquisition.EnabledChannels >> hardwareGetEnabledRequest.ChannelIndex) & 0x01) > 0;
                                 hardwareControl.Response.Writer.Write(new HardwareGetEnabledResponse(enabled));
                                 logger.LogDebug($"{nameof(HardwareGetEnabledResponse)}");
                                 break;
@@ -255,14 +255,12 @@ internal class HardwareThread : IThread
                         dataDto = hardwarePool.Return.Reader.Read(cancelToken);
                         validDataDto = true;
                     }
-                    if (thunderscope.TryRead(memory))
+                    if (thunderscope.TryRead(memory, out var hardwareConfig, out var sampleStartIndex, out var sampleLength))
                     {
                         if (enqueueCounter == 0)
                             logger.LogDebug("First block of data received");
 
-                        var hardwareConfig = thunderscope.GetConfiguration();
-
-                        switch (hardwareConfig.AdcChannelMode)
+                        switch (hardwareConfig.Acquisition.AdcChannelMode)
                         {
                             case AdcChannelMode.Single:
                                 memory.DataSpanI8.CopyTo(dataDto.Memory.DataSpanI8);
@@ -291,6 +289,8 @@ internal class HardwareThread : IThread
 
                         periodicEnqueueCount++;
                         enqueueCounter++;
+                        dataDto.SampleStartIndex = sampleStartIndex;
+                        dataDto.SampleLength = sampleLength;
                         dataDto.MemoryType = dataType;
                         dataDto.HardwareConfig = hardwareConfig;
                         hardwarePool.Source.Writer.Write(dataDto, cancelToken);

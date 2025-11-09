@@ -13,5 +13,5 @@ internal class EdgeTriggerSituationI8
     public int ChunkCount;
 
     public Memory<sbyte> Input;
-    public Memory<int> ExpectedWindowEndIndices;
+    public Memory<ulong> ExpectedWindowEndIndices;
 }

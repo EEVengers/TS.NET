@@ -43,7 +43,7 @@ public class ProcessingThread : IThread
         taskLoop = Task.Factory.StartNew(() => Loop(
             logger: logger,
             settings: settings,
-            cachedHardwareConfig: hardwareConfig,
+            hardwareConfig: hardwareConfig,
             inputPool: inputPool,
             hardwareControl: hardwareControl,
             processingControl: processingControl,
@@ -62,7 +62,7 @@ public class ProcessingThread : IThread
     private static unsafe void Loop(
         ILogger logger,
         ThunderscopeSettings settings,
-        ThunderscopeHardwareConfig cachedHardwareConfig,
+        ThunderscopeHardwareConfig hardwareConfig,
         BlockingPool<DataDto> inputPool,
         BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
         BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
@@ -94,14 +94,14 @@ public class ProcessingThread : IThread
             //ThunderscopeDataBridgeWriter bridge = new(bridgeNamespace, settings.MaxChannelCount * settings.MaxChannelDataLength * ThunderscopeDataType.I8.ByteWidth());
 
             // Set some sensible defaults
-            ushort initialChannelCount = cachedHardwareConfig.AdcChannelMode switch
+            ushort initialChannelCount = hardwareConfig.Acquisition.AdcChannelMode switch
             {
                 AdcChannelMode.Quad => 4,
                 AdcChannelMode.Dual => 2,
                 AdcChannelMode.Single => 1,
                 _ => throw new NotImplementedException()
             };
-            var initialChannelDataType = cachedHardwareConfig.Resolution switch
+            var initialChannelDataType = hardwareConfig.Acquisition.Resolution switch
             {
                 AdcResolution.EightBit => ThunderscopeDataType.I8,
                 AdcResolution.TwelveBit => ThunderscopeDataType.I16,
@@ -109,12 +109,12 @@ public class ProcessingThread : IThread
             };
             var processingConfig = new ThunderscopeProcessingConfig
             {
-                AdcResolution = cachedHardwareConfig.Resolution,
+                AdcResolution = hardwareConfig.Acquisition.Resolution,
                 SampleRateHz = 1_000_000_000,
                 ChannelCount = initialChannelCount,
                 ChannelDataLength = 1000,
                 ChannelDataType = initialChannelDataType,
-                Mode = Mode.Auto,
+                Mode = Mode.Normal,     // Temporary, change back to AUTO when NotImplementedException fixed
                 TriggerChannel = TriggerChannel.Channel1,
                 TriggerType = TriggerType.Edge,
                 TriggerDelayFs = (ulong)(1e15 / (1e9 / initialChannelCount) * 500),   // Set the trigger delay to the middle of the capture
@@ -127,6 +127,7 @@ public class ProcessingThread : IThread
             };
             uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
             uiNotifications?.TryWrite(new ProcessingStop());
+            var cachedHardwareConfig = hardwareConfig;
 
             // Periodic debug display variables
             DateTimeOffset startTime = DateTimeOffset.UtcNow;
@@ -135,11 +136,8 @@ public class ProcessingThread : IThread
 
             Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
 
-            var sampleBuffers = new AcquisitionCircularBuffer[4];
-            for (int i = 0; i < 4; i++)
-            {
-                sampleBuffers[i] = new AcquisitionCircularBuffer(settings.MaxCaptureLength, ThunderscopeSettings.SegmentLengthBytes, ThunderscopeDataType.I16);
-            }
+            var acquisitionBuffer = new AcquisitionCircularBuffer(settings.MaxCaptureLength, ThunderscopeSettings.SegmentLengthBytes, ThunderscopeDataType.I16);
+
             captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
 
             // Triggering:
@@ -159,9 +157,9 @@ public class ProcessingThread : IThread
 
             EdgeTriggerResults edgeTriggerResults = new EdgeTriggerResults()
             {
-                ArmIndices = new int[ThunderscopeSettings.SegmentLengthBytes / 1000],         // 1000 samples is the minimum window width
-                TriggerIndices = new int[ThunderscopeSettings.SegmentLengthBytes / 1000],     // 1000 samples is the minimum window width
-                CaptureEndIndices = new int[ThunderscopeSettings.SegmentLengthBytes / 1000]   // 1000 samples is the minimum window width
+                ArmIndices = new ulong[ThunderscopeSettings.SegmentLengthBytes / 1000],         // 1000 samples is the minimum window width
+                TriggerIndices = new ulong[ThunderscopeSettings.SegmentLengthBytes / 1000],     // 1000 samples is the minimum window width
+                CaptureEndIndices = new ulong[ThunderscopeSettings.SegmentLengthBytes / 1000]   // 1000 samples is the minimum window width
             };
             bool runMode = false;
             bool forceTriggerLatch = false;
@@ -170,7 +168,6 @@ public class ProcessingThread : IThread
 
             // Variables for Auto triggering
             Stopwatch autoTimeoutTimer = Stopwatch.StartNew();
-            int streamSampleCounter = 0;
 
             logger.LogInformation("Started");
             startSemaphore.Release();
@@ -480,24 +477,24 @@ public class ProcessingThread : IThread
                     if (dataDto == null)
                         break;
 
-                    if (dataDto.HardwareConfig.EnabledChannelsCount() != processingConfig.ChannelCount)
+                    if (dataDto.HardwareConfig.Acquisition.EnabledChannelsCount() != processingConfig.ChannelCount)
                     {
-                        processingConfig.ChannelCount = dataDto.HardwareConfig.EnabledChannelsCount();
+                        processingConfig.ChannelCount = dataDto.HardwareConfig.Acquisition.EnabledChannelsCount();
                         ResetAll();
                         logger.LogDebug("Hardware enabled channel change ({channelCount})", processingConfig.ChannelCount);
                     }
 
-                    if (dataDto.HardwareConfig.SampleRateHz != processingConfig.SampleRateHz)
+                    if (dataDto.HardwareConfig.Acquisition.SampleRateHz != processingConfig.SampleRateHz)
                     {
                         logger.LogWarning("Dropped buffer (mismatched rates)");
                         // Coerce and drop - later use ProcessingSetEnabled
-                        processingConfig.SampleRateHz = dataDto.HardwareConfig.SampleRateHz;
+                        processingConfig.SampleRateHz = dataDto.HardwareConfig.Acquisition.SampleRateHz;
                         ResetAll();
                         inputPool.Return.Writer.Write(dataDto);
                         continue;   // Drop the buffer
                     }
 
-                    if (dataDto.HardwareConfig.Resolution != processingConfig.AdcResolution)
+                    if (dataDto.HardwareConfig.Acquisition.Resolution != processingConfig.AdcResolution)
                     {
                         logger.LogWarning("Dropped buffer (mismatched resolution)");
                         inputPool.Return.Writer.Write(dataDto);
@@ -513,19 +510,17 @@ public class ProcessingThread : IThread
 
                     cachedHardwareConfig = dataDto.HardwareConfig;
 
-                    switch (cachedHardwareConfig.AdcChannelMode)
+                    switch (dataDto.HardwareConfig.Acquisition.AdcChannelMode)
                     {
                         case AdcChannelMode.Single:
                             // Write to circular sample buffer
                             switch (processingConfig.ChannelDataType)
                             {
                                 case ThunderscopeDataType.I8:
-                                    sampleBuffers[0].Write<sbyte>(dataDto.Memory.DataSpanI8);
-                                    streamSampleCounter += dataDto.Memory.DataSpanI8.Length;
+                                    acquisitionBuffer.Write1Channel<sbyte>(dataDto.Memory.DataSpanI8, dataDto.SampleStartIndex);
                                     break;
                                 case ThunderscopeDataType.I16:
-                                    sampleBuffers[0].Write<short>(dataDto.Memory.DataSpanI16);
-                                    streamSampleCounter += dataDto.Memory.DataSpanI16.Length;
+                                    acquisitionBuffer.Write1Channel<short>(dataDto.Memory.DataSpanI16, dataDto.SampleStartIndex);
                                     break;
                             }
                             break;
@@ -536,17 +531,13 @@ public class ProcessingThread : IThread
                                 case ThunderscopeDataType.I8:
                                     {
                                         var span = dataDto.Memory.DataSpanI8;
-                                        sampleBuffers[0].Write<sbyte>(Span2Ch(0, span));
-                                        sampleBuffers[1].Write<sbyte>(Span2Ch(1, span));
-                                        streamSampleCounter += span.Length / 2;
+                                        acquisitionBuffer.Write2Channel<sbyte>(Span2Ch(0, span), Span2Ch(1, span), dataDto.SampleStartIndex);
                                         break;
                                     }
                                 case ThunderscopeDataType.I16:
                                     {
                                         var span = dataDto.Memory.DataSpanI16;
-                                        sampleBuffers[0].Write<short>(Span2Ch(0, span));
-                                        sampleBuffers[1].Write<short>(Span2Ch(1, span));
-                                        streamSampleCounter += span.Length / 2;
+                                        acquisitionBuffer.Write2Channel<short>(Span2Ch(0, span), Span2Ch(1, span), dataDto.SampleStartIndex);
                                         break;
                                     }
                             }
@@ -558,21 +549,13 @@ public class ProcessingThread : IThread
                                 case ThunderscopeDataType.I8:
                                     {
                                         var span = dataDto.Memory.DataSpanI8;
-                                        sampleBuffers[0].Write<sbyte>(Span4Ch(0, span));
-                                        sampleBuffers[1].Write<sbyte>(Span4Ch(1, span));
-                                        sampleBuffers[2].Write<sbyte>(Span4Ch(2, span));
-                                        sampleBuffers[3].Write<sbyte>(Span4Ch(3, span));
-                                        streamSampleCounter += span.Length / 4;
+                                        acquisitionBuffer.Write4Channel<sbyte>(Span4Ch(0, span), Span4Ch(1, span), Span4Ch(2, span), Span4Ch(3, span), dataDto.SampleStartIndex);
                                         break;
                                     }
                                 case ThunderscopeDataType.I16:
                                     {
                                         var span = dataDto.Memory.DataSpanI16;
-                                        sampleBuffers[0].Write<short>(Span4Ch(0, span));
-                                        sampleBuffers[1].Write<short>(Span4Ch(1, span));
-                                        sampleBuffers[2].Write<short>(Span4Ch(2, span));
-                                        sampleBuffers[3].Write<short>(Span4Ch(3, span));
-                                        streamSampleCounter += span.Length / 4;
+                                        acquisitionBuffer.Write4Channel<short>(Span4Ch(0, span), Span4Ch(1, span), Span4Ch(2, span), Span4Ch(3, span), dataDto.SampleStartIndex);
                                         break;
                                     }
                             }
@@ -586,12 +569,35 @@ public class ProcessingThread : IThread
                             case Mode.Normal:
                             case Mode.Single:
                             case Mode.Auto:
-                                if (cachedHardwareConfig.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
+                                if (forceTriggerLatch)
+                                {
+                                    // If FORCE, don't do trigger processing until the FORCE capture is complete.
+                                    // This allows a sequence of commands for "immediate unconditional single capture" UI button:
+                                    //    STOP
+                                    //    TRIG:SOURCE NONE
+                                    //    SINGLE
+                                    //    FORCE
+                                    //    TRIG:SOURCE 1/2/3/4
+                                    if (acquisitionBuffer.SamplesInBuffer >= processingConfig.ChannelDataLength)
+                                    {
+                                        Capture(triggered: false, triggerChannelCaptureIndex: 0, captureEndIndex: dataDto.SampleStartIndex + (ulong)dataDto.SampleLength);
+                                        forceTriggerLatch = false;
+                                        autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
+
+                                        if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
+                                        {
+                                            singleTriggerLatch = false;
+                                            StopHardware();
+                                            break;
+                                        }
+                                    }
+                                }
+                                else if (dataDto.HardwareConfig.Acquisition.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
                                 {
                                     Span<sbyte> triggerChannelBufferI8;
                                     Span<short> triggerChannelBufferI16;
                                     int triggerChannelCaptureIndex;
-                                    switch (cachedHardwareConfig.AdcChannelMode)
+                                    switch (dataDto.HardwareConfig.Acquisition.AdcChannelMode)
                                     {
                                         case AdcChannelMode.Single:
                                             triggerChannelCaptureIndex = 0;
@@ -599,7 +605,7 @@ public class ProcessingThread : IThread
                                             triggerChannelBufferI16 = dataDto.Memory.DataSpanI16;
                                             break;
                                         case AdcChannelMode.Dual:
-                                            triggerChannelCaptureIndex = cachedHardwareConfig.GetCaptureBufferIndexForTriggerChannel(processingConfig.TriggerChannel);
+                                            triggerChannelCaptureIndex = dataDto.HardwareConfig.Acquisition.GetCaptureBufferIndexForTriggerChannel(processingConfig.TriggerChannel);
                                             triggerChannelBufferI8 = triggerChannelCaptureIndex switch
                                             {
                                                 0 => Span2Ch(0, dataDto.Memory.DataSpanI8),
@@ -614,7 +620,7 @@ public class ProcessingThread : IThread
                                             };
                                             break;
                                         case AdcChannelMode.Quad:
-                                            triggerChannelCaptureIndex = cachedHardwareConfig.GetCaptureBufferIndexForTriggerChannel(processingConfig.TriggerChannel);
+                                            triggerChannelCaptureIndex = dataDto.HardwareConfig.Acquisition.GetCaptureBufferIndexForTriggerChannel(processingConfig.TriggerChannel);
                                             triggerChannelBufferI8 = triggerChannelCaptureIndex switch
                                             {
                                                 0 => Span4Ch(0, dataDto.Memory.DataSpanI8),
@@ -639,10 +645,10 @@ public class ProcessingThread : IThread
                                     switch (processingConfig.ChannelDataType)
                                     {
                                         case ThunderscopeDataType.I8:
-                                            triggerI8.Process(input: triggerChannelBufferI8, ref edgeTriggerResults);
+                                            triggerI8.Process(input: triggerChannelBufferI8, dataDto.SampleStartIndex, ref edgeTriggerResults);
                                             break;
                                         case ThunderscopeDataType.I16:
-                                            triggerI16.Process(input: triggerChannelBufferI16, ref edgeTriggerResults);
+                                            triggerI16.Process(input: triggerChannelBufferI16, dataDto.SampleStartIndex, ref edgeTriggerResults);
                                             break;
                                     }
 
@@ -650,13 +656,7 @@ public class ProcessingThread : IThread
                                     {
                                         for (int i = 0; i < edgeTriggerResults.CaptureEndCount; i++)
                                         {
-                                            int offset = processingConfig.ChannelDataType switch
-                                            {
-                                                ThunderscopeDataType.I8 => triggerChannelBufferI8.Length - edgeTriggerResults.CaptureEndIndices[i],
-                                                ThunderscopeDataType.I16 => triggerChannelBufferI16.Length - edgeTriggerResults.CaptureEndIndices[i],
-                                                _ => throw new NotImplementedException()
-                                            };
-                                            Capture(triggered: true, triggerChannelCaptureIndex, offset);
+                                            Capture(triggered: true, triggerChannelCaptureIndex, edgeTriggerResults.CaptureEndIndices[i]);
 
                                             if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
                                             {
@@ -665,18 +665,10 @@ public class ProcessingThread : IThread
                                                 break;
                                             }
                                         }
-                                        streamSampleCounter = 0;
                                         autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
                                     }
                                 }
-                                if (forceTriggerLatch)
-                                {
-                                    Capture(triggered: false, triggerChannelCaptureIndex: 0, offset: 0);
-                                    forceTriggerLatch = false;
-                                    streamSampleCounter = 0;
-                                    autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
-                                }
-                                if (processingConfig.Mode == Mode.Auto && autoTimeoutTimer.ElapsedMilliseconds > processingConfig.AutoTimeoutMs)
+                                else if (processingConfig.Mode == Mode.Auto && autoTimeoutTimer.ElapsedMilliseconds > processingConfig.AutoTimeoutMs)
                                 {
                                     StreamCapture();
                                 }
@@ -741,29 +733,93 @@ public class ProcessingThread : IThread
                 }
             }
 
-            void Capture(bool triggered, int triggerChannelCaptureIndex, int offset)
+            void Capture(bool triggered, int triggerChannelCaptureIndex, ulong captureEndIndex)
             {
                 if (captureBuffer.TryStartWrite())
                 {
-                    int channelCount = cachedHardwareConfig.EnabledChannelsCount();
-                    for (int b = 0; b < channelCount; b++)
+                    int channelCount = cachedHardwareConfig.Acquisition.EnabledChannelsCount();
+                    switch (processingConfig.ChannelDataType)
                     {
-                        switch (processingConfig.ChannelDataType)
-                        {
-                            case ThunderscopeDataType.I8:
+                        case ThunderscopeDataType.I8:
+                            {
+                                switch (channelCount)
                                 {
-                                    var buffer = captureBuffer.GetChannelWriteBuffer<sbyte>(b);
-                                    sampleBuffers[b].Read(buffer, offset);
-                                    break;
+                                    case 1:
+                                        {
+                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
+                                            acquisitionBuffer.Read1Channel(buffer1, captureEndIndex);
+                                        }
+                                        break;
+                                    case 2:
+                                        {
+                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
+                                            var buffer2 = captureBuffer.GetChannelWriteBuffer<sbyte>(1);
+                                            acquisitionBuffer.Read2Channel(buffer1, buffer2, captureEndIndex);
+                                        }
+                                        break;
+                                    case 3:
+                                        {
+                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
+                                            var buffer2 = captureBuffer.GetChannelWriteBuffer<sbyte>(1);
+                                            var buffer3 = captureBuffer.GetChannelWriteBuffer<sbyte>(2);
+                                            acquisitionBuffer.Read3Channel(buffer1, buffer2, buffer3, captureEndIndex);
+                                        }
+                                        break;
+                                    case 4:
+                                        {
+                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
+                                            var buffer2 = captureBuffer.GetChannelWriteBuffer<sbyte>(1);
+                                            var buffer3 = captureBuffer.GetChannelWriteBuffer<sbyte>(2);
+                                            var buffer4 = captureBuffer.GetChannelWriteBuffer<sbyte>(3);
+                                            acquisitionBuffer.Read4Channel(buffer1, buffer2, buffer3, buffer4, captureEndIndex);
+                                        }
+                                        break;
+                                    default:
+                                        throw new NotImplementedException();
                                 }
-                            case ThunderscopeDataType.I16:
+                            }
+                            break;
+                        case ThunderscopeDataType.I16:
+                            {
+                                switch (channelCount)
                                 {
-                                    var buffer = captureBuffer.GetChannelWriteBuffer<short>(b);
-                                    sampleBuffers[b].Read(buffer, offset);
-                                    break;
+                                    case 1:
+                                        {
+                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
+                                            acquisitionBuffer.Read1Channel(buffer1, captureEndIndex);
+                                        }
+                                        break;
+                                    case 2:
+                                        {
+                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
+                                            var buffer2 = captureBuffer.GetChannelWriteBuffer<short>(1);
+                                            acquisitionBuffer.Read2Channel(buffer1, buffer2, captureEndIndex);
+                                        }
+                                        break;
+                                    case 3:
+                                        {
+                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
+                                            var buffer2 = captureBuffer.GetChannelWriteBuffer<short>(1);
+                                            var buffer3 = captureBuffer.GetChannelWriteBuffer<short>(2);
+                                            acquisitionBuffer.Read3Channel(buffer1, buffer2, buffer3, captureEndIndex);
+                                        }
+                                        break;
+                                    case 4:
+                                        {
+                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
+                                            var buffer2 = captureBuffer.GetChannelWriteBuffer<short>(1);
+                                            var buffer3 = captureBuffer.GetChannelWriteBuffer<short>(2);
+                                            var buffer4 = captureBuffer.GetChannelWriteBuffer<short>(3);
+                                            acquisitionBuffer.Read4Channel(buffer1, buffer2, buffer3, buffer4, captureEndIndex);
+                                        }
+                                        break;
+                                    default:
+                                        throw new NotImplementedException();
                                 }
-                        }
+                            }
+                            break;
                     }
+
                     var captureMetadata = new CaptureMetadata
                     {
                         Triggered = triggered,
@@ -778,10 +834,10 @@ public class ProcessingThread : IThread
             void StreamCapture()
             {
                 int channelLength = processingConfig.ChannelDataLength;
-                while (streamSampleCounter > channelLength)
+                while (acquisitionBuffer.SamplesInBuffer > channelLength)
                 {
-                    streamSampleCounter -= channelLength;
-                    Capture(triggered: false, triggerChannelCaptureIndex: 0, offset: 0);
+                    throw new NotImplementedException();    // Need to figure out captureEndIndex below
+                    Capture(triggered: false, triggerChannelCaptureIndex: 0, captureEndIndex: 0);
                 }
             }
 
@@ -860,16 +916,16 @@ public class ProcessingThread : IThread
                         }
                         break;
                 }
-                if(rateChanged || forceRateUpdate)
+                if (rateChanged || forceRateUpdate)
                     hardwareControl.Request.Writer.Write(new HardwareSetRate(processingConfig.SampleRateHz));
             }
 
             void ResetAll()
             {
-                // Reset sample buffers
-                foreach (var sampleBuffer in sampleBuffers)
-                    sampleBuffer.Reset();
-                streamSampleCounter = 0;
+                logger.LogDebug("ResetAll");
+
+                // Reset acquisition buffers
+                acquisitionBuffer.Reset();
 
                 // Reset capture buffers
                 captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);

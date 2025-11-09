@@ -57,10 +57,10 @@ public class BurstTriggerI8 : ITriggerI8
             triggerState = TriggerState.Unarmed;
     }
 
-    public void Process(ReadOnlySpan<sbyte> input, ref EdgeTriggerResults results)
+    public void Process(ReadOnlySpan<sbyte> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
         int inputLength = input.Length;
-        int simdLength = inputLength - 32;
+        int v256Length = inputLength - Vector256<sbyte>.Count;
         results.ArmCount = 0;
         results.TriggerCount = 0;
         results.CaptureEndCount = 0;
@@ -88,7 +88,7 @@ public class BurstTriggerI8 : ITriggerI8
                                 // e.g. if windowLowLevel = -20 and windowHighLevel = 20, then values must be in -19 to 19 range.
                                 if (Avx2.IsSupported)
                                 {
-                                    while (i < simdLength && windowInRangePeriodRemaining > 32 && simdBlock == 0)
+                                    while (i < v256Length && windowInRangePeriodRemaining > 32 && simdBlock == 0)
                                     {
                                         var inputVector = Vector256.Load(samplesPtr + i);
                                         var gt = Vector256.GreaterThan(inputVector, windowLowLevelVector);
@@ -130,7 +130,7 @@ public class BurstTriggerI8 : ITriggerI8
                                 if (windowInRangePeriodRemaining == 0)
                                 {
                                     triggerState = TriggerState.Armed;
-                                    results.ArmIndices[results.ArmCount++] = i;
+                                    results.ArmIndices[results.ArmCount++] = sampleStartIndex + (ulong)i;
                                     break;
                                 }
                             }
@@ -157,7 +157,7 @@ public class BurstTriggerI8 : ITriggerI8
                                 if (samplesPtr[i] <= windowLowLevel || samplesPtr[i] >= windowHighLevel)
                                 {
                                     triggerState = TriggerState.InCapture;
-                                    results.TriggerIndices[results.TriggerCount++] = i;
+                                    results.TriggerIndices[results.TriggerCount++] = sampleStartIndex + (ulong)i;
                                     break;
                                 }
                                 i++;
@@ -181,7 +181,7 @@ public class BurstTriggerI8 : ITriggerI8
                                 }
                                 if (captureRemaining == 0)
                                 {
-                                    results.CaptureEndIndices[results.CaptureEndCount++] = i;
+                                    results.CaptureEndIndices[results.CaptureEndCount++] = sampleStartIndex + (ulong)i;
                                     if (holdoffSamples > 0)
                                     {
                                         triggerState = TriggerState.InHoldoff;

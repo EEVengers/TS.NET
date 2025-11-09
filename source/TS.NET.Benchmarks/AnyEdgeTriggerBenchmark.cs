@@ -21,9 +21,9 @@ namespace TS.NET.Benchmarks
         private readonly AnyEdgeTriggerI8 trigger = new(new EdgeTriggerParameters() { LevelV = 0, HysteresisPercent = 5, Direction = EdgeDirection.Any }, 1);
         private EdgeTriggerResults edgeTriggerResults = new ()
         {
-            ArmIndices = new int[1000],
-            TriggerIndices = new int[1000],
-            CaptureEndIndices = new int[1000]
+            ArmIndices = new ulong[1000],
+            TriggerIndices = new ulong[1000],
+            CaptureEndIndices = new ulong[1000]
         };
 
         [GlobalSetup]
@@ -40,7 +40,7 @@ namespace TS.NET.Benchmarks
         {
             trigger.SetHorizontal(1000, 0, 0);
             for (int i = 0; i < 125; i++)
-                trigger.Process(input: bufferDC0.Span, ref edgeTriggerResults);
+                trigger.Process(input: bufferDC0.Span, 0, ref edgeTriggerResults);
         }
 
         [Benchmark(Description = "Any edge (hysteresis: 10), width: 1us, signal: DC (50), run length: 125 x 8M")]
@@ -48,7 +48,7 @@ namespace TS.NET.Benchmarks
         {
             trigger.SetHorizontal(1000, 0, 0);
             for (int i = 0; i < 125; i++)
-                trigger.Process(input: bufferDC50.Span, ref edgeTriggerResults);
+                trigger.Process(input: bufferDC50.Span, 0, ref edgeTriggerResults);
         }
 
         [Benchmark(Description = "Any edge (hysteresis: 10), width: 1us, signal: 1KHz sine, run length: 125 x 8M")]
@@ -56,7 +56,7 @@ namespace TS.NET.Benchmarks
         {
             trigger.SetHorizontal(1000, 0, 0);
             for (int i = 0; i < 125; i++)
-                trigger.Process(input: buffer1KHz.Span, ref edgeTriggerResults);
+                trigger.Process(input: buffer1KHz.Span, 0, ref edgeTriggerResults);
         }
 
         // 0.18 CPU cycles per sample
@@ -65,7 +65,7 @@ namespace TS.NET.Benchmarks
         {
             trigger.SetHorizontal(1000, 0, 0);
             for (int i = 0; i < 125; i++)
-                trigger.Process(input: buffer1MHz.Span, ref edgeTriggerResults);
+                trigger.Process(input: buffer1MHz.Span, 0, ref edgeTriggerResults);
         }
 
         [Benchmark(Description = "Any edge (hysteresis: 10), width: 1ms, signal: DC (0), run length: 125 x 8M")]
@@ -73,7 +73,7 @@ namespace TS.NET.Benchmarks
         {
             trigger.SetHorizontal(1000000, 0, 0);
             for (int i = 0; i < 125; i++)
-                trigger.Process(input: bufferDC0.Span, ref edgeTriggerResults);
+                trigger.Process(input: bufferDC0.Span, 0, ref edgeTriggerResults);
         }
 
         [Benchmark(Description = "Any edge (hysteresis: 10), width: 1ms, signal: DC (50), run length: 125 x 8M")]
@@ -81,7 +81,7 @@ namespace TS.NET.Benchmarks
         {
             trigger.SetHorizontal(1000000, 0, 0);
             for (int i = 0; i < 125; i++)
-                trigger.Process(input: bufferDC50.Span, ref edgeTriggerResults);
+                trigger.Process(input: bufferDC50.Span, 0, ref edgeTriggerResults);
         }
 
         [Benchmark(Description = "Any edge (hysteresis: 10), width: 1ms, signal: 1KHz sine, run length: 125 x 8M")]
@@ -89,7 +89,7 @@ namespace TS.NET.Benchmarks
         {
             trigger.SetHorizontal(1000000, 0, 0);
             for (int i = 0; i < 125; i++)
-                trigger.Process(input: buffer1KHz.Span, ref edgeTriggerResults);
+                trigger.Process(input: buffer1KHz.Span, 0, ref edgeTriggerResults);
         }
 
         [Benchmark(Description = "Any edge (hysteresis: 10), width: 1ms, signal: 1MHz sine, run length: 125 x 8M")]
@@ -97,7 +97,7 @@ namespace TS.NET.Benchmarks
         {
             trigger.SetHorizontal(1000000, 0, 0);
             for (int i = 0; i < 125; i++)
-                trigger.Process(input: buffer1MHz.Span, ref edgeTriggerResults);
+                trigger.Process(input: buffer1MHz.Span, 0, ref edgeTriggerResults);
         }
     }
 }

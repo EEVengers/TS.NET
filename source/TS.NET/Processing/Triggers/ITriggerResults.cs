@@ -2,5 +2,5 @@
 {
     public interface ITriggerResults { }
 
-    public record struct EdgeTriggerResults(int[] ArmIndices, int ArmCount, int[] TriggerIndices, int TriggerCount, int[] CaptureEndIndices, int CaptureEndCount) : ITriggerResults;
+    public record struct EdgeTriggerResults(ulong[] ArmIndices, int ArmCount, ulong[] TriggerIndices, int TriggerCount, ulong[] CaptureEndIndices, int CaptureEndCount) : ITriggerResults;
 }

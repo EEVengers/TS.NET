@@ -18,7 +18,7 @@ internal class RisingEdgeTriggerSituationsI8
             ChunkCount = 1
         };
         situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
-        situation.ExpectedWindowEndIndices = new int[1];
+        situation.ExpectedWindowEndIndices = new ulong[1];
         situation.Input.Span.Fill(0);
         situation.Input.Span.Slice(100, 100).Fill(sbyte.MaxValue);
         situation.ExpectedWindowEndIndices.Span[0] = 10100;
@@ -41,7 +41,7 @@ internal class RisingEdgeTriggerSituationsI8
             ChunkCount = 1
         };
         situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
-        situation.ExpectedWindowEndIndices = new int[1];
+        situation.ExpectedWindowEndIndices = new ulong[1];
         situation.Input.Span.Fill(0);
         situation.Input.Span.Slice(100, 100).Fill(sbyte.MaxValue);
         situation.Input.Span.Slice(300, 100).Fill(sbyte.MaxValue);  // This pulse should be ignored
@@ -65,7 +65,7 @@ internal class RisingEdgeTriggerSituationsI8
             ChunkCount = 1
         };
         situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
-        situation.ExpectedWindowEndIndices = new int[2];
+        situation.ExpectedWindowEndIndices = new ulong[2];
         situation.Input.Span.Fill(0);
         situation.Input.Span.Slice(100, 100).Fill(sbyte.MaxValue);
         situation.Input.Span.Slice(10200, 100).Fill(sbyte.MaxValue);
@@ -90,7 +90,7 @@ internal class RisingEdgeTriggerSituationsI8
             ChunkCount = 1
         };
         situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
-        situation.ExpectedWindowEndIndices = new int[1];
+        situation.ExpectedWindowEndIndices = new ulong[1];
         situation.Input.Span.Fill(0);
         situation.Input.Span.Slice(0, 100).Fill(sbyte.MaxValue);
         situation.ExpectedWindowEndIndices.Span[0] = 0;
@@ -113,7 +113,7 @@ internal class RisingEdgeTriggerSituationsI8
             ChunkCount = 1
         };
         situation.Input = new sbyte[situation.ChunkSize * situation.ChunkCount];
-        situation.ExpectedWindowEndIndices = new int[1];
+        situation.ExpectedWindowEndIndices = new ulong[1];
         situation.Input.Span.Fill(0);
         situation.Input.Span[100] = sbyte.MaxValue;
         situation.ExpectedWindowEndIndices.Span[0] = 10100;

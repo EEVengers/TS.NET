@@ -80,9 +80,9 @@ public class AnyEdgeTriggerI16Tests
         var trigger = new AnyEdgeTriggerI16(situation.Parameters, AdcResolution.TwelveBit, 256);
         var edgeTriggerResults = new EdgeTriggerResults()
         {
-            ArmIndices = new int[1000],
-            TriggerIndices = new int[1000],
-            CaptureEndIndices = new int[1000]
+            ArmIndices = new ulong[1000],
+            TriggerIndices = new ulong[1000],
+            CaptureEndIndices = new ulong[1000]
         };
         trigger.SetHorizontal(situation.WindowWidth, situation.WindowTriggerPosition, situation.AdditionalHoldoff);
 
@@ -91,7 +91,7 @@ public class AnyEdgeTriggerI16Tests
 
         for (int i = 0; i < situation.ChunkCount; i++)
         {
-            trigger.Process(situation.Input.Span.Slice((i * situation.ChunkSize), situation.ChunkSize), ref edgeTriggerResults);
+            trigger.Process(situation.Input.Span.Slice((i * situation.ChunkSize), situation.ChunkSize), 0, ref edgeTriggerResults);
         }
 
         for (int i = 0; i < situation.ExpectedWindowEndIndices.Length; i++)
