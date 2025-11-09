@@ -11,16 +11,16 @@ public static class ShuffleI8
         if (input.Length != output.Length)
             throw new ArgumentException("Array lengths must match");
 
-        int channelBlockSizeBytes = output.Length / 4;
+        int channelBlockSize = output.Length / 4;
 
         if (Avx2.IsSupported)       // Const after JIT/AOT
         {
             var processingLength = Vector256<sbyte>.Count * 4;  // 128
             if (input.Length % processingLength != 0) throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
-            int ch2Offset = channelBlockSizeBytes;
-            int ch3Offset = channelBlockSizeBytes * 2;
-            int ch4Offset = channelBlockSizeBytes * 3;
+            int ch2Offset = channelBlockSize;
+            int ch3Offset = channelBlockSize * 2;
+            int ch4Offset = channelBlockSize * 3;
             Vector256<sbyte> shuffleMask = Vector256.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15).AsSByte();
             Vector256<int> permuteMask = Vector256.Create(0, 4, 2, 6, 1, 5, 3, 7);
             unsafe
@@ -69,9 +69,9 @@ public static class ShuffleI8
             var processingLength = Vector128<sbyte>.Count * 4;  // 64
             if (input.Length % processingLength != 0) throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
-            int ch2Offset = channelBlockSizeBytes;
-            int ch3Offset = channelBlockSizeBytes * 2;
-            int ch4Offset = channelBlockSizeBytes * 3;
+            int ch2Offset = channelBlockSize;
+            int ch3Offset = channelBlockSize * 2;
+            int ch4Offset = channelBlockSize * 3;
             Vector128<sbyte> shuffleMask = Vector128.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15).AsSByte();
             unsafe
             {
@@ -116,9 +116,9 @@ public static class ShuffleI8
             if (input.Length % processingLength != 0)
                 throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
-            int ch2Offset = channelBlockSizeBytes;
-            int ch3Offset = channelBlockSizeBytes * 2;
-            int ch4Offset = channelBlockSizeBytes * 3;
+            int ch2Offset = channelBlockSize;
+            int ch3Offset = channelBlockSize * 2;
+            int ch4Offset = channelBlockSize * 3;
             unsafe
             {
                 fixed (sbyte* inputP = input)
@@ -151,9 +151,9 @@ public static class ShuffleI8
             if (input.Length % processingLength != 0)
                 throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
-            int ch2Offset = channelBlockSizeBytes;
-            int ch3Offset = channelBlockSizeBytes * 2;
-            int ch4Offset = channelBlockSizeBytes * 3;
+            int ch2Offset = channelBlockSize;
+            int ch3Offset = channelBlockSize * 2;
+            int ch4Offset = channelBlockSize * 3;
             unsafe
             {
                 fixed (sbyte* inputP = input)
@@ -181,7 +181,7 @@ public static class ShuffleI8
         if (input.Length != output.Length)
             throw new ArgumentException("Array lengths must match");
 
-        int channelBlockSizeBytes = output.Length / 2;
+        int channelBlockSize = output.Length / 2;
 
         if (Avx2.IsSupported)       // Const after JIT/AOT
         {
@@ -189,7 +189,7 @@ public static class ShuffleI8
             if (input.Length % processingLength != 0)
                 throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
-            int ch2Offset = channelBlockSizeBytes;
+            int ch2Offset = channelBlockSize;
             Vector256<sbyte> shuffleMask = Vector256.Create(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15, 0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15).AsSByte();
             Vector256<int> permuteMask = Vector256.Create(0, 1, 4, 5, 2, 3, 6, 7);
             unsafe
@@ -225,7 +225,7 @@ public static class ShuffleI8
             if (input.Length % processingLength != 0)
                 throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
-            int ch2Offset = channelBlockSizeBytes;
+            int ch2Offset = channelBlockSize;
             Vector128<sbyte> shuffleMask = Vector128.Create(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15).AsSByte();
             unsafe
             {
@@ -258,7 +258,7 @@ public static class ShuffleI8
             if (input.Length % processingLength != 0)
                 throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
-            int ch2Offset = channelBlockSizeBytes;
+            int ch2Offset = channelBlockSize;
             unsafe
             {
                 fixed (sbyte* inputP = input)
@@ -285,7 +285,7 @@ public static class ShuffleI8
             if (input.Length % processingLength != 0)
                 throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
-            int ch2Offset = channelBlockSizeBytes;
+            int ch2Offset = channelBlockSize;
             unsafe
             {
                 fixed (sbyte* inputP = input)

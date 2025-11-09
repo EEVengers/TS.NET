@@ -81,6 +81,7 @@ internal class HardwareThread : IThread
             var dataType = ThunderscopeDataType.I8;
             var segmentLengthBytes = ThunderscopeSettings.SegmentLengthBytes;
             var memory = new ThunderscopeMemory(ThunderscopeSettings.SegmentLengthBytes);
+            bool warning = false;
 
             logger.LogDebug($"Block size: {ThunderscopeSettings.SegmentLengthBytes}");
 #if DEBUG
@@ -272,7 +273,13 @@ internal class HardwareThread : IThread
                                         ShuffleI8.TwoChannels(input: memory.DataSpanI8, output: dataDto.Memory.DataSpanI8);
                                         break;
                                     case ThunderscopeDataType.I16:
-                                        throw new NotImplementedException();
+                                        if (!warning)
+                                        {
+                                            warning = true;
+                                            logger.LogWarning("Unoptimised ShuffleI16.TwoChannels");
+                                        }
+                                        ShuffleI16.TwoChannels(input: memory.DataSpanI16, output: dataDto.Memory.DataSpanI16);
+                                        break;
                                 }
                                 break;
                             case AdcChannelMode.Quad:
@@ -282,7 +289,13 @@ internal class HardwareThread : IThread
                                         ShuffleI8.FourChannels(input: memory.DataSpanI8, output: dataDto.Memory.DataSpanI8);
                                         break;
                                     case ThunderscopeDataType.I16:
-                                        throw new NotImplementedException();
+                                        if (!warning)
+                                        {
+                                            warning = true;
+                                            logger.LogWarning("Unoptimised ShuffleI16.FourChannels");
+                                        }
+                                        ShuffleI16.FourChannels(input: memory.DataSpanI16, output: dataDto.Memory.DataSpanI16);
+                                        break;
                                 }
                                 break;
                         }
