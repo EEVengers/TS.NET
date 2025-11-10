@@ -70,12 +70,12 @@
                         sb.AppendLine("            <tr class=\"border-b border-gray-300\">");
                         sb.AppendLine("                <td class=\"p-2 bg-gray-100\">");
                         sb.AppendLine("                <td colspan=\"4\" class=\"p-2\">");
-                        sb.AppendLine("                    <div class=\"text-sm\">");
+                        sb.AppendLine("                    <div class=\"text-xs\">");
 
                         if (step.Result.Exception != null)
                         {
-                            sb.AppendLine("                        <strong class=\"text-red-500\">Exception:</strong>");
-                            sb.AppendLine($"                        <pre class=\"bg-red-100 text-red-700 p-2 mt-1 whitespace-pre-wrap\">{step.Result.Exception}</pre>");
+                            sb.AppendLine("                        <div class=\"underline\">Exception:</div>");
+                            sb.AppendLine($"                        <pre class=\"bg-red-100 p-2 mt-1 whitespace-pre-wrap\">{step.Result.Exception}</pre>");
                         }
 
                         if (step.Result.Metadata != null)

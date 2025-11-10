@@ -6,5 +6,5 @@ namespace TS.NET.Sequences;
 [JsonSerializable(typeof(BenchCalibrationVariables))]
 [JsonSerializable(typeof(SelfCalibrationVariables))]
 [JsonSerializable(typeof(NoiseVerificationVariables))]
-[JsonSerializable(typeof(BodePlotVariables))]
+[JsonSerializable(typeof(BenchVerificationVariables))]
 internal partial class DefaultCaseContext : JsonSerializerContext { }

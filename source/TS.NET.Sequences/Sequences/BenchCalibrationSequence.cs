@@ -71,14 +71,7 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - LG L9", 0, 20, Variables),
             new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - LG L10", 0, 21, Variables),
 
-            new Step("Find signal generator zero"){ Action = (CancellationToken cancellationToken) => {
-                var pathConfig = Utility.GetChannelPathConfig(0, 0, Variables);
-                var pathCalibration = Utility.GetChannelPathCalibration(0, 0, Variables);
-                Instruments.Instance.SetThunderscopeCalManual1M(0, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, Variables);
-                Instruments.Instance.SetSdgChannel(0);
-                Utility.GetAndCheckSigGenZero(0, pathConfig, Variables, cancellationToken);
-                return Sequencer.Status.Done;
-            }},
+            new FindSigGenZeroStep("Channel 1 - find signal generator zero", 0, Variables),
 
             new AdcBranchGainsStep("Channel 1 - ADC branch gains", 0, 1_000_000_000, Variables),
 
@@ -173,14 +166,7 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - LG L9", 1, 20, Variables),
             new TrimOffsetDacZeroStep("Channel 2 - find trim offset DAC zero - LG L10", 1, 21, Variables),
 
-            new Step("Find signal generator zero"){ Action = (CancellationToken cancellationToken) => {
-                var pathConfig = Utility.GetChannelPathConfig(1, 0, Variables);
-                var pathCalibration = Utility.GetChannelPathCalibration(1, 0, Variables);
-                Instruments.Instance.SetThunderscopeCalManual1M(1, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, Variables);
-                Instruments.Instance.SetSdgChannel(1);
-                Utility.GetAndCheckSigGenZero(1, pathConfig, Variables, cancellationToken);
-                return Sequencer.Status.Done;
-            }},
+            new FindSigGenZeroStep("Channel 2 - find signal generator zero", 1, Variables),
 
             new BufferInputVppStep("Channel 2 - measure buffer input Vpp - HG L0", 1, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new BufferInputVppStep("Channel 2 - measure buffer input Vpp - HG L1", 1, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
@@ -273,14 +259,7 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - LG L9", 2, 20, Variables),
             new TrimOffsetDacZeroStep("Channel 3 - find trim offset DAC zero - LG L10", 2, 21, Variables),
 
-            new Step("Find signal generator zero"){ Action = (CancellationToken cancellationToken) => {
-                var pathConfig = Utility.GetChannelPathConfig(2, 0, Variables);
-                var pathCalibration = Utility.GetChannelPathCalibration(2, 0, Variables);
-                Instruments.Instance.SetThunderscopeCalManual1M(2, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, Variables);
-                Instruments.Instance.SetSdgChannel(2);
-                Utility.GetAndCheckSigGenZero(2, pathConfig, Variables, cancellationToken);
-                return Sequencer.Status.Done;
-            }},
+            new FindSigGenZeroStep("Channel 3 - find signal generator zero", 2, Variables),
 
             new BufferInputVppStep("Channel 3 - measure buffer input Vpp - HG L0", 2, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new BufferInputVppStep("Channel 3 - measure buffer input Vpp - HG L1", 2, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
@@ -373,14 +352,7 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - LG L9", 3, 20, Variables),
             new TrimOffsetDacZeroStep("Channel 4 - find trim offset DAC zero - LG L10", 3, 21, Variables),
 
-            new Step("Find signal generator zero"){ Action = (CancellationToken cancellationToken) => {
-                var pathConfig = Utility.GetChannelPathConfig(3, 0, Variables);
-                var pathCalibration = Utility.GetChannelPathCalibration(3, 0, Variables);
-                Instruments.Instance.SetThunderscopeCalManual1M(3, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, Variables);
-                Instruments.Instance.SetSdgChannel(3);
-                Utility.GetAndCheckSigGenZero(3, pathConfig, Variables, cancellationToken);
-                return Sequencer.Status.Done;
-            }},
+            new FindSigGenZeroStep("Channel 4 - find signal generator zero", 3, Variables),
 
             new BufferInputVppStep("Channel 4 - measure buffer input Vpp - HG L0", 3, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new BufferInputVppStep("Channel 4 - measure buffer input Vpp - HG L1", 3, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },

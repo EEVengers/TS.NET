@@ -24,7 +24,8 @@ public class GoertzelFilter
 
         for (int n = 0; n < samples.Length; n++)
         {
-            Q0 = coeff * Q1 - Q2 + samples[n];
+            Q0 = samples[n] + coeff * Q1 - Q2;      // 555ms
+            //Q0 = coeff * Q1 - Q2 + samples[n];    // 719ms
             Q2 = Q1;
             Q1 = Q0;
         }

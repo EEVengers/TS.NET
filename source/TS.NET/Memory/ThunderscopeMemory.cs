@@ -25,6 +25,13 @@ public unsafe class ThunderscopeMemory
         pointer = (byte*)NativeMemory.AlignedAlloc((uint)(PreLengthBytes + LengthBytes), Alignment);   // Intentionally not sbyte
     }
 
+    private ThunderscopeMemory(byte* pointer, int lengthBytes, int preLengthBytes)
+    {
+        LengthBytes = lengthBytes;
+        PreLengthBytes = preLengthBytes;
+        this.pointer = pointer;
+    }
+
     public Span<sbyte> DataSpanI8
     {
         get
@@ -49,5 +56,13 @@ public unsafe class ThunderscopeMemory
     public void Dispose()
     {
         NativeMemory.AlignedFree(pointer);
+    }
+
+    public ThunderscopeMemory Subset(int length)
+    {
+        if (length > LengthBytes)
+            throw new ThunderscopeException("Requested subset length too long");
+
+        return new ThunderscopeMemory(pointer, length, Alignment);
     }
 }

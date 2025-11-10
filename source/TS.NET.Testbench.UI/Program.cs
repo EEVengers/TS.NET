@@ -108,15 +108,16 @@ class Program
                                 variables = noiseVerificationVariables;
                                 sequence = noiseVerificationSequence;
                                 break;
-                            case "bode-plot":
-                                var bodePlotVariables = new BodePlotVariables()
+                            case "bench-verification":
+                                var benchVerificationVariables = new BenchVerificationVariables
                                 {
                                     SigGen1Host = variablesFile.SigGen1Ip,
-                                    SigGen2Host = variablesFile.SigGen2Ip
+                                    SigGen2Host = variablesFile.SigGen2Ip,
+                                    WarmupTimeSec = 30
                                 };
-                                var bodePlotSequence = new BodePlotSequence(uiDialog, bodePlotVariables);
-                                variables = bodePlotVariables;
-                                sequence = bodePlotSequence;
+                                var benchVerificationSequence = new BenchVerificationSequence(uiDialog, benchVerificationVariables);
+                                variables = benchVerificationVariables;
+                                sequence = benchVerificationSequence;
                                 break;
                             default:
                                 throw new InvalidDataException();

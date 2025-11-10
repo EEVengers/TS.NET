@@ -3,13 +3,13 @@ using TS.NET.Sequencer;
 
 namespace TS.NET.Sequences;
 
-public class AdcFineGainAnalysisSequence : Sequence
+public class AdcBranchGainsAnalysisSequence : Sequence
 {
     public BenchCalibrationVariables Variables { get; private set; }
 
-    public AdcFineGainAnalysisSequence(Func<Dialog, DialogResult> uiDialog, BenchCalibrationVariables variables)
+    public AdcBranchGainsAnalysisSequence(Func<Dialog, DialogResult> uiDialog, BenchCalibrationVariables variables)
     {
-        Name = "ADC fine gain analysis";
+        Name = "ADC branch gains analysis";
         Variables = variables;
         variables.WarmupTimeSec = 30;
         AddSteps(uiDialog);
