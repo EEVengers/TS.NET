@@ -73,8 +73,8 @@ public class BodePlotStep : Step
                 Logger.Instance.Log(LogLevel.Information, Index, Status.Running, $"Ch{channelIndex + 1}, Cfg {configIndex}: Freq={frequencyHz / 1e6:F3}MHz, Scale={normalised:F4}");
             }
 
-            var csv = bodePoints.Select(p => $"{p.Key},{p.Value}");//,{20.0 * Math.Log10(p.Value)}");
-            var csvString = "Frequency,Scale\n" + string.Join("\n", csv);
+            var csv = bodePoints.Select(p => $"{p.Key},{p.Value:F4},{20.0 * Math.Log10(p.Value):F4}");
+            var csvString = "Frequency,Scale,dB\n" + string.Join("\n", csv);
             File.WriteAllText($"config {configIndex} - {amplitude} Vpp - attenuator {attenuator}.csv", csvString);
 
             var metadata =
