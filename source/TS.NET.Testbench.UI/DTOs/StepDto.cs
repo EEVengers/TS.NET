@@ -21,7 +21,7 @@ public class StepDto
             result = new StepResultDto()
             {
                 Status = step.Result!.Status,
-                Duration = FormatDuration(step.Result!.Duration)
+                Duration = TimeSpanUtility.HumanDuration(step.Result!.Duration)
             };
         }
         return new StepDto()
@@ -33,20 +33,6 @@ public class StepDto
             IgnoreError = step.IgnoreError,
             AllowSkip = step.AllowSkip
         };
-    }
-
-    private static string? FormatDuration(TimeSpan? duration)
-    {
-        if (duration == null)
-            return "-";
-        string format;
-        if (duration?.Hours > 0)
-            format = @"h\h\ m\m\ s\.fff\s";
-        else if (duration?.Minutes > 0)
-            format = @"m\m\ s\.fff\s";
-        else
-            format = @"s\.fff\s";
-        return ((TimeSpan)duration!).ToString(format);
     }
 }
 

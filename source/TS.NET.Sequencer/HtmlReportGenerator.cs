@@ -32,7 +32,7 @@
             sb.AppendLine("    <div class=\"flex flex-col gap-1\">");
             sb.AppendLine($"        <div>{sequence.Name}</div>");
             sb.AppendLine($"        <div>{sequence.StartTimestamp.ToString("yyyy-MM-dd HH:mm:ss")} ({sequence.TzId})</div>");
-            sb.AppendLine($"        <div>{HumanDuration(sequence.Duration)}</div>");
+            sb.AppendLine($"        <div>{TimeSpanUtility.HumanDuration(sequence.Duration)}</div>");
             sb.AppendLine($"        <div>TS0019</div>");
             sb.AppendLine("    </div>");
             sb.AppendLine("    </div>");
@@ -60,7 +60,7 @@
                         sb.AppendLine($"            <tr class=\"border-b border-gray-300\">");
                     sb.AppendLine($"                <td class=\"p-1 pl-2 text-left whitespace-nowrap\">{step.Index}</td>");
                     sb.AppendLine($"                <td class=\"p-1 pl-2 text-left\">{step.Name}</td>");
-                    sb.AppendLine($"                <td class=\"p-1 text-left\">{HumanDuration(step.Result?.Duration)}</td>");
+                    sb.AppendLine($"                <td class=\"p-1 text-left\">{TimeSpanUtility.HumanDuration(step.Result?.Duration)}</td>");
                     sb.AppendLine($"                <td class=\"p-1 text-left\">{step.Result?.Summary ?? "-"}</td>");
                     sb.AppendLine($"                <td class=\"p-1 pr-2 text-left {StatusTextColour(step.Result?.Status)}\">{step.Result?.Status.ToString() ?? "-"}</td>");
                     sb.AppendLine("            </tr>");
@@ -150,18 +150,6 @@
             sb.AppendLine("</html>");
 
             File.WriteAllText(outputFilePath, sb.ToString());
-        }
-
-        private static string HumanDuration(TimeSpan? duration)
-        {
-            if (duration == null)
-                return "-";
-            if (duration?.TotalHours > 1)
-                return $"{duration?.Hours}h {duration?.Minutes}m {duration?.Seconds}s";
-            else if (duration?.TotalMinutes > 1)
-                return $"{duration?.Minutes}m {duration?.Seconds}s";
-            else
-                return $"{duration?.Seconds}.{duration?.Milliseconds:D3}s";
         }
 
         private static string StatusTextColour(Status? status)
