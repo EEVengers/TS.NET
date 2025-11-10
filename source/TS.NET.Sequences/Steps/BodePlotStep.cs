@@ -17,7 +17,7 @@ public class BodePlotStep : Step
             Instruments.Instance.SetThunderscopeRate(rate);
 
             Instruments.Instance.SetSdgChannel(channelIndex);
-            Instruments.Instance.SetSdgSine(channelIndex, amplitude, 1_000_000);
+            Instruments.Instance.SetSdgSine(channelIndex, amplitude, 10_000_000);
             Instruments.Instance.SetSdgOffset(channelIndex, 0);
 
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, configIndex, variables);
@@ -30,7 +30,7 @@ public class BodePlotStep : Step
             // Generate frequencies from 1kHz to 10MHz with 100 points per decade
             //double startFrequency = 100;
             double startFrequency = 10000;
-            int decades = 2; // 1kHz -> 10kHz -> 100kHz -> 1MHz -> 10MHz
+            int decades = 3; // 1kHz -> 10kHz -> 100kHz -> 1MHz -> 10MHz
             int pointsPerDecade = 100;
 
             for (int d = 0; d < decades; d++)
@@ -52,10 +52,10 @@ public class BodePlotStep : Step
 
             var bodePoints = new Dictionary<uint, double>();
 
-            Instruments.Instance.SetSdgSine(channelIndex, amplitude, 1_000_000);
+            Instruments.Instance.SetSdgSine(channelIndex, amplitude, 10_000_000);
             //var signalAt1MHz = Instruments.Instance.GetThunderscopeVppAtFrequency(channelIndex, 1_000_000, rate, pathCalibration.BufferInputVpp, resolution);
             //var signalAt1MHz = Instruments.Instance.GetThunderscopePopulationStdDev(channelIndex);
-            var signalAt1MHz = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(channelIndex, 1_000_000, rate, pathCalibration.BufferInputVpp, resolution);
+            var signalAtRef = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(channelIndex, 10_000_000, rate, pathCalibration.BufferInputVpp, resolution);
 
             List<string[]> rows = [];
             foreach (var frequencyHz in frequenciesHz)
@@ -67,16 +67,16 @@ public class BodePlotStep : Step
                 //var signalAtFrequency = Instruments.Instance.GetThunderscopePopulationStdDev(channelIndex);
                 var signalAtFrequency = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(channelIndex, frequencyHz, rate, pathCalibration.BufferInputVpp, resolution);
 
-                // Normalise relative to the measurement at 1MHz
-                double normalised = signalAtFrequency / signalAt1MHz;
+                // Normalise relative to the reference measurement
+                double normalised = signalAtFrequency / signalAtRef;
                 bodePoints[frequencyHz] = normalised;
                 rows.Add([$"{frequencyHz}", $"{20.0 * Math.Log10(normalised):F3}"]);
 
                 Logger.Instance.Log(LogLevel.Information, Index, Status.Running, $"Ch{channelIndex + 1}, Cfg {configIndex}: Freq={frequencyHz / 1e6:F3}MHz, Scale={normalised:F4}");
             }
 
-            var csv = bodePoints.Select(p => $"{p.Key},{p.Value},{20.0 * Math.Log10(p.Value)}");
-            var csvString = string.Join("\n", csv);
+            var csv = bodePoints.Select(p => $"{p.Key},{p.Value}");//,{20.0 * Math.Log10(p.Value)}");
+            var csvString = "Frequency,Scale\n" + string.Join("\n", csv);
             File.WriteAllText($"config {configIndex} - {amplitude} Vpp - attenuator {attenuator}.csv", csvString);
 
             var metadata = new List<ResultMetadata>
