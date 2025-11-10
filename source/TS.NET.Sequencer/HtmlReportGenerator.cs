@@ -68,14 +68,14 @@
                     if (step.Result?.Exception != null || (step.Result?.Metadata != null && step.Result.Metadata.Length > 0))
                     {
                         sb.AppendLine("            <tr class=\"border-b border-gray-300\">");
-                        sb.AppendLine("                <td class=\"p-2 bg-gray-100\">");
+                        sb.AppendLine("                <td class=\"p-2 bg-gray-100\"></td>");
                         sb.AppendLine("                <td colspan=\"4\" class=\"p-2\">");
                         sb.AppendLine("                    <div class=\"text-xs\">");
 
                         if (step.Result.Exception != null)
                         {
                             sb.AppendLine("                        <div class=\"underline\">Exception:</div>");
-                            sb.AppendLine($"                        <pre class=\"bg-red-100 p-2 mt-1 whitespace-pre-wrap\">{step.Result.Exception}</pre>");
+                            sb.AppendLine($"                        <pre class=\"bg-red-100 p-2 mt-1 whitespace-pre-wrap overflow-auto max-w-full break-words\">{step.Result.Exception}</pre>");
                         }
 
                         if (step.Result.Metadata != null)
