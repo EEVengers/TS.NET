@@ -26,8 +26,6 @@ public class AdcBranchGainsStep : Step
             var pathConfig = Utility.GetChannelPathConfig(channelIndex, pathIndex, variables);
             Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables);
 
-            List<ResultMetadata> metadata = [];
-
             GetBranchScales();
 
             for (int i = 0; i < 8; i++)
@@ -53,7 +51,7 @@ public class AdcBranchGainsStep : Step
                 branchFineGains[i] = (byte)(gainSetting & 0x7F);
             }
 
-            metadata.Add(new ResultMetadataTable()
+            Result!.Metadata!.Add(new ResultMetadataTable()
             {
                 Name = "Before calibration",
                 ShowInReport = true,
@@ -84,7 +82,7 @@ public class AdcBranchGainsStep : Step
             // Now validate
             GetBranchScales();
 
-            metadata.Add(new ResultMetadataTable()
+            Result!.Metadata!.Add(new ResultMetadataTable()
             {
                 Name = "After calibration",
                 ShowInReport = true,
@@ -105,8 +103,6 @@ public class AdcBranchGainsStep : Step
 
             Logger.Instance.Log(LogLevel.Information, Index, Status.Done);
             //Instruments.Instance.SetSdgDc(channelIndex);
-            if (Result != null)
-                Result.Metadata = metadata.ToArray();
             return Status.Done;
 
             void GetBranchScales()

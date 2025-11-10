@@ -525,9 +525,9 @@ public class Instruments
         return Math.Sqrt(sumSquares / channel.Length);
     }
 
-    private double GetThunderscopeVppAtFrequencyGoertzel(int channelIndex, double filterFrequency, double sampleFrequency, double inputVpp, AdcResolution resolution)
+    private double GetThunderscopeVppAtFrequencyGoertzel(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)
     {
-        var filter = new GoertzelFilter(filterFrequency, sampleFrequency);
+        var filter = new GoertzelFilter(frequency, sampleRateHz);
         var config = thunderScope!.GetConfiguration();
         if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
             throw new TestbenchException("Requested channel index is not an enabled channel");
@@ -537,7 +537,7 @@ public class Instruments
         var subsetShuffleMemory = shuffleMemory!.Subset(128 * 1024 * 1024);
         thunderScope!.Read(subsetDataMemory);
 
-        var samples = subsetDataMemory.DataSpanI8.Slice(0, (int)((sampleFrequency / filterFrequency) * 10.0));
+        var samples = subsetDataMemory.DataSpanI8.Slice(0, (int)((sampleRateHz / frequency) * 10.0));
         Span<sbyte> channel;
         switch (config.Acquisition.EnabledChannelsCount())
         {
@@ -591,7 +591,7 @@ public class Instruments
         return vppResult;
     }
 
-    public double GetThunderscopeVppAtFrequencyLsq(int channelIndex, double knownFrequency, double sampleFrequency, double inputVpp, AdcResolution resolution)
+    public double GetThunderscopeVppAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)
     {
         var config = thunderScope!.GetConfiguration();
         if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
@@ -602,7 +602,7 @@ public class Instruments
         var subsetShuffleMemory = shuffleMemory!.Subset(128 * 1024 * 1024);
         thunderScope!.Read(subsetDataMemory);
 
-        var samples = subsetDataMemory.DataSpanI8.Slice(0, (int)((sampleFrequency / knownFrequency) * 10.0));
+        var samples = subsetDataMemory.DataSpanI8.Slice(0, (int)((sampleRateHz / frequency) * 10.0));
         Span<sbyte> channel;
         switch (config.Acquisition.EnabledChannelsCount())
         {
@@ -614,7 +614,6 @@ public class Instruments
         }
 
         double[] scaledSamples = new double[channel.Length];
-        double[] times = new double[channel.Length];
         var vPerBit = resolution switch
         {
             AdcResolution.EightBit => (double)(inputVpp / 256.0),
@@ -625,10 +624,10 @@ public class Instruments
         for (int i = 0; i < scaledSamples.Length; i++)
         {
             scaledSamples[i] = channel[i] * vPerBit;
-            times[i] = i / sampleFrequency;
         }
 
-        var (amplitude, phaseRadians, dcOffset) = SineLeastSquaresFit.FitSineWave(times, scaledSamples, knownFrequency);
+        // To do - use an external trigger pulse to get accurate phase
+        var (amplitude, phaseRadians, dcOffset) = SineLeastSquaresFit.FitSineWave(sampleRateHz, scaledSamples, frequency);
         var vppResult = amplitude * 2;
 
         return vppResult;

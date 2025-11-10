@@ -2,7 +2,6 @@
 {
     public class ResultMetadata
     {
-        public string Name { get; set; }
-        public bool ShowInReport { get; set; }
+        public required bool ShowInReport { get; set; }
     }
 }

@@ -2,7 +2,8 @@
 {
     public class ResultMetadataTable : ResultMetadata
     {
-        public string[] Headers { get; set; }
-        public string[][] Rows { get; set; }
+        public required string Name { get; set; }
+        public required string[] Headers { get; set; }
+        public required string[][] Rows { get; set; }
     }
 }

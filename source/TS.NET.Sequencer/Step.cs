@@ -98,12 +98,11 @@ public class Step
             Logger.Instance.Log(LogLevel.Information, Index, Status.Error, $"Timeout occurred");
         }
         stopwatch.Stop();
-        if (Result != null)
+        Result!.Status = status;
+        Result.Duration = stopwatch.Elapsed;
+        if (status == Status.Error && exception != null)
         {
-            Result.Status = status;
-            Result.Duration = stopwatch.Elapsed;
-            if (status == Status.Error && exception != null)
-                Result.Exception = exception;
+            Result!.Metadata!.Add(new ResultMetadataException() { ShowInReport = true, Exception = exception });
         }
     }
 

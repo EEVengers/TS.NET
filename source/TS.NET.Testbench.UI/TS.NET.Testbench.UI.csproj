@@ -13,6 +13,7 @@
     <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
     <ApplicationIcon>icon.ico</ApplicationIcon>
     <RuntimeIdentifiers>win-x64; linux-x64; osx-x64; osx-arm64</RuntimeIdentifiers>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">

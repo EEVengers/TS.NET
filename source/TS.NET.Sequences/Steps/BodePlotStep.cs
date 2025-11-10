@@ -57,7 +57,6 @@ public class BodePlotStep : Step
             //var signalAt1MHz = Instruments.Instance.GetThunderscopePopulationStdDev(channelIndex);
             var signalAtRef = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(channelIndex, 10_000_000, rate, pathCalibration.BufferInputVpp, resolution);
 
-            List<string[]> rows = [];
             foreach (var frequencyHz in frequenciesHz)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -70,7 +69,6 @@ public class BodePlotStep : Step
                 // Normalise relative to the reference measurement
                 double normalised = signalAtFrequency / signalAtRef;
                 bodePoints[frequencyHz] = normalised;
-                rows.Add([$"{frequencyHz}", $"{20.0 * Math.Log10(normalised):F3}"]);
 
                 Logger.Instance.Log(LogLevel.Information, Index, Status.Running, $"Ch{channelIndex + 1}, Cfg {configIndex}: Freq={frequencyHz / 1e6:F3}MHz, Scale={normalised:F4}");
             }
@@ -79,18 +77,19 @@ public class BodePlotStep : Step
             var csvString = "Frequency,Scale\n" + string.Join("\n", csv);
             File.WriteAllText($"config {configIndex} - {amplitude} Vpp - attenuator {attenuator}.csv", csvString);
 
-            var metadata = new List<ResultMetadata>
-            {
-                new ResultMetadataTable()
+            var metadata =
+                new ResultMetadataXYChart()
                 {
-                    Name = "Gain vs. frequency, normalised to 1 MHz",
                     ShowInReport = true,
-                    Headers = ["Frequency (Hz)", "Gain (dB)"],
-                    Rows = rows.ToArray()
-                }
-            };
-            if (Result != null)
-                Result.Metadata = metadata.ToArray();
+                    Title = "Gain vs. frequency, normalised to 1 MHz",
+                    XAxisTitle = "Frequency (Hz)",
+                    YAxisTitle = "Gain (dB)",
+                    XScaleType = XYChartScaleType.Log10,
+                    YScaleType = XYChartScaleType.Linear,
+                    X = bodePoints.Select(p => (double)p.Key).ToArray(),
+                    Y = bodePoints.Select(p => p.Value).ToArray(),
+                };
+            Result!.Metadata!.Add(metadata);
 
             Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Bode plot measurement complete for Ch{channelIndex + 1}, Cfg {configIndex}.");
             return Status.Done;

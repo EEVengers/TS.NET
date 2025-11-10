@@ -52,7 +52,7 @@ public class Sequence
                 overallTermination = true;
                 break;
             }
-            Steps[i].Result = new Result() { Status = Sequencer.Status.Running, Duration = null, Exception = null, Summary = null, Metadata = [] };
+            Steps[i].Result = new Result() { Status = Sequencer.Status.Running, Duration = null, Summary = null, Metadata = [] };
             PreStep?.Invoke(Steps[i]);
             await Task.Run(() => Steps[i].Run(cancellationTokenSource));
             PostStep?.Invoke(Steps[i]);
@@ -63,7 +63,7 @@ public class Sequence
         if (Steps.Any(s => s.Name == "Cleanup" && s.Result == null))
         {
             var cleanupStep = Steps.First(s => s.Name == "Cleanup");
-            cleanupStep.Result = new Result() { Status = Sequencer.Status.Running, Duration = null, Exception = null, Summary = null, Metadata = [] };
+            cleanupStep.Result = new Result() { Status = Sequencer.Status.Running, Duration = null, Summary = null, Metadata = [] };
             PreStep?.Invoke(cleanupStep);
             await Task.Run(() => cleanupStep.Run(cancellationTokenSource));
             PostStep?.Invoke(cleanupStep);
