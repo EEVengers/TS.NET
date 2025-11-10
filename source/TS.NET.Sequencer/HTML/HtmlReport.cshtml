@@ -1,8 +1,10 @@
-﻿@using TS.NET.Sequencer
+﻿@using RazorLight
+@inherits TemplatePage<Sequence>
+@using TS.NET.Sequencer
 @using static TS.NET.Sequencer.ReportHelpers
 @using static TS.NET.Sequencer.TimeSpanUtility
 @{
-    bool d3Charts = false;
+    bool includeD3 = false;
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -25,8 +27,8 @@
             </div>
             <div class="flex flex-col gap-1">
                 <div>@Model.Name</div>
-                <div>@Model.StartTimestamp.ToString("yyyy-MM-dd HH:mm:ssZ") (@Model.TzId)</div>
-                <div>@TimeSpanUtility.HumanDuration(Model.Duration)</div>
+                <div>@Model.StartTimestamp.ToString("yyyy-MM-dd HH:mm:ssK") (@Model.TzId)</div>
+                <div>@HumanDuration(Model.Duration)</div>
                 <div>TS0019</div>
             </div>
         </div>
@@ -52,7 +54,7 @@
                         <tr class="@(hasMetadata ? "" : "border-b border-gray-300")">
                             <td class="p-1 pl-2 text-left whitespace-nowrap">@step.Index</td>
                             <td class="p-1 pl-2 text-left">@step.Name</td>
-                            <td class="p-1 text-left">@TimeSpanUtility.HumanDuration(step.Result?.Duration)</td>
+                            <td class="p-1 text-left">@HumanDuration(step.Result?.Duration)</td>
                             <td class="p-1 text-left">@(step.Result?.Summary ?? "-")</td>
                             <td class="p-1 pr-2 text-left @StatusTextColour(step.Result?.Status)">@(step.Result?.Status.ToString() ?? "-")</td>
                         </tr>
@@ -65,70 +67,67 @@
                                 <td class="p-2 bg-gray-100"></td>
                                 <td colspan="4" class="p-2">
                                     <div class="text-xs">
-                                        @if (step.Result.Metadata != null)
+                                        @foreach (var meta in step.Result!.Metadata!)
                                         {
-                                            @foreach (var meta in step.Result.Metadata)
+                                            @if (!meta.ShowInReport)
                                             {
-                                                @if (!meta.ShowInReport)
-                                                {
-                                                    continue;
-                                                }
-                                                @switch (meta)
-                                                {
-                                                    case ResultMetadataException exception:
-                                                        {
-                                                            <div class="@(firstMetadataItem ? "pb-2" : "py-2") text-xs underline">Exception:</div>
-                                                            <pre class="bg-red-100 text-xs p-2 whitespace-pre-wrap overflow-auto max-w-full break-words">@exception.Exception</pre>
-                                                        }
-                                                        break;
-                                                    case ResultMetadataTable table:
-                                                        {
-                                                            <div class="@(firstMetadataItem ? "pb-2" : "py-2") text-xs underline">@table.Name</div>
-                                                            <table class="text-xs border border-gray-400">
-                                                                @if (table.Headers != null && table.Headers.Length > 0)
-                                                                {
-                                                                    <thead>
+                                                continue;
+                                            }
+                                            @switch (meta)
+                                            {
+                                                case ResultMetadataException exception:
+                                                    {
+                                                        <div class="@(firstMetadataItem ? "pb-2" : "py-2") text-xs underline">Exception:</div>
+                                                        <pre class="bg-red-100 text-xs p-2 whitespace-pre-wrap overflow-auto max-w-full break-words">@exception.Exception</pre>
+                                                    }
+                                                    break;
+                                                case ResultMetadataTable table:
+                                                    {
+                                                        <div class="@(firstMetadataItem ? "pb-2" : "py-2") text-xs underline">@table.Name</div>
+                                                        <table class="text-xs border border-gray-400">
+                                                            @if (table.Headers != null && table.Headers.Length > 0)
+                                                            {
+                                                                <thead>
+                                                                    <tr>
+                                                                        @foreach (var h in table.Headers)
+                                                                        {
+                                                                            <th class="px-2 py-1 border-b border-gray-400 text-left font-normal">@h</th>
+                                                                        }
+                                                                    </tr>
+                                                                </thead>
+                                                            }
+                                                            @if (table.Rows != null && table.Rows.Length > 0)
+                                                            {
+                                                                <tbody>
+                                                                    @foreach (var row in table.Rows)
+                                                                    {
                                                                         <tr>
-                                                                            @foreach (var h in table.Headers)
+                                                                            @if (row != null)
                                                                             {
-                                                                                <th class="px-2 py-1 border-b border-gray-400 text-left font-normal">@h</th>
+                                                                                @foreach (var cell in row)
+                                                                                {
+                                                                                    <td class="px-2 py-1 border-b border-gray-300">@cell</td>
+                                                                                }
                                                                             }
                                                                         </tr>
-                                                                    </thead>
-                                                                }
-                                                                @if (table.Rows != null && table.Rows.Length > 0)
-                                                                {
-                                                                    <tbody>
-                                                                        @foreach (var row in table.Rows)
-                                                                        {
-                                                                            <tr>
-                                                                                @if (row != null)
-                                                                                {
-                                                                                    @foreach (var cell in row)
-                                                                                    {
-                                                                                        <td class="px-2 py-1 border-b border-gray-300">@cell</td>
-                                                                                    }
-                                                                                }
-                                                                            </tr>
-                                                                        }
-                                                                    </tbody>
-                                                                }
-                                                            </table>
-                                                        }
-                                                        break;
-                                                    case ResultMetadataXYChart chart:
-                                                        {
-                                                            <div>Chart here</div>
-                                                        }
-                                                        break;
-                                                    default:
-                                                        <em class="text-gray-500">Metadata type not implemented in report generator.</em>
-                                                        break;
-                                                }
-                                                firstMetadataItem = false;
+                                                                    }
+                                                                </tbody>
+                                                            }
+                                                        </table>
+                                                    }
+                                                    break;
+                                                case ResultMetadataXYChart chart:
+                                                    {
+                                                        <div>Chart here</div>
+                                                        includeD3 = true;
+                                                    }
+                                                    break;
+                                                default:
+                                                    <em class="text-gray-500">Metadata type not implemented in report generator.</em>
+                                                    break;
                                             }
+                                            firstMetadataItem = false;
                                         }
-
                                     </div>
                                 </td>
                             </tr>
@@ -139,5 +138,6 @@
         </table>
     </div>
     @Raw(GetStyles(Model))
+    @Raw(GetLibraryD3(includeD3))
 </body>
 </html>

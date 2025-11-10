@@ -99,7 +99,7 @@ public class Step
         }
         stopwatch.Stop();
         Result!.Status = status;
-        Result.Duration = stopwatch.Elapsed;
+        Result!.Duration = stopwatch.Elapsed;
         if (status == Status.Error && exception != null)
         {
             Result!.Metadata!.Add(new ResultMetadataException() { ShowInReport = true, Exception = exception });

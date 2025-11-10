@@ -46,9 +46,3 @@ body {
         content: "Page "counter(page)" of "counter(pages);
     }
 }
-
-/*@media print {
-    #content {
-        padding: 0;
-    }
-}*/

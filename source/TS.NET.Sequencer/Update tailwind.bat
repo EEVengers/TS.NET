@@ -1,1 +1,1 @@
-tailwindcss-windows-x64.exe -o .\report-tailwind.css
+tailwindcss-windows-x64.exe -o .\HTML\report-tailwind.css

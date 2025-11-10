@@ -17,8 +17,8 @@
 
   <ItemGroup>
     <EmbeddedResource Include="HTML\*.cshtml" />
-    <EmbeddedResource Include="report.css" />
-    <EmbeddedResource Include="report-tailwind.css" />
+	<EmbeddedResource Include="HTML\*.js" />
+    <EmbeddedResource Include="HTML\*.css" />
   </ItemGroup>
 
 </Project>

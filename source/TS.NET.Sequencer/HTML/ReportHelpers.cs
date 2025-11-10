@@ -22,33 +22,42 @@ public static class ReportHelpers
         var sb = new StringBuilder();
         sb.AppendLine("<style>");
 
-        using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("TS.NET.Sequencer.report.css"))
+        using var stream1 = Assembly.GetExecutingAssembly().GetManifestResourceStream("TS.NET.Sequencer.HTML.report.css");
+        if (stream1 != null)
         {
-            if (stream != null)
-            {
-                using (var reader = new StreamReader(stream))
-                {
-                    var content = reader.ReadToEnd();
-                    content = content.Replace("[@top-center content]", sequence.Name);
-                    content = content.Replace("[@top-right content]", "Device: TS0019");
-                    content = content.Replace("[@bottom-left content]", sequence.StartTimestamp.ToString("yyyy-MM-dd HH:mm:ss"));
-                    sb.Append(content);
-                }
-            }
+            using var reader = new StreamReader(stream1);
+            var content = reader.ReadToEnd();
+            content = content.Replace("[@top-center content]", sequence.Name);
+            content = content.Replace("[@top-right content]", "Device: TS0019");
+            content = content.Replace("[@bottom-left content]", sequence.StartTimestamp.ToString("yyyy-MM-dd HH:mm:ss"));
+            sb.Append(content);
         }
 
-        using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("TS.NET.Sequencer.report-tailwind.css"))
+        using var stream2 = Assembly.GetExecutingAssembly().GetManifestResourceStream("TS.NET.Sequencer.HTML.report-tailwind.css");
+        if (stream2 != null)
         {
-            if (stream != null)
-            {
-                using (var reader = new StreamReader(stream))
-                {
-                    sb.Append(reader.ReadToEnd());
-                }
-            }
+            using var reader = new StreamReader(stream2);
+            sb.Append(reader.ReadToEnd());
         }
 
         sb.AppendLine("</style>");
+        return sb.ToString();
+    }
+
+    public static string GetLibraryD3(bool include)
+    {
+        var sb = new StringBuilder();
+        if (include)
+        {
+            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("TS.NET.Sequencer.HTML.d3.v7.min.js");
+            if (stream != null)
+            {
+                using var reader = new StreamReader(stream);
+                sb.AppendLine("<script>");
+                sb.Append(reader.ReadToEnd());
+                sb.AppendLine("</script>");
+            }
+        }
         return sb.ToString();
     }
 }
