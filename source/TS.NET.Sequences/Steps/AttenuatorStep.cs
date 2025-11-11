@@ -17,13 +17,13 @@ public class AttenuatorStep : Step
             //var pathConfig = Utility.GetChannelPathConfig(channelIndex, 18);
 
             Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, attenuator: true, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, ThunderscopeBandwidth.Bw20M, variables);
-            Instruments.Instance.SetSdgOffset(channelIndex, 10);
+            Instruments.Instance.SetSdgParameterOffset(channelIndex, 10);
             Thread.Sleep(100);
             var max = Instruments.Instance.GetThunderscopeAverage(channelIndex);
-            Instruments.Instance.SetSdgOffset(channelIndex, -10);
+            Instruments.Instance.SetSdgParameterOffset(channelIndex, -10);
             Thread.Sleep(100);
             var min = Instruments.Instance.GetThunderscopeAverage(channelIndex);
-            Instruments.Instance.SetSdgOffset(channelIndex, 0);
+            Instruments.Instance.SetSdgParameterOffset(channelIndex, 0);
 
             var voltage = ((max - min) / 256.0) * pathCalibration.BufferInputVpp;
             var scale = voltage / 20.0;

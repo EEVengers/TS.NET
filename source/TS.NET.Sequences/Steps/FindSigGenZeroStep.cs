@@ -13,7 +13,7 @@ public class FindSigGenZeroStep : Step
             Instruments.Instance.SetThunderscopeCalManual1M(0, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables);
             Instruments.Instance.SetSdgChannel(channelIndex);
             Instruments.Instance.SetSdgDc(channelIndex);
-            Instruments.Instance.SetSdgOffset(channelIndex, 0.0);
+            Instruments.Instance.SetSdgParameterOffset(channelIndex, 0.0);
             Utility.GetAndCheckSigGenZero(channelIndex, pathConfig, variables, cancellationToken);
             return Status.Done;
         };

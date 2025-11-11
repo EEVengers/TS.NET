@@ -15,7 +15,7 @@ public class BufferInputVppStep : Step
 
             Instruments.Instance.SetSdgChannel(channelIndex);
             Instruments.Instance.SetSdgDc(channelIndex);
-            Instruments.Instance.SetSdgOffset(channelIndex, 0);
+            Instruments.Instance.SetSdgParameterOffset(channelIndex, 0);
 
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pathIndex, variables);
             var pathConfig = Utility.GetChannelPathConfig(channelIndex, pathIndex, variables);

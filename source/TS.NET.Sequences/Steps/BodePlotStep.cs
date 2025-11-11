@@ -17,8 +17,10 @@ public class BodePlotStep : Step
             Instruments.Instance.SetThunderscopeRate(rate);
 
             Instruments.Instance.SetSdgChannel(channelIndex);
-            Instruments.Instance.SetSdgSine(channelIndex, amplitude, 10_000_000);
-            Instruments.Instance.SetSdgOffset(channelIndex, 0);
+            Instruments.Instance.SetSdgSine(channelIndex);
+            Instruments.Instance.SetSdgParameterFrequency(channelIndex, 10_000_000);
+            Instruments.Instance.SetSdgParameterAmplitude(channelIndex, amplitude);
+            Instruments.Instance.SetSdgParameterOffset(channelIndex, 0);
 
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, configIndex, variables);
             //var pathConfig = Utility.GetChannelPathConfig(channelIndex, configIndex, variables);
@@ -29,7 +31,7 @@ public class BodePlotStep : Step
             var frequenciesHz = new List<uint>();
             // Generate frequencies from 1kHz to 10MHz with 100 points per decade
             //double startFrequency = 100;
-            double startFrequency = 10000;
+            uint startFrequency = 10000;
             int decades = 3; // 1kHz -> 10kHz -> 100kHz -> 1MHz -> 10MHz
             int pointsPerDecade = 100;
 
@@ -37,33 +39,24 @@ public class BodePlotStep : Step
             {
                 for (int i = 0; i < pointsPerDecade; i++)
                 {
-                    uint frequency = (uint)(startFrequency * Math.Pow(10, (double)i / pointsPerDecade));
+                    uint frequency = (uint)(startFrequency * Math.Pow(10, d) * Math.Pow(10, (double)i / pointsPerDecade));
                     if (!frequenciesHz.Contains(frequency)) // Avoid duplicates that can occur due to rounding
                     {
                         frequenciesHz.Add(frequency);
                     }
                 }
-                startFrequency *= 10;
             }
-            //if (!frequenciesHz.Contains(10_000_000))
-            //{
-            //    frequenciesHz.Add(10_000_000);
-            //}
-
+            frequenciesHz.Add((uint)(startFrequency * Math.Pow(10, decades)));
+      
             var bodePoints = new Dictionary<uint, double>();
 
-            Instruments.Instance.SetSdgSine(channelIndex, amplitude, 10_000_000);
-            //var signalAt1MHz = Instruments.Instance.GetThunderscopeVppAtFrequency(channelIndex, 1_000_000, rate, pathCalibration.BufferInputVpp, resolution);
-            //var signalAt1MHz = Instruments.Instance.GetThunderscopePopulationStdDev(channelIndex);
-            var signalAtRef = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(channelIndex, 10_000_000, rate, pathCalibration.BufferInputVpp, resolution);
+            Instruments.Instance.SetSdgParameterFrequency(channelIndex, startFrequency);
+            var signalAtRef = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(channelIndex, startFrequency, rate, pathCalibration.BufferInputVpp, resolution);
 
             foreach (var frequencyHz in frequenciesHz)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                Instruments.Instance.SetSdgFrequency(channelIndex, frequencyHz);
-                Thread.Sleep(100);
-                //var signalAtFrequency = Instruments.Instance.GetThunderscopeVppAtFrequency(channelIndex, frequencyHz, rate, pathCalibration.BufferInputVpp, resolution);
-                //var signalAtFrequency = Instruments.Instance.GetThunderscopePopulationStdDev(channelIndex);
+                Instruments.Instance.SetSdgParameterFrequency(channelIndex, frequencyHz);
                 var signalAtFrequency = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(channelIndex, frequencyHz, rate, pathCalibration.BufferInputVpp, resolution);
 
                 // Normalise relative to the reference measurement
@@ -81,7 +74,7 @@ public class BodePlotStep : Step
                 new ResultMetadataXYChart()
                 {
                     ShowInReport = true,
-                    Title = "Gain vs. frequency, normalised to 1 MHz",
+                    Title = $"Gain vs. frequency, normalised to {startFrequency}",
                     XAxisTitle = "Frequency (Hz)",
                     YAxisTitle = "Gain (dB)",
                     XScaleType = XYChartScaleType.Log10,

@@ -674,60 +674,16 @@ public class Instruments
         }
     }
 
-    public void SetSdgOffset(int channelIndex, double voltage)
-    {
-        GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
-        sigGen.WriteLine($"{sdgChannel}:BSWV OFST, {voltage:F4}");
-
-        // Querying ensures command is executed
-        sigGen.WriteLine($"{sdgChannel}:BSWV?");
-        var response = sigGen.ReadLine();
-
-        // Parse OFST value from response
-        const string key = "OFST,";
-        var idx = response.IndexOf(key, StringComparison.OrdinalIgnoreCase);
-        if (idx < 0)
-            throw new TestbenchException($"Response does not contain an OFST field: '{response}'");
-
-        idx += key.Length;
-        var endIdx = response.IndexOf(',', idx);
-        if (endIdx < 0)
-            endIdx = response.Length;
-
-        var valueText = response.Substring(idx, endIdx - idx).Trim();
-
-        // Remove trailing 'V' if present
-        if (valueText.EndsWith("V", StringComparison.OrdinalIgnoreCase))
-            valueText = valueText[..^1];
-
-        if (!double.TryParse(valueText, System.Globalization.NumberStyles.Float,
-                             System.Globalization.CultureInfo.InvariantCulture,
-                             out var ofstValue))
-        {
-            throw new TestbenchException($"Failed to parse OFST value from '{valueText}' (response: '{response}')");
-        }
-
-        // Compare within tolerance
-        const double tolerance = 1e-4;
-        if (Math.Abs(ofstValue - voltage) > tolerance)
-        {
-            throw new TestbenchException($"Offset verification failed. Expected {voltage:F4} V, but device reports {ofstValue:F4} V.");
-        }
-    }
-
     public void SetSdgDc(int channelIndex)
     {
         GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
         sigGen.WriteLine($"{sdgChannel}:BSWV WVTP, DC"); Thread.Sleep(50);
     }
 
-    public void SetSdgSine(int channelIndex, double vpp, uint freqHz)
+    public void SetSdgSine(int channelIndex)
     {
         GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
         sigGen.WriteLine($"{sdgChannel}:BSWV WVTP, SINE"); Thread.Sleep(50);
-        sigGen.WriteLine($"{sdgChannel}:BSWV FRQ, {freqHz}"); Thread.Sleep(50);
-        sigGen.WriteLine($"{sdgChannel}:BSWV AMP, {vpp}"); Thread.Sleep(50);
-        sigGen.WriteLine($"{sdgChannel}:BSWV OFST, 0"); Thread.Sleep(50);
     }
 
     public void SetSdgNoise(int channelIndex, double stdev, double mean)
@@ -738,10 +694,90 @@ public class Instruments
         sigGen.WriteLine($"{sdgChannel}:BSWV MEAN, {mean}"); Thread.Sleep(50);
     }
 
-    public void SetSdgFrequency(int channelIndex, uint frequencyHz)
+    public void SetSdgParameterFrequency(int channelIndex, uint frequencyHz)
     {
         GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
-        sigGen.WriteLine($"{sdgChannel}:BSWV FRQ, {frequencyHz}"); Thread.Sleep(50);
+        sigGen.WriteLine($"{sdgChannel}:BSWV FRQ, {frequencyHz}");
+
+        var valueText = GetSdgParameter(sigGen, sdgChannel, "FRQ,");
+        // Remove trailing 'V' if present
+        if (valueText.EndsWith("HZ", StringComparison.OrdinalIgnoreCase))
+            valueText = valueText[..^2];
+
+        if (!double.TryParse(valueText, System.Globalization.NumberStyles.Float,
+                             System.Globalization.CultureInfo.InvariantCulture,
+                             out var freqValue))
+        {
+            throw new TestbenchException($"Failed to parse OFST value from '{valueText}'s");
+        }
+
+        // Compare within tolerance
+        const double tolerance = 1e-4;
+        if (Math.Abs(freqValue - frequencyHz) > tolerance)
+        {
+            throw new TestbenchException($"Offset verification failed. Expected {frequencyHz:F4} V, but device reports {freqValue:F4} V.");
+        }
+    }
+
+    public void SetSdgParameterAmplitude(int channelIndex, double amplitudeVpp)
+    {
+        GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
+        sigGen.WriteLine($"{sdgChannel}:BSWV AMP, {amplitudeVpp}"); Thread.Sleep(50);
+    }
+
+    public void SetSdgParameterOffset(int channelIndex, double voltage)
+    {
+        GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
+        sigGen.WriteLine($"{sdgChannel}:BSWV OFST, {voltage:F4}");
+
+        var valueText = GetSdgParameter(sigGen, sdgChannel, "OFST,");
+        // Remove trailing 'V' if present
+        if (valueText.EndsWith("V", StringComparison.OrdinalIgnoreCase))
+            valueText = valueText[..^1];
+
+        if (!double.TryParse(valueText, System.Globalization.NumberStyles.Float,
+                             System.Globalization.CultureInfo.InvariantCulture,
+                             out var ofstValue))
+        {
+            throw new TestbenchException($"Failed to parse OFST value from '{valueText}'s");
+        }
+
+        // Compare within tolerance
+        const double tolerance = 1e-4;
+        if (Math.Abs(ofstValue - voltage) > tolerance)
+        {
+            throw new TestbenchException($"Offset verification failed. Expected {voltage:F4} V, but device reports {ofstValue:F4} V.");
+        }
+    }
+
+    private string GetSdgParameter(TcpScpiConnection sigGen, string sdgChannel, string key)
+    {
+        sigGen.WriteLine($"{sdgChannel}:BSWV?");
+        var response = sigGen.ReadLine();
+
+        // Parse value from response
+        var idx = response.IndexOf(key, StringComparison.OrdinalIgnoreCase);
+        if (idx < 0)
+            throw new TestbenchException($"Response does not contain an {key} field: '{response}'");
+
+        idx += key.Length;
+        var endIdx = response.IndexOf(',', idx);
+        if (endIdx < 0)
+            endIdx = response.Length;
+
+        var valueText = response.Substring(idx, endIdx - idx).Trim();
+        return valueText;
+    }
+
+    public void SetSdgBodeSetup(int channelIndex)
+    {
+        if(channelIndex != 0)
+            throw new NotImplementedException();
+        sigGen1!.WriteLine("C1:BSWV WVTP, SINE"); Thread.Sleep(50);
+        sigGen1!.WriteLine("C1:BSWV FRQ, 1000"); Thread.Sleep(50);
+        sigGen1!.WriteLine("C1:BSWV AMP, 0.8"); Thread.Sleep(50);
+        sigGen1!.WriteLine("C1:BSWV OFST, 0"); Thread.Sleep(50);
+
     }
 
     private void GetSdgReference(int channelIndex, out TcpScpiConnection sigGen, out string sdgChannel)

@@ -14,7 +14,7 @@ public class PgaLoadSetupStep : Step
 
             Instruments.Instance.SetSdgChannel(channelIndex);
             Instruments.Instance.SetSdgDc(channelIndex);
-            Instruments.Instance.SetSdgOffset(channelIndex, 0);
+            Instruments.Instance.SetSdgParameterOffset(channelIndex, 0);
             cancellationToken.WaitHandle.WaitOne(1000);
 
             var configIndex = 21;
