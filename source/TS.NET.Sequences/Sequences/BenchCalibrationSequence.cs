@@ -25,6 +25,8 @@ public class BenchCalibrationSequence : Sequence
             new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file", Variables),
             new WarmupStep("Warmup device", Variables) { Skip = false, AllowSkip = true },
 
+            new AdcBranchGainsStep("Channel 1 - ADC branch gains", 0, 1_000_000_000, Variables),
+            
             new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L0", 0, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L1", 0, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 1 - measure trim offset DAC scale - HG L2", 0, 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
@@ -72,8 +74,6 @@ public class BenchCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 1 - find trim offset DAC zero - LG L10", 0, 21, Variables),
 
             new FindSigGenZeroStep("Channel 1 - find signal generator zero", 0, Variables),
-
-            new AdcBranchGainsStep("Channel 1 - ADC branch gains", 0, 1_000_000_000, Variables),
 
             new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L0", 0, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new BufferInputVppStep("Channel 1 - measure buffer input Vpp - HG L1", 0, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },

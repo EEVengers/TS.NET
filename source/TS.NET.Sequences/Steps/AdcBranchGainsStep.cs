@@ -99,8 +99,8 @@ public class AdcBranchGainsStep : Step
                 ]
             });
 
-            Instruments.Instance.SetThunderscopeAdcCalibration([0, 0, 0, 0, 0, 0, 0, 0]);
-
+            //Instruments.Instance.SetThunderscopeAdcCalibration([0, 0, 0, 0, 0, 0, 0, 0]);
+            Instruments.Instance.SetSdgChannel(-1);
             Logger.Instance.Log(LogLevel.Information, Index, Status.Done);
             //Instruments.Instance.SetSdgDc(channelIndex);
             return Status.Done;
