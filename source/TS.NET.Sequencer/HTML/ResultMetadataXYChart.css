@@ -16,3 +16,7 @@ tbody {
     break-inside: avoid;
     page-break-inside: avoid;
 }
+
+.tick > text {
+    font-family: "Nunito";
+}
