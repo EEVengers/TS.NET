@@ -11,7 +11,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width =device-width, initial-scale=1.0">
-    <title>@($"Report - {Model.Name} - {Model.StartTimestamp:yyyy-MM-dd HHmmss}")</title>
+    <title>@($"{Model.Name} - {Model.StartTimestamp:yyyy-MM-dd HHmmss}")</title>
 </head>
 <body class="bg-gray-200 py-4 print:p-0 print:bg-white">
     <div class="max-w-4xl mx-auto bg-white px-10 py-15 print:p-0">
@@ -118,7 +118,16 @@
                                                     break;
                                                 case ResultMetadataXYChart chart:
                                                     {
-                                                        <div>Chart here</div>
+                                                        <svg id="chart-@(step.Index)" width="700" height="400"></svg>
+                                                        <script>
+                                                            document.addEventListener("DOMContentLoaded", function() {
+                                                                new ResultMetadataXYChart("chart-@(step.Index)", {
+                                                                    width: 700,
+                                                                    height: 400,
+                                                                    margin: { top: 40, right: 20, bottom: 60, left: 80}
+                                                                }).render(@Raw(chart.ToJson()));
+                                                            });
+                                                        </script>
                                                         includeD3 = true;
                                                     }
                                                     break;

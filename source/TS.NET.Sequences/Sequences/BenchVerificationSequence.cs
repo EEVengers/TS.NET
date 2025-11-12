@@ -25,11 +25,17 @@ public class BenchVerificationSequence : Sequence
             new LoadUserCalFromDeviceStep("Load calibration from device", Variables),
             new WarmupStep("Warmup device", Variables) { Skip = false, AllowSkip = true },
 
-            new BodePlotStep("Channel 1 - 50R, attenuator off", 0, 21, 0.8 * 2, false, Variables),
-            new BodePlotStep("Channel 1 - 50R, attenuator on", 0, 18, 10 * 2, true, Variables),
-            //new BodePlotStep("Channel 2 - 50R", 1, 21, 1.6, false, Variables),
-            //new BodePlotStep("Channel 3 - 50R", 2, 21, 1.6, false, Variables),
-            //new BodePlotStep("Channel 4 - 50R", 3, 21, 1.6, false, Variables),
+            new BodePlotStep("Channel 1 - 1 GSPS, 50R, 0.8 Vpp, attenuator off, LG L10", channelIndex: 0, preamp: PgaPreampGain.Low, ladder: 10, 0.8 * 2, false, Variables),
+            new BodePlotStep("Channel 1 - 1 GSPS, 50R, 10 Vpp, attenuator on, LG L7", channelIndex: 0, preamp: PgaPreampGain.Low, ladder: 7, 10 * 2, true, Variables),
+                     
+            new BodePlotStep("Channel 2 - 1 GSPS, 50R, 0.8 Vpp, attenuator off, LG L10", channelIndex: 1, preamp: PgaPreampGain.Low, ladder: 10, 0.8 * 2, false, Variables),
+            new BodePlotStep("Channel 2 - 1 GSPS, 50R, 10 Vpp, attenuator on, LG L7", channelIndex: 1, preamp: PgaPreampGain.Low, ladder: 7, 10 * 2, true, Variables),
+            
+            new BodePlotStep("Channel 3 - 1 GSPS, 50R, 0.8 Vpp, attenuator off, LG L10", channelIndex: 2, preamp: PgaPreampGain.Low, ladder: 10, 0.8 * 2, false, Variables),
+            new BodePlotStep("Channel 3 - 1 GSPS, 50R, 10 Vpp, attenuator on, LG L7", channelIndex: 2, preamp: PgaPreampGain.Low, ladder: 7, 10 * 2, true, Variables),
+            
+            new BodePlotStep("Channel 4 - 1 GSPS, 50R, 0.8 Vpp, attenuator off, LG L10", channelIndex: 3, preamp: PgaPreampGain.Low, ladder: 10, 0.8 * 2, false, Variables),
+            new BodePlotStep("Channel 4 - 1 GSPS, 50R, 10 Vpp, attenuator on, LG L7", channelIndex: 3, preamp: PgaPreampGain.Low, ladder: 7, 10 * 2, true, Variables),
 
             new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
 

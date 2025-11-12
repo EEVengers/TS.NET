@@ -320,6 +320,11 @@ public class Instruments
         });
     }
 
+    public double GetThunderscopeFpgaTemp()
+    {
+        return thunderScope!.GetStatus().FpgaTemp;
+    }
+
     public double GetThunderscopeAverage(int channelIndex)
     {
         var config = thunderScope!.GetConfiguration();

@@ -4,7 +4,7 @@ namespace TS.NET.Sequences;
 
 public class BodePlotStep : Step
 {
-    public BodePlotStep(string name, int channelIndex, int configIndex, double amplitude, bool attenuator, CommonVariables variables) : base(name)
+    public BodePlotStep(string name, int channelIndex, PgaPreampGain preamp, int ladder, double amplitude, bool attenuator, CommonVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {
@@ -16,24 +16,25 @@ public class BodePlotStep : Step
             Instruments.Instance.SetThunderscopeResolution(resolution);
             Instruments.Instance.SetThunderscopeRate(rate);
 
+            //Instruments.Instance.SetSdgBodeSetup(channelIndex, 100);
+            //Instruments.Instance.SetSdgBodeSetup(channelIndex, 200);
+            //Instruments.Instance.SetSdgBodeSetup(channelIndex, 400);
+
             Instruments.Instance.SetSdgChannel(channelIndex);
             Instruments.Instance.SetSdgSine(channelIndex);
             Instruments.Instance.SetSdgParameterFrequency(channelIndex, 10_000_000);
             Instruments.Instance.SetSdgParameterAmplitude(channelIndex, amplitude);
             Instruments.Instance.SetSdgParameterOffset(channelIndex, 0);
 
-            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, configIndex, variables);
-            //var pathConfig = Utility.GetChannelPathConfig(channelIndex, configIndex, variables);
+            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, preamp, ladder, variables);
             Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, attenuator: attenuator, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, ThunderscopeBandwidth.BwFull, variables);
 
             //var zeroValue = Utility.GetAndCheckSigGenZero(channelIndex, pathConfig, variables, cancellationToken);
 
             var frequenciesHz = new List<uint>();
-            // Generate frequencies from 1kHz to 10MHz with 100 points per decade
-            //double startFrequency = 100;
-            uint startFrequency = 10000;
-            int decades = 3; // 1kHz -> 10kHz -> 100kHz -> 1MHz -> 10MHz
-            int pointsPerDecade = 100;
+            uint startFrequency = 1000;
+            int decades = 4; // 1kHz -> 10kHz -> 100kHz -> 1MHz -> 10MHz
+            int pointsPerDecade = 50;
 
             for (int d = 0; d < decades; d++)
             {
@@ -63,28 +64,37 @@ public class BodePlotStep : Step
                 double normalised = signalAtFrequency / signalAtRef;
                 bodePoints[frequencyHz] = normalised;
 
-                Logger.Instance.Log(LogLevel.Information, Index, Status.Running, $"Ch{channelIndex + 1}, Cfg {configIndex}: Freq={frequencyHz / 1e6:F3}MHz, Scale={normalised:F4}");
+                Logger.Instance.Log(LogLevel.Information, Index, Status.Running, $"Ch{channelIndex + 1}, frequency: {frequencyHz / 1e6:F3} MHz, scale: {normalised:F4}");
             }
 
             var csv = bodePoints.Select(p => $"{p.Key},{p.Value:F4},{20.0 * Math.Log10(p.Value):F4}");
             var csvString = "Frequency,Scale,dB\n" + string.Join("\n", csv);
-            File.WriteAllText($"config {configIndex} - {amplitude} Vpp - attenuator {attenuator}.csv", csvString);
+            File.WriteAllText($"{amplitude} Vpp - attenuator {attenuator}.csv", csvString);
 
             var metadata =
                 new ResultMetadataXYChart()
                 {
                     ShowInReport = true,
-                    Title = $"Gain vs. frequency, normalised to {startFrequency}",
-                    XAxisTitle = "Frequency (Hz)",
-                    YAxisTitle = "Gain (dB)",
-                    XScaleType = XYChartScaleType.Log10,
-                    YScaleType = XYChartScaleType.Linear,
-                    X = bodePoints.Select(p => (double)p.Key).ToArray(),
-                    Y = bodePoints.Select(p => p.Value).ToArray(),
+                    Title = $"Overall gain vs. frequency",
+                    XAxis = new ResultMetadataXYChartAxis{ Label = "Frequency (Hz)", Scale = XYChartScaleType.Log10 },
+                    YAxis = new ResultMetadataXYChartAxis{ Label = "Gain (dB)", Scale = XYChartScaleType.Linear, AdditionalRangeValues = [-0.5, 0.5] },
+                    Series = new ResultMetadataXYChartSeries[]
+                    {
+                        new ResultMetadataXYChartSeries
+                        {
+                            Name = this.Name,
+                            ColourHex = "#1f77b4",
+                            Data = bodePoints.Select(p => new ResultMetadataXYChartDataPoint
+                            {
+                                X = (double)p.Key,
+                                Y = 20.0 * Math.Log10(p.Value)
+                            }).ToArray()
+                        }
+                    }
                 };
             Result!.Metadata!.Add(metadata);
 
-            Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Bode plot measurement complete for Ch{channelIndex + 1}, Cfg {configIndex}.");
+            Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Bode plot measurement complete for Ch{channelIndex + 1}.");
             return Status.Done;
         };
     }

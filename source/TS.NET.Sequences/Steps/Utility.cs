@@ -15,6 +15,19 @@ public static class Utility
         return calibration.Paths[pathIndex];
     }
 
+    public static ThunderscopeChannelPathCalibration GetChannelPathCalibration(int channelIndex, PgaPreampGain preamp, int ladder, CommonVariables variables)
+    {
+        var calibration = channelIndex switch
+        {
+            0 => variables.Calibration.Channel1,
+            1 => variables.Calibration.Channel2,
+            2 => variables.Calibration.Channel3,
+            3 => variables.Calibration.Channel4,
+            _ => throw new NotImplementedException()
+        };
+        return calibration.Paths.Where(p => p.PgaPreampGain == preamp && p.PgaLadderAttenuator == ladder).First();
+    }
+
     public static ChannelPathConfig GetChannelPathConfig(int channelIndex, int pathIndex, CalibrationVariables variables)
     {
         var pathConfigs = channelIndex switch

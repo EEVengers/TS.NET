@@ -49,11 +49,29 @@ public static class ReportHelpers
         var sb = new StringBuilder();
         if (include)
         {
-            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("TS.NET.Sequencer.HTML.d3.v7.min.js");
-            if (stream != null)
+            using var stream1 = Assembly.GetExecutingAssembly().GetManifestResourceStream("TS.NET.Sequencer.HTML.ResultMetadataXYChart.css");
+            if (stream1 != null)
             {
-                using var reader = new StreamReader(stream);
+                sb.AppendLine("<style>");
+                using var reader = new StreamReader(stream1);
+                sb.Append(reader.ReadToEnd());
+                sb.AppendLine("</style>");
+            }
+
+            using var stream2 = Assembly.GetExecutingAssembly().GetManifestResourceStream("TS.NET.Sequencer.HTML.d3.v7.min.js");
+            if (stream2 != null)
+            {
+                using var reader = new StreamReader(stream2);
                 sb.AppendLine("<script>");
+                sb.Append(reader.ReadToEnd());
+                sb.AppendLine("</script>");
+            }
+
+            using var stream3 = Assembly.GetExecutingAssembly().GetManifestResourceStream("TS.NET.Sequencer.HTML.ResultMetadataXYChart.js");
+            if (stream3 != null)
+            {
+                sb.AppendLine("<script>");
+                using var reader = new StreamReader(stream3);
                 sb.Append(reader.ReadToEnd());
                 sb.AppendLine("</script>");
             }

@@ -112,8 +112,7 @@ class Program
                                 var benchVerificationVariables = new BenchVerificationVariables
                                 {
                                     SigGen1Host = variablesFile.SigGen1Ip,
-                                    SigGen2Host = variablesFile.SigGen2Ip,
-                                    WarmupTimeSec = 30
+                                    SigGen2Host = variablesFile.SigGen2Ip
                                 };
                                 var benchVerificationSequence = new BenchVerificationSequence(uiDialog, benchVerificationVariables);
                                 variables = benchVerificationVariables;
