@@ -14,7 +14,7 @@
     <title>@($"{Model.Name} - {Model.StartTimestamp:yyyy-MM-dd HHmmss}")</title>
 </head>
 <body class="bg-gray-200 py-4 print:p-0 print:bg-white">
-    <div class="max-w-4xl mx-auto bg-white px-10 py-15 print:p-0">
+    <div class="max-w-[52rem] mx-auto bg-white px-10 py-15 print:p-0">
         <h1 class="text-4xl text-black p-2 mb-4 text-center bg-gray-200 border-2 border-gray-900">@Model.Name</h1>
         <h1 class="text-4xl @StatusTextColour(Model.Status) p-2 mb-8 text-center bg-gray-200 border-2 border-gray-900">@Model.Status</h1>
 
@@ -43,25 +43,24 @@
                     <th class="p-1 pr-2 text-left font-normal">Status</th>
                 </tr>
             </thead>
-            <tbody class="text-black text-sm ">
-
-                @if (Model.Steps != null)
+            @if (Model.Steps != null)
+            {
+                @foreach (var step in Model.Steps)
                 {
-                    @foreach (var step in Model.Steps)
+                    var hasMetadata = step.Result?.Metadata != null && step.Result.Metadata.Count > 0;
+
+                    @if (hasMetadata)
                     {
-                        var hasMetadata = step.Result?.Metadata != null && step.Result.Metadata.Count > 0;
+                        bool firstMetadataItem = true;
 
-                        <tr class="@(hasMetadata ? "" : "border-b border-gray-300")">
-                            <td class="p-1 pl-2 text-left whitespace-nowrap">@step.Index</td>
-                            <td class="p-1 pl-2 text-left">@step.Name</td>
-                            <td class="p-1 text-left">@HumanDuration(step.Result?.Duration)</td>
-                            <td class="p-1 text-left">@(step.Result?.Summary ?? "-")</td>
-                            <td class="p-1 pr-2 text-left @StatusTextColour(step.Result?.Status)">@(step.Result?.Status.ToString() ?? "-")</td>
-                        </tr>
-
-                        @if (hasMetadata)
-                        {
-                            bool firstMetadataItem = true;
+                        <tbody class="text-black text-sm">
+                            <tr class="@(hasMetadata ? "" : "border-b border-gray-300")">
+                                <td class="p-1 pl-2 text-left whitespace-nowrap">@step.Index</td>
+                                <td class="p-1 pl-2 text-left">@step.Name</td>
+                                <td class="p-1 text-left">@HumanDuration(step.Result?.Duration)</td>
+                                <td class="p-1 text-left">@(step.Result?.Summary ?? "-")</td>
+                                <td class="p-1 pr-2 text-left @StatusTextColour(step.Result?.Status)">@(step.Result?.Status.ToString() ?? "-")</td>
+                            </tr>
 
                             <tr class="border-b border-gray-300">
                                 <td class="p-2 bg-gray-100"></td>
@@ -140,10 +139,22 @@
                                     </div>
                                 </td>
                             </tr>
-                        }
+                        </tbody>
+                    }
+                    else
+                    {
+                        <tbody class="text-black text-sm">
+                            <tr class="@(hasMetadata ? "" : "border-b border-gray-300")">
+                                <td class="p-1 pl-2 text-left whitespace-nowrap">@step.Index</td>
+                                <td class="p-1 pl-2 text-left">@step.Name</td>
+                                <td class="p-1 text-left">@HumanDuration(step.Result?.Duration)</td>
+                                <td class="p-1 text-left">@(step.Result?.Summary ?? "-")</td>
+                                <td class="p-1 pr-2 text-left @StatusTextColour(step.Result?.Status)">@(step.Result?.Status.ToString() ?? "-")</td>
+                            </tr>
+                        </tbody>
                     }
                 }
-            </tbody>
+            }
         </table>
     </div>
     @Raw(GetStyles(Model))

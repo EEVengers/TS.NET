@@ -50,7 +50,8 @@ public class WarmupStep : Step
                 YAxis = new ResultMetadataXYChartAxis()
                 {
                     Label = "Temperature (°C)",
-                    Scale = XYChartScaleType.Linear
+                    Scale = XYChartScaleType.Linear,
+                    AdditionalRangeValues = [30.0, 80.0]
                 },
                 Series =
                 [

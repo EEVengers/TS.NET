@@ -339,7 +339,7 @@ class ResultMetadataXYChart {
                 .attr('x', 6 + legendLineLength + 6)
                 .attr('y', yOffset)
                 .attr('alignment-baseline', 'central')
-                .attr('class', 'text-sm')
+                .attr('class', 'text-xs')
                 .text(series.name);
 
             const textElement = legendText.node();

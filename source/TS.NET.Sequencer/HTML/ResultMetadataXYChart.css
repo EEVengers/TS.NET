@@ -2,3 +2,17 @@ svg {
     font-family: "Nunito";
     color: #000;
 }
+
+thead {
+    display: table-header-group;
+}
+
+tbody {
+    display: table-row-group;
+}
+
+tr,
+tbody {
+    break-inside: avoid;
+    page-break-inside: avoid;
+}

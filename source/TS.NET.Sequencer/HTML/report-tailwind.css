@@ -219,11 +219,14 @@
   .flex {
     display: flex;
   }
+  .grid {
+    display: grid;
+  }
   .table {
     display: table;
   }
-  .max-w-4xl {
-    max-width: var(--container-4xl);
+  .max-w-\[52rem\] {
+    max-width: 52rem;
   }
   .max-w-full {
     max-width: 100%;
