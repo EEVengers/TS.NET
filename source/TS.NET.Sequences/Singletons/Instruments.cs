@@ -115,20 +115,18 @@ public class Instruments
             throw new ApplicationException("Incorrect response from *IDN?");
 
         sigGen1.WriteLine("C2:OUTP OFF"); SdgWaitForCompletion(sigGen1);
-        sigGen1.WriteLine("C2:OUTP LOAD, HZ");
-        sigGen1.WriteLine("C2:OUTP PLRT, NOR");
-        sigGen1.WriteLine("C2:BSWV WVTP, DC");
-        sigGen1.WriteLine("C2:BSWV OFST, 0");
-        sigGen1.WriteLine("C2:BSWV AMP, 0");
-        SdgWaitForCompletion(sigGen1);      // Need to wait for completion because next command switches the UI channel page
+        sigGen1.WriteLine("C2:OUTP LOAD, HZ"); SdgWaitForCompletion(sigGen1);
+        sigGen1.WriteLine("C2:OUTP PLRT, NOR"); SdgWaitForCompletion(sigGen1);
+        sigGen1.WriteLine("C2:BSWV WVTP, DC"); SdgWaitForCompletion(sigGen1);
+        sigGen1.WriteLine("C2:BSWV OFST, 0"); SdgWaitForCompletion(sigGen1);
+        sigGen1.WriteLine("C2:BSWV AMP, 0"); SdgWaitForCompletion(sigGen1);
 
         sigGen1.WriteLine("C1:OUTP OFF"); SdgWaitForCompletion(sigGen1);
-        sigGen1.WriteLine("C1:OUTP LOAD, HZ");
-        sigGen1.WriteLine("C1:OUTP PLRT, NOR");
-        sigGen1.WriteLine("C1:BSWV WVTP, DC");
-        sigGen1.WriteLine("C1:BSWV OFST, 0");
-        sigGen1.WriteLine("C1:BSWV AMP, 0");
-        SdgWaitForCompletion(sigGen1);
+        sigGen1.WriteLine("C1:OUTP LOAD, HZ"); SdgWaitForCompletion(sigGen1);
+        sigGen1.WriteLine("C1:OUTP PLRT, NOR"); SdgWaitForCompletion(sigGen1);
+        sigGen1.WriteLine("C1:BSWV WVTP, DC"); SdgWaitForCompletion(sigGen1);
+        sigGen1.WriteLine("C1:BSWV OFST, 0"); SdgWaitForCompletion(sigGen1);
+        sigGen1.WriteLine("C1:BSWV AMP, 0"); SdgWaitForCompletion(sigGen1);
 
         sigGen2 = new TcpScpiConnection();
         sigGen2.Open(sigGen2Host, 5025);
@@ -140,20 +138,18 @@ public class Instruments
             throw new ApplicationException("Incorrect response from *IDN?");
 
         sigGen2.WriteLine("C2:OUTP OFF"); SdgWaitForCompletion(sigGen2);
-        sigGen2.WriteLine("C2:OUTP LOAD, HZ");
-        sigGen2.WriteLine("C2:OUTP PLRT, NOR");
-        sigGen2.WriteLine("C2:BSWV WVTP, DC");
-        sigGen2.WriteLine("C2:BSWV OFST, 0");
-        sigGen2.WriteLine("C2:BSWV AMP, 0");
-        SdgWaitForCompletion(sigGen2);      // Need to wait for completion because next command switches the UI channel page
+        sigGen2.WriteLine("C2:OUTP LOAD, HZ"); SdgWaitForCompletion(sigGen2);
+        sigGen2.WriteLine("C2:OUTP PLRT, NOR"); SdgWaitForCompletion(sigGen2);
+        sigGen2.WriteLine("C2:BSWV WVTP, DC"); SdgWaitForCompletion(sigGen1);
+        sigGen2.WriteLine("C2:BSWV OFST, 0"); SdgWaitForCompletion(sigGen2);
+        sigGen2.WriteLine("C2:BSWV AMP, 0"); SdgWaitForCompletion(sigGen2);
 
         sigGen2.WriteLine("C1:OUTP OFF"); SdgWaitForCompletion(sigGen2);
-        sigGen2.WriteLine("C1:OUTP LOAD, HZ");
-        sigGen2.WriteLine("C1:OUTP PLRT, NOR");
-        sigGen2.WriteLine("C1:BSWV WVTP, DC");
-        sigGen2.WriteLine("C1:BSWV OFST, 0");
-        sigGen2.WriteLine("C1:BSWV AMP, 0");
-        SdgWaitForCompletion(sigGen2);
+        sigGen2.WriteLine("C1:OUTP LOAD, HZ"); SdgWaitForCompletion(sigGen2);
+        sigGen2.WriteLine("C1:OUTP PLRT, NOR"); SdgWaitForCompletion(sigGen2);
+        sigGen2.WriteLine("C1:BSWV WVTP, DC"); SdgWaitForCompletion(sigGen1);
+        sigGen2.WriteLine("C1:BSWV OFST, 0"); SdgWaitForCompletion(sigGen2);
+        sigGen2.WriteLine("C1:BSWV AMP, 0"); SdgWaitForCompletion(sigGen2);
 
         cachedSigGenIndex = -1;
     }
@@ -651,32 +647,32 @@ public class Instruments
             switch (channelIndex)
             {
                 case -1:
-                    sigGen1?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
                     sigGen1?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
-                    sigGen2?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
+                    sigGen1?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
                     sigGen2?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
+                    sigGen2?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
                     break;
                 case 0:
-                    sigGen1?.WriteLine($"C1:OUTP ON"); SdgWaitForCompletion(sigGen1!);
                     sigGen1?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
-                    sigGen2?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
+                    sigGen1?.WriteLine($"C1:OUTP ON"); SdgWaitForCompletion(sigGen1!);
                     sigGen2?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
+                    sigGen2?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
                     break;
                 case 1:
                     sigGen1?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
                     sigGen1?.WriteLine($"C2:OUTP ON"); SdgWaitForCompletion(sigGen1!);
-                    sigGen2?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
                     sigGen2?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
+                    sigGen2?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
                     break;
                 case 2:
-                    sigGen1?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
                     sigGen1?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
-                    sigGen2?.WriteLine($"C1:OUTP ON"); SdgWaitForCompletion(sigGen2!);
+                    sigGen1?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
                     sigGen2?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
+                    sigGen2?.WriteLine($"C1:OUTP ON"); SdgWaitForCompletion(sigGen2!);
                     break;
-                case 3:
-                    sigGen1?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
+                case 3:                    
                     sigGen1?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
+                    sigGen1?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
                     sigGen2?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
                     sigGen2?.WriteLine($"C2:OUTP ON"); SdgWaitForCompletion(sigGen2!);                    
                     break;
@@ -789,7 +785,7 @@ public class Instruments
         sigGen1?.WriteLine($"C1:OUTP ON");
         SdgWaitForCompletion(sigGen1!);     // Need to wait for completion because next command switches the UI channel page
         sigGen1?.WriteLine($"C2:OUTP ON");
-        
+
         sigGen2?.WriteLine($"C1:OUTP OFF");
         SdgWaitForCompletion(sigGen2!);     // Need to wait for completion because next command switches the UI channel page
         sigGen2?.WriteLine($"C2:OUTP OFF");
