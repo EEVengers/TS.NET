@@ -2,7 +2,7 @@
 
 public class CommonVariables
 {
-    public int WarmupTimeSec { get; set; } = 20 * 60;
+    public int WarmupTimeSec { get; set; } = 40 * 60;
     public int FrontEndSettlingTimeMs { get; set; } = 100;
     public ThunderscopeCalibrationSettings Calibration { get; set; } = new();
 }
