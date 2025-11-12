@@ -299,7 +299,6 @@ class ResultMetadataXYChart {
                 .attr('x', margin.left + (this.options.width - margin.left - margin.right) / 2)
                 .attr('y', margin.top / 2 + 8)
                 .style('text-anchor', 'middle')
-                .style('text-decoration', 'underline')
                 .text(this.chartData.title);
         }
     }
