@@ -114,19 +114,21 @@ public class Instruments
         if (!sigGen1Idn.StartsWith("Siglent Technologies,SDG2", StringComparison.OrdinalIgnoreCase))
             throw new ApplicationException("Incorrect response from *IDN?");
 
-        sigGen1.WriteLine("C1:OUTP OFF"); Thread.Sleep(50);
-        sigGen1.WriteLine("C1:OUTP LOAD, HZ"); Thread.Sleep(50);
-        sigGen1.WriteLine("C1:OUTP PLRT, NOR"); Thread.Sleep(50);
-        sigGen1.WriteLine("C1:BSWV WVTP, DC"); Thread.Sleep(50);
-        sigGen1.WriteLine("C1:BSWV OFST, 0"); Thread.Sleep(50);
-        sigGen1.WriteLine("C1:BSWV AMP, 0"); Thread.Sleep(50);
+        sigGen1.WriteLine("C2:OUTP OFF"); SdgWaitForCompletion(sigGen1);
+        sigGen1.WriteLine("C2:OUTP LOAD, HZ");
+        sigGen1.WriteLine("C2:OUTP PLRT, NOR");
+        sigGen1.WriteLine("C2:BSWV WVTP, DC");
+        sigGen1.WriteLine("C2:BSWV OFST, 0");
+        sigGen1.WriteLine("C2:BSWV AMP, 0");
+        SdgWaitForCompletion(sigGen1);      // Need to wait for completion because next command switches the UI channel page
 
-        sigGen1.WriteLine("C2:OUTP OFF"); Thread.Sleep(50);
-        sigGen1.WriteLine("C2:OUTP LOAD, HZ"); Thread.Sleep(50);
-        sigGen1.WriteLine("C2:OUTP PLRT, NOR"); Thread.Sleep(50);
-        sigGen1.WriteLine("C2:BSWV WVTP, DC"); Thread.Sleep(50);
-        sigGen1.WriteLine("C2:BSWV OFST, 0"); Thread.Sleep(50);
-        sigGen1.WriteLine("C2:BSWV AMP, 0"); Thread.Sleep(50);
+        sigGen1.WriteLine("C1:OUTP OFF"); SdgWaitForCompletion(sigGen1);
+        sigGen1.WriteLine("C1:OUTP LOAD, HZ");
+        sigGen1.WriteLine("C1:OUTP PLRT, NOR");
+        sigGen1.WriteLine("C1:BSWV WVTP, DC");
+        sigGen1.WriteLine("C1:BSWV OFST, 0");
+        sigGen1.WriteLine("C1:BSWV AMP, 0");
+        SdgWaitForCompletion(sigGen1);
 
         sigGen2 = new TcpScpiConnection();
         sigGen2.Open(sigGen2Host, 5025);
@@ -137,19 +139,21 @@ public class Instruments
         if (!sigGen2Idn.StartsWith("Siglent Technologies,SDG2", StringComparison.OrdinalIgnoreCase))
             throw new ApplicationException("Incorrect response from *IDN?");
 
-        sigGen2.WriteLine("C1:OUTP OFF"); Thread.Sleep(50);
-        sigGen2.WriteLine("C1:OUTP LOAD, HZ"); Thread.Sleep(50);
-        sigGen2.WriteLine("C1:OUTP PLRT, NOR"); Thread.Sleep(50);
-        sigGen2.WriteLine("C1:BSWV WVTP, DC"); Thread.Sleep(50);
-        sigGen2.WriteLine("C1:BSWV OFST, 0"); Thread.Sleep(50);
-        sigGen2.WriteLine("C1:BSWV AMP, 0"); Thread.Sleep(50);
+        sigGen2.WriteLine("C2:OUTP OFF"); SdgWaitForCompletion(sigGen2);
+        sigGen2.WriteLine("C2:OUTP LOAD, HZ");
+        sigGen2.WriteLine("C2:OUTP PLRT, NOR");
+        sigGen2.WriteLine("C2:BSWV WVTP, DC");
+        sigGen2.WriteLine("C2:BSWV OFST, 0");
+        sigGen2.WriteLine("C2:BSWV AMP, 0");
+        SdgWaitForCompletion(sigGen2);      // Need to wait for completion because next command switches the UI channel page
 
-        sigGen2.WriteLine("C2:OUTP OFF"); Thread.Sleep(50);
-        sigGen2.WriteLine("C2:OUTP LOAD, HZ"); Thread.Sleep(50);
-        sigGen2.WriteLine("C2:OUTP PLRT, NOR"); Thread.Sleep(50);
-        sigGen2.WriteLine("C2:BSWV WVTP, DC"); Thread.Sleep(50);
-        sigGen2.WriteLine("C2:BSWV OFST, 0"); Thread.Sleep(50);
-        sigGen2.WriteLine("C2:BSWV AMP, 0"); Thread.Sleep(50);
+        sigGen2.WriteLine("C1:OUTP OFF"); SdgWaitForCompletion(sigGen2);
+        sigGen2.WriteLine("C1:OUTP LOAD, HZ");
+        sigGen2.WriteLine("C1:OUTP PLRT, NOR");
+        sigGen2.WriteLine("C1:BSWV WVTP, DC");
+        sigGen2.WriteLine("C1:BSWV OFST, 0");
+        sigGen2.WriteLine("C1:BSWV AMP, 0");
+        SdgWaitForCompletion(sigGen2);
 
         cachedSigGenIndex = -1;
     }
@@ -633,6 +637,13 @@ public class Instruments
         return vppResult;
     }
 
+    private void SdgWaitForCompletion(TcpScpiConnection sigGen){
+        sigGen.WriteLine("*OPC?");
+        var response = sigGen.ReadLine();
+        if (response.Trim() != "1")
+            throw new TestbenchException("Signal generator did not return correct response to *OPC?");
+    }
+
     public void SetSdgChannel(int channelIndex)
     {
         if (channelIndex != cachedSigGenIndex)
@@ -640,34 +651,34 @@ public class Instruments
             switch (channelIndex)
             {
                 case -1:
-                    sigGen1?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-                    sigGen1?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
-                    sigGen2?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-                    sigGen2?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
+                    sigGen1?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
+                    sigGen1?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
+                    sigGen2?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
+                    sigGen2?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
                     break;
                 case 0:
-                    sigGen1?.WriteLine($"C1:OUTP ON"); Thread.Sleep(200);
-                    sigGen1?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
-                    sigGen2?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-                    sigGen2?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
+                    sigGen1?.WriteLine($"C1:OUTP ON"); SdgWaitForCompletion(sigGen1!);
+                    sigGen1?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
+                    sigGen2?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
+                    sigGen2?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
                     break;
                 case 1:
-                    sigGen1?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-                    sigGen1?.WriteLine($"C2:OUTP ON"); Thread.Sleep(200);
-                    sigGen2?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-                    sigGen2?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
+                    sigGen1?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
+                    sigGen1?.WriteLine($"C2:OUTP ON"); SdgWaitForCompletion(sigGen1!);
+                    sigGen2?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
+                    sigGen2?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
                     break;
                 case 2:
-                    sigGen1?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-                    sigGen1?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
-                    sigGen2?.WriteLine($"C1:OUTP ON"); Thread.Sleep(200);
-                    sigGen2?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
+                    sigGen1?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
+                    sigGen1?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
+                    sigGen2?.WriteLine($"C1:OUTP ON"); SdgWaitForCompletion(sigGen2!);
+                    sigGen2?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
                     break;
                 case 3:
-                    sigGen1?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-                    sigGen1?.WriteLine($"C2:OUTP OFF"); Thread.Sleep(200);
-                    sigGen2?.WriteLine($"C1:OUTP OFF"); Thread.Sleep(200);
-                    sigGen2?.WriteLine($"C2:OUTP ON"); Thread.Sleep(200);
+                    sigGen1?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
+                    sigGen1?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
+                    sigGen2?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
+                    sigGen2?.WriteLine($"C2:OUTP ON"); SdgWaitForCompletion(sigGen2!);                    
                     break;
             }
             cachedSigGenIndex = channelIndex;
@@ -677,80 +688,81 @@ public class Instruments
     public void SetSdgDc(int channelIndex)
     {
         GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
-        sigGen.WriteLine($"{sdgChannel}:BSWV WVTP, DC"); Thread.Sleep(50);
+        sigGen.WriteLine($"{sdgChannel}:BSWV WVTP, DC");
+        SdgWaitForCompletion(sigGen);
     }
 
     public void SetSdgSine(int channelIndex)
     {
         GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
-        sigGen.WriteLine($"{sdgChannel}:BSWV WVTP, SINE"); Thread.Sleep(50);
+        sigGen.WriteLine($"{sdgChannel}:BSWV WVTP, SINE");
+        SdgWaitForCompletion(sigGen);
+    }
+
+    public void SetSdgSquare(int channelIndex)
+    {
+        GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
+        sigGen.WriteLine($"{sdgChannel}:BSWV WVTP, SQUARE");
+        SdgWaitForCompletion(sigGen);
     }
 
     public void SetSdgNoise(int channelIndex, double stdev, double mean)
     {
         GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
-        sigGen.WriteLine($"{sdgChannel}:BSWV WVTP, NOISE"); Thread.Sleep(50);
-        sigGen.WriteLine($"{sdgChannel}:BSWV STDEV, {stdev}"); Thread.Sleep(50);
-        sigGen.WriteLine($"{sdgChannel}:BSWV MEAN, {mean}"); Thread.Sleep(50);
+        sigGen.WriteLine($"{sdgChannel}:BSWV WVTP, NOISE");
+        sigGen.WriteLine($"{sdgChannel}:BSWV STDEV, {stdev}");
+        sigGen.WriteLine($"{sdgChannel}:BSWV MEAN, {mean}");
+        SdgWaitForCompletion(sigGen);
     }
 
     public void SetSdgParameterFrequency(int channelIndex, uint frequencyHz)
     {
         GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
         sigGen.WriteLine($"{sdgChannel}:BSWV FRQ, {frequencyHz}");
+        SdgWaitForCompletion(sigGen);
 
-        var valueText = GetSdgParameter(sigGen, sdgChannel, "FRQ,");
-        // Remove trailing 'V' if present
-        if (valueText.EndsWith("HZ", StringComparison.OrdinalIgnoreCase))
-            valueText = valueText[..^2];
+        // var valueText = GetSdgParameter(sigGen, sdgChannel, "FRQ,");
+        // // Remove trailing 'HZ' if present
+        // if (valueText.EndsWith("HZ", StringComparison.OrdinalIgnoreCase))
+        //     valueText = valueText[..^2];
 
-        if (!double.TryParse(valueText, System.Globalization.NumberStyles.Float,
-                             System.Globalization.CultureInfo.InvariantCulture,
-                             out var freqValue))
-        {
-            throw new TestbenchException($"Failed to parse OFST value from '{valueText}'s");
-        }
+        // if (!double.TryParse(valueText, System.Globalization.NumberStyles.Float,
+        //                      System.Globalization.CultureInfo.InvariantCulture,
+        //                      out var value))
+        // {
+        //     throw new TestbenchException($"Failed to parse FRQ value from '{valueText}'");
+        // }
 
-        // Compare within tolerance
-        const double tolerance = 1e-4;
-        if (Math.Abs(freqValue - frequencyHz) > tolerance)
-        {
-            throw new TestbenchException($"Offset verification failed. Expected {frequencyHz:F4} V, but device reports {freqValue:F4} V.");
-        }
+        // // Compare within tolerance
+        // const double tolerance = 1e-4;
+        // if (Math.Abs(value - frequencyHz) > tolerance)
+        // {
+        //     throw new TestbenchException($"Verification failed. Expected {frequencyHz:F4}, but device reports {value:F4}.");
+        // }
+    }
+
+    public void SetSdgParameterPeriod(int channelIndex, double periodSec)
+    {
+        GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
+        sigGen.WriteLine($"{sdgChannel}:BSWV PERI, {periodSec}S");
+        SdgWaitForCompletion(sigGen);
     }
 
     public void SetSdgParameterAmplitude(int channelIndex, double amplitudeVpp)
     {
         GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
-        sigGen.WriteLine($"{sdgChannel}:BSWV AMP, {amplitudeVpp}"); Thread.Sleep(50);
+        sigGen.WriteLine($"{sdgChannel}:BSWV AMP, {amplitudeVpp}");
+        SdgWaitForCompletion(sigGen);
     }
 
     public void SetSdgParameterOffset(int channelIndex, double voltage)
     {
         GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
         sigGen.WriteLine($"{sdgChannel}:BSWV OFST, {voltage:F4}");
-
-        var valueText = GetSdgParameter(sigGen, sdgChannel, "OFST,");
-        // Remove trailing 'V' if present
-        if (valueText.EndsWith("V", StringComparison.OrdinalIgnoreCase))
-            valueText = valueText[..^1];
-
-        if (!double.TryParse(valueText, System.Globalization.NumberStyles.Float,
-                             System.Globalization.CultureInfo.InvariantCulture,
-                             out var ofstValue))
-        {
-            throw new TestbenchException($"Failed to parse OFST value from '{valueText}'s");
-        }
-
-        // Compare within tolerance
-        const double tolerance = 1e-4;
-        if (Math.Abs(ofstValue - voltage) > tolerance)
-        {
-            throw new TestbenchException($"Offset verification failed. Expected {voltage:F4} V, but device reports {ofstValue:F4} V.");
-        }
+        SdgWaitForCompletion(sigGen);
     }
 
-    private string GetSdgParameter(TcpScpiConnection sigGen, string sdgChannel, string key)
+    private string GetSdgBasicWaveformParameter(TcpScpiConnection sigGen, string sdgChannel, string key)
     {
         sigGen.WriteLine($"{sdgChannel}:BSWV?");
         var response = sigGen.ReadLine();
@@ -769,15 +781,43 @@ public class Instruments
         return valueText;
     }
 
-    public void SetSdgBodeSetup(int channelIndex)
+    public void SetSdgBodeSetup(int channelIndex, uint frequency)
     {
         if(channelIndex != 0)
             throw new NotImplementedException();
-        sigGen1!.WriteLine("C1:BSWV WVTP, SINE"); Thread.Sleep(50);
-        sigGen1!.WriteLine("C1:BSWV FRQ, 1000"); Thread.Sleep(50);
-        sigGen1!.WriteLine("C1:BSWV AMP, 0.8"); Thread.Sleep(50);
-        sigGen1!.WriteLine("C1:BSWV OFST, 0"); Thread.Sleep(50);
 
+        sigGen1?.WriteLine($"C1:OUTP ON");
+        SdgWaitForCompletion(sigGen1!);     // Need to wait for completion because next command switches the UI channel page
+        sigGen1?.WriteLine($"C2:OUTP ON");
+        
+        sigGen2?.WriteLine($"C1:OUTP OFF");
+        SdgWaitForCompletion(sigGen2!);     // Need to wait for completion because next command switches the UI channel page
+        sigGen2?.WriteLine($"C2:OUTP OFF");
+
+        SdgWaitForCompletion(sigGen1!);
+        SdgWaitForCompletion(sigGen2!);
+
+        double period = 1.0 / frequency;
+        double burstPeriod = period * 20;
+
+        SetSdgSine(channelIndex);
+        SetSdgParameterFrequency(channelIndex, frequency);
+        SetSdgParameterAmplitude(channelIndex, 1.0);
+        SetSdgParameterOffset(channelIndex, 0.0);
+
+        SetSdgSquare(channelIndex + 1);
+        SetSdgParameterPeriod(channelIndex + 1, burstPeriod);
+        SetSdgParameterAmplitude(channelIndex + 1, 1.0);
+        SetSdgParameterOffset(channelIndex + 1, 0.0);
+        
+        sigGen1?.WriteLine($"C1:BTWV STATE, ON");
+        sigGen1?.WriteLine($"C1:BTWV PRD, {burstPeriod}S");
+        sigGen1?.WriteLine($"C1:BTWV GATE_NCYC, GATE");
+        SdgWaitForCompletion(sigGen1!);
+        sigGen1?.WriteLine($"C1:BTWV GATE_NCYC, NCYC");
+        SdgWaitForCompletion(sigGen1!);
+        sigGen1?.WriteLine($"C1:BTWV GATE_NCYC, GATE");     // This sequence seems to reset the DDS phases
+        SdgWaitForCompletion(sigGen1!);
     }
 
     private void GetSdgReference(int channelIndex, out TcpScpiConnection sigGen, out string sdgChannel)
