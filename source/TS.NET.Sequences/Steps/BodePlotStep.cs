@@ -67,9 +67,9 @@ public class BodePlotStep : Step
                 Logger.Instance.Log(LogLevel.Information, Index, Status.Running, $"Ch{channelIndex + 1}, frequency: {frequencyHz / 1e6:F3} MHz, scale: {normalised:F4}");
             }
 
-            var csv = bodePoints.Select(p => $"{p.Key},{p.Value:F4},{20.0 * Math.Log10(p.Value):F4}");
-            var csvString = "Frequency,Scale,dB\n" + string.Join("\n", csv);
-            File.WriteAllText($"{amplitude} Vpp - attenuator {attenuator}.csv", csvString);
+            //var csv = bodePoints.Select(p => $"{p.Key},{p.Value:F4},{20.0 * Math.Log10(p.Value):F4}");
+            //var csvString = "Frequency,Scale,dB\n" + string.Join("\n", csv);
+            //File.WriteAllText($"{amplitude} Vpp - attenuator {attenuator}.csv", csvString);
 
             var metadata =
                 new ResultMetadataXYChart()
@@ -77,7 +77,7 @@ public class BodePlotStep : Step
                     ShowInReport = true,
                     Title = $"Overall gain vs. frequency",
                     XAxis = new ResultMetadataXYChartAxis{ Label = "Frequency (Hz)", Scale = XYChartScaleType.Log10 },
-                    YAxis = new ResultMetadataXYChartAxis{ Label = "Gain (dB)", Scale = XYChartScaleType.Linear, AdditionalRangeValues = [-0.5, 0.5] },
+                    YAxis = new ResultMetadataXYChartAxis{ Label = "Gain (dB)", Scale = XYChartScaleType.Linear, AdditionalRangeValues = [-0.3, 0.3] },
                     Series = new ResultMetadataXYChartSeries[]
                     {
                         new ResultMetadataXYChartSeries
