@@ -607,7 +607,8 @@ public class Instruments
         var subsetShuffleMemory = shuffleMemory!.Subset(128 * 1024 * 1024);
         thunderScope!.Read(subsetDataMemory);
 
-        var samples = subsetDataMemory.DataSpanI8.Slice(0, (int)((sampleRateHz / frequency) * 10.0));
+        var sampleCount = (int)((sampleRateHz / frequency) * 10.0);
+        var samples = subsetDataMemory.DataSpanI8.Slice(subsetDataMemory.DataSpanI8.Length - sampleCount, sampleCount);
         Span<sbyte> channel;
         switch (config.Acquisition.EnabledChannelsCount())
         {

@@ -51,22 +51,16 @@ public class AdcBranchGainsStep : Step
                 branchFineGains[i] = (byte)(gainSetting & 0x7F);
             }
 
-            Result!.Metadata!.Add(new ResultMetadataTable()
-            {
-                Name = "Before calibration",
-                ShowInReport = true,
-                Headers = ["Branch", "% deviation from midrange"],
-                Rows = [
-                    ["1", $"{(branchScales[0] * 100.0) - 100.0:+0.000;-0.000}%"],
-                    ["2", $"{(branchScales[1] * 100.0) - 100.0:+0.000;-0.000}%"],
-                    ["3", $"{(branchScales[2] * 100.0) - 100.0:+0.000;-0.000}%"],
-                    ["4", $"{(branchScales[3] * 100.0) - 100.0:+0.000;-0.000}%"],
-                    ["5", $"{(branchScales[4] * 100.0) - 100.0:+0.000;-0.000}%"],
-                    ["6", $"{(branchScales[5] * 100.0) - 100.0:+0.000;-0.000}%"],
-                    ["7", $"{(branchScales[6] * 100.0) - 100.0:+0.000;-0.000}%"],
-                    ["8", $"{(branchScales[7] * 100.0) - 100.0:+0.000;-0.000}%"],
-                ]
-            });
+            List<string> deviationBefore = [
+                $"{(branchScales[0] * 100.0) - 100.0:+0.000;-0.000}%",
+                $"{(branchScales[1] * 100.0) - 100.0:+0.000;-0.000}%",
+                $"{(branchScales[2] * 100.0) - 100.0:+0.000;-0.000}%",
+                $"{(branchScales[3] * 100.0) - 100.0:+0.000;-0.000}%",
+                $"{(branchScales[4] * 100.0) - 100.0:+0.000;-0.000}%",
+                $"{(branchScales[5] * 100.0) - 100.0:+0.000;-0.000}%",
+                $"{(branchScales[6] * 100.0) - 100.0:+0.000;-0.000}%",
+                $"{(branchScales[7] * 100.0) - 100.0:+0.000;-0.000}%"
+                ];
 
             Instruments.Instance.SetThunderscopeAdcCalibration(branchFineGains);
             variables.Calibration.Adc.FineGainBranch1 = branchFineGains[0];
@@ -84,18 +78,18 @@ public class AdcBranchGainsStep : Step
 
             Result!.Metadata!.Add(new ResultMetadataTable()
             {
-                Name = "After calibration",
+                Name = "ADC branch gain % deviation from midrange, before & after adjustment",
                 ShowInReport = true,
-                Headers = ["Branch", "% deviation from midrange"],
+                Headers = ["Branch", "Before", "After"],
                 Rows = [
-                    ["1", $"{(branchScales[0] * 100.0) - 100.0:+0.000;-0.000}%"],
-                    ["2", $"{(branchScales[1] * 100.0) - 100.0:+0.000;-0.000}%"],
-                    ["3", $"{(branchScales[2] * 100.0) - 100.0:+0.000;-0.000}%"],
-                    ["4", $"{(branchScales[3] * 100.0) - 100.0:+0.000;-0.000}%"],
-                    ["5", $"{(branchScales[4] * 100.0) - 100.0:+0.000;-0.000}%"],
-                    ["6", $"{(branchScales[5] * 100.0) - 100.0:+0.000;-0.000}%"],
-                    ["7", $"{(branchScales[6] * 100.0) - 100.0:+0.000;-0.000}%"],
-                    ["8", $"{(branchScales[7] * 100.0) - 100.0:+0.000;-0.000}%"],
+                    ["1", deviationBefore[0], $"{(branchScales[0] * 100.0) - 100.0:+0.000;-0.000}%"],
+                    ["2", deviationBefore[1], $"{(branchScales[1] * 100.0) - 100.0:+0.000;-0.000}%"],
+                    ["3", deviationBefore[2], $"{(branchScales[2] * 100.0) - 100.0:+0.000;-0.000}%"],
+                    ["4", deviationBefore[3], $"{(branchScales[3] * 100.0) - 100.0:+0.000;-0.000}%"],
+                    ["5", deviationBefore[4], $"{(branchScales[4] * 100.0) - 100.0:+0.000;-0.000}%"],
+                    ["6", deviationBefore[5], $"{(branchScales[5] * 100.0) - 100.0:+0.000;-0.000}%"],
+                    ["7", deviationBefore[6], $"{(branchScales[6] * 100.0) - 100.0:+0.000;-0.000}%"],
+                    ["8", deviationBefore[7], $"{(branchScales[7] * 100.0) - 100.0:+0.000;-0.000}%"],
                 ]
             });
 
