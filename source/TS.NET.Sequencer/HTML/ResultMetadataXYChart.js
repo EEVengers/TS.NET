@@ -257,7 +257,7 @@ class ResultMetadataXYChart {
             .attr('x', margin.left + width / 2)
             .attr('y', margin.top + height + margin.bottom / 2 + 12)
             .style('text-anchor', 'middle')
-            .style('alignment-baseline', 'central')
+            .style('dominant-baseline', 'central')
             .text(this.chartData.xAxis.label || 'X Axis');
         
         this.svg.append('text')
@@ -266,7 +266,7 @@ class ResultMetadataXYChart {
             .attr('x', -(margin.top + height / 2))
             .attr('y', margin.left / 2 - 18)
             .style('text-anchor', 'middle')
-            .style('alignment-baseline', 'middle')
+            .style('dominant-baseline', 'middle')
             .text(this.chartData.yAxis.label || 'Y Axis');
     }
     
@@ -337,7 +337,7 @@ class ResultMetadataXYChart {
             const legendText = legend.append('text')
                 .attr('x', 6 + legendLineLength + 6)
                 .attr('y', yOffset)
-                .attr('alignment-baseline', 'central')
+                .attr('dominant-baseline', 'central')
                 .attr('class', 'text-xs')
                 .text(series.name);
 
