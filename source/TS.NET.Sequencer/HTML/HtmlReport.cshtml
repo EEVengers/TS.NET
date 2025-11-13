@@ -116,7 +116,7 @@
                                                     {
                                                         <svg id="chart-@(step.Index)" width="700" height="400"></svg>
                                                         <script>
-                                                            document.addEventListener("DOMContentLoaded", function() {
+                                                            window.addEventListener("load", function() {
                                                                 new ResultMetadataXYChart("chart-@(step.Index)", {
                                                                     width: 700,
                                                                     height: 400,
