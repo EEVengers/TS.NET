@@ -57,7 +57,7 @@ public class AdcBranchGainsAnalysisSequence : Sequence
             new AdcBranchGainsStep("ADC branch gains - Channel 4 - 165 MSPS", 3, 165_000_000, Variables),
             new AdcBranchGainsStep("ADC branch gains - Channel 4 - 100 MSPS", 3, 100_000_000, Variables),
 
-            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.Close();

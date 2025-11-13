@@ -18,7 +18,7 @@ public class AdcBranchGainsStep : Step
             Instruments.Instance.SetThunderscopeRate(rateHz);
             Instruments.Instance.SetThunderscopeAdcCalibration([0, 0, 0, 0, 0, 0, 0, 0]);        // Reset to all zero
 
-            Instruments.Instance.SetSdgChannel(channelIndex);
+            Instruments.Instance.SetSdgChannel([channelIndex]);
             Instruments.Instance.SetSdgNoise(channelIndex, 0.16, 0.0);
 
             // First set the maximum range
@@ -94,7 +94,7 @@ public class AdcBranchGainsStep : Step
             });
 
             //Instruments.Instance.SetThunderscopeAdcCalibration([0, 0, 0, 0, 0, 0, 0, 0]);
-            Instruments.Instance.SetSdgChannel(-1);
+            Instruments.Instance.SetSdgChannel([]);
             Logger.Instance.Log(LogLevel.Information, Index, Status.Done);
             //Instruments.Instance.SetSdgDc(channelIndex);
             return Status.Done;

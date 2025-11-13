@@ -118,7 +118,7 @@ public class BenchCalibrationSequence : Sequence
             new PgaLoadStep("Channel 1 - measure PGA loading scale - 165 MSPS, 4 channel", 0, [0, 1, 2, 3], 165_000_000, Variables),
             new PgaLoadStep("Channel 1 - measure PGA loading scale - 100 MSPS, 4 channel", 0, [0, 1, 2, 3], 100_000_000, Variables),
 
-            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
             new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L0", 1, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 2 - measure trim offset DAC scale - HG L1", 1, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
@@ -211,7 +211,7 @@ public class BenchCalibrationSequence : Sequence
             new PgaLoadStep("Channel 2 - measure PGA loading scale - 165 MSPS, 4 channel", 1, [0, 1, 2, 3], 165_000_000, Variables),
             new PgaLoadStep("Channel 2 - measure PGA loading scale - 100 MSPS, 4 channel", 1, [0, 1, 2, 3], 100_000_000, Variables),
 
-            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
             new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L0", 2, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 3 - measure trim offset DAC scale - HG L1", 2, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
@@ -304,7 +304,7 @@ public class BenchCalibrationSequence : Sequence
             new PgaLoadStep("Channel 3 - measure PGA loading scale - 165 MSPS, 4 channel", 2, [0, 1, 2, 3], 165_000_000, Variables),
             new PgaLoadStep("Channel 3 - measure PGA loading scale - 100 MSPS, 4 channel", 2, [0, 1, 2, 3], 100_000_000, Variables),
 
-            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
             new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L0", 3, 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 4 - measure trim offset DAC scale - HG L1", 3, 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
@@ -397,7 +397,7 @@ public class BenchCalibrationSequence : Sequence
             new PgaLoadStep("Channel 4 - measure PGA loading scale - 165 MSPS, 4 channel", 3, [0, 1, 2, 3], 165_000_000, Variables),
             new PgaLoadStep("Channel 4 - measure PGA loading scale - 100 MSPS, 4 channel", 3, [0, 1, 2, 3], 100_000_000, Variables),
 
-            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel(-1); return Sequencer.Status.Done; }},
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
             new SaveUserCalToFileStep("Save calibration to file", Variables) { AllowSkip = true },
             new SaveUserCalToDeviceStep("Save calibration to device", Variables) { AllowSkip = true },

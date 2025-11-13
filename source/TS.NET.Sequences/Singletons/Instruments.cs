@@ -20,8 +20,7 @@ public class Instruments
     private uint cachedSampleRateHz = 0;
     private AdcResolution cachedResolution = AdcResolution.EightBit;
     private int[] cachedChannelIndices = [];
-
-    private int cachedSigGenIndex = int.MinValue;
+    private int[] cachedSigGenChannelIndices = [];
 
     public void InitialiseThunderscope()
     {
@@ -150,13 +149,11 @@ public class Instruments
         sigGen2.WriteLine("C1:BSWV WVTP, DC"); SdgWaitForCompletion(sigGen1);
         sigGen2.WriteLine("C1:BSWV OFST, 0"); SdgWaitForCompletion(sigGen2);
         sigGen2.WriteLine("C1:BSWV AMP, 0"); SdgWaitForCompletion(sigGen2);
-
-        cachedSigGenIndex = -1;
     }
 
     public void Close()
     {
-        SetSdgChannel(-1);
+        SetSdgChannel([]);
         thunderScope?.Close();
         thunderScopeData?.Close();
         sigGen1?.Close();
@@ -530,72 +527,6 @@ public class Instruments
         return Math.Sqrt(sumSquares / channel.Length);
     }
 
-    private double GetThunderscopeVppAtFrequencyGoertzel(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)
-    {
-        var filter = new GoertzelFilter(frequency, sampleRateHz);
-        var config = thunderScope!.GetConfiguration();
-        if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
-            throw new TestbenchException("Requested channel index is not an enabled channel");
-        thunderScope!.Stop();
-        thunderScope!.Start();
-        var subsetDataMemory = dataMemory!.Subset(128 * 1024 * 1024);
-        var subsetShuffleMemory = shuffleMemory!.Subset(128 * 1024 * 1024);
-        thunderScope!.Read(subsetDataMemory);
-
-        var samples = subsetDataMemory.DataSpanI8.Slice(0, (int)((sampleRateHz / frequency) * 10.0));
-        Span<sbyte> channel;
-        switch (config.Acquisition.EnabledChannelsCount())
-        {
-            case 1:
-                channel = samples;
-                break;
-            default:
-                throw new NotImplementedException();
-        }
-
-        double[] scaledSamples = new double[channel.Length];
-        var vPerBit = resolution switch
-        {
-            AdcResolution.EightBit => (double)(inputVpp / 256.0),
-            AdcResolution.TwelveBit => (double)(inputVpp / 4096.0),
-            _ => throw new NotImplementedException()
-        };
-
-        // 160ms
-        //ref sbyte inputR = ref MemoryMarshal.GetReference(channel);
-        //ref float outputR = ref MemoryMarshal.GetReference<float>(scaledSamples);
-        //var scale = Vector128.Create(vPerBit);
-        //if (channel.Length % Vector128<sbyte>.Count > 0)
-        //    throw new ThunderscopeException("Data cannot be vectorised");
-        //for (int i = 0; i < channel.Length; i += Vector128<sbyte>.Count)        // 16
-        //{
-        //    var i8 = Vector128.LoadUnsafe(ref inputR, (uint)i);
-        //    var (i16L, i16U) = Vector128.Widen(i8);
-        //    var (i32LL, i32LU) = Vector128.Widen(i16L);
-        //    var (i32UL, i32UU) = Vector128.Widen(i16U);
-
-        //    var f32LL = Vector128.ConvertToSingle(i32LL);
-        //    var f32LU = Vector128.ConvertToSingle(i32LU);
-        //    var f32UL = Vector128.ConvertToSingle(i32UL);
-        //    var f32UU = Vector128.ConvertToSingle(i32UU);
-        //    Vector128.StoreUnsafe(Vector128.Multiply(f32LL, scale), ref outputR, (uint)i);
-        //    Vector128.StoreUnsafe(Vector128.Multiply(f32LU, scale), ref outputR, (uint)i + 4);
-        //    Vector128.StoreUnsafe(Vector128.Multiply(f32UL, scale), ref outputR, (uint)i + 8);
-        //    Vector128.StoreUnsafe(Vector128.Multiply(f32UU, scale), ref outputR, (uint)i + 12);
-        //}
-
-        // 260ms
-        for (int i = 0; i < scaledSamples.Length; i++)
-        {
-            scaledSamples[i] = channel[i] * vPerBit;
-        }
-
-        var complexResult = filter.Process(scaledSamples);
-        var vppResult = 2 * (complexResult.Magnitude / (scaledSamples.Length / 2));
-
-        return vppResult;
-    }
-
     public double GetThunderscopeVppAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)
     {
         var config = thunderScope!.GetConfiguration();
@@ -603,8 +534,8 @@ public class Instruments
             throw new TestbenchException("Requested channel index is not an enabled channel");
         thunderScope!.Stop();
         thunderScope!.Start();
-        var subsetDataMemory = dataMemory!.Subset(128 * 1024 * 1024);
-        var subsetShuffleMemory = shuffleMemory!.Subset(128 * 1024 * 1024);
+        var subsetDataMemory = dataMemory!.Subset(32 * 1024 * 1024);
+        var subsetShuffleMemory = shuffleMemory!.Subset(32 * 1024 * 1024);
         thunderScope!.Read(subsetDataMemory);
 
         var sampleCount = (int)((sampleRateHz / frequency) * 10.0);
@@ -632,59 +563,115 @@ public class Instruments
             scaledSamples[i] = channel[i] * vPerBit;
         }
 
-        // To do - use an external trigger pulse to get accurate phase
         var (amplitude, phaseRadians, dcOffset) = SineLeastSquaresFit.FitSineWave(sampleRateHz, scaledSamples, frequency);
         var vppResult = amplitude * 2;
 
         return vppResult;
     }
 
-    private void SdgWaitForCompletion(TcpScpiConnection sigGen){
+    //public (double amplitude, double phaseRadians, double offset) GetThunderscopeBodeAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)
+    //{
+    //    var config = thunderScope!.GetConfiguration();
+    //    if (config.Acquisition.EnabledChannelsCount() != 2)
+    //        throw new TestbenchException("2 channels must be enabled");
+    //    if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
+    //        throw new TestbenchException("Requested channel index is not an enabled channel");
+
+    //    int triggerChannelIndex = channelIndex switch
+    //    {
+    //        0 => 1,
+    //        1 => 0,
+    //        _ => throw new NotImplementedException()
+    //    };
+
+    //    thunderScope!.Stop();
+    //    thunderScope!.Start();
+    //    var subsetDataMemory = dataMemory!.Subset(32 * 1024 * 1024);
+    //    var subsetShuffleMemory = shuffleMemory!.Subset(32 * 1024 * 1024);
+    //    thunderScope!.Read(subsetDataMemory);
+
+    //    var sampleCount = (int)((sampleRateHz / frequency) * 10.0);
+    //    var samples = subsetDataMemory.DataSpanI8;//.Slice(subsetDataMemory.DataSpanI8.Length - sampleCount, sampleCount);
+    //    Span<sbyte> triggerChannel;
+    //    Span<sbyte> dataChannel;
+    //    switch (config.Acquisition.EnabledChannelsCount())
+    //    {
+    //        case 2:
+    //            {
+    //                Span<sbyte> twoChannels = subsetShuffleMemory.DataSpanI8;
+    //                ShuffleI8.TwoChannels(samples, twoChannels);
+    //                var length = samples.Length / 2;
+    //                dataChannel = twoChannels.Slice(channelIndex * length, length);
+    //                triggerChannel = twoChannels.Slice(triggerChannelIndex * length, length);
+    //                break;
+    //            }
+    //        default:
+    //            throw new NotImplementedException();
+    //    }
+
+    //    var trigger = new RisingEdgeTriggerI8(new EdgeTriggerParameters() { Direction = EdgeDirection.Rising, HysteresisPercent = 5, LevelV = 0 }, 0.8);
+    //    var triggerResults = new EdgeTriggerResults()
+    //    {
+    //        ArmIndices = new ulong[100],
+    //        TriggerIndices = new ulong[100],
+    //        CaptureEndIndices = new ulong[100]
+    //    };
+    //    trigger.Process(triggerChannel, 0, ref triggerResults);
+    //    if (triggerResults.TriggerCount == 0)
+    //        throw new TestbenchException("No triggers found");
+    //    if (triggerResults.CaptureEndCount == 0)
+    //        throw new TestbenchException("No captures found");
+
+    //    var triggeredData = dataChannel.Slice((int)triggerResults.TriggerIndices[0], sampleCount);
+    //    var squareData = triggerChannel.Slice((int)triggerResults.TriggerIndices[0], sampleCount);
+
+    //    double[] scaledSamples = new double[triggeredData.Length];
+    //    var vPerBit = resolution switch
+    //    {
+    //        AdcResolution.EightBit => (double)(inputVpp / 256.0),
+    //        AdcResolution.TwelveBit => (double)(inputVpp / 4096.0),
+    //        _ => throw new NotImplementedException()
+    //    };
+
+    //    for (int i = 0; i < scaledSamples.Length; i++)
+    //    {
+    //        scaledSamples[i] = triggeredData[i] * vPerBit;
+    //    }
+
+    //    return SineLeastSquaresFit.FitSineWave(sampleRateHz, scaledSamples, frequency);
+    //}
+
+    private void SdgWaitForCompletion(TcpScpiConnection sigGen)
+    {
         sigGen.WriteLine("*OPC?");
         var response = sigGen.ReadLine();
         if (response.Trim() != "1")
             throw new TestbenchException("Signal generator did not return correct response to *OPC?");
     }
 
-    public void SetSdgChannel(int channelIndex)
+    public void SetSdgChannel(int[] channelIndices)
     {
-        if (channelIndex != cachedSigGenIndex)
+        if (!channelIndices.SequenceEqual(cachedSigGenChannelIndices))
         {
-            switch (channelIndex)
-            {
-                case -1:
-                    sigGen1?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
-                    sigGen1?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
-                    sigGen2?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
-                    sigGen2?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
-                    break;
-                case 0:
-                    sigGen1?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
-                    sigGen1?.WriteLine($"C1:OUTP ON"); SdgWaitForCompletion(sigGen1!);
-                    sigGen2?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
-                    sigGen2?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
-                    break;
-                case 1:
-                    sigGen1?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
-                    sigGen1?.WriteLine($"C2:OUTP ON"); SdgWaitForCompletion(sigGen1!);
-                    sigGen2?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
-                    sigGen2?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
-                    break;
-                case 2:
-                    sigGen1?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
-                    sigGen1?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
-                    sigGen2?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
-                    sigGen2?.WriteLine($"C1:OUTP ON"); SdgWaitForCompletion(sigGen2!);
-                    break;
-                case 3:                    
-                    sigGen1?.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
-                    sigGen1?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen1!);
-                    sigGen2?.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
-                    sigGen2?.WriteLine($"C2:OUTP ON"); SdgWaitForCompletion(sigGen2!);                    
-                    break;
-            }
-            cachedSigGenIndex = channelIndex;
+            sigGen1?.WriteLine($"C1:OUTP {(channelIndices.Contains(0) ? "ON" : "OFF")}"); SdgWaitForCompletion(sigGen1!);
+            sigGen1?.WriteLine($"C2:OUTP {(channelIndices.Contains(1) ? "ON" : "OFF")}"); SdgWaitForCompletion(sigGen1!);
+            sigGen2?.WriteLine($"C1:OUTP {(channelIndices.Contains(2) ? "ON" : "OFF")}"); SdgWaitForCompletion(sigGen2!);
+            sigGen2?.WriteLine($"C2:OUTP {(channelIndices.Contains(3) ? "ON" : "OFF")}"); SdgWaitForCompletion(sigGen2!);
+            cachedSigGenChannelIndices = channelIndices;
         }
+    }
+
+    public void SetSdgLoad(int channelIndex, ThunderscopeTermination termination)
+    {
+        var load = termination switch
+        {
+            ThunderscopeTermination.OneMegaohm => "HiZ",
+            ThunderscopeTermination.FiftyOhm => "50",
+            _ => throw new NotImplementedException()
+        };
+        GetSdgReference(channelIndex, out var sigGen, out var sdgChannel);
+        sigGen.WriteLine($"{sdgChannel}:OUTP LOAD, {load}");
+        SdgWaitForCompletion(sigGen);
     }
 
     public void SetSdgDc(int channelIndex)
@@ -783,44 +770,40 @@ public class Instruments
         return valueText;
     }
 
-    public void SetSdgBodeSetup(int channelIndex, uint frequency)
-    {
-        if(channelIndex != 0)
-            throw new NotImplementedException();
+    //public void SetSdgBodeSetup(int channelIndex, uint frequency, double amplitudeVpp)
+    //{
+    //    if (channelIndex != 0)
+    //        throw new NotImplementedException();
 
-        sigGen1?.WriteLine($"C1:OUTP ON");
-        SdgWaitForCompletion(sigGen1!);     // Need to wait for completion because next command switches the UI channel page
-        sigGen1?.WriteLine($"C2:OUTP ON");
+    //    sigGen1!.WriteLine($"C1:OUTP ON"); SdgWaitForCompletion(sigGen1!);
+    //    sigGen1!.WriteLine($"C2:OUTP ON"); SdgWaitForCompletion(sigGen1!);
 
-        sigGen2?.WriteLine($"C1:OUTP OFF");
-        SdgWaitForCompletion(sigGen2!);     // Need to wait for completion because next command switches the UI channel page
-        sigGen2?.WriteLine($"C2:OUTP OFF");
+    //    sigGen2!.WriteLine($"C1:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
+    //    sigGen2!.WriteLine($"C2:OUTP OFF"); SdgWaitForCompletion(sigGen2!);
 
-        SdgWaitForCompletion(sigGen1!);
-        SdgWaitForCompletion(sigGen2!);
+    //    sigGen1!.WriteLine("C1:OUTP LOAD, 50"); SdgWaitForCompletion(sigGen1!);
+    //    sigGen1!.WriteLine("C2:OUTP LOAD, 50"); SdgWaitForCompletion(sigGen1!);
 
-        double period = 1.0 / frequency;
-        double burstPeriod = period * 20;
+    //    SetSdgSine(channelIndex); SdgWaitForCompletion(sigGen1!);
+    //    SetSdgParameterFrequency(channelIndex, frequency); SdgWaitForCompletion(sigGen1!);
+    //    SetSdgParameterAmplitude(channelIndex, amplitudeVpp); SdgWaitForCompletion(sigGen1!);
+    //    SetSdgParameterOffset(channelIndex, 0.0); SdgWaitForCompletion(sigGen1!);
 
-        SetSdgSine(channelIndex);
-        SetSdgParameterFrequency(channelIndex, frequency);
-        SetSdgParameterAmplitude(channelIndex, 1.0);
-        SetSdgParameterOffset(channelIndex, 0.0);
+    //    SetSdgSquare(channelIndex + 1); SdgWaitForCompletion(sigGen1!);
+    //    SetSdgParameterFrequency(channelIndex + 1, frequency); SdgWaitForCompletion(sigGen1!);
+    //    SetSdgParameterAmplitude(channelIndex + 1, 0.8); SdgWaitForCompletion(sigGen1!);
+    //    SetSdgParameterOffset(channelIndex + 1, 0.0); SdgWaitForCompletion(sigGen1!);
 
-        SetSdgSquare(channelIndex + 1);
-        SetSdgParameterPeriod(channelIndex + 1, burstPeriod);
-        SetSdgParameterAmplitude(channelIndex + 1, 1.0);
-        SetSdgParameterOffset(channelIndex + 1, 0.0);
-        
-        sigGen1?.WriteLine($"C1:BTWV STATE, ON");
-        sigGen1?.WriteLine($"C1:BTWV PRD, {burstPeriod}S");
-        sigGen1?.WriteLine($"C1:BTWV GATE_NCYC, GATE");
-        SdgWaitForCompletion(sigGen1!);
-        sigGen1?.WriteLine($"C1:BTWV GATE_NCYC, NCYC");
-        SdgWaitForCompletion(sigGen1!);
-        sigGen1?.WriteLine($"C1:BTWV GATE_NCYC, GATE");     // This sequence seems to reset the DDS phases
-        SdgWaitForCompletion(sigGen1!);
-    }
+    //    sigGen1!.WriteLine("COUP FCOUP,ON"); SdgWaitForCompletion(sigGen1!);
+    //}
+
+    //public void UpdateSdgBodeFrequency(int channelIndex, uint frequency)
+    //{
+    //    if (channelIndex != 0)
+    //        throw new NotImplementedException();
+
+    //    SetSdgParameterFrequency(channelIndex, frequency); SdgWaitForCompletion(sigGen1!);
+    //}
 
     private void GetSdgReference(int channelIndex, out TcpScpiConnection sigGen, out string sdgChannel)
     {
