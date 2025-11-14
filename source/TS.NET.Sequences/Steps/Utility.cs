@@ -15,7 +15,7 @@ public static class Utility
         return calibration.Paths[pathIndex];
     }
 
-    public static ThunderscopeChannelPathCalibration GetChannelPathCalibration(int channelIndex, PgaPreampGain preamp, int ladder, CommonVariables variables)
+    public static ThunderscopeChannelPathCalibration GetChannelPathCalibration(int channelIndex, PgaPreampGain pgaPreamp, int pgaLadder, CommonVariables variables)
     {
         var calibration = channelIndex switch
         {
@@ -25,7 +25,7 @@ public static class Utility
             3 => variables.Calibration.Channel4,
             _ => throw new NotImplementedException()
         };
-        return calibration.Paths.Where(p => p.PgaPreampGain == preamp && p.PgaLadderAttenuator == ladder).First();
+        return calibration.Paths.Where(p => p.PgaPreampGain == pgaPreamp && p.PgaLadderAttenuator == pgaLadder).First();
     }
 
     public static ChannelPathConfig GetChannelPathConfig(int channelIndex, int pathIndex, CalibrationVariables variables)
@@ -39,6 +39,19 @@ public static class Utility
             _ => throw new NotImplementedException()
         };
         return pathConfigs[pathIndex];
+    }
+
+    public static ChannelPathConfig GetChannelPathConfig(int channelIndex, PgaPreampGain pgaPreamp, int pgaLadder, CalibrationVariables variables)
+    {
+        var pathConfigs = channelIndex switch
+        {
+            0 => variables.Channel1PathConfigs,
+            1 => variables.Channel1PathConfigs,
+            2 => variables.Channel1PathConfigs,
+            3 => variables.Channel1PathConfigs,
+            _ => throw new NotImplementedException()
+        };
+        return pathConfigs.Where(p => p.PgaPreampGain == pgaPreamp && p.PgaLadderAttenuator == pgaLadder).First();
     }
 
     public static double GetAndCheckSigGenZero(int channelIndex, ChannelPathConfig path, BenchCalibrationVariables variables, CancellationToken cancellationToken)

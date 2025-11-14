@@ -386,7 +386,7 @@ public class Instruments
     {
         thunderScope!.Stop();
         thunderScope!.Start();
-        var subsetDataMemory = dataMemory!.Subset(64 * 1024 * 1024);
+        var subsetDataMemory = dataMemory!.Subset(32 * 1024 * 1024);
         thunderScope!.Read(subsetDataMemory);
 
         var sampleBuffer = subsetDataMemory.DataSpanI8;

@@ -1,22 +1,25 @@
-﻿@using RazorLight
-@inherits TemplatePage<Sequence>
-@using TS.NET.Sequencer
+﻿@using TS.NET.Sequencer
 @using static TS.NET.Sequencer.ReportHelpers
 @using static TS.NET.Sequencer.TimeSpanUtility
-@{
+
+@code {
+    [Parameter]
+    public required Sequence Sequence {get;set;}
+    
     bool includeD3 = false;
 }
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width =device-width, initial-scale=1.0">
-    <title>@($"{Model.Name} - {Model.StartTimestamp:yyyy-MM-dd HHmmss}")</title>
+    <title>@($"{Sequence.Name} - {Sequence.StartTimestamp:yyyy-MM-dd HHmmss}")</title>
 </head>
 <body class="bg-gray-200 py-4 print:p-0 print:bg-white">
     <div class="max-w-[52rem] mx-auto bg-white px-10 py-15 print:p-0">
-        <h1 class="text-4xl text-black p-2 mb-4 text-center bg-gray-200 border-2 border-gray-900">@Model.Name</h1>
-        <h1 class="text-4xl @StatusTextColour(Model.Status) p-2 mb-8 text-center bg-gray-200 border-2 border-gray-900">@Model.Status</h1>
+        <h1 class="text-4xl text-black p-2 mb-4 text-center bg-gray-200 border-2 border-gray-900">@Sequence.Name</h1>
+        <h1 class="text-4xl @StatusTextColour(Sequence.Status) p-2 mb-8 text-center bg-gray-200 border-2 border-gray-900">@Sequence.Status</h1>
 
         <div class="flex flex-row gap-2 mb-8 text-sm text-black">
             <div class="flex flex-col gap-1">
@@ -26,9 +29,9 @@
                 <div>Device:</div>
             </div>
             <div class="flex flex-col gap-1">
-                <div>@Model.Name</div>
-                <div>@Model.StartTimestamp.ToString("yyyy-MM-dd HH:mm:ssK") (@Model.TzId)</div>
-                <div>@HumanDuration(Model.Duration)</div>
+                <div>@Sequence.Name</div>
+                <div>@Sequence.StartTimestamp.ToString("yyyy-MM-dd HH:mm:ssK") (@Sequence.TzId)</div>
+                <div>@HumanDuration(Sequence.Duration)</div>
                 <div>TS0019</div>
             </div>
         </div>
@@ -43,9 +46,9 @@
                     <th class="p-1 pr-2 text-left font-normal">Status</th>
                 </tr>
             </thead>
-            @if (Model.Steps != null)
+            @if (Sequence.Steps != null)
             {
-                @foreach (var step in Model.Steps)
+                @foreach (var step in Sequence.Steps)
                 {
                     var hasMetadata = step.Result?.Metadata != null && step.Result.Metadata.Count > 0;
                     <tbody class="text-black text-sm border-b border-gray-300">
@@ -73,13 +76,13 @@
                                             {
                                                 case ResultMetadataException exception:
                                                     {
-                                                        <div class="@(firstMetadataItem ? "pb-2" : "py-2") text-sm">Exception:</div>
+                                                        <div class="@(firstMetadataItem ? "pb-2" : "py-2") text-xs">Exception:</div>
                                                         <pre class="bg-red-100 text-xs p-2 whitespace-pre-wrap overflow-auto max-w-full break-words">@exception.Exception</pre>
                                                     }
                                                     break;
                                                 case ResultMetadataTable table:
                                                     {
-                                                        <div class="@(firstMetadataItem ? "pb-2" : "py-2") text-sm">@table.Name:</div>
+                                                        <div class="@(firstMetadataItem ? "pb-2" : "py-2") text-xs">@table.Name:</div>
                                                         <table class="text-xs border border-gray-400">
                                                             @if (table.Headers != null && table.Headers.Length > 0)
                                                             {
@@ -121,7 +124,7 @@
                                                                     width: 700,
                                                                     height: 400,
                                                                     margin: { top: 40, right: 20, bottom: 60, left: 80}
-                                                                }).render(@Raw(chart.ToJson()));
+                                                                }).render(@((MarkupString)(chart.ToJson())));
                                                             });
                                                         </script>
                                                         includeD3 = true;
@@ -142,7 +145,7 @@
             }
         </table>
     </div>
-    @Raw(GetStyles(Model))
-    @Raw(GetLibraryD3(includeD3))
+    @((MarkupString)(GetStyles(Sequence)))
+    @((MarkupString)(GetLibraryD3(includeD3)))
 </body>
 </html>
