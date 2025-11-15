@@ -1,4 +1,6 @@
-﻿namespace TS.NET.Sequencer
+﻿using System.Text.Json;
+
+namespace TS.NET.Sequencer
 {
     public class ResultMetadataXYChart : ResultMetadata
     {
@@ -10,11 +12,7 @@
         public string ToJson()
         {
             SetSeriesColours();
-            return System.Text.Json.JsonSerializer.Serialize(this, new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
-                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase) }
-            });
+            return JsonSerializer.Serialize(this, DefaultCaseContext.Default.ResultMetadataXYChart);
         }
 
         public void SetSeriesColours()
