@@ -20,7 +20,7 @@ public class PgaLoadSetupStep : Step
             var configIndex = 21;
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, configIndex, variables);
             var pathConfig = Utility.GetChannelPathConfig(channelIndex, configIndex, variables);
-            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables);
+            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables.FrontEndSettlingTimeMs);
 
             Utility.GetAndCheckSigGenZero(channelIndex, pathConfig, variables, cancellationToken);
             

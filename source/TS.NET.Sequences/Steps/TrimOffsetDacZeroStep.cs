@@ -4,7 +4,7 @@ namespace TS.NET.Sequences;
 
 public class TrimOffsetDacZeroStep : Step
 {
-    public TrimOffsetDacZeroStep(string name, int channelIndex, int pathIndex, CalibrationVariables variables) : base(name)
+    public TrimOffsetDacZeroStep(string name, int channelIndex, PgaPreampGain pgaGain, int pgaLadder, CalibrationVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {
@@ -12,8 +12,8 @@ public class TrimOffsetDacZeroStep : Step
             Instruments.Instance.SetThunderscopeResolution(AdcResolution.EightBit);
             Instruments.Instance.SetThunderscopeRate(1_000_000_000);
 
-            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pathIndex, variables);
-            var pathConfig = Utility.GetChannelPathConfig(channelIndex, pathIndex, variables);
+            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pgaGain, pgaLadder, variables);
+            var pathConfig = Utility.GetChannelPathConfig(channelIndex, pgaGain, pgaLadder, variables);
 
             var high = pathConfig.TargetDPotResolution * 0.8;
             var low = pathConfig.TargetDPotResolution * -0.8;
@@ -23,7 +23,7 @@ public class TrimOffsetDacZeroStep : Step
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables);
+                Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables.FrontEndSettlingTimeMs);
                 var average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
 
                 if (average > high)

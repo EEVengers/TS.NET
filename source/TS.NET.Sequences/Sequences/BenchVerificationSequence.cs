@@ -25,19 +25,15 @@ public class BenchVerificationSequence : Sequence
             new LoadUserCalFromDeviceStep("Load calibration from device", Variables),
             new WarmupStep("Warmup device", Variables) { Skip = false, AllowSkip = true },
 
-            new AdcBranchGainsStep("Channel 1 - 1GSPS ADC branch gains", 0, 1_000_000_000, Variables),
             new BodePlotStep("Channel 1 - 1 GSPS, 50R, 0.8 Vpp, attenuator off, LG L10", channelIndex: 0, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, 0.8, false, Variables),
             new BodePlotStep("Channel 1 - 1 GSPS, 50R, 10 Vpp, attenuator on, LG L7", channelIndex: 0, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 7, 10, true, Variables),
 
-            new AdcBranchGainsStep("Channel 2 - 1GSPS ADC branch gains", 1, 1_000_000_000, Variables),
             new BodePlotStep("Channel 2 - 1 GSPS, 50R, 0.8 Vpp, attenuator off, LG L10", channelIndex: 1, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, 0.8, false, Variables),
             new BodePlotStep("Channel 2 - 1 GSPS, 50R, 10 Vpp, attenuator on, LG L7", channelIndex: 1, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 7, 10, true, Variables),
 
-            new AdcBranchGainsStep("Channel 3 - 1GSPS ADC branch gains", 2, 1_000_000_000, Variables),
             new BodePlotStep("Channel 3 - 1 GSPS, 50R, 0.8 Vpp, attenuator off, LG L10", channelIndex: 2, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, 0.8, false, Variables),
             new BodePlotStep("Channel 3 - 1 GSPS, 50R, 10 Vpp, attenuator on, LG L7", channelIndex: 2, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 7, 10, true, Variables),
 
-            new AdcBranchGainsStep("Channel 4 - 1GSPS ADC branch gains", 3, 1_000_000_000, Variables),
             new BodePlotStep("Channel 4 - 1 GSPS, 50R, 0.8 Vpp, attenuator off, LG L10", channelIndex: 3, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, 0.8, false, Variables),
             new BodePlotStep("Channel 4 - 1 GSPS, 50R, 10 Vpp, attenuator on, LG L7", channelIndex: 3, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 7, 10, true, Variables),
 

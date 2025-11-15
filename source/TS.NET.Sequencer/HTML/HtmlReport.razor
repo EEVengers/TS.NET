@@ -76,13 +76,13 @@
                                             {
                                                 case ResultMetadataException exception:
                                                     {
-                                                        <div class="@(firstMetadataItem ? "pb-2" : "py-2") text-xs">Exception:</div>
+                                                        <div class="@(firstMetadataItem ? "pb-2" : "py-2") text-xs">Exception</div>
                                                         <pre class="bg-red-100 text-xs p-2 whitespace-pre-wrap overflow-auto max-w-full break-words">@exception.Exception</pre>
                                                     }
                                                     break;
                                                 case ResultMetadataTable table:
                                                     {
-                                                        <div class="@(firstMetadataItem ? "pb-2" : "py-2") text-xs">@table.Name:</div>
+                                                        <div class="@(firstMetadataItem ? "pb-2" : "py-2") text-xs">@table.Name</div>
                                                         <table class="text-xs border border-gray-400">
                                                             @if (table.Headers != null && table.Headers.Length > 0)
                                                             {

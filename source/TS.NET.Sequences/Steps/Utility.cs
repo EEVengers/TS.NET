@@ -54,6 +54,42 @@ public static class Utility
         return pathConfigs.Where(p => p.PgaPreampGain == pgaPreamp && p.PgaLadderAttenuator == pgaLadder).First();
     }
 
+    public static bool TryTrimDacBinarySearch(
+        int channelIndex,
+        ThunderscopeChannelPathCalibration pathCalibration,
+        double targetMin, double targetMax,
+        int frontEndSettlingTimeMs,
+        CancellationToken cancellationToken,
+        out ushort dac, out double adc)
+    {
+        int low = 0;
+        int high = 4095;
+        while (low <= high)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int mid = low + (high - low) / 2;
+            Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, (ushort)mid, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, frontEndSettlingTimeMs);
+            var average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
+            if (average >= targetMin && average <= targetMax)
+            {
+                dac = (ushort)mid;
+                adc = average;
+                return true;
+            }
+            if (average > targetMax)
+            {
+                low = mid + 1;
+            }
+            else if (average < targetMin)
+            {
+                high = mid - 1;
+            }
+        }
+        dac = 0;
+        adc = 0;
+        return false;
+    }
+
     public static double GetAndCheckSigGenZero(int channelIndex, ChannelPathConfig path, BenchCalibrationVariables variables, CancellationToken cancellationToken)
     {
         double zeroValue = variables.SigGenZero;

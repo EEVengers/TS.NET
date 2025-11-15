@@ -19,10 +19,10 @@ public class AcRmsStep : Step
             switch (termination)
             {
                 case ThunderscopeTermination.FiftyOhm:
-                    Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, false, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, bandwidth, variables);
+                    Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, false, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, bandwidth, variables.FrontEndSettlingTimeMs);
                     break;
                 case ThunderscopeTermination.OneMegaohm:
-                    Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, false, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, bandwidth, variables);
+                    Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, false, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, bandwidth, variables.FrontEndSettlingTimeMs);
                     break;
             }
 

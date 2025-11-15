@@ -258,12 +258,12 @@ public class Instruments
     //    Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
     //}
 
-    public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, CommonVariables variables)
+    public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, int frontEndSettlingTimeMs)
     {
-        SetThunderscopeCalManual50R(channelIndex, false, dac, dpot, pgaPreampGain, pgaLadderAttenuation, ThunderscopeBandwidth.Bw20M, variables);
+        SetThunderscopeCalManual50R(channelIndex, false, dac, dpot, pgaPreampGain, pgaLadderAttenuation, ThunderscopeBandwidth.Bw20M, frontEndSettlingTimeMs);
     }
 
-    public void SetThunderscopeCalManual50R(int channelIndex, bool attenuator, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, ThunderscopeBandwidth pgaFilter, CommonVariables variables)
+    public void SetThunderscopeCalManual50R(int channelIndex, bool attenuator, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, ThunderscopeBandwidth pgaFilter, int frontEndSettlingTimeMs)
     {
         var frontend = new ThunderscopeChannelFrontendManualControl
         {
@@ -277,15 +277,15 @@ public class Instruments
             PgaHighGain = (pgaPreampGain == PgaPreampGain.High) ? (byte)1 : (byte)0
         };
         thunderScope?.SetChannelManualControl(channelIndex, frontend);
-        Thread.Sleep(variables.FrontEndSettlingTimeMs);
+        Thread.Sleep(frontEndSettlingTimeMs);
     }
 
-    public void SetThunderscopeCalManual1M(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, CommonVariables variables)
+    public void SetThunderscopeCalManual1M(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, int frontEndSettlingTimeMs)
     {
-        SetThunderscopeCalManual1M(channelIndex, false, dac, dpot, pgaPreampGain, pgaLadderAttenuation, ThunderscopeBandwidth.Bw20M, variables);
+        SetThunderscopeCalManual1M(channelIndex, false, dac, dpot, pgaPreampGain, pgaLadderAttenuation, ThunderscopeBandwidth.Bw20M, frontEndSettlingTimeMs);
     }
 
-    public void SetThunderscopeCalManual1M(int channelIndex, bool attenuator, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, ThunderscopeBandwidth pgaFilter, CommonVariables variables)
+    public void SetThunderscopeCalManual1M(int channelIndex, bool attenuator, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, ThunderscopeBandwidth pgaFilter, int frontEndSettlingTimeMs)
     {
         var frontend = new ThunderscopeChannelFrontendManualControl
         {
@@ -299,7 +299,7 @@ public class Instruments
             PgaHighGain = (pgaPreampGain == PgaPreampGain.High) ? (byte)1 : (byte)0
         };
         thunderScope?.SetChannelManualControl(channelIndex, frontend);
-        Thread.Sleep(variables.FrontEndSettlingTimeMs);
+        Thread.Sleep(frontEndSettlingTimeMs);
     }
 
     public void SetThunderscopeAdcCalibration(byte[] branchFineGains)

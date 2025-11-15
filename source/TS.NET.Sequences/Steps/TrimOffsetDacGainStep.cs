@@ -4,7 +4,7 @@ namespace TS.NET.Sequences;
 
 public class TrimOffsetDacGainStep : Step
 {
-    public TrimOffsetDacGainStep(string name, int channelIndex, int pathIndex, CalibrationVariables variables) : base(name)
+    public TrimOffsetDacGainStep(string name, int channelIndex, PgaPreampGain pgaGain, int pgaLadder, CalibrationVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {
@@ -12,16 +12,16 @@ public class TrimOffsetDacGainStep : Step
             Instruments.Instance.SetThunderscopeResolution(AdcResolution.EightBit);
             Instruments.Instance.SetThunderscopeRate(1_000_000_000);
 
-            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pathIndex, variables);
-            var pathConfig = Utility.GetChannelPathConfig(channelIndex, pathIndex, variables);
+            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pgaGain, pgaLadder, variables);
+            var pathConfig = Utility.GetChannelPathConfig(channelIndex, pgaGain, pgaLadder, variables);
 
             pathCalibration.TrimScaleDac = pathConfig.TrimScaleDacInitial;
 
-            if (!TryDacBinarySearch(channelIndex, pathCalibration, 118, 120, variables, cancellationToken, out int pos100Dac, out double pos100Average))
+            if (!Utility.TryTrimDacBinarySearch(channelIndex, pathCalibration, 118, 120, variables.FrontEndSettlingTimeMs, cancellationToken, out ushort pos100Dac, out double pos100Average))
             {
                 throw new TestbenchException("Could not converge");
             }
-            if (!TryDacBinarySearch(channelIndex, pathCalibration, -120, -118, variables, cancellationToken, out int neg100Dac, out double neg100Average))
+            if (!Utility.TryTrimDacBinarySearch(channelIndex, pathCalibration, -120, -118, variables.FrontEndSettlingTimeMs, cancellationToken, out ushort neg100Dac, out double neg100Average))
             {
                 throw new TestbenchException("Could not converge");
             }
@@ -47,42 +47,5 @@ public class TrimOffsetDacGainStep : Step
                 return Status.Failed;
             }
         };
-    }
-
-    public bool TryDacBinarySearch(
-        int channelIndex,
-        ThunderscopeChannelPathCalibration pathCalibration,
-        double targetMin, double targetMax,
-        CalibrationVariables variables,
-        CancellationToken cancellationToken,
-        out int dac, out double adc
-        )
-    {
-        int low = 0;
-        int high = 4095;
-        while (low <= high)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            int mid = low + (high - low) / 2;
-            Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, (ushort)mid, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables);
-            var average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
-            if (average >= targetMin && average <= targetMax)
-            {
-                dac = mid;
-                adc = average;
-                return true;
-            }
-            if (average > targetMax)
-            {
-                low = mid + 1;
-            }
-            else if (average < targetMin)
-            {
-                high = mid - 1;
-            }
-        }
-        dac = 0;
-        adc = 0;
-        return false;
     }
 }

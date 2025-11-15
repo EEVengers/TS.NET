@@ -14,9 +14,8 @@ public class AttenuatorStep : Step
             Instruments.Instance.SetThunderscopeRate(1_000_000_000);
 
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, 18, variables);
-            //var pathConfig = Utility.GetChannelPathConfig(channelIndex, 18);
 
-            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, attenuator: true, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, ThunderscopeBandwidth.Bw20M, variables);
+            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, attenuator: true, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, ThunderscopeBandwidth.Bw20M, variables.FrontEndSettlingTimeMs);
             Instruments.Instance.SetSdgParameterOffset(channelIndex, 10);
             Thread.Sleep(100);
             var max = Instruments.Instance.GetThunderscopeAverage(channelIndex);

@@ -12,7 +12,7 @@ public class LoadUserCalFromDeviceFallbackToFileStep : Step
             {
                 variables.Calibration = calibration!;
                 variables.ParametersSet = 0;
-                Result!.Summary = $"Source: device";
+                Result!.Summary = $"Device";
                 Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Calibration loaded from device");
                 return Status.Done;
             }
@@ -20,7 +20,7 @@ public class LoadUserCalFromDeviceFallbackToFileStep : Step
             {
                 variables.Calibration = ThunderscopeCalibrationSettings.FromJsonFile(variables.CalibrationFileName);
                 variables.ParametersSet = 0;
-                Result!.Summary = $"Source: file";
+                Result!.Summary = $"File";
                 Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Calibration loaded from file");
                 return Status.Done;
             }
