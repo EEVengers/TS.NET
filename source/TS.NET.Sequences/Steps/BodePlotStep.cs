@@ -15,7 +15,14 @@ public class BodePlotStep : Step
             Instruments.Instance.SetThunderscopeRate(sampleRateHz);
 
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, preamp, ladder, variables);
-            double amplitudeVpp = pathCalibration.BufferInputVpp * 0.8 * (attenuator ? 50.0 : 1.0);
+            double attenuatorScale = channelIndex switch {
+                0 => variables.Calibration.Channel1.AttenuatorScale,
+                1 => variables.Calibration.Channel2.AttenuatorScale,
+                2 => variables.Calibration.Channel3.AttenuatorScale,
+                3 => variables.Calibration.Channel4.AttenuatorScale,
+                _ => throw new NotImplementedException()
+            };
+            double amplitudeVpp = pathCalibration.BufferInputVpp * 0.8 / (attenuator ? attenuatorScale : 1.0);
             
             Instruments.Instance.SetSdgChannel([channelIndex]);
             Instruments.Instance.SetSdgLoad(channelIndex, ThunderscopeTermination.FiftyOhm);
@@ -32,7 +39,7 @@ public class BodePlotStep : Step
             var frequenciesHz = new List<uint>();
             uint startFrequencyHz = 100;
             int decades = 6;
-            int pointsPerDecade = 50;
+            int pointsPerDecade = 40;
 
             for (int d = 0; d < decades; d++)
             {
@@ -53,13 +60,13 @@ public class BodePlotStep : Step
             var bodePoints = new Dictionary<uint, double>();
 
             Instruments.Instance.SetSdgParameterFrequency(channelIndex, startFrequencyHz);
-            var signalAtRef = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(channelIndex, startFrequencyHz, sampleRateHz, pathCalibration.BufferInputVpp, resolution);
+            var signalAtRef = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(channelIndex, startFrequencyHz, sampleRateHz, pathCalibration.BufferInputVpp, resolution) / (attenuator ? attenuatorScale : 1.0);
 
             foreach (var frequencyHz in frequenciesHz)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 Instruments.Instance.SetSdgParameterFrequency(channelIndex, frequencyHz);
-                var signalAtFrequency = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(channelIndex, frequencyHz, sampleRateHz, pathCalibration.BufferInputVpp, resolution);
+                var signalAtFrequency = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(channelIndex, frequencyHz, sampleRateHz, pathCalibration.BufferInputVpp, resolution) / (attenuator ? attenuatorScale : 1.0);
 
                 // Normalise relative to the reference measurement
                 double normalised = signalAtFrequency / signalAtRef;
