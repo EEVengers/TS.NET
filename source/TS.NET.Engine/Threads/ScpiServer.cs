@@ -563,14 +563,14 @@ internal class ScpiSession : TcpSession
                                     var adcCal = new ThunderscopeAdcCalibration();
                                     try
                                     {
-                                        adcCal.FineGainBranch1 = Convert.ToByte(args[0]);
-                                        adcCal.FineGainBranch2 = Convert.ToByte(args[1]);
-                                        adcCal.FineGainBranch3 = Convert.ToByte(args[2]);
-                                        adcCal.FineGainBranch4 = Convert.ToByte(args[3]);
-                                        adcCal.FineGainBranch5 = Convert.ToByte(args[4]);
-                                        adcCal.FineGainBranch6 = Convert.ToByte(args[5]);
-                                        adcCal.FineGainBranch7 = Convert.ToByte(args[6]);
-                                        adcCal.FineGainBranch8 = Convert.ToByte(args[7]);
+                                        adcCal.FineGainBranch1 = (byte)(Convert.ToSByte(args[0]) & 0x7F);
+                                        adcCal.FineGainBranch2 = (byte)(Convert.ToSByte(args[1]) & 0x7F);
+                                        adcCal.FineGainBranch3 = (byte)(Convert.ToSByte(args[2]) & 0x7F);
+                                        adcCal.FineGainBranch4 = (byte)(Convert.ToSByte(args[3]) & 0x7F);
+                                        adcCal.FineGainBranch5 = (byte)(Convert.ToSByte(args[4]) & 0x7F);
+                                        adcCal.FineGainBranch6 = (byte)(Convert.ToSByte(args[5]) & 0x7F);
+                                        adcCal.FineGainBranch7 = (byte)(Convert.ToSByte(args[6]) & 0x7F);
+                                        adcCal.FineGainBranch8 = (byte)(Convert.ToSByte(args[7]) & 0x7F);
                                         hardwareControl.Request.Writer.Write(new HardwareSetAdcCalibration(adcCal));
                                     }
                                     catch

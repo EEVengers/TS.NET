@@ -9,6 +9,7 @@ namespace TS.NET.Sequencer
         public required ResultMetadataXYChartAxis XAxis { get; set; }
         public required ResultMetadataXYChartAxis YAxis { get; set; }
         public required ResultMetadataXYChartSeries[] Series { get; set; }
+        public ResultMetadataXYChartLegendLocation LegendLocation { get; set; } = ResultMetadataXYChartLegendLocation.TopRight;
 
         public string ToJson()
         {
@@ -70,5 +71,11 @@ namespace TS.NET.Sequencer
     {
         Linear,
         Log10
+    }
+
+    public enum ResultMetadataXYChartLegendLocation
+    {
+        TopRight,
+        BottomLeft
     }
 }

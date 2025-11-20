@@ -119,6 +119,7 @@
                                                     break;
                                                 case ResultMetadataXYChart chart:
                                                     {
+                                                        var legendLocation = chart.LegendLocation == ResultMetadataXYChartLegendLocation.BottomLeft ? "bottom-left" : "top-right";
                                                         <div class="mt-2">
                                                             <svg id="chart-@(step.Index)" width="700" height="400"></svg>
                                                             <script>
@@ -126,7 +127,8 @@
                                                                     new ResultMetadataXYChart("chart-@(step.Index)", {
                                                                         width: 700,
                                                                         height: 400,
-                                                                        margin: { top: 40, right: 20, bottom: 60, left: 80}
+                                                                        margin: { top: 40, right: 20, bottom: 60, left: 80},
+                                                                        legendLocation: "@legendLocation"
                                                                     }).render(@((MarkupString)(chart.ToJson())));
                                                                 });
                                                             </script>
