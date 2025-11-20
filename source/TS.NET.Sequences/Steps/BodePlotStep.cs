@@ -4,13 +4,13 @@ namespace TS.NET.Sequences;
 
 public class BodePlotStep : Step
 {
-    public BodePlotStep(string name, int channelIndex, uint sampleRateHz, PgaPreampGain preamp, int ladder, bool attenuator, CommonVariables variables) : base(name)
+    public BodePlotStep(string name, int channelIndex, int[] channelIndices, uint sampleRateHz, PgaPreampGain preamp, int ladder, bool attenuator, CommonVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {
             var resolution = AdcResolution.EightBit;
 
-            Instruments.Instance.SetThunderscopeChannel([channelIndex]);
+            Instruments.Instance.SetThunderscopeChannel(channelIndices);
             Instruments.Instance.SetThunderscopeResolution(resolution);
             Instruments.Instance.SetThunderscopeRate(sampleRateHz);
 
@@ -107,7 +107,7 @@ public class BodePlotStep : Step
                         {
                             Name = this.Name,
                             ColourHex = "#1f77b4",
-                            Data = bodePoints.Select(p => new ResultMetadataXYChartDataPoint
+                            Data = bodePoints.Select(p => new ResultMetadataXYChartPoint
                             {
                                 X = (double)p.Key,
                                 Y = 20.0 * Math.Log10(p.Value)

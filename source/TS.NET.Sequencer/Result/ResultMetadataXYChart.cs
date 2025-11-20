@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Xml.Serialization;
 
 namespace TS.NET.Sequencer
 {
@@ -42,6 +43,7 @@ namespace TS.NET.Sequencer
         }
     }
 
+    [XmlType("Axis")]
     public class ResultMetadataXYChartAxis
     {
         public required string Label { get; set; }
@@ -49,14 +51,16 @@ namespace TS.NET.Sequencer
         public double[]? AdditionalRangeValues { get; set; }      // Use this to coerce the axis range to include a specific value
     }
 
+    [XmlType("Series")]
     public class ResultMetadataXYChartSeries
     {
         public required string Name { get; set; }
         public required string ColourHex { get; set; }
-        public required ResultMetadataXYChartDataPoint[] Data { get; set; }
+        public required ResultMetadataXYChartPoint[] Data { get; set; }
     }
 
-    public class ResultMetadataXYChartDataPoint
+    [XmlType("Point")]
+    public class ResultMetadataXYChartPoint
     {
         public required double X { get; set; }
         public required double Y { get; set; }

@@ -547,14 +547,24 @@ public class Instruments
         var subsetShuffleMemory = shuffleMemory!.Subset(acquisitionLength);
         thunderScope!.Read(subsetDataMemory);
 
-        var samples = subsetDataMemory.DataSpanI8.Slice(subsetDataMemory.DataSpanI8.Length - interleavedSampleCount, interleavedSampleCount);
+        var samples = subsetDataMemory.DataSpanI8;
 
         Span<sbyte> channel;
         switch (config.Acquisition.EnabledChannelsCount())
         {
             case 1:
-                channel = samples;
+                channel = subsetDataMemory.DataSpanI8.Slice(subsetDataMemory.DataSpanI8.Length - sampleCount, sampleCount);
                 break;
+            case 2:
+                {
+                    Span<sbyte> twoChannels = subsetShuffleMemory.DataSpanI8;
+                    ShuffleI8.TwoChannels(subsetDataMemory.DataSpanI8, twoChannels);
+                    var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                    var length = samples.Length / 2;
+                    channel = twoChannels.Slice(index * length, length);
+                    channel = channel.Slice(channel.Length - sampleCount, sampleCount);
+                    break;
+                }
             default:
                 throw new NotImplementedException();
         }
