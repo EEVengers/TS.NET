@@ -532,14 +532,23 @@ public class Instruments
         var config = thunderScope!.GetConfiguration();
         if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
             throw new TestbenchException("Requested channel index is not an enabled channel");
+
+        var channelCount = config.Acquisition.EnabledChannelsCount();
+        var sampleCount = (int)((sampleRateHz / frequency) * 10.0);
+        var interleavedSampleCount = sampleCount * channelCount;
+        var minimumAcquisitionLength = 1024 * 1024;
+        var acquisitionLength = ((interleavedSampleCount/minimumAcquisitionLength)+1) * minimumAcquisitionLength;
+        if(acquisitionLength < minimumAcquisitionLength)
+            acquisitionLength = minimumAcquisitionLength;
+
         thunderScope!.Stop();
         thunderScope!.Start();
-        var subsetDataMemory = dataMemory!.Subset(32 * 1024 * 1024);
-        var subsetShuffleMemory = shuffleMemory!.Subset(32 * 1024 * 1024);
+        var subsetDataMemory = dataMemory!.Subset(acquisitionLength);
+        var subsetShuffleMemory = shuffleMemory!.Subset(acquisitionLength);
         thunderScope!.Read(subsetDataMemory);
 
-        var sampleCount = (int)((sampleRateHz / frequency) * 10.0);
-        var samples = subsetDataMemory.DataSpanI8.Slice(subsetDataMemory.DataSpanI8.Length - sampleCount, sampleCount);
+        var samples = subsetDataMemory.DataSpanI8.Slice(subsetDataMemory.DataSpanI8.Length - interleavedSampleCount, interleavedSampleCount);
+
         Span<sbyte> channel;
         switch (config.Acquisition.EnabledChannelsCount())
         {

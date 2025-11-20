@@ -25,17 +25,19 @@ public class BenchVerificationSequence : Sequence
             new LoadUserCalFromDeviceStep("Load calibration from device", Variables),
             new WarmupStep("Warmup device", Variables) { Skip = false, AllowSkip = true },
 
-            new BodePlotStep("Channel 1 - 1 GSPS, 50R, 0.8 Vpp, attenuator off, LG L10", channelIndex: 0, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, 0.8, false, Variables),
-            new BodePlotStep("Channel 1 - 1 GSPS, 50R, 10 Vpp, attenuator on, LG L7", channelIndex: 0, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 7, 10, true, Variables),
+            // Note: due to 5Vpp SDG limit for frequencies above 10 MHz, the attenuator on steps can only go from HG L0 to HG L10
 
-            new BodePlotStep("Channel 2 - 1 GSPS, 50R, 0.8 Vpp, attenuator off, LG L10", channelIndex: 1, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, 0.8, false, Variables),
-            new BodePlotStep("Channel 2 - 1 GSPS, 50R, 10 Vpp, attenuator on, LG L7", channelIndex: 1, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 7, 10, true, Variables),
+            new BodePlotStep("Channel 1 - 1 GSPS, 50R, attenuator off, LG L10", channelIndex: 0, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, attenuator: false, Variables),
+            new BodePlotStep("Channel 1 - 1 GSPS, 50R, attenuator on, HG L10", channelIndex: 0, 1_000_000_000, preamp: PgaPreampGain.High, ladder: 10, attenuator: true, Variables),
 
-            new BodePlotStep("Channel 3 - 1 GSPS, 50R, 0.8 Vpp, attenuator off, LG L10", channelIndex: 2, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, 0.8, false, Variables),
-            new BodePlotStep("Channel 3 - 1 GSPS, 50R, 10 Vpp, attenuator on, LG L7", channelIndex: 2, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 7, 10, true, Variables),
+            new BodePlotStep("Channel 2 - 1 GSPS, 50R, attenuator off, LG L10", channelIndex: 1, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, attenuator: false, Variables),
+            new BodePlotStep("Channel 2 - 1 GSPS, 50R, attenuator on, HG L10", channelIndex: 1, 1_000_000_000, preamp: PgaPreampGain.High, ladder: 10, attenuator: true, Variables),
 
-            new BodePlotStep("Channel 4 - 1 GSPS, 50R, 0.8 Vpp, attenuator off, LG L10", channelIndex: 3, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, 0.8, false, Variables),
-            new BodePlotStep("Channel 4 - 1 GSPS, 50R, 10 Vpp, attenuator on, LG L7", channelIndex: 3, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 7, 10, true, Variables),
+            new BodePlotStep("Channel 3 - 1 GSPS, 50R, attenuator off, LG L10", channelIndex: 2, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, attenuator: false, Variables),
+            new BodePlotStep("Channel 3 - 1 GSPS, 50R, attenuator on, HG L10", channelIndex: 2, 1_000_000_000, preamp: PgaPreampGain.High, ladder: 10, attenuator: true, Variables),
+
+            new BodePlotStep("Channel 4 - 1 GSPS, 50R, attenuator off, LG L10", channelIndex: 3, 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, attenuator: false, Variables),
+            new BodePlotStep("Channel 4 - 1 GSPS, 50R, attenuator on, HG L10", channelIndex: 3, 1_000_000_000, preamp: PgaPreampGain.High, ladder: 10, attenuator: true, Variables),
 
             new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 

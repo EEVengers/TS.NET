@@ -64,7 +64,7 @@
                             bool firstMetadataItem = true;
                             <tr>
                                 <td class="p-2 bg-gray-200"></td>
-                                <td colspan="4" class="p-2">
+                                <td colspan="4" class="px-2 pb-2">
                                     <div class="text-xs">
                                         @foreach (var meta in step.Result!.Metadata!)
                                         {
@@ -76,21 +76,23 @@
                                             {
                                                 case ResultMetadataException exception:
                                                     {
-                                                        <div class="@(firstMetadataItem ? "pb-2" : "py-2") text-xs">Exception</div>
-                                                        <pre class="bg-red-100 text-xs p-2 whitespace-pre-wrap overflow-auto max-w-full break-words">@exception.Exception</pre>
+                                                        <div class="mt-2 text-xs">Exception</div>
+                                                        <pre class="bg-red-100 text-xs p-2 whitespace-pre-wrap overflow-auto max-w-full break-words mt-2">@exception.Exception</pre>
                                                     }
                                                     break;
                                                 case ResultMetadataTable table:
                                                     {
-                                                        <div class="@(firstMetadataItem ? "pb-2" : "py-2") text-xs">@table.Name</div>
-                                                        <table class="text-xs border border-gray-400">
+                                                        if(table.Name != null){
+                                                            <div class="mt-2 text-xs">@table.Name</div>
+                                                        }
+                                                        <table class="mt-2 text-xs border border-gray-300">
                                                             @if (table.Headers != null && table.Headers.Length > 0)
                                                             {
-                                                                <thead>
+                                                                <thead class="bg-gray-200 border-b border-gray-300">
                                                                     <tr>
                                                                         @foreach (var h in table.Headers)
                                                                         {
-                                                                            <th class="px-2 py-1 border-b border-gray-400 text-left font-normal">@h</th>
+                                                                            <th class="px-2 py-1 text-left font-normal">@h</th>
                                                                         }
                                                                     </tr>
                                                                 </thead>
@@ -100,12 +102,12 @@
                                                                 <tbody>
                                                                     @foreach (var row in table.Rows)
                                                                     {
-                                                                        <tr>
+                                                                        <tr class="border-b border-gray-300">
                                                                             @if (row != null)
                                                                             {
                                                                                 @foreach (var cell in row)
                                                                                 {
-                                                                                    <td class="px-2 py-1 border-b border-gray-300">@cell</td>
+                                                                                    <td class="px-2 py-1">@cell</td>
                                                                                 }
                                                                             }
                                                                         </tr>
@@ -117,21 +119,24 @@
                                                     break;
                                                 case ResultMetadataXYChart chart:
                                                     {
-                                                        <svg id="chart-@(step.Index)" width="700" height="400"></svg>
-                                                        <script>
-                                                            window.addEventListener("load", function() {
-                                                                new ResultMetadataXYChart("chart-@(step.Index)", {
-                                                                    width: 700,
-                                                                    height: 400,
-                                                                    margin: { top: 40, right: 20, bottom: 60, left: 80}
-                                                                }).render(@((MarkupString)(chart.ToJson())));
-                                                            });
-                                                        </script>
+                                                        <div class="mt-2">
+                                                            <svg id="chart-@(step.Index)" width="700" height="400"></svg>
+                                                            <script>
+                                                                window.addEventListener("load", function() {
+                                                                    new ResultMetadataXYChart("chart-@(step.Index)", {
+                                                                        width: 700,
+                                                                        height: 400,
+                                                                        margin: { top: 40, right: 20, bottom: 60, left: 80}
+                                                                    }).render(@((MarkupString)(chart.ToJson())));
+                                                                });
+                                                            </script>
+                                                        </div>
+
                                                         includeD3 = true;
                                                     }
                                                     break;
                                                 default:
-                                                    <em class="text-gray-500">Metadata type not implemented in report generator.</em>
+                                                    <em class="text-gray-500 mt-2">Metadata type not implemented in report generator.</em>
                                                     break;
                                             }
                                             firstMetadataItem = false;

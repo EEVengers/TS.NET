@@ -2,7 +2,7 @@
 {
     public class ResultMetadataTable : ResultMetadata
     {
-        public required string Name { get; set; }
+        public required string? Name { get; set; }
         public required string[] Headers { get; set; }
         public required string[][] Rows { get; set; }
     }
