@@ -317,6 +317,11 @@ public class Instruments
         });
     }
 
+    public void SetThunderscopeAdcCalibration(ThunderscopeAdcCalibration adcCalibration)
+    {
+        thunderScope?.SetAdcCalibration(adcCalibration);
+    }
+
     public double GetThunderscopeFpgaTemp()
     {
         return thunderScope!.GetStatus().FpgaTemp;
@@ -476,8 +481,8 @@ public class Instruments
             throw new TestbenchException("Requested channel index is not an enabled channel");
         thunderScope!.Stop();
         thunderScope!.Start();
-        var subsetDataMemory = dataMemory!.Subset(64 * 1024 * 1024);
-        var subsetShuffleMemory = shuffleMemory!.Subset(64 * 1024 * 1024);
+        var subsetDataMemory = dataMemory!.Subset(10 * 1024 * 1024);
+        var subsetShuffleMemory = shuffleMemory!.Subset(10 * 1024 * 1024);
         thunderScope!.Read(subsetDataMemory);
 
         var samples = subsetDataMemory.DataSpanI8;
