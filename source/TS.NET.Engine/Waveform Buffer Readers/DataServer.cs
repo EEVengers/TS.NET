@@ -1,9 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace TS.NET.Engine;
 
@@ -56,45 +54,48 @@ internal class DataServer : IThread
 
     private void LoopListener(ILogger logger, CancellationToken cancelToken)
     {
-        socketListener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        socketListener.Bind(new IPEndPoint(address, port));
-        socketListener.Listen(backlog: 1);
-        logger.LogInformation($"Socket opened {socketListener.LocalEndPoint}");
-        try
+        while (!cancelToken.IsCancellationRequested)
         {
-            while (true)
+            socketListener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            socketListener.Bind(new IPEndPoint(address, port));
+            socketListener.Listen(backlog: 1);
+            logger.LogInformation($"Socket opened {socketListener.LocalEndPoint}");
+            try
             {
-                cancelToken.ThrowIfCancellationRequested();
-                var session = socketListener!.Accept();
-                if (socketSession != null)
+                while (true)
                 {
-                    logger.LogInformation($"Dropping session {socketSession?.RemoteEndPoint} and accepting new session");
-                    try { socketSession?.Shutdown(SocketShutdown.Both); } catch { }
-                    try { socketSession?.Close(); } catch { }
-                    sessionCancelTokenSource?.Cancel();
+                    cancelToken.ThrowIfCancellationRequested();
+                    var session = socketListener!.Accept();
+                    if (socketSession != null)
+                    {
+                        logger.LogInformation($"Dropping session {socketSession?.RemoteEndPoint} and accepting new session");
+                        try { socketSession?.Shutdown(SocketShutdown.Both); } catch { }
+                        try { socketSession?.Close(); } catch { }
+                        sessionCancelTokenSource?.Cancel();
+                    }
+                    logger.LogInformation($"Session accepted {session.RemoteEndPoint}");
+                    sessionCancelTokenSource = new CancellationTokenSource();
+                    taskSession = Task.Factory.StartNew(() => LoopSession(logger, session, sessionCancelTokenSource.Token), TaskCreationOptions.LongRunning);
+                    socketSession = session;
                 }
-                logger.LogInformation($"Session accepted {session.RemoteEndPoint}");
-                sessionCancelTokenSource = new CancellationTokenSource();
-                taskSession = Task.Factory.StartNew(() => LoopSession(logger, session, sessionCancelTokenSource.Token), TaskCreationOptions.LongRunning);
-                socketSession = session;
             }
-        }
-        catch (OperationCanceledException) { }
-        catch (SocketException ex)
-        {
-            logger.LogDebug($"SocketException: {ex.SocketErrorCode}");
-        }
-        catch (Exception ex)
-        {
-            logger.LogDebug($"Exception: {ex.Message}");
-        }
-        finally
-        {
-            if (!cancelToken.IsCancellationRequested)
-                logger.LogCritical($"Socket closed");
-            else
-                logger.LogDebug($"Socket closed");
-            socketListener = null;
+            catch (OperationCanceledException) { }
+            catch (SocketException ex)
+            {
+                logger.LogDebug($"SocketException: {ex.SocketErrorCode}");
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug($"Exception: {ex.Message}");
+            }
+            finally
+            {
+                if (!cancelToken.IsCancellationRequested)
+                    logger.LogCritical($"Socket closed");
+                else
+                    logger.LogDebug($"Socket closed");
+                socketListener = null;
+            }
         }
     }
 

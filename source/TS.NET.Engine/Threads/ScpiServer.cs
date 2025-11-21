@@ -111,6 +111,8 @@ internal class ScpiSession : TcpSession
         string message)
     {
         const string InvalidParameters = "One or more invalid parameters";
+        const int processingControlTimeoutMs = 2000;
+        const int hardwareControlTimeoutMs = 500;
 
         string? argument = null;
         string? subject = null;
@@ -596,7 +598,7 @@ internal class ScpiSession : TcpSession
                     case "STATE?":
                         {
                             processingControl.Request.Writer.Write(new ProcessingGetStateRequest());
-                            if (processingControl.Response.Reader.TryRead(out var response, 500))
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
                             {
                                 switch (response)
                                 {
@@ -613,7 +615,7 @@ internal class ScpiSession : TcpSession
                     case "MODE?":
                         {
                             processingControl.Request.Writer.Write(new ProcessingGetModeRequest());
-                            if (processingControl.Response.Reader.TryRead(out var response, 500))
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
                             {
                                 switch (response)
                                 {
@@ -646,7 +648,7 @@ internal class ScpiSession : TcpSession
                     case var _ when command.StartsWith("RES"):
                         {
                             processingControl.Request.Writer.Write(new ProcessingGetResolutionRequest());
-                            if (processingControl.Response.Reader.TryRead(out var response, 500))
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
                             {
                                 if (response is ProcessingGetResolutionResponse processingGetResolutionResponse)
                                 {
@@ -684,7 +686,7 @@ internal class ScpiSession : TcpSession
                     case var _ when command.StartsWith("SOU"):
                         {
                             processingControl.Request.Writer.Write(new ProcessingGetTriggerSourceRequest());
-                            if (processingControl.Response.Reader.TryRead(out var response, 500))
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
                             {
                                 switch (response)
                                 {
@@ -704,7 +706,7 @@ internal class ScpiSession : TcpSession
                     case var _ when command.StartsWith("TYPE"):
                         {
                             processingControl.Request.Writer.Write(new ProcessingGetTriggerTypeRequest());
-                            if (processingControl.Response.Reader.TryRead(out var response, 500))
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
                             {
                                 switch (response)
                                 {
@@ -724,7 +726,7 @@ internal class ScpiSession : TcpSession
                     case var _ when command.StartsWith("DEL"):
                         {
                             processingControl.Request.Writer.Write(new ProcessingGetTriggerDelayRequest());
-                            if (processingControl.Response.Reader.TryRead(out var response, 500))
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
                             {
                                 switch (response)
                                 {
@@ -744,7 +746,7 @@ internal class ScpiSession : TcpSession
                     case var _ when command.StartsWith("HOLD"):
                         {
                             processingControl.Request.Writer.Write(new ProcessingGetTriggerHoldoffRequest());
-                            if (processingControl.Response.Reader.TryRead(out var response, 500))
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
                             {
                                 switch (response)
                                 {
@@ -764,7 +766,7 @@ internal class ScpiSession : TcpSession
                     case var _ when command.StartsWith("INTER"):
                         {
                             processingControl.Request.Writer.Write(new ProcessingGetTriggerInterpolationRequest());
-                            if (processingControl.Response.Reader.TryRead(out var response, 500))
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
                             {
                                 switch (response)
                                 {
@@ -784,7 +786,7 @@ internal class ScpiSession : TcpSession
                     case var _ when command.StartsWith("EDGE:LEV"):
                         {
                             processingControl.Request.Writer.Write(new ProcessingGetEdgeTriggerLevelRequest());
-                            if (processingControl.Response.Reader.TryRead(out var response, 500))
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
                             {
                                 switch (response)
                                 {
@@ -804,7 +806,7 @@ internal class ScpiSession : TcpSession
                     case var _ when command.StartsWith("EDGE:DIR"):
                         {
                             processingControl.Request.Writer.Write(new ProcessingGetEdgeTriggerDirectionRequest());
-                            if (processingControl.Response.Reader.TryRead(out var response, 500))
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
                             {
                                 switch (response)
                                 {
@@ -836,7 +838,7 @@ internal class ScpiSession : TcpSession
                     case var _ when command.Equals("STATE?", StringComparison.OrdinalIgnoreCase):
                         {
                             hardwareControl.Request.Writer.Write(new HardwareGetEnabledRequest(channelIndex));
-                            if (hardwareControl.Response.Reader.TryRead(out var response, 500))
+                            if (hardwareControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
                             {
                                 if (response is HardwareGetEnabledResponse hardwareGetEnabledResponse)
                                 {
@@ -856,7 +858,7 @@ internal class ScpiSession : TcpSession
                     case var _ when command.StartsWith("BAND", StringComparison.OrdinalIgnoreCase):
                         {
                             hardwareControl.Request.Writer.Write(new HardwareGetBandwidthRequest(channelIndex));
-                            if (hardwareControl.Response.Reader.TryRead(out var response, 500))
+                            if (hardwareControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
                             {
                                 if (response is HardwareGetBandwidthResponse hardwareGetBandwidthResponse)
                                 {
@@ -887,7 +889,7 @@ internal class ScpiSession : TcpSession
                     case var _ when command.StartsWith("COUP", StringComparison.OrdinalIgnoreCase):
                         {
                             hardwareControl.Request.Writer.Write(new HardwareGetCouplingRequest(channelIndex));
-                            if (hardwareControl.Response.Reader.TryRead(out var response, 500))
+                            if (hardwareControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
                             {
                                 if (response is HardwareGetCouplingResponse hardwareGetCouplingResponse)
                                 {
@@ -913,7 +915,7 @@ internal class ScpiSession : TcpSession
                     case var _ when command.StartsWith("TERM", StringComparison.OrdinalIgnoreCase):
                         {
                             hardwareControl.Request.Writer.Write(new HardwareGetTerminationRequest(channelIndex));
-                            if (hardwareControl.Response.Reader.TryRead(out var response, 500))
+                            if (hardwareControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
                             {
                                 if (response is HardwareGetTerminationResponse hardwareGetTerminationResponse)
                                 {
@@ -940,7 +942,7 @@ internal class ScpiSession : TcpSession
                     case var _ when command.StartsWith("OFFS", StringComparison.OrdinalIgnoreCase):
                         {
                             hardwareControl.Request.Writer.Write(new HardwareGetVoltOffsetRequest(channelIndex));
-                            if (hardwareControl.Response.Reader.TryRead(out var response, 500))
+                            if (hardwareControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
                             {
                                 if (response is HardwareGetVoltOffsetResponse hardwareGetVoltOffsetResponse)
                                     return $"{hardwareGetVoltOffsetResponse.RequestedVoltOffset:0.######}\n";
@@ -955,7 +957,7 @@ internal class ScpiSession : TcpSession
                     case var _ when command.StartsWith("RANG", StringComparison.OrdinalIgnoreCase):
                         {
                             hardwareControl.Request.Writer.Write(new HardwareGetVoltFullScaleRequest(channelIndex));
-                            if (hardwareControl.Response.Reader.TryRead(out var response, 500))
+                            if (hardwareControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
                             {
                                 if (response is HardwareGetVoltFullScaleResponse hardwareGetVoltFullScaleResponse)
                                 {
@@ -982,7 +984,7 @@ internal class ScpiSession : TcpSession
         string GetRates()
         {
             processingControl.Request.Writer.Write(new ProcessingGetRatesRequest());
-            if (processingControl.Response.Reader.TryRead(out var response, 500))
+            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
             {
                 switch (response)
                 {
@@ -1000,7 +1002,7 @@ internal class ScpiSession : TcpSession
         string GetRate()
         {
             processingControl.Request.Writer.Write(new ProcessingGetRateRequest());
-            if (processingControl.Response.Reader.TryRead(out var response, 500))
+            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
             {
                 switch (response)
                 {
@@ -1038,7 +1040,7 @@ internal class ScpiSession : TcpSession
         string GetDepth()
         {
             processingControl.Request.Writer.Write(new ProcessingGetDepthRequest());
-            if (processingControl.Response.Reader.TryRead(out var response, 500))
+            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
             {
                 switch (response)
                 {
