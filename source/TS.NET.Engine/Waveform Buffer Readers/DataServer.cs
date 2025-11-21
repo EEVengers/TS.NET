@@ -73,7 +73,7 @@ internal class DataServer : IThread
                         try { socketSession?.Close(); } catch { }
                         sessionCancelTokenSource?.Cancel();
                     }
-                    logger.LogInformation($"Session accepted {session.RemoteEndPoint}");
+                    logger.LogInformation($"Session accepted ({session.RemoteEndPoint})");
                     sessionCancelTokenSource = new CancellationTokenSource();
                     taskSession = Task.Factory.StartNew(() => LoopSession(logger, session, sessionCancelTokenSource.Token), TaskCreationOptions.LongRunning);
                     socketSession = session;
@@ -99,8 +99,9 @@ internal class DataServer : IThread
         }
     }
 
-    private void LoopSession(ILogger logger, Socket client, CancellationToken cancelToken)
+    private void LoopSession(ILogger logger, Socket socket, CancellationToken cancelToken)
     {
+        string sessionID = socket.RemoteEndPoint?.ToString() ?? "Unknown";
         try
         {
             Span<byte> cmdBuf = stackalloc byte[1];
@@ -108,7 +109,7 @@ internal class DataServer : IThread
             {
                 cancelToken.ThrowIfCancellationRequested();
                 int read = 0;
-                read = client.Receive(cmdBuf);
+                read = socket.Receive(cmdBuf);
                 if (read == 0)
                     break;
 
@@ -116,10 +117,10 @@ internal class DataServer : IThread
                 switch (cmd)
                 {
                     case (byte)'K':
-                        SendScopehalOld(client, cancelToken);
+                        SendScopehalOld(socket, cancelToken);
                         break;
                     case (byte)'S':
-                        SendScopehal(client, cancelToken);
+                        SendScopehal(socket, cancelToken);
                         break;
                     default:
                         break;
@@ -137,7 +138,7 @@ internal class DataServer : IThread
         }
         finally
         {
-            logger.LogInformation($"Session dropped");
+            logger.LogInformation($"Session dropped ({sessionID})");
             socketSession = null;
         }
     }
