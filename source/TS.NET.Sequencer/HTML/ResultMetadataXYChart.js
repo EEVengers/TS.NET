@@ -38,8 +38,7 @@ class ResultMetadataXYChart {
             .attr('width', this.options.width)
             .attr('height', this.options.height)
             .attr('fill', 'white')
-            .attr('stroke', '#bbb')
-            .attr('stroke-width', 1);
+            .attr('stroke', 'oklch(87.2% 0.01 258.338)');
 
         const g = this.svg.append('g')
             .attr('transform', `translate(${margin.left},${margin.top})`);
@@ -115,50 +114,27 @@ class ResultMetadataXYChart {
     createGrid(g, width, height) {
         const xIsLog = this.chartData.xAxis.scale.toLowerCase() === 'log10';
         const yIsLog = this.chartData.yAxis.scale.toLowerCase() === 'log10';
+        const xExtent = this.xScale.domain();
+        const yExtent = this.yScale.domain();
 
-        // Minor grid
+        // Minor X
         if (xIsLog) {
-            const xExtent = this.xScale.domain();
-            const xMajorTicks = this.decadeTicks(xExtent[0], xExtent[1]);
             const xMinorTicks = this.generateMinorTicks(xExtent);
 
-            // Minor grid
             g.append('g')
                 .attr('class', 'grid-x-minor')
                 .attr('transform', `translate(0, ${height})`)
                 .call(d3.axisBottom(this.xScale)
                     .tickValues(xMinorTicks)
                     .tickSize(-height)
-                    .tickFormat(""))
+                    .tickFormat("")
+                    .tickSizeOuter(0))
                 .selectAll('line')
                 .style('stroke', '#eee');
-
-            // Major grid
-            g.append('g')
-                .attr('class', 'grid-x-major')
-                .attr('transform', `translate(0, ${height})`)
-                .call(d3.axisBottom(this.xScale)
-                    .tickValues(xMajorTicks)
-                    .tickSize(-height)
-                    .tickFormat(''))
-                .selectAll('line')
-                .style('stroke', '#bbb');
-        }
-        else {
-            // Major grid
-            g.append('g')
-                .attr('class', 'grid-x-major')
-                .attr('transform', `translate(0, ${height})`)
-                .call(d3.axisBottom(this.xScale)
-                    .ticks(10)
-                    .tickSize(-height)
-                    .tickFormat(''))
-                .selectAll('line')
-                .style('stroke', '#bbb');
         }
 
+        // Minor Y
         if (yIsLog) {
-            const yExtent = this.yScale.domain();
             const yMinorTicks = this.generateMinorTicks(yExtent);
 
             g.append('g')
@@ -166,20 +142,65 @@ class ResultMetadataXYChart {
                 .call(d3.axisLeft(this.yScale)
                     .tickValues(yMinorTicks)
                     .tickSize(-width)
-                    .tickFormat(""))
+                    .tickFormat("")
+                    .tickSizeOuter(0))
                 .selectAll('line')
                 .style('stroke', '#eee');
         }
 
-        g.append('g')
-            .attr('class', 'grid-y-major')
-            .call(d3.axisLeft(this.yScale)
-                .tickSize(-width)
-                .tickFormat(''))
-            .selectAll('line')
-            .style('stroke', '#bbb');
+        // Major X
+        if (xIsLog) {           
+            const xMajorTicks = this.decadeTicks(xExtent);
 
-        // g.selectAll('.grid-major path, .grid-minor path').style('stroke-width', 0);
+            g.append('g')
+                .attr('class', 'grid-x-major')
+                .attr('transform', `translate(0, ${height})`)
+                .call(d3.axisBottom(this.xScale)
+                    .tickValues(xMajorTicks)
+                    .tickSize(-height)
+                    .tickFormat('')
+                    .tickSizeOuter(0))
+                .selectAll('line')
+                .style('stroke', '#bbb');
+        }
+        else {
+            g.append('g')
+                .attr('class', 'grid-x-major')
+                .attr('transform', `translate(0, ${height})`)
+                .call(d3.axisBottom(this.xScale)
+                    .ticks(10)
+                    .tickSize(-height)
+                    .tickFormat('')
+                    .tickSizeOuter(0))
+                .selectAll('line')
+                .style('stroke', '#bbb');
+        }
+
+        // Major Y
+        if (yIsLog) {
+            const yMajorTicks = this.decadeTicks(yExtent);
+
+            g.append('g')
+                .attr('class', 'grid-y-major')
+                .call(d3.axisLeft(this.yScale)
+                    .tickValues(yMajorTicks)
+                    .tickSize(-width)
+                    .tickFormat('')
+                    .tickSizeOuter(0))
+                .selectAll('line')
+                .style('stroke', '#bbb');
+        }
+        else {
+            g.append('g')
+                .attr('class', 'grid-y-major')
+                .call(d3.axisLeft(this.yScale)
+                    .ticks(10)
+                    .tickSize(-width)
+                    .tickFormat('')
+                    .tickSizeOuter(0))
+                .selectAll('line')
+                .style('stroke', '#bbb');
+        }
     }
 
     generateMinorTicks(extent) {
@@ -199,11 +220,11 @@ class ResultMetadataXYChart {
         return minorTicks;
     }
 
-    decadeTicks(min, max) {
+    decadeTicks(extent) {
         // Get major ticks on log10 decades
         const ticks = [];
-        const start = Math.ceil(Math.log10(min));
-        const end = Math.floor(Math.log10(max));
+        const start = Math.ceil(Math.log10(extent[0]));
+        const end = Math.floor(Math.log10(extent[1]));
         for (let i = start; i <= end; i++) {
             ticks.push(Math.pow(10, i));
         }
@@ -220,15 +241,23 @@ class ResultMetadataXYChart {
 
         if (xIsLog) {
             const xExtent = this.xScale.domain();
-            const xMajorTicks = this.decadeTicks(xExtent[0], xExtent[1]);
+            const xMajorTicks = this.decadeTicks(xExtent);
             xAxis = d3.axisBottom(this.xScale)
                 .tickValues(xMajorTicks)
                 .tickFormat(d3.format('~s'));
         }
 
-        const yAxis = d3.axisLeft(this.yScale)
+        var yAxis = d3.axisLeft(this.yScale)
             .ticks(10)
             .tickFormat(d3.format('~s'));
+
+        if (yIsLog) {
+            const yExtent = this.yScale.domain();
+            const yMajorTicks = this.decadeTicks(yExtent);
+            yAxis = d3.axisLeft(this.yScale)
+                .tickValues(yMajorTicks)
+                .tickFormat(d3.format('~s'));
+        }
 
         g.append('g')
             .attr('class', 'x axis')

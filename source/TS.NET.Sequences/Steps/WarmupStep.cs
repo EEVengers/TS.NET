@@ -57,7 +57,7 @@ public class WarmupStep : Step
                 [
                     new ResultMetadataXYChartSeries(){ 
                         Name = "FPGA temperature", 
-                        ColourHex = "#124567", 
+                        ColourHex = "", 
                         Data = times.Zip(fpgaTemps, (x, y) => new ResultMetadataXYChartPoint(){ X = Math.Round(x, 0), Y = Math.Round(y, 2) }).ToArray()
                     }
                 ]

@@ -105,8 +105,8 @@ public class BodePlotStep : Step
                     [
                         new ResultMetadataXYChartSeries
                         {
-                            Name = this.Name,
-                            ColourHex = "#1f77b4",
+                            Name = Name,
+                            ColourHex = "",
                             Data = bodePoints.Select(p => new ResultMetadataXYChartPoint
                             {
                                 X = (double)p.Key,
