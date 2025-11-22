@@ -273,14 +273,14 @@ public class Instruments
         if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
             throw new TestbenchException("Requested channel index is not an enabled channel");
 
-        using SpanOwner<sbyte> outputBuffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
-        var channel = GetChannelDataI8(channelIndex, sampleCount, outputBuffer.Span);
+        using SpanOwner<sbyte> i8Buffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
+        GetChannelDataI8(channelIndex, sampleCount, i8Buffer.Span);
 
         long sum = 0;
         long count = 0;
         int min = int.MaxValue;
         int max = int.MinValue;
-        foreach (var point in channel)
+        foreach (var point in i8Buffer.Span)
         {
             sum += point;
             // Temporary debug min/max
@@ -289,7 +289,7 @@ public class Instruments
             if (point < min)
                 min = point;
         }
-        count += channel.Length;
+        count += i8Buffer.Span.Length;
         var average = (double)sum / count;
 
         return average;
@@ -388,24 +388,24 @@ public class Instruments
         if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
             throw new TestbenchException("Requested channel index is not an enabled channel");
 
-        using SpanOwner<sbyte> outputBuffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
-        var channel = GetChannelDataI8(channelIndex, sampleCount, outputBuffer.Span);
+        using SpanOwner<sbyte> i8Buffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
+        GetChannelDataI8(channelIndex, sampleCount, i8Buffer.Span);
 
         double sum = 0;
-        foreach (var point in channel)
+        foreach (var point in i8Buffer.Span)
         {
             sum += point;
         }
 
-        double mean = sum / channel.Length;
+        double mean = sum / i8Buffer.Span.Length;
 
         double sumSquares = 0;
-        foreach (var point in channel)
+        foreach (var point in i8Buffer.Span)
         {
             sumSquares += Math.Pow(point - mean, 2);
         }
 
-        return Math.Sqrt(sumSquares / channel.Length);
+        return Math.Sqrt(sumSquares / i8Buffer.Span.Length);
     }
 
     public double GetThunderscopeVppAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)
@@ -416,10 +416,11 @@ public class Instruments
 
         var sampleCount = (int)((sampleRateHz / frequency) * 10.0);
 
-        using SpanOwner<sbyte> outputBuffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
-        var channel = GetChannelDataI8(channelIndex, sampleCount, outputBuffer.Span);
-        using SpanOwner<double> scaledSamplesBuffer = SpanOwner<double>.Allocate(sampleCount);  // Returned to pool when it goes out of scope
-        var scaledSamples = scaledSamplesBuffer.Span;
+        using SpanOwner<sbyte> i8Buffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
+        GetChannelDataI8(channelIndex, sampleCount, i8Buffer.Span);
+        using SpanOwner<double> f64Buffer = SpanOwner<double>.Allocate(sampleCount);  // Returned to pool when it goes out of scope
+        var i8Span = i8Buffer.Span;
+        var f64Span = f64Buffer.Span;
 
         var vPerBit = resolution switch
         {
@@ -428,34 +429,34 @@ public class Instruments
             _ => throw new NotImplementedException()
         };
 
-        for (int i = 0; i < scaledSamples.Length; i++)
+        for (int i = 0; i < f64Span.Length; i++)
         {
-            scaledSamples[i] = channel[i] * vPerBit;
+            f64Span[i] = i8Span[i] * vPerBit;
         }
 
-        var (amplitude, phaseRadians, dcOffset) = SineLeastSquaresFit.FitSineWave(sampleRateHz, scaledSamples, frequency);
+        var (amplitude, phaseRadians, dcOffset) = SineLeastSquaresFit.FitSineWave(sampleRateHz, f64Span, frequency);
         var vppResult = amplitude * 2;
 
         return vppResult;
     }
 
-    public Span<sbyte> GetChannelDataI8(int channelIndex, int channelLength, Span<sbyte> outputBuffer)
+    public void GetChannelDataI8(int channelIndex, int sampleCount, Span<sbyte> outputBuffer)
     {
         var config = thunderScope!.GetConfiguration();
         if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
             throw new TestbenchException("Requested channel index is not an enabled channel");
         if(config.Acquisition.Resolution != AdcResolution.EightBit)
             throw new TestbenchException("Acquisition not set up up for 8 bit");
-        if (outputBuffer.Length < channelLength)
-            throw new TestbenchException("Output buffer too small");
+        if (outputBuffer.Length != sampleCount)
+            throw new TestbenchException("Output buffer has incorrect length");
 
         var channelCount = config.Acquisition.EnabledChannelsCount();
         var interleavedSampleCount = channelCount switch
         {
-            1 => channelLength,
-            2 => channelLength * 2,
-            3 => channelLength * 4,
-            4 => channelLength * 4,
+            1 => sampleCount,
+            2 => sampleCount * 2,
+            3 => sampleCount * 4,
+            4 => sampleCount * 4,
             _ => throw new NotImplementedException()
         };
         var minimumAcquisitionLength = 1024 * 1024;
@@ -498,10 +499,9 @@ public class Instruments
                 throw new NotImplementedException();
         }
 
-        channel = channel.Slice(channel.Length - channelLength, channelLength);
-        var output = outputBuffer.Slice(0, channel.Length);
-        channel.CopyTo(output);
-        return output;
+        // Acquisition buffer is likely larger than requested sampleCount so use the end of the acquisition buffer and copy to output buffer
+        channel = channel.Slice(channel.Length - sampleCount, sampleCount);
+        channel.CopyTo(outputBuffer);
     }
 
     //public (double amplitude, double phaseRadians, double offset) GetThunderscopeBodeAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)
