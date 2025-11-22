@@ -69,7 +69,7 @@ public static class Utility
             cancellationToken.ThrowIfCancellationRequested();
             int mid = low + (high - low) / 2;
             Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, (ushort)mid, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, frontEndSettlingTimeMs);
-            var average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
+            var average = Instruments.Instance.GetThunderscopeAverage(channelIndex, sampleCount: 10_000_000);
             if (average >= targetMin && average <= targetMax)
             {
                 dac = (ushort)mid;
@@ -101,7 +101,7 @@ public static class Utility
             var low = path.TargetDPotResolution * -2;
             SigGens.Instance.SetSdgParameterOffset(channelIndex, zeroValue);
             Thread.Sleep(100);
-            average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
+            average = Instruments.Instance.GetThunderscopeAverage(channelIndex, sampleCount: 10_000_000);
             if (average >= low && average <= high)
             {
                 break;
@@ -132,13 +132,13 @@ public static class Utility
             cancellationToken.ThrowIfCancellationRequested();
             SigGens.Instance.SetSdgParameterOffset(channelIndex, zeroValue + amplitude);
             Thread.Sleep(100);
-            var average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
+            var average = Instruments.Instance.GetThunderscopeAverage(channelIndex, sampleCount: 10_000_000);
             var max = average;
 
             cancellationToken.ThrowIfCancellationRequested();
             SigGens.Instance.SetSdgParameterOffset(channelIndex, zeroValue - amplitude);
             Thread.Sleep(100);
-            average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
+            average = Instruments.Instance.GetThunderscopeAverage(channelIndex, sampleCount: 10_000_000);
             var min = average;
 
             var range = max - min;

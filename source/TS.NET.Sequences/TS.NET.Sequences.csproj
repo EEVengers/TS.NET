@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\TS.NET\source\TS.NET\TS.NET.csproj" />
     <ProjectReference Include="..\TS.NET.Sequencer\TS.NET.Sequencer.csproj" />
   </ItemGroup>

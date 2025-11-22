@@ -1,3 +1,5 @@
+using CommunityToolkit.HighPerformance.Buffers;
+
 namespace TS.NET.Sequences;
 
 public class Instruments
@@ -265,46 +267,14 @@ public class Instruments
         return thunderScope!.GetStatus().FpgaTemp;
     }
 
-    public double GetThunderscopeAverage(int channelIndex)
+    public double GetThunderscopeAverage(int channelIndex, int sampleCount)
     {
         var config = thunderScope!.GetConfiguration();
         if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
             throw new TestbenchException("Requested channel index is not an enabled channel");
-        thunderScope!.Stop();
-        thunderScope!.Start();
-        var subsetDataMemory = dataMemory!.Subset(32 * 1024 * 1024);
-        var subsetShuffleMemory = shuffleMemory!.Subset(32 * 1024 * 1024);
-        thunderScope!.Read(subsetDataMemory);
 
-        var samples = subsetDataMemory.DataSpanI8;
-        Span<sbyte> channel;
-        switch (config.Acquisition.EnabledChannelsCount())
-        {
-            case 1:
-                channel = samples;
-                break;
-            case 2:
-                {
-                    Span<sbyte> twoChannels = subsetShuffleMemory.DataSpanI8;
-                    ShuffleI8.TwoChannels(samples, twoChannels);
-                    var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
-                    var length = samples.Length / 2;
-                    channel = twoChannels.Slice(index * length, length);
-                    break;
-                }
-            case 3:
-            case 4:
-                {
-                    Span<sbyte> fourChannels = subsetShuffleMemory.DataSpanI8;
-                    ShuffleI8.FourChannels(samples, fourChannels);
-                    var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
-                    var length = samples.Length / 4;
-                    channel = fourChannels.Slice(index * length, length);
-                    break;
-                }
-            default:
-                throw new NotImplementedException();
-        }
+        using SpanOwner<sbyte> outputBuffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
+        var channel = GetChannelDataI8(channelIndex, sampleCount, outputBuffer.Span);
 
         long sum = 0;
         long count = 0;
@@ -412,46 +382,14 @@ public class Instruments
     /// <summary>
     /// This is the same as AC RMS
     /// </summary>
-    public double GetThunderscopePopulationStdDev(int channelIndex)
+    public double GetThunderscopePopulationStdDev(int channelIndex, int sampleCount)
     {
         var config = thunderScope!.GetConfiguration();
         if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
             throw new TestbenchException("Requested channel index is not an enabled channel");
-        thunderScope!.Stop();
-        thunderScope!.Start();
-        var subsetDataMemory = dataMemory!.Subset(10 * 1024 * 1024);
-        var subsetShuffleMemory = shuffleMemory!.Subset(10 * 1024 * 1024);
-        thunderScope!.Read(subsetDataMemory);
 
-        var samples = subsetDataMemory.DataSpanI8;
-        Span<sbyte> channel;
-        switch (config.Acquisition.EnabledChannelsCount())
-        {
-            case 1:
-                channel = samples;
-                break;
-            case 2:
-                {
-                    Span<sbyte> twoChannels = subsetShuffleMemory.DataSpanI8;
-                    ShuffleI8.TwoChannels(samples, twoChannels);
-                    var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
-                    var length = samples.Length / 2;
-                    channel = twoChannels.Slice(index * length, length);
-                    break;
-                }
-            case 3:
-            case 4:
-                {
-                    Span<sbyte> fourChannels = subsetShuffleMemory.DataSpanI8;
-                    ShuffleI8.FourChannels(samples, fourChannels);
-                    var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
-                    var length = samples.Length / 4;
-                    channel = fourChannels.Slice(index * length, length);
-                    break;
-                }
-            default:
-                throw new NotImplementedException();
-        }
+        using SpanOwner<sbyte> outputBuffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
+        var channel = GetChannelDataI8(channelIndex, sampleCount, outputBuffer.Span);
 
         double sum = 0;
         foreach (var point in channel)
@@ -476,54 +414,13 @@ public class Instruments
         if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
             throw new TestbenchException("Requested channel index is not an enabled channel");
 
-        var channelCount = config.Acquisition.EnabledChannelsCount();
         var sampleCount = (int)((sampleRateHz / frequency) * 10.0);
-        var interleavedSampleCount = sampleCount * channelCount;
-        var minimumAcquisitionLength = 1024 * 1024;
-        var acquisitionLength = ((interleavedSampleCount/minimumAcquisitionLength)+1) * minimumAcquisitionLength;
-        if(acquisitionLength < minimumAcquisitionLength)
-            acquisitionLength = minimumAcquisitionLength;
 
-        thunderScope!.Stop();
-        thunderScope!.Start();
-        var subsetDataMemory = dataMemory!.Subset(acquisitionLength);
-        var subsetShuffleMemory = shuffleMemory!.Subset(acquisitionLength);
-        thunderScope!.Read(subsetDataMemory);
+        using SpanOwner<sbyte> outputBuffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
+        var channel = GetChannelDataI8(channelIndex, sampleCount, outputBuffer.Span);
+        using SpanOwner<double> scaledSamplesBuffer = SpanOwner<double>.Allocate(sampleCount);  // Returned to pool when it goes out of scope
+        var scaledSamples = scaledSamplesBuffer.Span;
 
-        var samples = subsetDataMemory.DataSpanI8;
-
-        Span<sbyte> channel;
-        switch (config.Acquisition.EnabledChannelsCount())
-        {
-            case 1:
-                channel = samples.Slice(samples.Length - sampleCount, sampleCount);
-                break;
-            case 2:
-                {
-                    Span<sbyte> twoChannels = subsetShuffleMemory.DataSpanI8;
-                    ShuffleI8.TwoChannels(samples, twoChannels);
-                    var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
-                    var length = samples.Length / 2;
-                    channel = twoChannels.Slice(index * length, length);
-                    channel = channel.Slice(channel.Length - sampleCount, sampleCount);
-                    break;
-                }
-            case 3:
-            case 4:
-                {
-                    Span<sbyte> fourChannels = subsetShuffleMemory.DataSpanI8;
-                    ShuffleI8.FourChannels(samples, fourChannels);
-                    var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
-                    var length = samples.Length / 4;
-                    channel = fourChannels.Slice(index * length, length);
-                    channel = channel.Slice(channel.Length - sampleCount, sampleCount);
-                    break;
-                }
-            default:
-                throw new NotImplementedException();
-        }
-
-        double[] scaledSamples = new double[channel.Length];
         var vPerBit = resolution switch
         {
             AdcResolution.EightBit => (double)(inputVpp / 256.0),
@@ -540,6 +437,64 @@ public class Instruments
         var vppResult = amplitude * 2;
 
         return vppResult;
+    }
+
+    public Span<sbyte> GetChannelDataI8(int channelIndex, int channelLength, Span<sbyte> outputBuffer)
+    {
+        var config = thunderScope!.GetConfiguration();
+        if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
+            throw new TestbenchException("Requested channel index is not an enabled channel");
+        if(config.Acquisition.Resolution != AdcResolution.EightBit)
+            throw new TestbenchException("Acquisition not set up up for 8 bit");
+        if (outputBuffer.Length < channelLength)
+            throw new TestbenchException("Output buffer too small");
+
+        var channelCount = config.Acquisition.EnabledChannelsCount();
+        var interleavedSampleCount = channelLength * channelCount;
+        var minimumAcquisitionLength = 1024 * 1024;
+        var acquisitionLength = ((interleavedSampleCount / minimumAcquisitionLength) + 1) * minimumAcquisitionLength;
+        if (acquisitionLength < minimumAcquisitionLength)
+            acquisitionLength = minimumAcquisitionLength;
+
+        thunderScope!.Stop();
+        thunderScope!.Start();
+        var subsetDataMemory = dataMemory!.Subset(acquisitionLength);
+        var subsetShuffleMemory = shuffleMemory!.Subset(acquisitionLength);
+        thunderScope!.Read(subsetDataMemory);
+
+        Span<sbyte> channel;
+        switch (config.Acquisition.EnabledChannelsCount())
+        {
+            case 1:
+                {
+                    channel = subsetDataMemory.DataSpanI8;
+                    break;
+                }
+            case 2:
+                {
+                    ShuffleI8.TwoChannels(subsetDataMemory.DataSpanI8, subsetShuffleMemory.DataSpanI8);
+                    var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                    var length = subsetDataMemory.DataSpanI8.Length / 2;
+                    channel = subsetShuffleMemory.DataSpanI8.Slice(index * length, length);
+                    break;
+                }
+            case 3:
+            case 4:
+                {
+                    ShuffleI8.FourChannels(subsetDataMemory.DataSpanI8, subsetShuffleMemory.DataSpanI8);
+                    var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
+                    var length = subsetDataMemory.DataSpanI8.Length / 4;
+                    channel = subsetShuffleMemory.DataSpanI8.Slice(index * length, length);
+                    break;
+                }
+            default:
+                throw new NotImplementedException();
+        }
+
+        channel = channel.Slice(channel.Length - channelLength, channelLength);
+        var output = outputBuffer.Slice(0, channel.Length);
+        channel.CopyTo(output);
+        return output;
     }
 
     //public (double amplitude, double phaseRadians, double offset) GetThunderscopeBodeAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)

@@ -3,7 +3,7 @@
 public static class SineLeastSquaresFit
 {
     // signal(t) = amplitude * sin(2π * frequency * time + phaseRadians) + offset
-    public static (double amplitude, double phaseRadians, double offset) FitSineWave(double sampleRateHz, double[] sampleValues, double frequency)
+    public static (double amplitude, double phaseRadians, double offset) FitSineWave(double sampleRateHz, ReadOnlySpan<double> sampleValues, double frequency)
     {
         int sampleCount = sampleValues.Length;
         double angularFrequency = 2.0 * Math.PI * frequency;

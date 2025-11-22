@@ -24,7 +24,7 @@ public class TrimOffsetDacZeroStep : Step
                 cancellationToken.ThrowIfCancellationRequested();
 
                 Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables.FrontEndSettlingTimeMs);
-                var average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
+                var average = Instruments.Instance.GetThunderscopeAverage(channelIndex, sampleCount: 10_000_000);
 
                 if (average > high)
                     pathCalibration.TrimOffsetDacZero++;

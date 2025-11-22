@@ -31,7 +31,7 @@ public class AcRmsStep : Step
             for (int i = 0; i < Averages; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var stdDev = Instruments.Instance.GetThunderscopePopulationStdDev(channelIndex);
+                var stdDev = Instruments.Instance.GetThunderscopePopulationStdDev(channelIndex, sampleCount: 10_000_000);
                 stdDevV += stdDev * (pathCalibration.BufferInputVpp / 256.0);
             }
             stdDevV /= Averages;
