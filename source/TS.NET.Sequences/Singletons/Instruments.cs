@@ -450,7 +450,14 @@ public class Instruments
             throw new TestbenchException("Output buffer too small");
 
         var channelCount = config.Acquisition.EnabledChannelsCount();
-        var interleavedSampleCount = channelLength * channelCount;
+        var interleavedSampleCount = channelCount switch
+        {
+            1 => channelLength,
+            2 => channelLength * 2,
+            3 => channelLength * 4,
+            4 => channelLength * 4,
+            _ => throw new NotImplementedException()
+        };
         var minimumAcquisitionLength = 1024 * 1024;
         var acquisitionLength = ((interleavedSampleCount / minimumAcquisitionLength) + 1) * minimumAcquisitionLength;
         if (acquisitionLength < minimumAcquisitionLength)

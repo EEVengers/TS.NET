@@ -83,6 +83,10 @@ public class Step
             status = Status.Error;
             exception = ex;
             Logger.Instance.Log(LogLevel.Error, $"Error in step: {Name}, {ex.GetType().Name}: {ex.Message}");
+#if DEBUG
+            if (Debugger.IsAttached)
+                Debugger.Break();
+#endif
         }
         // If retries have been set up, handle that for Failed/Error and timeout
         if (MaxRetries != null && (status == Status.Failed || status == Status.Error || timeout) && retryCount < MaxRetries)
