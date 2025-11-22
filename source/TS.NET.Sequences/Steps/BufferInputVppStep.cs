@@ -12,9 +12,9 @@ public class BufferInputVppStep : Step
             Instruments.Instance.SetThunderscopeResolution(AdcResolution.EightBit);
             Instruments.Instance.SetThunderscopeRate(1_000_000_000);
 
-            Instruments.Instance.SetSdgChannel([channelIndex]);
-            Instruments.Instance.SetSdgDc(channelIndex);
-            Instruments.Instance.SetSdgParameterOffset(channelIndex, 0);
+            SigGens.Instance.SetSdgChannel([channelIndex]);
+            SigGens.Instance.SetSdgDc(channelIndex);
+            SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
 
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pgaGain, pgaLadder, variables);
             var pathConfig = Utility.GetChannelPathConfig(channelIndex, pgaGain, pgaLadder, variables);

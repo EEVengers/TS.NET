@@ -33,7 +33,7 @@ public class BenchCalibrationSequence : Sequence
             new AdcBranchGainsStep("Channel 1 - ADC branch gains - 660 MSPS", 0, 660_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
             new AdcBranchGainsStep("Channel 1 - ADC branch gains - 1 GSPS", 0, 1_000_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
 
-            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { SigGens.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
             new TrimOffsetDacGainStep("Channel 1 - Trim offset DAC scale - HG L0", 0, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 1 - Trim offset DAC scale - HG L1", 0, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
@@ -126,7 +126,7 @@ public class BenchCalibrationSequence : Sequence
             new PgaLoadStep("Channel 1 - PGA loading scale - 165 MSPS, 4 channel", 0, [0, 1, 2, 3], 165_000_000, Variables),
             new PgaLoadStep("Channel 1 - PGA loading scale - 100 MSPS, 4 channel", 0, [0, 1, 2, 3], 100_000_000, Variables),
 
-            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { SigGens.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
             new TrimOffsetDacGainStep("Channel 2 - Trim offset DAC scale - HG L0", 1, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 2 - Trim offset DAC scale - HG L1", 1, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
@@ -219,7 +219,7 @@ public class BenchCalibrationSequence : Sequence
             new PgaLoadStep("Channel 2 - PGA loading scale - 165 MSPS, 4 channel", 1, [0, 1, 2, 3], 165_000_000, Variables),
             new PgaLoadStep("Channel 2 - PGA loading scale - 100 MSPS, 4 channel", 1, [0, 1, 2, 3], 100_000_000, Variables),
 
-            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { SigGens.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
             new TrimOffsetDacGainStep("Channel 3 - Trim offset DAC scale - HG L0", 2, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 3 - Trim offset DAC scale - HG L1", 2, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
@@ -312,7 +312,7 @@ public class BenchCalibrationSequence : Sequence
             new PgaLoadStep("Channel 3 - PGA loading scale - 165 MSPS, 4 channel", 2, [0, 1, 2, 3], 165_000_000, Variables),
             new PgaLoadStep("Channel 3 - PGA loading scale - 100 MSPS, 4 channel", 2, [0, 1, 2, 3], 100_000_000, Variables),
 
-            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { SigGens.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
             new TrimOffsetDacGainStep("Channel 4 - Trim offset DAC scale - HG L0", 3, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
             new TrimOffsetDacGainStep("Channel 4 - Trim offset DAC scale - HG L1", 3, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
@@ -405,7 +405,7 @@ public class BenchCalibrationSequence : Sequence
             new PgaLoadStep("Channel 4 - PGA loading scale - 165 MSPS, 4 channel", 3, [0, 1, 2, 3], 165_000_000, Variables),
             new PgaLoadStep("Channel 4 - PGA loading scale - 100 MSPS, 4 channel", 3, [0, 1, 2, 3], 100_000_000, Variables),
 
-            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { SigGens.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
             new SaveUserCalToFileStep("Save calibration to file", Variables) { AllowSkip = true },
             new SaveUserCalToDeviceStep("Save calibration to device", Variables) { AllowSkip = true },

@@ -8,7 +8,7 @@ public class InitialiseDeviceStep : Step
     {
         Action = (CancellationToken cancellationToken) =>
         {
-            Instruments.Instance.InitialiseThunderscope();
+            Instruments.Instance.Initialise();
             Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Device initialised");
             return Status.Done;
         };

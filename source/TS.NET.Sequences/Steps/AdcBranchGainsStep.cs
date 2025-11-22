@@ -14,8 +14,8 @@ public class AdcBranchGainsStep : Step
             Instruments.Instance.SetThunderscopeRate(rateHz);
             Instruments.Instance.SetThunderscopeAdcCalibration([0, 0, 0, 0, 0, 0, 0, 0]);        // Reset to all zero
 
-            Instruments.Instance.SetSdgChannel([channelIndex]);
-            Instruments.Instance.SetSdgNoise(channelIndex, 0.16, 0.0);
+            SigGens.Instance.SetSdgChannel([channelIndex]);
+            SigGens.Instance.SetSdgNoise(channelIndex, 0.16, 0.0);
 
             // First set the maximum range
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pgaGain, pgaLadder, variables);

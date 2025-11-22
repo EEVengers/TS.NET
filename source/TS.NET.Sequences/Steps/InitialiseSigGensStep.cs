@@ -8,7 +8,7 @@ public class InitialiseSigGensStep : Step
     {
         Action = (CancellationToken cancellationToken) =>
         {
-            Instruments.Instance.InitialiseSigGens(variables.SigGen1Host, variables.SigGen2Host);
+            SigGens.Instance.Initialise(variables.SigGen1Host, variables.SigGen2Host);
             Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Instruments initialised");
             return Status.Done;
         };

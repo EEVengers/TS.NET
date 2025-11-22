@@ -12,9 +12,9 @@ public class PgaLoadSetupStep : Step
             Instruments.Instance.SetThunderscopeResolution(AdcResolution.EightBit);
             Instruments.Instance.SetThunderscopeRate(1_000_000_000);
 
-            Instruments.Instance.SetSdgChannel([channelIndex]);
-            Instruments.Instance.SetSdgDc(channelIndex);
-            Instruments.Instance.SetSdgParameterOffset(channelIndex, 0);
+            SigGens.Instance.SetSdgChannel([channelIndex]);
+            SigGens.Instance.SetSdgDc(channelIndex);
+            SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
             cancellationToken.WaitHandle.WaitOne(1000);
 
             var configIndex = 21;

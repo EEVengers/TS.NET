@@ -24,12 +24,12 @@ public class BodePlotStep : Step
             };
             double amplitudeVpp = pathCalibration.BufferInputVpp * 0.8 / (attenuator ? attenuatorScale : 1.0);
             
-            Instruments.Instance.SetSdgChannel([channelIndex]);
-            Instruments.Instance.SetSdgLoad(channelIndex, ThunderscopeTermination.FiftyOhm);
-            Instruments.Instance.SetSdgSine(channelIndex);
-            Instruments.Instance.SetSdgParameterFrequency(channelIndex, 1000);
-            Instruments.Instance.SetSdgParameterAmplitude(channelIndex, amplitudeVpp);
-            Instruments.Instance.SetSdgParameterOffset(channelIndex, 0);
+            SigGens.Instance.SetSdgChannel([channelIndex]);
+            SigGens.Instance.SetSdgLoad(channelIndex, ThunderscopeTermination.FiftyOhm);
+            SigGens.Instance.SetSdgSine(channelIndex);
+            SigGens.Instance.SetSdgParameterFrequency(channelIndex, 1000);
+            SigGens.Instance.SetSdgParameterAmplitude(channelIndex, amplitudeVpp);
+            SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
 
             Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, attenuator: attenuator, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, ThunderscopeBandwidth.BwFull, variables.FrontEndSettlingTimeMs);
 
@@ -47,7 +47,7 @@ public class BodePlotStep : Step
                 {
                     uint frequency = (uint)(startFrequencyHz * Math.Pow(10, d) * Math.Pow(10, (double)i / pointsPerDecade));
                     if(frequency > 40_000_000)
-                        continue; // Limit to 40 MHz due to SDG output limits
+                        continue; // Limit due to SDG output limits
                     if (!frequenciesHz.Contains(frequency)) // Avoid duplicates that can occur due to rounding
                     {
                         frequenciesHz.Add(frequency);
@@ -59,13 +59,13 @@ public class BodePlotStep : Step
       
             var bodePoints = new Dictionary<uint, double>();
 
-            Instruments.Instance.SetSdgParameterFrequency(channelIndex, startFrequencyHz);
+            SigGens.Instance.SetSdgParameterFrequency(channelIndex, startFrequencyHz);
             var signalAtRef = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(channelIndex, startFrequencyHz, sampleRateHz, pathCalibration.BufferInputVpp, resolution) / (attenuator ? attenuatorScale : 1.0);
 
             foreach (var frequencyHz in frequenciesHz)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                Instruments.Instance.SetSdgParameterFrequency(channelIndex, frequencyHz);
+                SigGens.Instance.SetSdgParameterFrequency(channelIndex, frequencyHz);
                 var signalAtFrequency = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(channelIndex, frequencyHz, sampleRateHz, pathCalibration.BufferInputVpp, resolution) / (attenuator ? attenuatorScale : 1.0);
 
                 // Normalise relative to the reference measurement

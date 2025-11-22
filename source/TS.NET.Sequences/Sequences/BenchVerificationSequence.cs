@@ -39,7 +39,7 @@ public class BenchVerificationSequence : Sequence
             new BodePlotStep("Channel 4 - 1 GSPS, 50R, attenuator off, LG L10", channelIndex: 3, [3], 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, attenuator: false, Variables),
             new BodePlotStep("Channel 4 - 1 GSPS, 50R, attenuator on, HG L10", channelIndex: 3, [3], 1_000_000_000, preamp: PgaPreampGain.High, ladder: 10, attenuator: true, Variables),
 
-            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { Instruments.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { SigGens.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.Close();

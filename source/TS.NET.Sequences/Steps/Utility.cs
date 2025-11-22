@@ -99,7 +99,7 @@ public static class Utility
             cancellationToken.ThrowIfCancellationRequested();
             var high = path.TargetDPotResolution * 2;
             var low = path.TargetDPotResolution * -2;
-            Instruments.Instance.SetSdgParameterOffset(channelIndex, zeroValue);
+            SigGens.Instance.SetSdgParameterOffset(channelIndex, zeroValue);
             Thread.Sleep(100);
             average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
             if (average >= low && average <= high)
@@ -130,13 +130,13 @@ public static class Utility
         for (double amplitude = pathConfig.SigGenAmplitudeStart; amplitude <= 5; amplitude += pathConfig.SigGenAmplitudeStep)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            Instruments.Instance.SetSdgParameterOffset(channelIndex, zeroValue + amplitude);
+            SigGens.Instance.SetSdgParameterOffset(channelIndex, zeroValue + amplitude);
             Thread.Sleep(100);
             var average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
             var max = average;
 
             cancellationToken.ThrowIfCancellationRequested();
-            Instruments.Instance.SetSdgParameterOffset(channelIndex, zeroValue - amplitude);
+            SigGens.Instance.SetSdgParameterOffset(channelIndex, zeroValue - amplitude);
             Thread.Sleep(100);
             average = Instruments.Instance.GetThunderscopeAverage(channelIndex);
             var min = average;
@@ -145,19 +145,19 @@ public static class Utility
 
             if (range >= 240)
             {
-                Instruments.Instance.SetSdgParameterOffset(channelIndex, 0);
+                SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
                 throw new TestbenchException($"Could not converge, range: {range}");
             }
             if (range > 200 && range < 240)
             {
                 var ratio = 256.0 / range;
                 var vpp = amplitude * ratio * 2;
-                Instruments.Instance.SetSdgParameterOffset(channelIndex, 0);
+                SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
                 return vpp;
             }
         }
 
-        Instruments.Instance.SetSdgParameterOffset(channelIndex, 0);
+        SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
         throw new TestbenchException("Could not converge, amplitude: 10");
     }
 }
