@@ -21,7 +21,7 @@ public class BenchVerificationSequence : Sequence
         [
             new DialogStep("Cable check", uiDialog){ Title = "Cable check", Text = "Cables connected from 2x signal generators to channels 1-4?", Buttons = DialogButtons.YesNo, Icon = DialogIcon.Question },
             new InitialiseDeviceStep("Initialise device", Variables),
-            new InitialiseSigGensStep("Initialise instruments", Variables),
+            new InitialiseSigGensStep("Initialise signal generators", Variables),
             new LoadUserCalFromDeviceStep("Load calibration from device", Variables),
             new WarmupStep("Warmup device", Variables) { Skip = false, AllowSkip = true },
 
@@ -43,6 +43,7 @@ public class BenchVerificationSequence : Sequence
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.Close();
+                SigGens.Instance.Close();
                 return Sequencer.Status.Done;
             }},
         ];

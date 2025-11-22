@@ -21,7 +21,7 @@ public class AdcBranchGainsAnalysisSequence : Sequence
         Steps =
         [
             new InitialiseDeviceStep("Initialise device", Variables),
-            new InitialiseSigGensStep("Initialise instruments", Variables),
+            new InitialiseSigGensStep("Initialise signal generators", Variables),
             new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file", Variables),
             new WarmupStep("Warmup device", Variables) { Skip = false, AllowSkip = true },
 
@@ -61,6 +61,7 @@ public class AdcBranchGainsAnalysisSequence : Sequence
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.Close();
+                SigGens.Instance.Close();
                 return Sequencer.Status.Done;
             }},
         ];
