@@ -33,10 +33,10 @@ class ResultMetadataXYChart {
 
         // Add border
         this.svg.append('rect')
-            .attr('x', 0)
-            .attr('y', 0)
-            .attr('width', this.options.width)
-            .attr('height', this.options.height)
+            .attr('x', 0.5)
+            .attr('y', 0.5)
+            .attr('width', this.options.width - 1)
+            .attr('height', this.options.height - 1)
             .attr('fill', 'white')
             .attr('stroke', 'oklch(87.2% 0.01 258.338)');
 
