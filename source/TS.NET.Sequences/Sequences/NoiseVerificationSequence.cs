@@ -96,10 +96,51 @@ public class NoiseVerificationSequence : Sequence
             // new AcRmsStep("Channel 4 - AC RMS - 50R, 250 MSPS, FULL, HG L0", 3, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 250_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
             // new AcRmsStep("Channel 4 - AC RMS - 50R, 100 MSPS, FUL, HG L0", 3, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 100_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009 },
 
+            new NsdStep("Channel 1 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", 0, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 1_000_000_000, Variables),
+            new NsdStep("Channel 2 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", 1, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 1_000_000_000, Variables),
+            new NsdStep("Channel 3 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", 2, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 1_000_000_000, Variables),
+            new NsdStep("Channel 4 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", 3, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 1_000_000_000, Variables),
+            new CombineChartsStep("Combined NSD chart - BW FULL", this),
+
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.Close();
                 return Sequencer.Status.Done;
             }},
         ];
+    }
+
+    private class CombineChartsStep : Step
+    {
+        public CombineChartsStep(string name, Sequence sequence) : base(name)
+        {
+            Action = (CancellationToken cancellationToken) =>
+            {
+                var channel1 = (ResultMetadataXYChart)sequence.Steps!.Where(s => s.Name == "Channel 1 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0").First().Result!.Metadata!.Where(r => r.GetType() == typeof(ResultMetadataXYChart)).First();
+                var channel2 = (ResultMetadataXYChart)sequence.Steps!.Where(s => s.Name == "Channel 2 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0").First().Result!.Metadata!.Where(r => r.GetType() == typeof(ResultMetadataXYChart)).First();
+                var channel3 = (ResultMetadataXYChart)sequence.Steps!.Where(s => s.Name == "Channel 3 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0").First().Result!.Metadata!.Where(r => r.GetType() == typeof(ResultMetadataXYChart)).First();
+                var channel4 = (ResultMetadataXYChart)sequence.Steps!.Where(s => s.Name == "Channel 4 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0").First().Result!.Metadata!.Where(r => r.GetType() == typeof(ResultMetadataXYChart)).First();
+
+                var metadata =
+                    new ResultMetadataXYChart()
+                    {
+                        ShowInReport = true,
+                        Title = $"Noise spectral density",
+                        XAxis = new ResultMetadataXYChartAxis { Label = "Frequency (Hz)", Scale = XYChartScaleType.Log10, AdditionalRangeValues = [10e3, 1e9] },
+                        YAxis = new ResultMetadataXYChartAxis { Label = "Noise (V/rHz)", Scale = XYChartScaleType.Log10, AdditionalRangeValues = [100e-9, 100e-12] },
+                        LegendLocation = ResultMetadataXYChartLegendLocation.BottomLeft,
+                        Series =
+                        [
+                            channel1.Series.First(),
+                            channel2.Series.First(),
+                            channel3.Series.First(),
+                            channel4.Series.First()
+                        ]
+                    };
+
+                Result!.Metadata!.Add(metadata);
+
+                return Sequencer.Status.Done;
+            };
+        }
     }
 }
