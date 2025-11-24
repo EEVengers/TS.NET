@@ -23,21 +23,22 @@ public class BenchVerificationSequence : Sequence
             new InitialiseDeviceStep("Initialise device", Variables),
             new InitialiseSigGensStep("Initialise signal generators", Variables),
             new LoadUserCalFromDeviceStep("Load calibration from device", Variables),
+            new Step("Load ADC branch gains"){ Action = (CancellationToken cancellationToken) => {
+                Instruments.Instance.SetThunderscopeAdcCalibration(Variables.Calibration.Adc.ToDriver());
+                return Sequencer.Status.Done;
+            }},
             new WarmupStep("Warmup device", Variables) { Skip = false, AllowSkip = true },
 
-            // Note: due to 5Vpp SDG limit for frequencies above 10 MHz, the attenuator on steps can only go from HG L0 to HG L10
+            new BodePlotStep("Channel 1 - Crossover flatness", channelIndex: 0, [0], 1_000_000_000, PgaPreampGain.Low, ladder: 10, attenuator: false, maxFrequency: 10_000_000, Variables),
+            new BodePlotStep("Channel 2 - Crossover flatness", channelIndex: 1, [1], 1_000_000_000, PgaPreampGain.Low, ladder: 10, attenuator: false, maxFrequency: 10_000_000, Variables),
+            new BodePlotStep("Channel 3 - Crossover flatness", channelIndex: 2, [2], 1_000_000_000, PgaPreampGain.Low, ladder: 10, attenuator: false, maxFrequency: 10_000_000, Variables),
+            new BodePlotStep("Channel 4 - Crossover flatness", channelIndex: 3, [3], 1_000_000_000, PgaPreampGain.Low, ladder: 10, attenuator: false, maxFrequency: 10_000_000, Variables),
 
-            new BodePlotStep("Channel 1 - 1 GSPS, 50R, attenuator off, LG L10", channelIndex: 0, [0], 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, attenuator: false, Variables),
-            new BodePlotStep("Channel 1 - 1 GSPS, 50R, attenuator on, HG L10", channelIndex: 0, [0], 1_000_000_000, preamp: PgaPreampGain.High, ladder: 10, attenuator: true, Variables),
-
-            new BodePlotStep("Channel 2 - 1 GSPS, 50R, attenuator off, LG L10", channelIndex: 1, [1], 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, attenuator: false, Variables),
-            new BodePlotStep("Channel 2 - 1 GSPS, 50R, attenuator on, HG L10", channelIndex: 1, [1], 1_000_000_000, preamp: PgaPreampGain.High, ladder: 10, attenuator: true, Variables),
-
-            new BodePlotStep("Channel 3 - 1 GSPS, 50R, attenuator off, LG L10", channelIndex: 2, [2], 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, attenuator: false, Variables),
-            new BodePlotStep("Channel 3 - 1 GSPS, 50R, attenuator on, HG L10", channelIndex: 2, [2], 1_000_000_000, preamp: PgaPreampGain.High, ladder: 10, attenuator: true, Variables),
-
-            new BodePlotStep("Channel 4 - 1 GSPS, 50R, attenuator off, LG L10", channelIndex: 3, [3], 1_000_000_000, preamp: PgaPreampGain.Low, ladder: 10, attenuator: false, Variables),
-            new BodePlotStep("Channel 4 - 1 GSPS, 50R, attenuator on, HG L10", channelIndex: 3, [3], 1_000_000_000, preamp: PgaPreampGain.High, ladder: 10, attenuator: true, Variables),
+            // Note: SDG has 5 Vpp limit for frequencies above 10 MHz, use correct pregamp gain & ladder setting.
+            new BodePlotStep("Channel 1 - Attenuator flatness", channelIndex: 0, [0], 1_000_000_000, PgaPreampGain.High, ladder: 10, attenuator: true, maxFrequency: 10_000_000, Variables),
+            new BodePlotStep("Channel 2 - Attenuator flatness", channelIndex: 1, [1], 1_000_000_000, PgaPreampGain.High, ladder: 10, attenuator: true, maxFrequency: 10_000_000, Variables),
+            new BodePlotStep("Channel 3 - Attenuator flatness", channelIndex: 2, [2], 1_000_000_000, PgaPreampGain.High, ladder: 10, attenuator: true, maxFrequency: 10_000_000, Variables),
+            new BodePlotStep("Channel 4 - Attenuator flatness", channelIndex: 3, [3], 1_000_000_000, PgaPreampGain.High, ladder: 10, attenuator: true, maxFrequency: 10_000_000, Variables),
 
             new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { SigGens.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 

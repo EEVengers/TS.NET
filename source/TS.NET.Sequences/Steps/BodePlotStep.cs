@@ -4,7 +4,7 @@ namespace TS.NET.Sequences;
 
 public class BodePlotStep : Step
 {
-    public BodePlotStep(string name, int channelIndex, int[] channelIndices, uint sampleRateHz, PgaPreampGain preamp, int ladder, bool attenuator, CommonVariables variables) : base(name)
+    public BodePlotStep(string name, int channelIndex, int[] channelIndices, uint sampleRateHz, PgaPreampGain preamp, int ladder, bool attenuator, uint maxFrequency, CommonVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {
@@ -38,24 +38,30 @@ public class BodePlotStep : Step
 
             var frequenciesHz = new List<uint>();
             uint startFrequencyHz = 100;
-            int decades = 6;
             int pointsPerDecade = 40;
 
-            for (int d = 0; d < decades; d++)
+            bool continueLoop = true;
+            for (int d = 0; d < 10 && continueLoop; d++)
             {
-                for (int i = 0; i < pointsPerDecade; i++)
+                for (int i = 0; i < pointsPerDecade && continueLoop; i++)
                 {
                     uint frequency = (uint)(startFrequencyHz * Math.Pow(10, d) * Math.Pow(10, (double)i / pointsPerDecade));
-                    if(frequency > 40_000_000)
-                        continue; // Limit due to SDG output limits
+                    if(frequency > maxFrequency)
+                    {
+                        continueLoop = false;
+                        break;
+                    }
                     if (!frequenciesHz.Contains(frequency)) // Avoid duplicates that can occur due to rounding
                     {
                         frequenciesHz.Add(frequency);
                     }
                 }
             }
+            if (!frequenciesHz.Contains(maxFrequency))
+            {
+                frequenciesHz.Add(maxFrequency);
+            }
             //frequenciesHz.Add((uint)(startFrequencyHz * Math.Pow(10, decades)));
-            frequenciesHz.Add(40_000_000);
       
             var bodePoints = new Dictionary<uint, double>();
 
@@ -85,11 +91,12 @@ public class BodePlotStep : Step
                 Name = null,
                 Headers = ["Parameter", "Value"],
                 Rows = [
-                        // ["Preamp", preamp.ToString()],
-                        // ["Ladder", $"L{ladder}"],
-                        // ["Attenuator", attenuator ? "On" : "Off"],
-                        // ["Sample rate", $"{sampleRateHz / 1_000_000:F0} MSPS"],
-                        // ["Resolution", resolution.ToString()],
+                        ["Termination", "50R"],
+                        ["PGA preamp", preamp.ToString()],
+                        ["PGA ladder", ReportStringUtility.LadderIndexToDbToHumanReadable(ladder)],
+                        ["Attenuator", attenuator ? "On" : "Off"],
+                        ["Sample rate", ReportStringUtility.SampleRateHzToHumanReadable(sampleRateHz)],
+                        ["Resolution", ReportStringUtility.AdcResolutionToHumanReadable(resolution)],
                         ["Amplitude", $"{amplitudeVpp:F4} Vpp"],
                         ["Points", bodePoints.Count.ToString()]]
             };
