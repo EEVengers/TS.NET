@@ -28,7 +28,7 @@ public static class ReportHelpers
             using var reader = new StreamReader(stream1);
             var content = reader.ReadToEnd();
             content = content.Replace("[@top-center content]", sequence.Name);
-            content = content.Replace("[@top-right content]", "Device: TS0019");
+            content = content.Replace("[@top-right content]", "Device: -");
             content = content.Replace("[@bottom-left content]", sequence.StartTimestamp.ToString("yyyy-MM-dd HH:mm:ss"));
             sb.Append(content);
         }
