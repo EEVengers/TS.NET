@@ -1,1 +1,0 @@
-tailwindcss-windows-x64.exe -o .\HTML\report-tailwind.css

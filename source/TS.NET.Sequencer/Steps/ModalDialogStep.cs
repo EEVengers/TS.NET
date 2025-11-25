@@ -19,21 +19,16 @@ public class ModalDialogStep : ModalUiStep
             {
                 if (eventData.TryGetProperty("buttonClicked", out var buttonClicked))
                 {
-                    if (buttonClicked.GetString() == "ok")
-                    {
-                        continueLoop = false;
-                    }
-                    else if (buttonClicked.GetString() == "cancel")
-                    {
-                        continueLoop = false;
-                    }
+                    continueLoop = false;
                 }
             });
 
             UpdateUi<ModalDialog>(new Dictionary<string, object?>()
             {
                 { "Title", Title},
-                { "Message", Message }
+                { "Message", Message },
+                { "Buttons", Buttons },
+                { "Icon", Icon }
             });
 
             continueLoop = true;

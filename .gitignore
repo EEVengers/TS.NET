@@ -353,3 +353,5 @@ builds/
 .DS_Store
 source/TS.NET.Testbench.UI/tailwindcss-windows-x64.exe
 source/TS.NET.Sequencer/tailwindcss-windows-x64.exe
+source/TS.NET.Sequencer/HTML/tailwindcss-windows-x64.exe
+source/TS.NET.Sequencer/Steps/tailwindcss-windows-x64.exe

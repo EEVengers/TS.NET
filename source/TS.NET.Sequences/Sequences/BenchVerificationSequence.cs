@@ -18,7 +18,7 @@ public class BenchVerificationSequence : Sequence
     {
         Steps =
         [
-            new ModalDialogStep("Test", modalUiContext)
+            new ModalDialogStep("Cable check", modalUiContext)
             {
                 Title = "Cable check",
                 Message = "Are cables connected from 2x signal generators to channel 1-4?",
