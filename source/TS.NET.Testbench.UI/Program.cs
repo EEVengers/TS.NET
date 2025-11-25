@@ -127,7 +127,7 @@ class Program
                                     SigGen1Host = variablesFile.SigGen1Ip,
                                     SigGen2Host = variablesFile.SigGen2Ip
                                 };
-                                var benchVerificationSequence = new BenchVerificationSequence(uiDialog, benchVerificationVariables);
+                                var benchVerificationSequence = new BenchVerificationSequence(uiDialog, modalUiContext, benchVerificationVariables);
                                 variables = benchVerificationVariables;
                                 sequence = benchVerificationSequence;
                                 break;

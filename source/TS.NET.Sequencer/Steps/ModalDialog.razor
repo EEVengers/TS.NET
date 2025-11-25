@@ -1,0 +1,75 @@
+@namespace TS.NET.Sequencer
+
+@code {
+    [Parameter]
+    public required string Title { get; set; }
+    [Parameter]
+    public required string Message { get; set; }
+    [Parameter]
+    public required DialogButtons Buttons { get; set; }
+    [Parameter]
+    public required DialogIcon Icon { get; set; }
+
+    private string GetIconSvg() => Icon switch
+    {
+        DialogIcon.Info => """<svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>""",
+        DialogIcon.Warning => """<svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>""",
+        DialogIcon.Error => """<svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>""",
+        DialogIcon.Question => """<svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>""",
+        _ => ""
+    };
+
+    private List<(string Id, string Label)> GetButtons() => Buttons switch
+    {
+        DialogButtons.Ok => [("ok", "Ok")],
+        DialogButtons.OkCancel => [("cancel", "Cancel"), ("ok", "Ok")],
+        DialogButtons.YesNo => [("no", "No"), ("yes", "Yes")],
+        DialogButtons.YesNoCancel => [("cancel", "Cancel"), ("no", "No"), ("yes", "Yes")],
+        DialogButtons.RetryCancel => [("cancel", "Cancel"), ("retry", "Retry")],
+        DialogButtons.AbortRetryIgnore => [("abort", "Abort"), ("retry", "Retry"), ("ignore", "Ignore")],
+        _ => [("ok", "Ok")]
+    };
+}
+
+<div id="modal-ui" class="z-1 fixed top-0 left-0 w-screen h-screen items-center justify-center">
+    <div class="z-1 flex flex-col w-100 h-60 border border-zinc-600 bg-zinc-900 absolute inset-1/2 -translate-1/2">
+        <!-- Title bar -->
+        <div class="flex-none flex flex-row items-center gap-2 p-2 pl-2 pr-2 bg-zinc-800">
+            <div class="flex-none text-neutral-50 font-normal text-xs trim-box">@Title</div>
+        </div>
+        <div class="flex-none border-b border-zinc-600"></div>
+        <!-- Content -->
+        <div class="flex-auto flex flex-col p-3 overflow-y-auto">
+            <div class="flex-auto flex flex-row gap-4 text-neutral-50">
+                <div class="flex-none flex items-start pt-1">
+                    @((MarkupString)GetIconSvg())
+                </div>
+                <div class="flex-auto text-sm">
+                    @Message
+                </div>
+            </div>
+            <div class="flex-none flex flex-row justify-end gap-2 mt-4">
+                @foreach (var button in GetButtons())
+                {
+                    <button id="modal-ui-@button.Id-button" type="button" class="border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
+                        @button.Label
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="z-0 fixed top-0 left-0 w-screen h-screen items-center justify-center backdrop-blur-xs pointer-events-none"></div>
+</div>
+
+<script>
+    console.log("Adding click handlers");
+    @foreach (var button in GetButtons())
+    {
+        <text>
+        document.getElementById("modal-ui-@button.Id-button").addEventListener("click", function () {
+            var message = { command: "modal-ui-event", event: { "buttonClicked" : "@button.Id" } };
+            window.external.sendMessage(JSON.stringify(message));
+        });
+        </text>
+    }
+</script>

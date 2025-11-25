@@ -6,22 +6,22 @@ public class BenchVerificationSequence : Sequence
 {
     public BenchVerificationVariables Variables { get; private set; }
 
-    public BenchVerificationSequence(Func<Dialog, DialogResult> uiDialog, BenchVerificationVariables variables)
+    public BenchVerificationSequence(Func<Dialog, DialogResult> uiDialog, ModalUiContext modalUiContext, BenchVerificationVariables variables)
     {
         Name = "Bench verification";
         Variables = variables;
-        AddSteps(uiDialog);
+        AddSteps(uiDialog, modalUiContext);
         SetStepIndices();
     }
 
-    private void AddSteps(Func<Dialog, DialogResult> uiDialog)
+    private void AddSteps(Func<Dialog, DialogResult> uiDialog, ModalUiContext modalUiContext)
     {
         Steps =
         [
-            new DialogStep("Cable check", uiDialog)
-            { 
-                Title = "Cable check", 
-                Text = "Cables connected from 2x signal generators to channels 1-4?", 
+            new ModalDialogStep("Test", modalUiContext)
+            {
+                Title = "Cable check",
+                Message = "Are cables connected from 2x signal generators to channel 1-4?",
                 Buttons = DialogButtons.YesNo, 
                 Icon = DialogIcon.Question
             },
