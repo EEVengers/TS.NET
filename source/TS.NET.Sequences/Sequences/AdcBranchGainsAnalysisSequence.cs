@@ -6,19 +6,26 @@ public class AdcBranchGainsAnalysisSequence : Sequence
 {
     public BenchCalibrationVariables Variables { get; private set; }
 
-    public AdcBranchGainsAnalysisSequence(Func<Dialog, DialogResult> uiDialog, BenchCalibrationVariables variables)
+    public AdcBranchGainsAnalysisSequence(ModalUiContext modalUiContext, BenchCalibrationVariables variables)
     {
         Name = "ADC branch gains analysis";
         Variables = variables;
         variables.WarmupTimeSec = 2400;
-        AddSteps(uiDialog);
+        AddSteps(modalUiContext);
         SetStepIndices();
     }
 
-    private void AddSteps(Func<Dialog, DialogResult> uiDialog)
+    private void AddSteps(ModalUiContext modalUiContext)
     {
         Steps =
         [
+            new ModalDialogStep("Cable check", modalUiContext)
+            {
+                Title = "Cable check",
+                Message = "Are cables connected from 2x signal generators to channel 1-4?",
+                Buttons = DialogButtons.YesNo,
+                Icon = DialogIcon.Question
+            },
             new InitialiseDeviceStep("Initialise device", Variables),
             new InitialiseSigGensStep("Initialise signal generators", Variables),
             new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file", Variables),

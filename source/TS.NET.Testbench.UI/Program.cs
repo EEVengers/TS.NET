@@ -54,40 +54,6 @@ class Program
                 var json = JsonDocument.Parse(message);
                 var command = json.RootElement.GetProperty("command").GetString();
 
-                Func<Dialog, DialogResult> uiDialog = (Dialog dialog) =>
-                {
-                    var photinoButtons = dialog.Buttons switch
-                    {
-                        DialogButtons.Ok => PhotinoDialogButtons.Ok,
-                        DialogButtons.OkCancel => PhotinoDialogButtons.OkCancel,
-                        DialogButtons.YesNo => PhotinoDialogButtons.YesNo,
-                        DialogButtons.YesNoCancel => PhotinoDialogButtons.YesNoCancel,
-                        DialogButtons.RetryCancel => PhotinoDialogButtons.RetryCancel,
-                        DialogButtons.AbortRetryIgnore => PhotinoDialogButtons.AbortRetryIgnore,
-                        _ => throw new NotImplementedException()
-                    };
-                    var photinoIcon = dialog.Icon switch
-                    {
-                        DialogIcon.Info => PhotinoDialogIcon.Info,
-                        DialogIcon.Warning => PhotinoDialogIcon.Warning,
-                        DialogIcon.Error => PhotinoDialogIcon.Error,
-                        DialogIcon.Question => PhotinoDialogIcon.Question,
-                        _ => throw new NotImplementedException()
-                    };
-                    var dialogResult = window.ShowMessage(dialog.Title, dialog.Text, photinoButtons, photinoIcon);
-                    return dialogResult switch
-                    {
-                        PhotinoDialogResult.Cancel => DialogResult.Cancel,
-                        PhotinoDialogResult.Ok => DialogResult.Ok,
-                        PhotinoDialogResult.Yes => DialogResult.Yes,
-                        PhotinoDialogResult.No => DialogResult.No,
-                        PhotinoDialogResult.Abort => DialogResult.Abort,
-                        PhotinoDialogResult.Retry => DialogResult.Retry,
-                        PhotinoDialogResult.Ignore => DialogResult.Ignore,
-                        _ => throw new NotImplementedException()
-                    };
-                };
-
                 switch (command)
                 {
                     case "app-loaded":
@@ -101,7 +67,7 @@ class Program
                         {
                             case "self-calibration":
                                 var selfCalibrationVariables = new SelfCalibrationVariables();
-                                var selfCalibrationSequence = new SelfCalibrationSequence(uiDialog, selfCalibrationVariables);
+                                var selfCalibrationSequence = new SelfCalibrationSequence(modalUiContext, selfCalibrationVariables);
                                 variables = selfCalibrationVariables;
                                 sequence = selfCalibrationSequence;
                                 break;
@@ -111,13 +77,13 @@ class Program
                                     SigGen1Host = variablesFile.SigGen1Ip,
                                     SigGen2Host = variablesFile.SigGen2Ip
                                 };
-                                var benchCalibrationSequence = new BenchCalibrationSequence(uiDialog, benchCalibrationVariables);
+                                var benchCalibrationSequence = new BenchCalibrationSequence(modalUiContext, benchCalibrationVariables);
                                 variables = benchCalibrationVariables;
                                 sequence = benchCalibrationSequence;
                                 break;
                             case "noise-verification":
                                 var noiseVerificationVariables = new NoiseVerificationVariables();
-                                var noiseVerificationSequence = new NoiseVerificationSequence(uiDialog, noiseVerificationVariables);
+                                var noiseVerificationSequence = new NoiseVerificationSequence(modalUiContext, noiseVerificationVariables);
                                 variables = noiseVerificationVariables;
                                 sequence = noiseVerificationSequence;
                                 break;
@@ -127,7 +93,7 @@ class Program
                                     SigGen1Host = variablesFile.SigGen1Ip,
                                     SigGen2Host = variablesFile.SigGen2Ip
                                 };
-                                var benchVerificationSequence = new BenchVerificationSequence(uiDialog, modalUiContext, benchVerificationVariables);
+                                var benchVerificationSequence = new BenchVerificationSequence(modalUiContext, benchVerificationVariables);
                                 variables = benchVerificationVariables;
                                 sequence = benchVerificationSequence;
                                 break;

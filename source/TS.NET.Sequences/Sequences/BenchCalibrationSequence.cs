@@ -6,19 +6,25 @@ public class BenchCalibrationSequence : Sequence
 {
     public BenchCalibrationVariables Variables { get; private set; }
 
-    public BenchCalibrationSequence(Func<Dialog, DialogResult> uiDialog, BenchCalibrationVariables variables)
+    public BenchCalibrationSequence(ModalUiContext modalUiContext, BenchCalibrationVariables variables)
     {
         Name = "Bench calibration";
         Variables = variables;
-        AddSteps(uiDialog);
+        AddSteps(modalUiContext);
         SetStepIndices();
     }
 
-    private void AddSteps(Func<Dialog, DialogResult> uiDialog)
+    private void AddSteps(ModalUiContext modalUiContext)
     {
         Steps =
         [
-            new DialogStep("Cable check", uiDialog){ Title = "Cable check", Text = "Cables connected from 2x signal generators to channels 1-4?", Buttons = DialogButtons.YesNo, Icon = DialogIcon.Question },
+            new ModalDialogStep("Cable check", modalUiContext)
+            {
+                Title = "Cable check",
+                Message = "Are cables connected from 2x signal generators to channel 1-4?",
+                Buttons = DialogButtons.YesNo,
+                Icon = DialogIcon.Question
+            },
             new InitialiseDeviceStep("Initialise device", Variables),
             new InitialiseSigGensStep("Initialise signal generators", Variables),
             new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file", Variables),

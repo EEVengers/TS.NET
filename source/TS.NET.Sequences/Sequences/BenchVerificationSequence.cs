@@ -6,15 +6,15 @@ public class BenchVerificationSequence : Sequence
 {
     public BenchVerificationVariables Variables { get; private set; }
 
-    public BenchVerificationSequence(Func<Dialog, DialogResult> uiDialog, ModalUiContext modalUiContext, BenchVerificationVariables variables)
+    public BenchVerificationSequence(ModalUiContext modalUiContext, BenchVerificationVariables variables)
     {
         Name = "Bench verification";
         Variables = variables;
-        AddSteps(uiDialog, modalUiContext);
+        AddSteps(modalUiContext);
         SetStepIndices();
     }
 
-    private void AddSteps(Func<Dialog, DialogResult> uiDialog, ModalUiContext modalUiContext)
+    private void AddSteps(ModalUiContext modalUiContext)
     {
         Steps =
         [

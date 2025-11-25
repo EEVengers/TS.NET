@@ -6,19 +6,25 @@ public class NoiseVerificationSequence : Sequence
 {
     public NoiseVerificationVariables Variables { get; private set; }
 
-    public NoiseVerificationSequence(Func<Dialog, DialogResult> uiDialog, NoiseVerificationVariables variables)
+    public NoiseVerificationSequence(ModalUiContext modalUiContext, NoiseVerificationVariables variables)
     {
         Name = "Noise verification";
         Variables = variables;
-        AddSteps(uiDialog);
+        AddSteps(modalUiContext);
         SetStepIndices();
     }
 
-    private void AddSteps(Func<Dialog, DialogResult> uiDialog)
+    private void AddSteps(ModalUiContext modalUiContext)
     {
         Steps =
         [
-            new DialogStep("Cable check", uiDialog){ Title = "Cable check", Text = "All cables disconnected from channels 1-4?", Buttons = DialogButtons.YesNo, Icon = DialogIcon.Question },
+            new ModalDialogStep("Cable check", modalUiContext)
+            {
+                Title = "Cable check",
+                Message = "Are all cables disconnected from channels 1-4?",
+                Buttons = DialogButtons.YesNo,
+                Icon = DialogIcon.Question
+            },
             new InitialiseDeviceStep("Initialise device", Variables),
             new LoadUserCalFromDeviceStep("Load calibration from device", Variables),
             new Step("Load ADC branch gains"){ Action = (CancellationToken cancellationToken) => {

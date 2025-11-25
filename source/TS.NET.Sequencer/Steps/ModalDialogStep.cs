@@ -9,6 +9,7 @@ public class ModalDialogStep : ModalUiStep
     public required DialogButtons Buttons { get; set; }
     public required DialogIcon Icon { get; set; }
 
+    private Status status = Status.Running;
     private bool continueLoop = false;
 
     public ModalDialogStep(string name, ModalUiContext modalUiContext) : base(name, modalUiContext)
@@ -19,6 +20,18 @@ public class ModalDialogStep : ModalUiStep
             {
                 if (eventData.TryGetProperty("buttonClicked", out var buttonClicked))
                 {
+                    switch (buttonClicked.GetString())
+                    {
+                        case "ok":
+                        case "yes":
+                            status = Status.Done;
+                            break;
+                        case "cancel":
+                        case "no":
+                            status = Status.Cancelled;
+                            break;
+
+                    }
                     continueLoop = false;
                 }
             });
@@ -32,7 +45,7 @@ public class ModalDialogStep : ModalUiStep
             });
 
             continueLoop = true;
-            while(continueLoop)
+            while (continueLoop)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 Thread.Sleep(100);
@@ -40,7 +53,7 @@ public class ModalDialogStep : ModalUiStep
 
             HideUi();
 
-            return Status.Done;
+            return status;
         };
     }
 }

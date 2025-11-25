@@ -12,10 +12,10 @@
 
     private string GetIconSvg() => Icon switch
     {
-        DialogIcon.Info => "Icon here",
-        DialogIcon.Warning => "Icon here",
-        DialogIcon.Error => "Icon here",
-        DialogIcon.Question => "Icon here",
+        DialogIcon.Info => """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9h.01" /><path d="M11 12h1v4h1" /><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /></svg>""",
+        DialogIcon.Warning => """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>""",
+        DialogIcon.Error => """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10l4 4m0 -4l-4 4" /><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /></svg>""",
+        DialogIcon.Question => """<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9 -9 9s-9 -1.8 -9 -9s1.8 -9 9 -9z" /><path d="M12 16v.01" /><path d="M12 13a2 2 0 0 0 .914 -3.782a1.98 1.98 0 0 0 -2.414 .483" /></svg>""",
         _ => ""
     };
 
@@ -35,7 +35,7 @@
     @((MarkupString)ModalUiStep.GetEmbeddedStyle("ModalDialog"))
 </style>
 
-<div class="z-1 flex flex-col w-100 h-60 border border-zinc-600 bg-zinc-900 absolute inset-1/2 -translate-1/2">
+<div class="z-1 flex flex-col w-100 h-40 border border-zinc-600 bg-zinc-900 absolute inset-1/2 -translate-1/2">
     <!-- Title bar -->
     <div class="flex-none flex flex-row items-center gap-2 p-2 pl-2 pr-2 bg-zinc-800">
         <div class="flex-none text-neutral-50 font-normal text-xs trim-box">@Title</div>

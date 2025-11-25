@@ -18,16 +18,16 @@ public enum DialogButtons
     AbortRetryIgnore
 }
 
-public enum DialogResult
-{
-    Cancel = -1,
-    Ok,
-    Yes,
-    No,
-    Abort,
-    Retry,
-    Ignore
-}
+//public enum DialogResult
+//{
+//    Cancel = -1,
+//    Ok,
+//    Yes,
+//    No,
+//    Abort,
+//    Retry,
+//    Ignore
+//}
 
 public class Dialog
 {

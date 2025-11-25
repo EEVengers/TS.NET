@@ -6,19 +6,25 @@ public class SelfCalibrationSequence : Sequence
 {
     public SelfCalibrationVariables Variables { get; private set; }
 
-    public SelfCalibrationSequence(Func<Dialog, DialogResult> uiDialog, SelfCalibrationVariables variables)
+    public SelfCalibrationSequence(ModalUiContext modalUiContext, SelfCalibrationVariables variables)
     {
         Name = "Self calibration";
         Variables = variables;
-        AddSteps(uiDialog);
+        AddSteps(modalUiContext);
         SetStepIndices();
     }
 
-    private void AddSteps(Func<Dialog, DialogResult> uiDialog)
+    private void AddSteps(ModalUiContext modalUiContext)
     {
         Steps =
         [
-            new DialogStep("Cable check", uiDialog){ Title = "Cable check", Text = "All cables disconnected from channels 1-4?", Buttons = DialogButtons.YesNo, Icon = DialogIcon.Question },
+            new ModalDialogStep("Cable check", modalUiContext)
+            {
+                Title = "Cable check",
+                Message = "Are all cables disconnected from channels 1-4?",
+                Buttons = DialogButtons.YesNo,
+                Icon = DialogIcon.Question
+            },
             new InitialiseDeviceStep("Initialise device", Variables),
             new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file", Variables),
             new WarmupStep("Warmup device", Variables) { Skip = false, AllowSkip = true },
