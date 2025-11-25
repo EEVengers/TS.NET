@@ -61,6 +61,11 @@ document.addEventListener("DOMContentLoaded", () => {
       case "step-update":
         updateStepStatus(parsedMessage.step);
         break;
+      case "modal-ui-update":
+        document.getElementById("modal-ui-container").innerHTML = parsedMessage.html;
+        if(parsedMessage.script != null)
+          eval(parsedMessage.script);
+        break;
     }
   });
 

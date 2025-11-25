@@ -13,17 +13,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TS.NET.Photino\TS.NET.Photino.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="HTML\*.cshtml" />
-	<EmbeddedResource Include="HTML\*.js" />
+    <EmbeddedResource Include="HTML\*.js" />
     <EmbeddedResource Include="HTML\*.css" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="HTML\HtmlReport.razor" />
   </ItemGroup>
 
 </Project>

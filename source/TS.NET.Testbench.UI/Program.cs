@@ -27,7 +27,20 @@ class Program
         loadPath = $"{baseUrl}/index.html";
 #endif
 
-        var window = new PhotinoWindow()
+        PhotinoWindow? window = null;
+        Action<ModalUiUpdate> modalUiUpdate = (ModalUiUpdate modalUiUpdate) =>
+        {
+            var dto = new ModalUiUpdateDto
+            { 
+                Type = "modal-ui-update", 
+                Html = modalUiUpdate.Html,
+                Script = modalUiUpdate.Script
+            };
+            window?.SendWebMessage(JsonSerializer.Serialize(dto, CamelCaseContext.Default.ModalUiUpdateDto));
+        };
+        var modalUiContext = new ModalUiContext(modalUiUpdate);
+
+        window = new PhotinoWindow()
             .SetLogVerbosity(0)
             .SetTitle("Testbench")
             .SetIconFile(ExtractEmbeddedResourceToTempFile("icon.ico", "TS.NET.Testbench.UI"))
@@ -161,6 +174,9 @@ class Program
                         var stepIndex = json.RootElement.GetProperty("stepIndex").GetInt32();
                         var skip = json.RootElement.GetProperty("skip").GetBoolean();
                         sequence.Steps[stepIndex - 1].Skip = skip;
+                        break;
+                    case "modal-ui-event":
+                        modalUiContext?.EventHandler?.Invoke(json.RootElement.GetProperty("event"));
                         break;
                 }
             }).Load(loadPath);

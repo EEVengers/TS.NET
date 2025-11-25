@@ -4,36 +4,44 @@ namespace TS.NET.Sequences;
 
 public class BodePlotStep : Step
 {
-    public BodePlotStep(string name, int channelIndex, int[] channelIndices, uint sampleRateHz, PgaPreampGain preamp, int ladder, bool attenuator, uint maxFrequency, CommonVariables variables) : base(name)
+    public required int ChannelIndex { get; set; }
+    public required int[] ChannelsEnabled { get; set; }
+    public PgaPreampGain PgaPreampGain { get; set; }
+    public int PgaLadder { get; set; }
+    public bool Attenuator { get; set; }
+    public required uint SampleRateHz { get; set; }
+    public uint MaxFrequency { get; set; }
+    
+    public BodePlotStep(string name, CommonVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {
             var resolution = AdcResolution.EightBit;
 
-            Instruments.Instance.SetThunderscopeChannel(channelIndices);
+            Instruments.Instance.SetThunderscopeChannel(ChannelsEnabled);
             Instruments.Instance.SetThunderscopeResolution(resolution);
-            Instruments.Instance.SetThunderscopeRate(sampleRateHz);
+            Instruments.Instance.SetThunderscopeRate(SampleRateHz);
 
-            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, preamp, ladder, variables);
-            double attenuatorScale = channelIndex switch {
+            var pathCalibration = Utility.GetChannelPathCalibration(ChannelIndex, PgaPreampGain, PgaLadder, variables);
+            double attenuatorScale = ChannelIndex switch {
                 0 => variables.Calibration.Channel1.AttenuatorScale,
                 1 => variables.Calibration.Channel2.AttenuatorScale,
                 2 => variables.Calibration.Channel3.AttenuatorScale,
                 3 => variables.Calibration.Channel4.AttenuatorScale,
                 _ => throw new NotImplementedException()
             };
-            double amplitudeVpp = pathCalibration.BufferInputVpp * 0.8 / (attenuator ? attenuatorScale : 1.0);
+            double amplitudeVpp = pathCalibration.BufferInputVpp * 0.8 / (Attenuator ? attenuatorScale : 1.0);
             
-            SigGens.Instance.SetSdgChannel([channelIndex]);
-            SigGens.Instance.SetSdgLoad(channelIndex, ThunderscopeTermination.FiftyOhm);
-            SigGens.Instance.SetSdgSine(channelIndex);
-            SigGens.Instance.SetSdgParameterFrequency(channelIndex, 1000);
-            SigGens.Instance.SetSdgParameterAmplitude(channelIndex, amplitudeVpp);
-            SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
+            SigGens.Instance.SetSdgChannel([ChannelIndex]);
+            SigGens.Instance.SetSdgLoad(ChannelIndex, ThunderscopeTermination.FiftyOhm);
+            SigGens.Instance.SetSdgSine(ChannelIndex);
+            SigGens.Instance.SetSdgParameterFrequency(ChannelIndex, 1000);
+            SigGens.Instance.SetSdgParameterAmplitude(ChannelIndex, amplitudeVpp);
+            SigGens.Instance.SetSdgParameterOffset(ChannelIndex, 0);
 
-            Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, attenuator: attenuator, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, ThunderscopeBandwidth.BwFull, variables.FrontEndSettlingTimeMs);
+            Instruments.Instance.SetThunderscopeCalManual50R(ChannelIndex, Attenuator, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, ThunderscopeBandwidth.BwFull, variables.FrontEndSettlingTimeMs);
 
-            Logger.Instance.Log(LogLevel.Information, Index, Status.Running, $"Ch{channelIndex + 1}, {amplitudeVpp:F4} Vpp");
+            Logger.Instance.Log(LogLevel.Information, Index, Status.Running, $"Ch{ChannelIndex + 1}, {amplitudeVpp:F4} Vpp");
             //var zeroValue = Utility.GetAndCheckSigGenZero(channelIndex, pathConfig, variables, cancellationToken);
 
             var frequenciesHz = new List<uint>();
@@ -46,7 +54,7 @@ public class BodePlotStep : Step
                 for (int i = 0; i < pointsPerDecade && continueLoop; i++)
                 {
                     uint frequency = (uint)(startFrequencyHz * Math.Pow(10, d) * Math.Pow(10, (double)i / pointsPerDecade));
-                    if(frequency > maxFrequency)
+                    if(frequency > MaxFrequency)
                     {
                         continueLoop = false;
                         break;
@@ -57,28 +65,28 @@ public class BodePlotStep : Step
                     }
                 }
             }
-            if (!frequenciesHz.Contains(maxFrequency))
+            if (!frequenciesHz.Contains(MaxFrequency))
             {
-                frequenciesHz.Add(maxFrequency);
+                frequenciesHz.Add(MaxFrequency);
             }
             //frequenciesHz.Add((uint)(startFrequencyHz * Math.Pow(10, decades)));
       
             var bodePoints = new Dictionary<uint, double>();
 
-            SigGens.Instance.SetSdgParameterFrequency(channelIndex, startFrequencyHz);
-            var signalAtRef = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(channelIndex, startFrequencyHz, sampleRateHz, pathCalibration.BufferInputVpp, resolution) / (attenuator ? attenuatorScale : 1.0);
+            SigGens.Instance.SetSdgParameterFrequency(ChannelIndex, startFrequencyHz);
+            var signalAtRef = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(ChannelIndex, startFrequencyHz, SampleRateHz, pathCalibration.BufferInputVpp, resolution) / (Attenuator ? attenuatorScale : 1.0);
 
             foreach (var frequencyHz in frequenciesHz)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                SigGens.Instance.SetSdgParameterFrequency(channelIndex, frequencyHz);
-                var signalAtFrequency = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(channelIndex, frequencyHz, sampleRateHz, pathCalibration.BufferInputVpp, resolution) / (attenuator ? attenuatorScale : 1.0);
+                SigGens.Instance.SetSdgParameterFrequency(ChannelIndex, frequencyHz);
+                var signalAtFrequency = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(ChannelIndex, frequencyHz, SampleRateHz, pathCalibration.BufferInputVpp, resolution) / (Attenuator ? attenuatorScale : 1.0);
 
                 // Normalise relative to the reference measurement
                 double normalised = signalAtFrequency / signalAtRef;
                 bodePoints[frequencyHz] = normalised;
 
-                Logger.Instance.Log(LogLevel.Information, Index, Status.Running, $"Ch{channelIndex + 1}, frequency: {frequencyHz / 1e3:F3} kHz, scale: {normalised:F4}");
+                Logger.Instance.Log(LogLevel.Information, Index, Status.Running, $"Ch{ChannelIndex + 1}, frequency: {frequencyHz / 1e3:F3} kHz, scale: {normalised:F4}");
             }
 
             //var csv = bodePoints.Select(p => $"{p.Key},{p.Value:F4},{20.0 * Math.Log10(p.Value):F4}");
@@ -92,10 +100,10 @@ public class BodePlotStep : Step
                 Headers = ["Parameter", "Value"],
                 Rows = [
                         ["Termination", "50R"],
-                        ["PGA preamp", preamp.ToString()],
-                        ["PGA ladder", ReportStringUtility.LadderIndexToDbToHumanReadable(ladder)],
-                        ["Attenuator", attenuator ? "On" : "Off"],
-                        ["Sample rate", ReportStringUtility.SampleRateHzToHumanReadable(sampleRateHz)],
+                        ["PGA preamp", PgaPreampGain.ToString()],
+                        ["PGA ladder", ReportStringUtility.LadderIndexToDbToHumanReadable(PgaLadder)],
+                        ["Attenuator", Attenuator ? "On" : "Off"],
+                        ["Sample rate", ReportStringUtility.SampleRateHzToHumanReadable(SampleRateHz)],
                         ["Resolution", ReportStringUtility.AdcResolutionToHumanReadable(resolution)],
                         ["Amplitude", $"{amplitudeVpp:F4} Vpp"],
                         ["Points", bodePoints.Count.ToString()]]
@@ -107,7 +115,7 @@ public class BodePlotStep : Step
                     ShowInReport = true,
                     Title = $"Overall gain vs. frequency",
                     XAxis = new ResultMetadataXYChartAxis{ Label = "Frequency (Hz)", Scale = XYChartScaleType.Log10 },
-                    YAxis = new ResultMetadataXYChartAxis{ Label = "Gain (dB)", Scale = XYChartScaleType.Linear, AdditionalRangeValues = [-0.3, 0.3] },
+                    YAxis = new ResultMetadataXYChartAxis{ Label = "Gain (dB)", Scale = XYChartScaleType.Linear, AdditionalRangeValues = [-0.5, 0.5] },
                     Series =
                     [
                         new ResultMetadataXYChartSeries
@@ -125,7 +133,7 @@ public class BodePlotStep : Step
             Result!.Metadata!.Add(tableMetadata);
             Result!.Metadata!.Add(metadata);
 
-            Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Bode plot measurement complete for Ch{channelIndex + 1}.");
+            Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Bode plot measurement complete for Ch{ChannelIndex + 1}.");
             return Status.Done;
         };
     }

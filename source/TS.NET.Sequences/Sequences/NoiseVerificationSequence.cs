@@ -1,5 +1,4 @@
-﻿using TS.NET.Photino;
-using TS.NET.Sequencer;
+﻿using TS.NET.Sequencer;
 
 namespace TS.NET.Sequences;
 
@@ -82,7 +81,7 @@ public class NoiseVerificationSequence : Sequence
             new NsdStep("Channel 2 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", 1, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 1_000_000_000, Variables),
             new NsdStep("Channel 3 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", 2, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 1_000_000_000, Variables),
             new NsdStep("Channel 4 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", 3, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 1_000_000_000, Variables),
-            new CombineChartsStep("Combined NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", this),
+            new CombineChartsStep("Combined - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", this),
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.Close();

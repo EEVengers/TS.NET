@@ -1,6 +1,4 @@
-﻿using TS.NET.Photino;
-
-namespace TS.NET.Sequencer;
+﻿namespace TS.NET.Sequencer;
 
 public class DialogStep : Step
 {

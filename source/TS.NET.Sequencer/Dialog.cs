@@ -1,4 +1,4 @@
-﻿namespace TS.NET.Photino;
+﻿namespace TS.NET.Sequencer;
 
 public enum DialogIcon
 {

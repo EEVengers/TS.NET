@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using TS.NET.Sequences;
+using TS.NET.Sequencer;
 
 namespace TS.NET.Testbench.UI;
 
@@ -19,4 +20,5 @@ internal partial class DefaultCaseContext : JsonSerializerContext { }
 [JsonSerializable(typeof(LogUpdateDto))]
 [JsonSerializable(typeof(SequenceStatusUpdateDto))]
 [JsonSerializable(typeof(string))]
+[JsonSerializable(typeof(ModalUiUpdateDto))]
 internal partial class CamelCaseContext : JsonSerializerContext { }
