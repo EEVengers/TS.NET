@@ -22,51 +22,47 @@
     private List<(string Id, string Label)> GetButtons() => Buttons switch
     {
         DialogButtons.Ok => [("ok", "Ok")],
-        DialogButtons.OkCancel => [("cancel", "Cancel"), ("ok", "Ok")],
-        DialogButtons.YesNo => [("no", "No"), ("yes", "Yes")],
-        DialogButtons.YesNoCancel => [("cancel", "Cancel"), ("no", "No"), ("yes", "Yes")],
-        DialogButtons.RetryCancel => [("cancel", "Cancel"), ("retry", "Retry")],
+        DialogButtons.OkCancel => [("ok", "Ok"), ("cancel", "Cancel")],
+        DialogButtons.YesNo => [("yes", "Yes"), ("no", "No")],
+        DialogButtons.YesNoCancel => [("yes", "Yes"), ("no", "No"), ("cancel", "Cancel")],
+        DialogButtons.RetryCancel => [("retry", "Retry"), ("cancel", "Cancel")],
         DialogButtons.AbortRetryIgnore => [("abort", "Abort"), ("retry", "Retry"), ("ignore", "Ignore")],
         _ => [("ok", "Ok")]
     };
 }
 
 <style>
-
+    @((MarkupString)ModalUiStep.GetEmbeddedStyle("ModalDialog"))
 </style>
 
-<div id="modal-ui" class="z-1 fixed top-0 left-0 w-screen h-screen items-center justify-center">
-    <div class="z-1 flex flex-col w-100 h-60 border border-zinc-600 bg-zinc-900 absolute inset-1/2 -translate-1/2">
-        <!-- Title bar -->
-        <div class="flex-none flex flex-row items-center gap-2 p-2 pl-2 pr-2 bg-zinc-800">
-            <div class="flex-none text-neutral-50 font-normal text-xs trim-box">@Title</div>
+<div class="z-1 flex flex-col w-100 h-60 border border-zinc-600 bg-zinc-900 absolute inset-1/2 -translate-1/2">
+    <!-- Title bar -->
+    <div class="flex-none flex flex-row items-center gap-2 p-2 pl-2 pr-2 bg-zinc-800">
+        <div class="flex-none text-neutral-50 font-normal text-xs trim-box">@Title</div>
+    </div>
+    <div class="flex-none border-b border-zinc-600"></div>
+    <!-- Content -->
+    <div class="flex-auto flex flex-col p-3 overflow-y-auto">
+        <div class="flex-auto flex flex-row gap-3 text-neutral-50">
+            <div class="flex-none flex items-start mr-2">
+                @((MarkupString)GetIconSvg())
+            </div>
+            <div class="flex-auto text-sm">
+                @Message
+            </div>
         </div>
-        <div class="flex-none border-b border-zinc-600"></div>
-        <!-- Content -->
-        <div class="flex-auto flex flex-col p-3 overflow-y-auto">
-            <div class="flex-auto flex flex-row gap-4 text-neutral-50">
-                <div class="flex-none flex items-start mr-2">
-                    @((MarkupString)GetIconSvg())
-                </div>
-                <div class="flex-auto text-sm">
-                    @Message
-                </div>
-            </div>
-            <div class="flex-none flex flex-row justify-end gap-2 mt-4">
-                @foreach (var button in GetButtons())
-                {
-                    <button id="modal-ui-@button.Id-button" type="button" class="float-right border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
-                        @button.Label
-                    </button>
-                }
-            </div>
+        <div class="flex-none flex flex-row justify-end gap-2 mt-3">
+            @foreach (var button in GetButtons())
+            {
+                <button id="modal-ui-@button.Id-button" type="button" class="float-right border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
+                    @button.Label
+                </button>
+            }
         </div>
     </div>
-    <div class="z-0 fixed top-0 left-0 w-screen h-screen items-center justify-center backdrop-blur-xs pointer-events-none"></div>
 </div>
 
 <script>
-    console.log("Adding click handlers");
     @foreach (var button in GetButtons())
     {
         <text>

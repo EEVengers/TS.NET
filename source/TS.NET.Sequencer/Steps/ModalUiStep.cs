@@ -1,7 +1,8 @@
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.Components;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -12,16 +13,16 @@ public class ModalUiContext
     public Action<ModalUiUpdate> Update { get; init; }
     public Action<JsonElement>? EventHandler { get; set; }
 
-    public ModalUiContext(Action<ModalUiUpdate> update )
-    { 
+    public ModalUiContext(Action<ModalUiUpdate> update)
+    {
         Update = update;
     }
 }
 
 public class ModalUiUpdate
 {
-    public required string Html;
-    public required string? Script;
+    public required string? Html { get; set; }
+    public required string? Script { get; set; }
 }
 
 public class ModalUiStep : Step
@@ -37,7 +38,7 @@ public class ModalUiStep : Step
 
         services.AddLogging();
         serviceProvider = services.BuildServiceProvider();
-        loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();      
+        loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
     }
 
     public void RegisterEventHandler(Action<JsonElement>? eventHandler)
@@ -60,19 +61,35 @@ public class ModalUiStep : Step
 
             var scriptRegex = new Regex(@"<script[^>]*>([\s\S]*?)</script>", RegexOptions.IgnoreCase);
             var matches = scriptRegex.Matches(html);
-            var scriptContent = string.Join("\n", matches.Select(m => m.Groups[1].Value.Trim()));        
+            var scriptContent = string.Join("\n", matches.Select(m => m.Groups[1].Value.Trim()));
             var htmlWithoutScripts = scriptRegex.Replace(html, "");
 
-            modalUiContext.Update(new ModalUiUpdate 
-            { 
-                Html = htmlWithoutScripts, 
-                Script = string.IsNullOrWhiteSpace(scriptContent) ? null : scriptContent 
+            modalUiContext.Update(new ModalUiUpdate
+            {
+                Html = htmlWithoutScripts,
+                Script = string.IsNullOrWhiteSpace(scriptContent) ? null : scriptContent
             });
         });
     }
 
     public void HideUi()
     {
-        modalUiContext.Update(new ModalUiUpdate { Html = "", Script = null });
+        modalUiContext.Update(new ModalUiUpdate
+        {
+            Html = null,
+            Script = null
+        });
+    }
+
+    public static string GetEmbeddedStyle(string name)
+    {
+        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"TS.NET.Sequencer.Steps.{name}.css");
+        if (stream != null)
+        {
+            using var reader = new StreamReader(stream);
+            var content = reader.ReadToEnd();
+            return content;
+        }
+        return "";
     }
 }

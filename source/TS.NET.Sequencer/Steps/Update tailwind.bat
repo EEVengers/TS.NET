@@ -1,1 +1,1 @@
-tailwindcss-windows-x64.exe -cwd .\Steps  -o .\ModalUi-tailwind.css
+tailwindcss-windows-x64.exe -o .\ModalDialog.css -m

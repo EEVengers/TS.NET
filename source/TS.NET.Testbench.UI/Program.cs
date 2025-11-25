@@ -31,8 +31,8 @@ class Program
         Action<ModalUiUpdate> modalUiUpdate = (ModalUiUpdate modalUiUpdate) =>
         {
             var dto = new ModalUiUpdateDto
-            { 
-                Type = "modal-ui-update", 
+            {
+                Type = "modal-ui-update",
                 Html = modalUiUpdate.Html,
                 Script = modalUiUpdate.Script
             };
