@@ -192,11 +192,11 @@ public class Instruments
         }
     }
 
-    //public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation)
-    //{
-    //    thunderScope?.WriteLine($"CAL:FRONTEND CHAN{channelIndex + 1} DC 50 0 {dac} {dpot} {pgaLadderAttenuation} {(pgaPreampGain == PgaPreampGain.High ? "1" : "0")} 20M");
-    //    Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
-    //}
+    public void SetThunderscopeFrontend(int channelIndex, ThunderscopeChannelFrontendManualControl frontend, int frontEndSettlingTimeMs)
+    {
+        thunderScope?.SetChannelManualControl(channelIndex, frontend);
+        Thread.Sleep(frontEndSettlingTimeMs);
+    }
 
     public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, int frontEndSettlingTimeMs)
     {

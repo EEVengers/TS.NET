@@ -6,11 +6,11 @@ public class BodePlotStep : Step
 {
     public required int ChannelIndex { get; set; }
     public required int[] ChannelsEnabled { get; set; }
-    public PgaPreampGain PgaPreampGain { get; set; }
-    public int PgaLadder { get; set; }
-    public bool Attenuator { get; set; }
+    public required PgaPreampGain PgaPreampGain { get; set; }
+    public required int PgaLadder { get; set; }
+    public required bool Attenuator { get; set; }
     public required uint SampleRateHz { get; set; }
-    public uint MaxFrequency { get; set; }
+    public required uint MaxFrequency { get; set; }
     
     public BodePlotStep(string name, CommonVariables variables) : base(name)
     {

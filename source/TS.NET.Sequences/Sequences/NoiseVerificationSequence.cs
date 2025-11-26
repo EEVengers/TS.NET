@@ -83,10 +83,42 @@ public class NoiseVerificationSequence : Sequence
             new AcRmsStep("Channel 3 - AC RMS - 1M, 8-bit, 1 GSPS, BW FULL, PGA HG L0", 2, 0, ThunderscopeTermination.OneMegaohm, ThunderscopeBandwidth.BwFull, 1_000_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00012, Averages = 100 },
             new AcRmsStep("Channel 4 - AC RMS - 1M, 8-bit, 1 GSPS, BW FULL, PGA HG L0", 3, 0, ThunderscopeTermination.OneMegaohm, ThunderscopeBandwidth.BwFull, 1_000_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00012, Averages = 100 },
 
-            new NsdStep("Channel 1 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", 0, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 1_000_000_000, Variables),
-            new NsdStep("Channel 2 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", 1, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 1_000_000_000, Variables),
-            new NsdStep("Channel 3 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", 2, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 1_000_000_000, Variables),
-            new NsdStep("Channel 4 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", 3, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.BwFull, 1_000_000_000, Variables),
+            new NsdStep("Channel 1 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", Variables)
+            {
+                ChannelIndex = 0,
+                Termination = ThunderscopeTermination.FiftyOhm,
+                PgaPreampGain = PgaPreampGain.High,
+                PgaLadder = 0,
+                Bandwidth = ThunderscopeBandwidth.BwFull,
+                SampleRateHz = 1_000_000_000,
+            },
+            new NsdStep("Channel 2 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", Variables)
+            {
+                ChannelIndex = 1,
+                Termination = ThunderscopeTermination.FiftyOhm,
+                PgaPreampGain = PgaPreampGain.High,
+                PgaLadder = 0,
+                Bandwidth = ThunderscopeBandwidth.BwFull,
+                SampleRateHz = 1_000_000_000,
+            },
+            new NsdStep("Channel 3 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", Variables)
+            {
+                ChannelIndex = 2,
+                Termination = ThunderscopeTermination.FiftyOhm,
+                PgaPreampGain = PgaPreampGain.High,
+                PgaLadder = 0,
+                Bandwidth = ThunderscopeBandwidth.BwFull,
+                SampleRateHz = 1_000_000_000,
+            },
+            new NsdStep("Channel 4 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", Variables)
+            {
+                ChannelIndex = 3,
+                Termination = ThunderscopeTermination.FiftyOhm,
+                PgaPreampGain = PgaPreampGain.High,
+                PgaLadder = 0,
+                Bandwidth = ThunderscopeBandwidth.BwFull,
+                SampleRateHz = 1_000_000_000,
+            },
             new CombineChartsStep("Combined - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", this),
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
