@@ -1,0 +1,65 @@
+@namespace TS.NET.Sequences
+@using TS.NET.Sequencer
+
+@code {
+    [Parameter]
+    public required string Title { get; set; }
+    [Parameter]
+    public required ResultMetadataXYChart Chart { get; set; }
+
+    private List<(string Id, string Label)> GetButtons() => [("ok", "Ok"), ("cancel", "Cancel")];
+}
+
+<style>
+    @((MarkupString)TrimPotStep.GetChartStyle())
+</style>
+
+<div class="z-1 flex flex-col border border-zinc-600 bg-zinc-900 absolute inset-1/2 -translate-1/2" style="width: 800px; height: 600px;">
+    <!-- Title bar -->
+    <div class="flex-none flex flex-row items-center gap-2 p-2 pl-2 pr-2 bg-zinc-800">
+        <div class="flex-none text-neutral-50 font-normal text-xs trim-box">@Title</div>
+    </div>
+    <div class="flex-none border-b border-zinc-600"></div>
+    <!-- Content -->
+    <div class="flex-auto flex flex-col p-3 overflow-y-auto">
+        <div class="flex-auto flex flex-row gap-3 text-neutral-50">
+            <div class="flex-auto text-sm">
+                @{
+                var legendLocation = Chart.LegendLocation == ResultMetadataXYChartLegendLocation.BottomLeft ? "bottom-left" : "top-right";
+                <div class="mt-2">
+                    <svg id="chart-1" width="700" height="400" style="color: black;"></svg>
+                </div>
+                }
+            </div>
+        </div>
+        <div class="flex-none flex flex-row justify-end gap-2 mt-3">
+        @foreach (var button in GetButtons())
+        {
+            <button id="modal-ui-@button.Id-button" type="button" class="float-right border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
+                @button.Label
+            </button>
+        }
+        </div>
+    </div>
+</div>
+
+<script>
+    @foreach (var button in GetButtons())
+    {
+        <text>
+        document.getElementById("modal-ui-@button.Id-button").addEventListener("click", function () {
+            var message = { command: "modal-ui-event", event: { "buttonClicked" : "@button.Id" } };
+            window.external.sendMessage(JSON.stringify(message));
+        });
+        </text>
+    }
+
+    @((MarkupString)(TrimPotStep.GetChartJs()))
+    
+    new ResultMetadataXYChart("chart-1", {
+        width: 700,
+        height: 400,
+        margin: { top: 40, right: 20, bottom: 60, left: 80},
+        legendLocation: "@legendLocation"
+    }).render(@((MarkupString)(Chart.ToJson())));
+</script>

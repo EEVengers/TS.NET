@@ -52,12 +52,12 @@
             </div>
         </div>
         <div class="flex-none flex flex-row justify-end gap-2 mt-3">
-            @foreach (var button in GetButtons())
-            {
-                <button id="modal-ui-@button.Id-button" type="button" class="float-right border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
-                    @button.Label
-                </button>
-            }
+        @foreach (var button in GetButtons())
+        {
+            <button id="modal-ui-@button.Id-button" type="button" class="float-right border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
+                @button.Label
+            </button>
+        }
         </div>
     </div>
 </div>

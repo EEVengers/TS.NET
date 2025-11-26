@@ -97,6 +97,16 @@ class Program
                                 variables = benchVerificationVariables;
                                 sequence = benchVerificationSequence;
                                 break;
+                            case "factory-trim":
+                                var factoryTrimVariables = new BenchVerificationVariables
+                                {
+                                    SigGen1Host = variablesFile.SigGen1Ip,
+                                    SigGen2Host = variablesFile.SigGen2Ip
+                                };
+                                var factoryTrimSequence = new FactoryTrimSequence(modalUiContext, factoryTrimVariables);
+                                variables = factoryTrimVariables;
+                                sequence = factoryTrimSequence;
+                                break;
                             default:
                                 throw new InvalidDataException();
                         }

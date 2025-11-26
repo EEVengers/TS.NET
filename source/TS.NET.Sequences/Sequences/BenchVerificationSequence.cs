@@ -95,7 +95,7 @@ public class BenchVerificationSequence : Sequence
                 { 
                     Label = "Gain (dB)", 
                     Scale = XYChartScaleType.Linear, 
-                    AdditionalRangeValues = [-0.3, 0.3] 
+                    AdditionalRangeValues = [-0.5, 0.5] 
                 },
                 ChartSeries = [
                     new SeriesReference(){StepName = "Channel 1 - Crossover flatness"},
@@ -160,7 +160,7 @@ public class BenchVerificationSequence : Sequence
                 { 
                     Label = "Gain (dB)", 
                     Scale = XYChartScaleType.Linear, 
-                    AdditionalRangeValues = [-0.3, 0.3]
+                    AdditionalRangeValues = [-0.5, 0.5]
                 },
                 ChartSeries = [
                     new SeriesReference { StepName = "Channel 1 - Attenuator flatness" },
