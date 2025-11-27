@@ -119,47 +119,154 @@ public class NoiseVerificationSequence : Sequence
                 Bandwidth = ThunderscopeBandwidth.BwFull,
                 SampleRateHz = 1_000_000_000,
             },
-            new CombineChartsStep("Combined - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", this),
+            new CombinedSeriesStep("Combined - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0", this)
+            {
+                ChartTitle = "Noise spectral density",
+                ChartXAxis = new ResultMetadataXYChartAxis
+                { 
+                    Label = "Frequency (Hz)", 
+                    Scale = XYChartScaleType.Log10,
+                    AdditionalRangeValues = [10e3, 1e9]
+                },
+                ChartYAxis = new ResultMetadataXYChartAxis
+                { 
+                    Label = "Noise (V/rHz)", 
+                    Scale = XYChartScaleType.Log10, 
+                    AdditionalRangeValues = [100e-9, 100e-12],
+                },
+                ChartSeries = [
+                    new SeriesReference { StepName = "Channel 1 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0" },
+                    new SeriesReference { StepName = "Channel 2 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0" },
+                    new SeriesReference { StepName = "Channel 3 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0" },
+                    new SeriesReference { StepName = "Channel 4 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0" }
+                ],
+                ChartLegendLocation = ResultMetadataXYChartLegendLocation.BottomLeft,
+            },
+
+            new NsdStep("Channel 1 - NSD - 50R, 8-bit, 1 GSPS, BW 200M, PGA HG L0", Variables)
+            {
+                ChannelIndex = 0,
+                Termination = ThunderscopeTermination.FiftyOhm,
+                PgaPreampGain = PgaPreampGain.High,
+                PgaLadder = 0,
+                Bandwidth = ThunderscopeBandwidth.Bw200M,
+                SampleRateHz = 1_000_000_000,
+            },
+            new NsdStep("Channel 2 - NSD - 50R, 8-bit, 1 GSPS, BW 200M, PGA HG L0", Variables)
+            {
+                ChannelIndex = 1,
+                Termination = ThunderscopeTermination.FiftyOhm,
+                PgaPreampGain = PgaPreampGain.High,
+                PgaLadder = 0,
+                Bandwidth = ThunderscopeBandwidth.Bw200M,
+                SampleRateHz = 1_000_000_000,
+            },
+            new NsdStep("Channel 3 - NSD - 50R, 8-bit, 1 GSPS, BW 200M, PGA HG L0", Variables)
+            {
+                ChannelIndex = 2,
+                Termination = ThunderscopeTermination.FiftyOhm,
+                PgaPreampGain = PgaPreampGain.High,
+                PgaLadder = 0,
+                Bandwidth = ThunderscopeBandwidth.Bw200M,
+                SampleRateHz = 1_000_000_000,
+            },
+            new NsdStep("Channel 4 - NSD - 50R, 8-bit, 1 GSPS, BW 200M, PGA HG L0", Variables)
+            {
+                ChannelIndex = 3,
+                Termination = ThunderscopeTermination.FiftyOhm,
+                PgaPreampGain = PgaPreampGain.High,
+                PgaLadder = 0,
+                Bandwidth = ThunderscopeBandwidth.Bw200M,
+                SampleRateHz = 1_000_000_000,
+            },
+            new CombinedSeriesStep("Combined - NSD - 50R, 8-bit, 1 GSPS, BW 200M, PGA HG L0", this)
+            {
+                ChartTitle = "Noise spectral density",
+                ChartXAxis = new ResultMetadataXYChartAxis
+                { 
+                    Label = "Frequency (Hz)", 
+                    Scale = XYChartScaleType.Log10,
+                    AdditionalRangeValues = [10e3, 1e9]
+                },
+                ChartYAxis = new ResultMetadataXYChartAxis
+                { 
+                    Label = "Noise (V/rHz)", 
+                    Scale = XYChartScaleType.Log10, 
+                    AdditionalRangeValues = [100e-9, 100e-12],
+                },
+                ChartSeries = [
+                    new SeriesReference { StepName = "Channel 1 - NSD - 50R, 8-bit, 1 GSPS, BW 200M, PGA HG L0" },
+                    new SeriesReference { StepName = "Channel 2 - NSD - 50R, 8-bit, 1 GSPS, BW 200M, PGA HG L0" },
+                    new SeriesReference { StepName = "Channel 3 - NSD - 50R, 8-bit, 1 GSPS, BW 200M, PGA HG L0" },
+                    new SeriesReference { StepName = "Channel 4 - NSD - 50R, 8-bit, 1 GSPS, BW 200M, PGA HG L0" }
+                ],
+                ChartLegendLocation = ResultMetadataXYChartLegendLocation.BottomLeft,
+            },
+
+            new NsdStep("Channel 1 - NSD - 50R, 8-bit, 1 GSPS, BW 20M, PGA HG L0", Variables)
+            {
+                ChannelIndex = 0,
+                Termination = ThunderscopeTermination.FiftyOhm,
+                PgaPreampGain = PgaPreampGain.High,
+                PgaLadder = 0,
+                Bandwidth = ThunderscopeBandwidth.Bw20M,
+                SampleRateHz = 1_000_000_000,
+            },
+            new NsdStep("Channel 2 - NSD - 50R, 8-bit, 1 GSPS, BW 20M, PGA HG L0", Variables)
+            {
+                ChannelIndex = 1,
+                Termination = ThunderscopeTermination.FiftyOhm,
+                PgaPreampGain = PgaPreampGain.High,
+                PgaLadder = 0,
+                Bandwidth = ThunderscopeBandwidth.Bw20M,
+                SampleRateHz = 1_000_000_000,
+            },
+            new NsdStep("Channel 3 - NSD - 50R, 8-bit, 1 GSPS, BW 20M, PGA HG L0", Variables)
+            {
+                ChannelIndex = 2,
+                Termination = ThunderscopeTermination.FiftyOhm,
+                PgaPreampGain = PgaPreampGain.High,
+                PgaLadder = 0,
+                Bandwidth = ThunderscopeBandwidth.Bw20M,
+                SampleRateHz = 1_000_000_000,
+            },
+            new NsdStep("Channel 4 - NSD - 50R, 8-bit, 1 GSPS, BW 20M, PGA HG L0", Variables)
+            {
+                ChannelIndex = 3,
+                Termination = ThunderscopeTermination.FiftyOhm,
+                PgaPreampGain = PgaPreampGain.High,
+                PgaLadder = 0,
+                Bandwidth = ThunderscopeBandwidth.Bw20M,
+                SampleRateHz = 1_000_000_000,
+            },
+            new CombinedSeriesStep("Combined - NSD - 50R, 8-bit, 1 GSPS, BW 20M, PGA HG L0", this)
+            {
+                ChartTitle = "Noise spectral density",
+                ChartXAxis = new ResultMetadataXYChartAxis
+                { 
+                    Label = "Frequency (Hz)", 
+                    Scale = XYChartScaleType.Log10,
+                    AdditionalRangeValues = [10e3, 1e9]
+                },
+                ChartYAxis = new ResultMetadataXYChartAxis
+                { 
+                    Label = "Noise (V/rHz)", 
+                    Scale = XYChartScaleType.Log10, 
+                    AdditionalRangeValues = [100e-9, 100e-12],
+                },
+                ChartSeries = [
+                    new SeriesReference { StepName = "Channel 1 - NSD - 50R, 8-bit, 1 GSPS, BW 20M, PGA HG L0" },
+                    new SeriesReference { StepName = "Channel 2 - NSD - 50R, 8-bit, 1 GSPS, BW 20M, PGA HG L0" },
+                    new SeriesReference { StepName = "Channel 3 - NSD - 50R, 8-bit, 1 GSPS, BW 20M, PGA HG L0" },
+                    new SeriesReference { StepName = "Channel 4 - NSD - 50R, 8-bit, 1 GSPS, BW 20M, PGA HG L0" }
+                ],
+                ChartLegendLocation = ResultMetadataXYChartLegendLocation.BottomLeft,
+            },
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.Close();
                 return Sequencer.Status.Done;
             }},
         ];
-    }
-
-    private class CombineChartsStep : Step
-    {
-        public CombineChartsStep(string name, Sequence sequence) : base(name)
-        {
-            Action = (CancellationToken cancellationToken) =>
-            {
-                var channel1 = (ResultMetadataXYChart)sequence.Steps!.Where(s => s.Name == "Channel 1 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0").First().Result!.Metadata!.Where(r => r.GetType() == typeof(ResultMetadataXYChart)).First();
-                var channel2 = (ResultMetadataXYChart)sequence.Steps!.Where(s => s.Name == "Channel 2 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0").First().Result!.Metadata!.Where(r => r.GetType() == typeof(ResultMetadataXYChart)).First();
-                var channel3 = (ResultMetadataXYChart)sequence.Steps!.Where(s => s.Name == "Channel 3 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0").First().Result!.Metadata!.Where(r => r.GetType() == typeof(ResultMetadataXYChart)).First();
-                var channel4 = (ResultMetadataXYChart)sequence.Steps!.Where(s => s.Name == "Channel 4 - NSD - 50R, 8-bit, 1 GSPS, BW FULL, PGA HG L0").First().Result!.Metadata!.Where(r => r.GetType() == typeof(ResultMetadataXYChart)).First();
-
-                var metadata =
-                    new ResultMetadataXYChart()
-                    {
-                        ShowInReport = true,
-                        Title = $"Noise spectral density",
-                        XAxis = new ResultMetadataXYChartAxis { Label = "Frequency (Hz)", Scale = XYChartScaleType.Log10, AdditionalRangeValues = [10e3, 1e9] },
-                        YAxis = new ResultMetadataXYChartAxis { Label = "Noise (V/rHz)", Scale = XYChartScaleType.Log10, AdditionalRangeValues = [100e-9, 100e-12] },
-                        LegendLocation = ResultMetadataXYChartLegendLocation.BottomLeft,
-                        Series =
-                        [
-                            channel1.Series.First(),
-                            channel2.Series.First(),
-                            channel3.Series.First(),
-                            channel4.Series.First()
-                        ]
-                    };
-
-                Result!.Metadata!.Add(metadata);
-
-                return Sequencer.Status.Done;
-            };
-        }
     }
 }

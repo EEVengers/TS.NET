@@ -414,7 +414,8 @@ public class Instruments
         if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
             throw new TestbenchException("Requested channel index is not an enabled channel");
 
-        var sampleCount = (int)((sampleRateHz / frequency) * 10.0);
+        var cycleCount = 10.0;
+        var sampleCount = (int)Math.Round((sampleRateHz / frequency) * cycleCount);
 
         using SpanOwner<sbyte> i8Buffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
         GetChannelDataI8(channelIndex, sampleCount, i8Buffer.Span);
@@ -434,10 +435,19 @@ public class Instruments
             f64Span[i] = i8Span[i] * vPerBit;
         }
 
-        var (amplitude, phaseRadians, dcOffset) = SineLeastSquaresFit.FitSineWave(sampleRateHz, f64Span, frequency);
-        var vppResult = amplitude * 2;
+        // Goertzel & LSQ give approximately same results for amplitude, Goertzel is slightly faster, LSQ needs optimisation.
+        // LSQ should be more numerically stable.
 
-        return vppResult;
+        //GoertzelFilter filter = new GoertzelFilter(frequency, sampleRateHz);
+        //var result = filter.Process(f64Span);
+        //var goertzelVp = (2.0/f64Span.Length) * result.Magnitude;
+        //var goertzelVpp = goertzelVp * 2.0;
+        //double goertzelVrms = goertzelVp / Math.Sqrt(2.0);
+
+        var (amplitude, phaseRadians, dcOffset) = SineLeastSquaresFit.FitSineWave(sampleRateHz, f64Span, frequency);
+        var lsqVpp = amplitude * 2.0;
+
+        return lsqVpp;
     }
 
     public void GetChannelDataI8(int channelIndex, int sampleCount, Span<sbyte> outputBuffer)
