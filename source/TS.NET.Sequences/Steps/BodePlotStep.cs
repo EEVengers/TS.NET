@@ -47,6 +47,7 @@ public class BodePlotStep : Step
             var frequenciesHz = new List<uint>();
             uint startFrequencyHz = 100;
             int pointsPerDecade = 40;
+            var nyquistFrequency = SampleRateHz/2;
 
             bool continueLoop = true;
             for (int d = 0; d < 10 && continueLoop; d++)
@@ -73,14 +74,19 @@ public class BodePlotStep : Step
       
             var bodePoints = new Dictionary<uint, double>();
 
-            SigGens.Instance.SetSdgParameterFrequency(ChannelIndex, startFrequencyHz);
-            var signalAtRef = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(ChannelIndex, startFrequencyHz, SampleRateHz, pathCalibration.BufferInputVpp, resolution) / (Attenuator ? attenuatorScale : 1.0);
+            SigGens.Instance.SetSdgParameterFrequency(ChannelIndex, frequenciesHz[0]);
+            var signalAtRef = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(ChannelIndex, frequenciesHz[0], SampleRateHz, pathCalibration.BufferInputVpp, resolution) / (Attenuator ? attenuatorScale : 1.0);
 
             foreach (var frequencyHz in frequenciesHz)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 SigGens.Instance.SetSdgParameterFrequency(ChannelIndex, frequencyHz);
-                var signalAtFrequency = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(ChannelIndex, frequencyHz, SampleRateHz, pathCalibration.BufferInputVpp, resolution) / (Attenuator ? attenuatorScale : 1.0);
+                var frequencyToSearch = frequencyHz;
+                if(frequencyHz > nyquistFrequency)
+                {
+                    frequencyToSearch = nyquistFrequency - (frequencyHz - nyquistFrequency);
+                }
+                var signalAtFrequency = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(ChannelIndex, frequencyToSearch, SampleRateHz, pathCalibration.BufferInputVpp, resolution) / (Attenuator ? attenuatorScale : 1.0);
 
                 // Normalise relative to the reference measurement
                 double normalised = signalAtFrequency / signalAtRef;
