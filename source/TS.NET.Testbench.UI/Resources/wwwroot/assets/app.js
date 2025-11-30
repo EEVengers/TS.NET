@@ -90,7 +90,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function updateSequence(message) {
-        Alpine.store("sequenceheader", message.name);
+        if (message.name != null) {
+            Alpine.store("sequenceheader", message.name);
+        }
         const sequenceTableBody = document.getElementById("sequence-table-body");
         sequenceTableBody.innerHTML = "";
         if (message.steps !== null) {
