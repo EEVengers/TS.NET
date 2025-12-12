@@ -112,6 +112,7 @@ public class BodePlotStep : Step
                         ["Sample rate", ReportStringUtility.SampleRateHzToHumanReadable(SampleRateHz)],
                         ["Resolution", ReportStringUtility.AdcResolutionToHumanReadable(resolution)],
                         ["Amplitude", $"{amplitudeVpp:F4} Vpp"],
+                        ["ADC range (Fmin)", $"{(signalAtRef/pathCalibration.BufferInputVpp)*100:F0}%"],
                         ["Points", bodePoints.Count.ToString()]]
             };
 
