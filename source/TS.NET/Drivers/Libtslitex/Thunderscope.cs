@@ -362,8 +362,12 @@ namespace TS.NET.Driver.Libtslitex
             if (restart)
                 Stop();
 
-            uint resolutionValue = resolution switch { AdcResolution.EightBit => 256, AdcResolution.TwelveBit => 4096, _ => throw new NotImplementedException() };
-            var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, resolutionValue);
+            var format = resolution switch { 
+                AdcResolution.EightBit => Interop.tsSampleFormat_t.Format8Bit, 
+                AdcResolution.TwelveBit => Interop.tsSampleFormat_t.Format12BitMSB, 
+                _ => throw new NotImplementedException() 
+            };
+            var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, format);
 
             // There is a rate vs. scale relationship so update frontends
             if (updateFrontends)

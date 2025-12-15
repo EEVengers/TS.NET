@@ -81,6 +81,14 @@ namespace TS.NET.Driver.Libtslitex
             public tsAdcCalibration_t() { branchFineGain = new byte[8]; }
         }
 
+        public enum tsSampleFormat_t
+        {
+            Format8Bit = 0,
+            Format12BitLSB,
+            Format12BitMSB,
+            Format14Bit
+        }
+
         [DllImport(library, EntryPoint = "thunderscopeListDevices")]        // Use runtime marshalling for now. Custom marshalling later.
         public static extern int ListDevices(uint devIndex, out tsDeviceInfo_t devInfo);
 
@@ -100,7 +108,7 @@ namespace TS.NET.Driver.Libtslitex
         public static partial int GetStatus(nint ts, out tsScopeState_t conf);
 
         [LibraryImport(library, EntryPoint = "thunderscopeSampleModeSet")]
-        public static partial int SetSampleMode(nint ts, uint rate, uint resolution);
+        public static partial int SetSampleMode(nint ts, uint rate, tsSampleFormat_t mode);
 
         [LibraryImport(library, EntryPoint = "thunderscopeDataEnable")]
         public static partial int DataEnable(nint ts, byte enable);
