@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0" />
     <PackageReference Include="FftFlat" Version="1.0.1" />
+    <PackageReference Include="HidSharp" Version="2.6.4" />
   </ItemGroup>
 
   <ItemGroup>
