@@ -378,6 +378,93 @@ public class Instruments
         mean = branchMeans;
         stdev = branchStdDevs;
     }
+    
+    public void GetThunderscopeFineBranchesSine(double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution, out double[] amplitudes, out double[] phases, out double[] offsets)
+    {
+        // Note: phases are not reliable, too much phase noise in the test system.
+        // Approximate magnitudes of errors are:
+        //    amplitude: 4 LSB
+        //    offset: 0.2 LSB
+        
+        // If multiple channels are enabled, branch parsing won't be valid
+        var config = thunderScope!.GetConfiguration();
+        if (config.Acquisition.EnabledChannelsCount() != 1)
+            throw new TestbenchException("Fine branch analysis requires exactly one enabled channel.");
+
+        // Aim to get 20 cycles of the sig-gen waveform in each of the 8 branch buffers
+        var cycleCount = 20.0 * 8.0;
+        var totalSampleCount = (int)Math.Round((sampleRateHz / frequency) * cycleCount);
+
+        thunderScope!.Stop();
+        thunderScope!.Start();
+        var subsetDataMemory = dataMemory!.Subset(32 * 1024 * 1024);
+        thunderScope!.Read(subsetDataMemory);
+
+        var sampleBuffer = subsetDataMemory.DataSpanI8.Slice(subsetDataMemory.DataSpanI8.Length - totalSampleCount, totalSampleCount);
+        int sampleCount = sampleBuffer.Length / 8;
+
+        // Branch order from HMCAD1520 datasheet, Table 27
+        //                               LVDS output [branch]
+        var branch1 = new sbyte[sampleCount]; // D1A [1]
+        var branch2 = new sbyte[sampleCount]; // D2A [2]
+        var branch3 = new sbyte[sampleCount]; // D3B [3]
+        var branch4 = new sbyte[sampleCount]; // D4B [4]
+        var branch5 = new sbyte[sampleCount]; // D2B [5]
+        var branch6 = new sbyte[sampleCount]; // D1B [6]
+        var branch7 = new sbyte[sampleCount]; // D4A [7]
+        var branch8 = new sbyte[sampleCount]; // D3A [8]
+
+        int idx = 0;
+        for (int group = 0; group < sampleCount; group++)
+        {
+            branch1[group] = sampleBuffer[idx++]; // D1A
+            branch6[group] = sampleBuffer[idx++]; // D1B
+            branch2[group] = sampleBuffer[idx++]; // D2A
+            branch5[group] = sampleBuffer[idx++]; // D2B
+            branch8[group] = sampleBuffer[idx++]; // D3A
+            branch3[group] = sampleBuffer[idx++]; // D3B
+            branch7[group] = sampleBuffer[idx++]; // D4A
+            branch4[group] = sampleBuffer[idx++]; // D4B
+        }
+        // Do LSQ on sine waves
+        amplitudes = new double[8];
+        phases = new double[8];
+        offsets = new double[8];
+        for (int branch = 0; branch < 8; branch++)
+        {
+            using SpanOwner<double> f64Buffer = SpanOwner<double>.Allocate(sampleCount);  // Returned to pool when it goes out of scope
+            var i8Span = branch switch
+            {
+                0 => branch1,
+                1 => branch2,
+                2 => branch3,
+                3 => branch4,
+                4 => branch5,
+                5 => branch6,
+                6 => branch7,
+                7 => branch8,
+                _ => throw new NotImplementedException()
+            };
+            var f64Span = f64Buffer.Span;
+
+            var vPerBit = resolution switch
+            {
+                AdcResolution.EightBit => (double)(inputVpp / 256.0),
+                AdcResolution.TwelveBit => (double)(inputVpp / 4096.0),
+                _ => throw new NotImplementedException()
+            };
+
+            for (int i = 0; i < f64Span.Length; i++)
+            {
+                f64Span[i] = i8Span[i] * vPerBit;
+            }
+            var (amplitude, phaseDeg, dcOffset) = SineLeastSquaresFit.FitSineWave(sampleRateHz/8, f64Span, frequency);
+            var lsqVpp = amplitude * 2.0;
+            amplitudes[branch] =  lsqVpp;
+            phases[branch] = phaseDeg;
+            offsets[branch] = dcOffset;
+        }
+    }
 
     /// <summary>
     /// This is the same as AC RMS
@@ -437,6 +524,7 @@ public class Instruments
 
         // Goertzel & LSQ give approximately same results for amplitude, Goertzel is slightly faster, LSQ needs optimisation.
         // LSQ should be more numerically stable.
+        // Remember square waves will have a larger amplitude fitted to them.
 
         //GoertzelFilter filter = new GoertzelFilter(frequency, sampleRateHz);
         //var result = filter.Process(f64Span);
@@ -444,7 +532,7 @@ public class Instruments
         //var goertzelVpp = goertzelVp * 2.0;
         //double goertzelVrms = goertzelVp / Math.Sqrt(2.0);
 
-        var (amplitude, phaseRadians, dcOffset) = SineLeastSquaresFit.FitSineWave(sampleRateHz, f64Span, frequency);
+        var (amplitude, phaseDeg, dcOffset) = SineLeastSquaresFit.FitSineWave(sampleRateHz, f64Span, frequency);
         var lsqVpp = amplitude * 2.0;
 
         return lsqVpp;
@@ -514,7 +602,7 @@ public class Instruments
         channel.CopyTo(outputBuffer);
     }
 
-    //public (double amplitude, double phaseRadians, double offset) GetThunderscopeBodeAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)
+    //public (double amplitude, double phaseDeg, double offset) GetThunderscopeBodeAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)
     //{
     //    var config = thunderScope!.GetConfiguration();
     //    if (config.Acquisition.EnabledChannelsCount() != 2)

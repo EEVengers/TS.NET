@@ -56,26 +56,26 @@ public class AdcBranchGainsStep : Step
                 ShowInReport = true,
                 Headers = ["Branch", "Before", "Setting", "After"],
                 Rows = [
-                    ["1", ForDev(branchScalesBefore[0]), gainSettings[0].ToString(), ForDev(branchScalesAfter[0])],
-                    ["2", ForDev(branchScalesBefore[1]), gainSettings[1].ToString(),  ForDev(branchScalesAfter[1])],
-                    ["3", ForDev(branchScalesBefore[2]), gainSettings[2].ToString(),  ForDev(branchScalesAfter[2])],
-                    ["4", ForDev(branchScalesBefore[3]), gainSettings[3].ToString(),  ForDev(branchScalesAfter[3])],
-                    ["5", ForDev(branchScalesBefore[4]), gainSettings[4].ToString(),  ForDev(branchScalesAfter[4])],
-                    ["6", ForDev(branchScalesBefore[5]), gainSettings[5].ToString(),  ForDev(branchScalesAfter[5])],
-                    ["7", ForDev(branchScalesBefore[6]), gainSettings[6].ToString(),  ForDev(branchScalesAfter[6])],
-                    ["8", ForDev(branchScalesBefore[7]), gainSettings[7].ToString(),  ForDev(branchScalesAfter[7])]
+                    ["1", FormatDev(branchScalesBefore[0]), gainSettings[0].ToString(), FormatDev(branchScalesAfter[0])],
+                    ["2", FormatDev(branchScalesBefore[1]), gainSettings[1].ToString(),  FormatDev(branchScalesAfter[1])],
+                    ["3", FormatDev(branchScalesBefore[2]), gainSettings[2].ToString(),  FormatDev(branchScalesAfter[2])],
+                    ["4", FormatDev(branchScalesBefore[3]), gainSettings[3].ToString(),  FormatDev(branchScalesAfter[3])],
+                    ["5", FormatDev(branchScalesBefore[4]), gainSettings[4].ToString(),  FormatDev(branchScalesAfter[4])],
+                    ["6", FormatDev(branchScalesBefore[5]), gainSettings[5].ToString(),  FormatDev(branchScalesAfter[5])],
+                    ["7", FormatDev(branchScalesBefore[6]), gainSettings[6].ToString(),  FormatDev(branchScalesAfter[6])],
+                    ["8", FormatDev(branchScalesBefore[7]), gainSettings[7].ToString(),  FormatDev(branchScalesAfter[7])]
                 ]
             });
-
-            string ForDev(double deviation)
-            {
-                return $"{deviation * 100.0:+0.000;-0.000}%";
-            }
 
             //Instruments.Instance.SetThunderscopeAdcCalibration([0, 0, 0, 0, 0, 0, 0, 0]);
             Logger.Instance.Log(LogLevel.Information, Index, Status.Done);
             return Status.Done;
 
+            string FormatDev(double deviation)
+            {
+                return $"{deviation * 100.0:+0.000;-0.000}%";
+            }
+            
             double[] GetBranchScales()
             {
                 var branchScales = new double[8];

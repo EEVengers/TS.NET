@@ -30,14 +30,14 @@ public class BenchCalibrationSequence : Sequence
             new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file", Variables),
             new WarmupStep("Warmup device", Variables) { Skip = false, AllowSkip = true },
 
-            new AdcBranchGainsStep("Channel 1 - ADC branch gains - 100 MSPS", 0, 100_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
-            new AdcBranchGainsStep("Channel 1 - ADC branch gains - 165 MSPS", 0, 165_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
-            new AdcBranchGainsStep("Channel 1 - ADC branch gains - 250 MSPS", 0, 250_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
-            new AdcBranchGainsStep("Channel 1 - ADC branch gains - 330 MSPS", 0, 330_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
-            new AdcBranchGainsStep("Channel 1 - ADC branch gains - 500 MSPS", 0, 500_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
-            new AdcBranchGainsStep("Channel 1 - ADC branch gains - 660 MSPS", 0, 660_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
-            new AdcBranchGainsStep("Channel 1 - ADC branch gains - 1 GSPS", 0, 1_000_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
-
+            new AdcBranchGainPhaseOffsetStep("Channel 1 - ADC branch gains - 100 MSPS", 0, 100_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("Channel 1 - ADC branch gains - 165 MSPS", 0, 165_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("Channel 1 - ADC branch gains - 250 MSPS", 0, 250_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("Channel 1 - ADC branch gains - 330 MSPS", 0, 330_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("Channel 1 - ADC branch gains - 500 MSPS", 0, 500_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("Channel 1 - ADC branch gains - 660 MSPS", 0, 660_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("Channel 1 - ADC branch gains - 1 GSPS", 0, 1_000_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            
             new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { SigGens.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
             new TrimOffsetDacGainStep("Channel 1 - Trim offset DAC scale - HG L0", 0, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },

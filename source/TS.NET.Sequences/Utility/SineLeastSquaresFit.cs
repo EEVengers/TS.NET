@@ -3,7 +3,7 @@
 public static class SineLeastSquaresFit
 {
     // signal(t) = amplitude * sin(2π * frequency * time + phaseRadians) + offset
-    public static (double amplitude, double phaseRadians, double offset) FitSineWave(double sampleRateHz, ReadOnlySpan<double> sampleValues, double frequency)
+    public static (double amplitude, double phaseDeg, double offset) FitSineWave(double sampleRateHz, ReadOnlySpan<double> sampleValues, double frequency)
     {
         int sampleCount = sampleValues.Length;
         double angularFrequency = 2.0 * Math.PI * frequency;
@@ -55,7 +55,7 @@ public static class SineLeastSquaresFit
         double amplitude = Math.Sqrt(coefficientB * coefficientB + coefficientD * coefficientD);
         double phaseRadians = Math.Atan2(coefficientD, coefficientB);
 
-        return (amplitude, phaseRadians, offset);
+        return (amplitude, phaseRadians * (180.0/Math.PI), offset);
     }
 
     // Solves a 3x3 linear system using Cramer's Rule
