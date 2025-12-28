@@ -116,6 +116,9 @@ namespace TS.NET.Driver.Libtslitex
         [LibraryImport(library, EntryPoint = "thunderscopeRead")]
         public static unsafe partial int Read(nint ts, byte* buffer, uint len);
 
+        [LibraryImport(library, EntryPoint = "thunderscopeReadCount")]
+        public static unsafe partial int Read(nint ts, byte* buffer, uint len, ulong* count);
+
         [LibraryImport(library, EntryPoint = "thunderscopeFwUpdate")]
         public static unsafe partial int FirmwareUpdate(nint ts, byte* bitstream, uint len);
 
@@ -131,10 +134,10 @@ namespace TS.NET.Driver.Libtslitex
         [DllImport(library, EntryPoint = "thunderscopeChanCalibrationSet")]     // Use runtime marshalling for now. Custom marshalling later.
         public static extern int SetCalibration(nint ts, uint channel, in tsChannelCalibration_t cal);
         
-        [DllImport(library, EntryPoint = "thunderscopeAdcCalibrationSet")] // Use runtime marshalling for now. Custom marshalling later.
+        [DllImport(library, EntryPoint = "thunderscopeAdcCalibrationSet")]      // Use runtime marshalling for now. Custom marshalling later.
         public static extern int SetAdcCalibration(nint ts, in tsAdcCalibration_t cal);
 
-        [DllImport(library, EntryPoint = "thunderscopeAdcCalibrationGet")]
+        [DllImport(library, EntryPoint = "thunderscopeAdcCalibrationGet")]      // Use runtime marshalling for now. Custom marshalling later.
         public static extern int GetAdcCalibration(nint ts, out tsAdcCalibration_t cal);
 
         [StructLayout(LayoutKind.Sequential)]
