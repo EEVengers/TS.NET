@@ -102,28 +102,73 @@ internal class DataServer : IThread
     private void LoopSession(ILogger logger, Socket socket, CancellationToken cancelToken)
     {
         string sessionID = socket.RemoteEndPoint?.ToString() ?? "Unknown";
+
         try
         {
+            Span<byte> ack = stackalloc byte[4];
             Span<byte> cmdBuf = stackalloc byte[1];
+            uint nack = 0;
+            uint inflight = 0;
+            bool creditMode = false;
             while (true)
             {
                 cancelToken.ThrowIfCancellationRequested();
-                int read = 0;
-                read = socket.Receive(cmdBuf);
-                if (read == 0)
-                    break;
 
-                byte cmd = cmdBuf[0];
-                switch (cmd)
+                //New credit-based flow control path
+                if(creditMode)
                 {
-                    case (byte)'K':
-                        SendScopehalOld(socket, cancelToken);
-                        break;
-                    case (byte)'S':
+                    //See if we have data ready to read. Grab the ACKs if so (may be >1 queued)
+                    while(socket.Poll(1000, SelectMode.SelectRead))
+                    {
+                        //Get the ACK number (if we see one).
+                        //TODO: this assumes all 4 bytes are always in the same TCP segment. Probably reasonable
+                        //but for max robustness we'd want to handle partial acks somehow
+                        int read = 0;
+                        read = socket.Receive(ack);
+                        if(read == 4)
+                        {
+                            nack = BitConverter.ToUInt32(ack);
+                            inflight = sequenceNumber - nack;
+                            logger.LogInformation($"Got ACK: {nack}, last sequenceNumber={sequenceNumber}, {inflight} in flight");
+                        }
+                        else
+                            logger.LogInformation("TODO handle partial read");
+                    }
+                    inflight = sequenceNumber - nack;
+
+                    //Figure out how many un-acked waveforms we have, block if >5 in flight
+                    if(inflight >= 5)
+                    {
+                        //logger.LogInformation($"{inflight} waveforms in flight, blocking");
+                        continue;
+                    }
+                    else
                         SendScopehal(socket, cancelToken);
+                }
+
+                //Legacy path (plus entry to credit mode)
+                else
+                {
+                    int read = 0;
+                    read = socket.Receive(cmdBuf);
+                    if (read == 0)
                         break;
-                    default:
-                        break;
+
+                    byte cmd = cmdBuf[0];
+                    switch (cmd)
+                    {
+                        case (byte)'K':
+                            SendScopehalOld(socket, cancelToken);
+                            break;
+                        case (byte)'S':
+                            SendScopehal(socket, cancelToken);
+                            break;
+                        case (byte)'C':
+                            creditMode = true;
+                            break;
+                        default:
+                            break;
+                    }
                 }
             }
         }
