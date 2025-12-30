@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using System.Text;
 
 namespace TS.NET.Engine;
 
@@ -44,6 +45,8 @@ public class EngineManager
 
         // Commented out for now, more testing needed on Windows
         //using FileStream fs = new(lockFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+
+        logger?.LogInformation($"Configuration path: {configurationFile}");
 
         thunderscopeSettings = ThunderscopeSettings.FromYamlFile(configurationFile);
 
@@ -88,6 +91,32 @@ public class EngineManager
                         return false;
                     }
                     var ts = new Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
+
+                    var devices = ts.ListDevices();
+                    if (devices.Count > 0)
+                    {
+                        StringBuilder sb = new();
+                        sb.AppendLine("");
+                        sb.AppendLine("ThunderScopes:");
+                        sb.AppendLine("");
+                        foreach (var device in devices)
+                        {
+                            sb.AppendLine($"   DeviceID: {device.DeviceID}");
+                            sb.AppendLine($"   DevicePath: {device.DevicePath.Trim()}");
+                            sb.AppendLine($"   Identity: {device.Identity.Trim()}");
+                            sb.AppendLine($"   SerialNumber: {device.SerialNumber.Trim()}");
+                            sb.AppendLine($"   BuildConfig: {device.BuildConfig.Trim()}");
+                            sb.AppendLine($"   BuildDate: {device.BuildDate.Trim()}");
+                            sb.AppendLine($"   MfgSignature: {device.MfgSignature.Trim()}");
+                            if (!device.Equals(devices.Last()))
+                                sb.AppendLine("");
+
+                        }
+                        logger?.LogInformation(sb.ToString());
+                    }
+
+                    
+
                     // Later this will switch to using device serial.
                     uint deviceIndex = uint.Parse(deviceSerial);
                     ts.Open(deviceIndex);
@@ -95,14 +124,17 @@ public class EngineManager
                     ThunderscopeCalibrationSettings thunderscopeCalibrationSettings = new();
                     if (File.Exists(calibrationFile))
                     {
+                        logger?.LogInformation($"Calibration loaded from path: {calibrationFile}");
                         thunderscopeCalibrationSettings = ThunderscopeCalibrationSettings.FromJsonFile(calibrationFile);
                     }
                     else if (ThunderscopeNonVolatileMemory.TryReadUserCalibration(ts, out var calibration))
                     {
+                        logger?.LogInformation($"Calibration loaded from user calibration memory");
                         thunderscopeCalibrationSettings = calibration!;
                     }
                     else if (File.Exists("thunderscope-calibration.json"))
                     {
+                        logger?.LogInformation($"Calibration loaded from thunderscope-calibration.json");
                         thunderscopeCalibrationSettings = ThunderscopeCalibrationSettings.FromJsonFile("thunderscope-calibration.json");
                     }
                     else
