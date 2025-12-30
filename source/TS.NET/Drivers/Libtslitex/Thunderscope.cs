@@ -2,7 +2,7 @@
 
 namespace TS.NET.Driver.Libtslitex
 {
-    public record ThunderscopeLiteXDevice(uint DeviceID, uint HardwareRev, uint GatewareRev, uint LitexRev, string DevicePath, string Identity, string SerialNumber);
+    public record ThunderscopeLiteXDevice(uint DeviceID, uint HardwareRev, uint GatewareRev, uint LitexRev, string DevicePath, string Identity, string SerialNumber, string BuildConfig, string BuildDate, string MfgSignature);
 
     public class Thunderscope : IThunderscope
     {
@@ -31,7 +31,7 @@ namespace TS.NET.Driver.Libtslitex
             while (Interop.ListDevices(i, out var devInfo) == 0)
             {
                 i++;
-                devices.Add(new ThunderscopeLiteXDevice(devInfo.deviceID, devInfo.hw_id, devInfo.gw_id, devInfo.litex, devInfo.devicePath, devInfo.identity, devInfo.serialNumber));
+                devices.Add(new ThunderscopeLiteXDevice(devInfo.deviceID, devInfo.hw_id, devInfo.gw_id, devInfo.litex, devInfo.devicePath, devInfo.identity, devInfo.serialNumber, devInfo.buildConfig, devInfo.buildDate, devInfo.mfgSignature));
             }
             return devices;
         }
@@ -362,8 +362,9 @@ namespace TS.NET.Driver.Libtslitex
                 Stop();
 
             var format = resolution switch { 
-                AdcResolution.EightBit => Interop.tsSampleFormat_t.Format8Bit, 
-                AdcResolution.TwelveBit => Interop.tsSampleFormat_t.Format12BitMSB, 
+                AdcResolution.EightBit => Interop.tsSampleFormat_t.Format8Bit,
+                AdcResolution.TwelveBit => Interop.tsSampleFormat_t.Format12BitMSB,
+                //AdcResolution.TwelveBit => Interop.tsSampleFormat_t.Format12BitLSB, 
                 _ => throw new NotImplementedException() 
             };
             var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, format);

@@ -14,6 +14,7 @@ internal partial class DefaultCaseContext : JsonSerializerContext { }
 [JsonSerializable(typeof(ChannelPathConfig))]
 [JsonSerializable(typeof(LogDto))]
 //[JsonSerializable(typeof(VariablesDto))]
+[JsonSerializable(typeof(SequencesDto))]
 [JsonSerializable(typeof(SequenceDto))]
 [JsonSerializable(typeof(StepUpdateDto))]
 [JsonSerializable(typeof(LogUpdateDto))]

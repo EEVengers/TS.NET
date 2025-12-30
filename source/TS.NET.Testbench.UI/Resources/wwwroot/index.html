@@ -14,7 +14,7 @@
 
     <!-- Sequence selection dialog -->
     <div id="sequence-dialog" class="z-1 fixed top-0 left-0 w-screen h-screen items-center justify-center">
-        <div class="z-1 flex flex-col w-100 h-60 border border-zinc-600 bg-zinc-900 absolute inset-1/2 -translate-1/2">
+        <div class="z-1 flex flex-col w-160 h-fit border border-zinc-600 bg-zinc-900 absolute inset-1/2 -translate-1/2">
             <!-- Title bar -->
             <div class="flex-none flex flex-row items-center gap-2 p-2 pl-2 pr-2 bg-zinc-800">
                 <div class="flex-none text-neutral-50 font-normal text-xs trim-box">Sequence selection</div>
@@ -25,7 +25,7 @@
                 <div class="flex-auto flex flex-col text-neutral-50">
                     <div class="flex-auto text-sm">
                         Select the sequence to load:
-                        <div class="flex flex-col pt-3 gap-3">
+                        <div class="flex flex-col pt-3 gap-3 sequence-radio-list">
                             <label class="flex items-center">
                                 <input type="radio" name="sequence" value="self-calibration" class="form-radio pb-1 text-blue-600" checked><span class="ml-2">Self calibration</span>
                             </label>

@@ -60,6 +60,10 @@ class Program
                         window.SendWebMessage(JsonSerializer.Serialize(LogDto.FromLog(), CamelCaseContext.Default.LogDto));
                         window.SendWebMessage(JsonSerializer.Serialize(VariablesDto.FromVariables(variables), DefaultCaseContext.Default.VariablesDto));
                         window.SendWebMessage(JsonSerializer.Serialize(SequenceDto.FromSequence(sequence), CamelCaseContext.Default.SequenceDto));
+                        if (variablesFile.Factory)
+                            window.SendWebMessage(JsonSerializer.Serialize(SequencesDto.CreateFactoryDefault(), CamelCaseContext.Default.SequencesDto));
+                        else
+                            window.SendWebMessage(JsonSerializer.Serialize(SequencesDto.CreateDefault(), CamelCaseContext.Default.SequencesDto));
                         break;
                     case "load-sequence":
                         var sequenceString = json.RootElement.GetProperty("sequence").GetString();

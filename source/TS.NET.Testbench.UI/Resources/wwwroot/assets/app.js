@@ -75,6 +75,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     eval(parsedMessage.script);
                 }
                 break;
+            case "sequences":
+                updateSequenceDialog(parsedMessage);
+                break;
         }
     });
 
@@ -227,6 +230,55 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             return `${seconds.toFixed(0)}s`;
         }
+    }
+
+    function updateSequenceDialog(message) {
+        const dialog = document.getElementById("sequence-dialog");
+        if (!dialog) {
+            return;
+        }
+
+        const listContainer = dialog.querySelector(".sequence-radio-list");
+        if (!listContainer) {
+            return;
+        }
+
+        listContainer.innerHTML = "";
+
+        const sequences = message.sequences || [];
+
+        sequences.forEach((seq, index) => {
+            const label = document.createElement("label");
+            label.className = "flex flex-col items-start gap-1";
+
+            const headerDiv = document.createElement("div");
+            headerDiv.className = "flex items-center";
+
+            const input = document.createElement("input");
+            input.type = "radio";
+            input.name = "sequence";
+            input.value = seq.id;
+            input.className = "form-radio text-blue-600";
+            if (index === 0) {
+                input.checked = true;
+            }
+
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "ml-2";
+            nameSpan.textContent = seq.name;
+
+            headerDiv.appendChild(input);
+            headerDiv.appendChild(nameSpan);
+
+            const descriptionDiv = document.createElement("div");
+            descriptionDiv.className = "ml-6 text-xs text-neutral-300";
+            descriptionDiv.textContent = seq.description || "";
+
+            label.appendChild(headerDiv);
+            label.appendChild(descriptionDiv);
+
+            listContainer.appendChild(label);
+        });
     }
 
     // Header sequence button - opens the dialog

@@ -25,23 +25,33 @@ namespace TS.NET.Driver.Libtslitex
             public uint hw_id;
             public uint gw_id;
             public uint litex;
+            public uint board_rev;
             [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
             public string devicePath;
             [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
             public string identity;
             [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
             public string serialNumber;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+            public string buildConfig;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+            public string buildDate;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+            public string mfgSignature;
         }
 
-        
+
         [StructLayout(LayoutKind.Sequential)]
         public struct tsScopeState_t
         {
             public uint adc_sample_rate;
             public uint adc_sample_bits;
+
             public uint adc_sample_resolution;
             public uint adc_lost_buffer_count;
             public uint flags;
+
+            //sysHealth_t
             public uint temp_c;
             public uint vcc_int;
             public uint vcc_aux;
@@ -89,6 +99,19 @@ namespace TS.NET.Driver.Libtslitex
             Format14Bit
         }
 
+        public enum tsEventType_t
+        {
+            TS_EVT_NONE = 0,
+            TS_EVT_HOST_SW,
+            TS_EVT_EXT_SYNC,
+        }
+
+        public struct tsEvent_t
+        {
+            tsEventType_t ID;
+            ulong event_sample;
+        }
+
         [DllImport(library, EntryPoint = "thunderscopeListDevices")]        // Use runtime marshalling for now. Custom marshalling later.
         public static extern int ListDevices(uint devIndex, out tsDeviceInfo_t devInfo);
 
@@ -117,7 +140,10 @@ namespace TS.NET.Driver.Libtslitex
         public static unsafe partial int Read(nint ts, byte* buffer, uint len);
 
         [LibraryImport(library, EntryPoint = "thunderscopeReadCount")]
-        public static unsafe partial int Read(nint ts, byte* buffer, uint len, ulong* count);
+        public static unsafe partial int Read(nint ts, byte* buffer, uint len, out ulong count);
+
+        [LibraryImport(library, EntryPoint = "thunderscopeEventGet")]
+        public static unsafe partial int GetEvent(nint ts, out tsEvent_t evt);
 
         [LibraryImport(library, EntryPoint = "thunderscopeFwUpdate")]
         public static unsafe partial int FirmwareUpdate(nint ts, byte* bitstream, uint len);
