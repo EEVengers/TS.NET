@@ -402,8 +402,7 @@ internal class ScpiSession : TcpSession
                         {
                             case "ON" or "OFF":
                                 {
-                                    logger.LogWarning("To do: use ProcessingSetEnabled");
-                                    hardwareControl.Request.Writer.Write(new HardwareSetEnabled(channelIndex, command == "ON"));
+                                    processingControl.Request.Writer.Write(new ProcessingSetEnabled(channelIndex, command == "ON"));
                                     return null;
                                 }
                             case var _ when command.StartsWith("BAND") && argument != null:

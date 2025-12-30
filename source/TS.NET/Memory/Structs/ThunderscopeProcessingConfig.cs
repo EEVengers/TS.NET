@@ -9,7 +9,7 @@ namespace TS.NET
 
         public AdcResolution AdcResolution;
         public ulong SampleRateHz;
-        public ushort ChannelCount;     // From 1 to ThunderscopeBridgeHeader.MaxChannelCount
+        public byte EnabledChannels;
         public int ChannelDataLength;   // From 1 to ThunderscopeBridgeHeader.MaxChannelDataLength
         public ThunderscopeDataType ChannelDataType;
 

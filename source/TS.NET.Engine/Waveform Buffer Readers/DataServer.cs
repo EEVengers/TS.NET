@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Sockets;
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace TS.NET.Engine;
@@ -159,7 +160,7 @@ internal class DataServer : IThread
                     WaveformHeaderOld header = new()
                     {
                         seqnum = sequenceNumber,
-                        numChannels = captureMetadata.ProcessingConfig.ChannelCount,
+                        numChannels = (ushort)BitOperations.PopCount(captureMetadata.ProcessingConfig.EnabledChannels),
                         fsPerSample = femtosecondsPerSample,
                         triggerFs = (long)captureMetadata.ProcessingConfig.TriggerDelayFs,
                         hwWaveformsPerSec = 0
@@ -235,7 +236,7 @@ internal class DataServer : IThread
                     {
                         version = 1,
                         seqnum = sequenceNumber,
-                        numChannels = captureMetadata.ProcessingConfig.ChannelCount,
+                        numChannels = (ushort)BitOperations.PopCount(captureMetadata.ProcessingConfig.EnabledChannels),
                         fsPerSample = femtosecondsPerSample,
                         triggerFs = (long)captureMetadata.ProcessingConfig.TriggerDelayFs,
                         hwWaveformsPerSec = captureMetadata.CapturesPerSec
@@ -299,6 +300,7 @@ internal class DataServer : IThread
                                     break;
                                 case ThunderscopeDataType.I16:
                                     chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 65536.0);
+                                    //chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 4096.0);
                                     break;
                             }
                             chHeader.offset = (float)thunderscopeChannel.ActualVoltOffset;
@@ -330,6 +332,7 @@ internal class DataServer : IThread
                         var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 256.0);     // 8-bit
                         if (captureMetadata.ProcessingConfig.AdcResolution == AdcResolution.TwelveBit)
                             channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 65536.0);   // 16-bit
+                            //channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 4096.0);   // 16-bit
                         var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
 
                         float fa = channelScale * pointA - channelOffset;

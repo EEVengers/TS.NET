@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Numerics;
 
 namespace TS.NET.Engine;
 
@@ -111,7 +112,7 @@ public class ProcessingThread : IThread
             {
                 AdcResolution = hardwareConfig.Acquisition.Resolution,
                 SampleRateHz = 1_000_000_000,
-                ChannelCount = initialChannelCount,
+                EnabledChannels = hardwareConfig.Acquisition.EnabledChannels,
                 ChannelDataLength = 1000,
                 ChannelDataType = initialChannelDataType,
                 Mode = Mode.Normal,     // Temporary, change back to AUTO when NotImplementedException fixed
@@ -138,7 +139,7 @@ public class ProcessingThread : IThread
 
             var acquisitionBuffer = new AcquisitionCircularBuffer(settings.MaxCaptureLength, ThunderscopeSettings.SegmentLengthBytes, ThunderscopeDataType.I16);
 
-            captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
+            captureBuffer.Configure(initialChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
 
             // Triggering:
             // There are 3 states for Trigger Mode: normal, single, auto.
@@ -211,7 +212,7 @@ public class ProcessingThread : IThread
                                     case "litex":
                                     case "libtslitex":
                                         {
-                                            switch (processingConfig.ChannelCount)
+                                            switch (BitOperations.PopCount(processingConfig.EnabledChannels))
                                             {
                                                 case 1:
                                                     if (processingConfig.AdcResolution == AdcResolution.EightBit)
@@ -323,6 +324,22 @@ public class ProcessingThread : IThread
                             else
                             {
                                 logger.LogDebug($"{nameof(ProcessingSetResolution)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetEnabled processingSetEnabled:
+                            var enabledChannels = CalculateChannelMask(processingConfig.EnabledChannels, processingSetEnabled.ChannelIndex, processingSetEnabled.Enabled);
+                            if (processingConfig.EnabledChannels != enabledChannels)
+                            {
+                                processingConfig.EnabledChannels = enabledChannels;
+                                UpdateRateAndCoerce(forceRateUpdate: false);
+                                hardwareControl.Request.Writer.Write(new HardwareSetEnabled(processingSetEnabled.ChannelIndex, processingSetEnabled.Enabled));
+                                ResetAll();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetEnabled)} ({processingSetEnabled.ChannelIndex} {processingSetEnabled.Enabled})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetEnabled)} (no change)");
                             }
                             break;
                         case ProcessingSetTriggerSource processingSetTriggerSourceDto:
@@ -477,19 +494,9 @@ public class ProcessingThread : IThread
                     if (dataDto == null)
                         break;
 
-                    if (dataDto.HardwareConfig.Acquisition.EnabledChannelsCount() != processingConfig.ChannelCount)
-                    {
-                        processingConfig.ChannelCount = dataDto.HardwareConfig.Acquisition.EnabledChannelsCount();
-                        ResetAll();
-                        logger.LogDebug("Hardware enabled channel change ({channelCount})", processingConfig.ChannelCount);
-                    }
-
                     if (dataDto.HardwareConfig.Acquisition.SampleRateHz != processingConfig.SampleRateHz)
                     {
                         logger.LogWarning("Dropped buffer (mismatched rates)");
-                        // Coerce and drop - later use ProcessingSetEnabled
-                        processingConfig.SampleRateHz = dataDto.HardwareConfig.Acquisition.SampleRateHz;
-                        ResetAll();
                         inputPool.Return.Writer.Write(dataDto);
                         continue;   // Drop the buffer
                     }
@@ -497,6 +504,13 @@ public class ProcessingThread : IThread
                     if (dataDto.HardwareConfig.Acquisition.Resolution != processingConfig.AdcResolution)
                     {
                         logger.LogWarning("Dropped buffer (mismatched resolution)");
+                        inputPool.Return.Writer.Write(dataDto);
+                        continue;   // Drop the buffer
+                    }
+
+                    if (dataDto.HardwareConfig.Acquisition.EnabledChannels != processingConfig.EnabledChannels)
+                    {
+                        logger.LogWarning("Dropped buffer (mismatched enabled channels)");
                         inputPool.Return.Writer.Write(dataDto);
                         continue;   // Drop the buffer
                     }
@@ -869,7 +883,7 @@ public class ProcessingThread : IThread
                 switch (processingConfig.AdcResolution)
                 {
                     case AdcResolution.EightBit:
-                        switch (processingConfig.ChannelCount)
+                        switch (BitOperations.PopCount(processingConfig.EnabledChannels))
                         {
                             case 2:
                                 if (processingConfig.SampleRateHz > 500_000_000)
@@ -889,7 +903,7 @@ public class ProcessingThread : IThread
                         }
                         break;
                     case AdcResolution.TwelveBit:
-                        switch (processingConfig.ChannelCount)
+                        switch (BitOperations.PopCount(processingConfig.EnabledChannels))
                         {
                             case 1:
                                 if (processingConfig.SampleRateHz > 660_000_000)
@@ -928,7 +942,7 @@ public class ProcessingThread : IThread
                 acquisitionBuffer.Reset();
 
                 // Reset capture buffers
-                captureBuffer.Configure(processingConfig.ChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
+                captureBuffer.Configure(BitOperations.PopCount(processingConfig.EnabledChannels), processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
 
                 ResetTrigger();
             }
@@ -974,6 +988,20 @@ public class ProcessingThread : IThread
                 long additionalHoldoff = (long)(processingConfig.TriggerHoldoffFs / femtosecondsPerSample);
                 triggerI8.SetHorizontal(processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
                 triggerI16.SetHorizontal(processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
+            }
+
+            byte CalculateChannelMask(byte existingMask, int channelIndex, bool enabled)
+            {
+                byte newMask = existingMask;
+                if (enabled)
+                {
+                    newMask |= (byte)(1 << channelIndex);
+                }
+                else
+                {
+                    newMask &= (byte)~(1 << channelIndex);
+                }
+                return newMask;
             }
         }
         catch (OperationCanceledException)

@@ -17,6 +17,8 @@ public record ProcessingSetDepth(int Samples) : ProcessingRequestDto, INotificat
 public record ProcessingSetRate(ulong Rate) : ProcessingRequestDto, INotificationDto;
 public record ProcessingSetResolution(AdcResolution Resolution) : ProcessingRequestDto, INotificationDto;
 
+public record ProcessingSetEnabled(int ChannelIndex, bool Enabled) : ProcessingRequestDto, INotificationDto;
+
 public record ProcessingSetTriggerSource(TriggerChannel Channel) : ProcessingRequestDto, INotificationDto;
 public record ProcessingSetTriggerType(TriggerType Type) : ProcessingRequestDto, INotificationDto;
 public record ProcessingSetTriggerDelay(ulong Femtoseconds) : ProcessingRequestDto, INotificationDto;
