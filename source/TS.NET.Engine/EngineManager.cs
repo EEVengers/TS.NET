@@ -227,7 +227,7 @@ public class EngineManager
         switch (thunderscopeSettings.WaveformBufferReader)
         {
             case "DataServer":
-                DataServer dataServer = new(loggerFactory.CreateLogger(nameof(DataServer)), thunderscopeSettings, System.Net.IPAddress.Any, 5026, captureBuffer);
+                DataServer dataServer = new(loggerFactory.CreateLogger(nameof(DataServer)), thunderscopeSettings, System.Net.IPAddress.Any, 5026, captureBuffer, scpiServer);
                 waveformBufferReader = dataServer;
                 break;
             case "None":

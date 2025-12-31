@@ -13,6 +13,8 @@ class ScpiServer : TcpServer, IThread
     private readonly BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl;
     private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
 
+    private uint sequence = 0;
+
     public ScpiServer(ILogger logger,
         ThunderscopeSettings settings,
         IPAddress address,
@@ -47,6 +49,16 @@ class ScpiServer : TcpServer, IThread
     {
         base.Stop();
     }
+
+    public void OnUpdateSequence(uint seq)
+    {
+        sequence = seq;
+    }
+
+    public uint GetSequence()
+    {
+        return sequence;
+    }
 }
 
 internal class ScpiSession : TcpSession
@@ -55,9 +67,10 @@ internal class ScpiSession : TcpSession
     private readonly BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl;
     private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
     private readonly ThunderscopeSettings settings;
+    private ScpiServer server;
 
     public ScpiSession(
-        TcpServer server,
+        ScpiServer server,
         ILogger logger,
         ThunderscopeSettings settings,
         BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
@@ -67,6 +80,7 @@ internal class ScpiSession : TcpSession
         this.settings = settings;
         this.hardwareControl = hardwareControl;
         this.processingControl = processingControl;
+        this.server = server;
     }
 
     protected override void OnConnected()
@@ -103,7 +117,7 @@ internal class ScpiSession : TcpSession
         logger.LogDebug($"SCPI session caught an error with code {error}");
     }
 
-    public static string? ProcessSCPICommand(
+    public string? ProcessSCPICommand(
         ILogger logger,
         ThunderscopeSettings settings,
         BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
@@ -627,6 +641,11 @@ internal class ScpiSession : TcpSession
                             }
                             logger.LogError($"MODE? - No response from {nameof(processingControl.Response.Reader)}");
                             return "Error: No/bad response from channel.\n";
+                        }
+                    case "SEQNUM?":
+                        {
+                            uint seq = this.server.GetSequence();
+                            return $"{seq}\n";
                         }
                 }
             }

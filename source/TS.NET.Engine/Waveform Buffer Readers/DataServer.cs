@@ -13,6 +13,7 @@ internal class DataServer : IThread
     private readonly IPAddress address;
     private readonly int port;
     private readonly ICaptureBufferReader captureBuffer;
+    private readonly ScpiServer scpi;
 
     private CancellationTokenSource? listenerCancelTokenSource;
     private Task? taskListener;
@@ -27,13 +28,15 @@ internal class DataServer : IThread
         ThunderscopeSettings settings,
         IPAddress address,
         int port,
-        ICaptureBufferReader captureBuffer)
+        ICaptureBufferReader captureBuffer,
+        ScpiServer scpi)
     {
         this.logger = logger;
         this.settings = settings;
         this.address = address;
         this.port = port;
         this.captureBuffer = captureBuffer;
+        this.scpi = scpi;
     }
 
     public void Start(SemaphoreSlim startSemaphore)
@@ -100,31 +103,85 @@ internal class DataServer : IThread
         }
     }
 
+    private void CheckForACKs(ILogger logger, Socket socket)
+    {
+        //See if we have data ready to read. Grab the ACKs if so (may be >1 queued)
+        Span<byte> ack = stackalloc byte[4];
+        while(socket.Poll(1000, SelectMode.SelectRead))
+        {
+            //Get the ACK number (if we see one).
+            //TODO: this assumes all 4 bytes are always in the same TCP segment. Probably reasonable
+            //but for max robustness we'd want to handle partial acks somehow
+            int read = 0;
+            read = socket.Receive(ack);
+            if(read == 4)
+            {
+                nack = BitConverter.ToUInt32(ack);
+                inflight = sequenceNumber - nack;
+                logger.LogInformation($"Got ACK: {nack}, last sequenceNumber={sequenceNumber}, {inflight} in flight");
+            }
+            else
+                logger.LogInformation("TODO handle partial read");
+        }
+    }
+
+    private uint nack = 0;
+    private uint inflight = 0;
     private void LoopSession(ILogger logger, Socket socket, CancellationToken cancelToken)
     {
         string sessionID = socket.RemoteEndPoint?.ToString() ?? "Unknown";
+
         try
         {
             Span<byte> cmdBuf = stackalloc byte[1];
+            bool creditMode = false;
             while (true)
             {
                 cancelToken.ThrowIfCancellationRequested();
-                int read = 0;
-                read = socket.Receive(cmdBuf);
-                if (read == 0)
-                    break;
 
-                byte cmd = cmdBuf[0];
-                switch (cmd)
+                //New credit-based flow control path
+                if(creditMode)
                 {
-                    case (byte)'K':
-                        SendScopehalOld(socket, cancelToken);
-                        break;
-                    case (byte)'S':
+                    CheckForACKs(logger, socket);
+                    inflight = sequenceNumber - nack;
+
+                    //Figure out how many un-acked waveforms we have, block if >5 in flight
+                    //TODO: tune this for latency/throughput tradeoff?
+                    if(inflight >= 5)
+                        continue;
+
+                    //Send data
+                    else
+                    {
                         SendScopehal(socket, cancelToken);
+                        logger.LogInformation($"Sending waveform (seq={sequenceNumber})");
+                        scpi.OnUpdateSequence(sequenceNumber);
+                    }
+                }
+
+                //Legacy path (plus entry to credit mode)
+                else
+                {
+                    int read = 0;
+                    read = socket.Receive(cmdBuf);
+                    if (read == 0)
                         break;
-                    default:
-                        break;
+
+                    byte cmd = cmdBuf[0];
+                    switch (cmd)
+                    {
+                        case (byte)'K':
+                            SendScopehalOld(socket, cancelToken);
+                            break;
+                        case (byte)'S':
+                            SendScopehal(socket, cancelToken);
+                            break;
+                        case (byte)'C':
+                            creditMode = true;
+                            break;
+                        default:
+                            break;
+                    }
                 }
             }
         }
