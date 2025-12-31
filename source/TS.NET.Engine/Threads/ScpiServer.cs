@@ -1,120 +1,167 @@
 ﻿using Microsoft.Extensions.Logging;
-using NetCoreServer;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
 namespace TS.NET.Engine;
 
-class ScpiServer : TcpServer, IThread
+internal class ScpiServer : IThread
 {
     private readonly ILogger logger;
     private readonly ThunderscopeSettings settings;
+    private readonly IPAddress address;
+    private readonly int port;
     private readonly BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl;
     private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
 
+    private CancellationTokenSource? listenerCancelTokenSource;
+    private Task? taskListener;
+    private Socket? socketListener;
+
+    private CancellationTokenSource? sessionCancelTokenSource;
+    private Task? taskSession;
+    private Socket? socketSession;
+
     private uint sequence = 0;
 
-    public ScpiServer(ILogger logger,
+    public ScpiServer(
+        ILogger logger,
         ThunderscopeSettings settings,
         IPAddress address,
         int port,
         BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
-        BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl) : base(address, port)
+        BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl)
     {
         this.logger = logger;
         this.settings = settings;
+        this.address = address;
+        this.port = port;
         this.hardwareControl = hardwareControl;
         this.processingControl = processingControl;
-        logger.LogDebug("Started");
-    }
-
-    protected override TcpSession CreateSession()
-    {
-        return new ScpiSession(this, logger, settings, hardwareControl, processingControl);
-    }
-
-    protected override void OnError(SocketError error)
-    {
-        logger.LogDebug($"SCPI server caught an error with code {error}");
     }
 
     public void Start(SemaphoreSlim startSemaphore)
     {
-        base.Start();
+        listenerCancelTokenSource = new CancellationTokenSource();
+        taskListener = Task.Factory.StartNew(() => LoopListener(logger, listenerCancelTokenSource.Token), TaskCreationOptions.LongRunning);
         startSemaphore.Release();
     }
 
-    public new void Stop()
+    public void Stop()
     {
-        base.Stop();
+        listenerCancelTokenSource?.Cancel();
+        sessionCancelTokenSource?.Cancel();
+        socketListener?.Close();
+        socketSession?.Close();
+        taskListener?.Wait();
+        taskSession?.Wait();
+    }
+
+    private void LoopListener(ILogger logger, CancellationToken cancelToken)
+    {
+        while (!cancelToken.IsCancellationRequested)
+        {
+            socketListener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            socketListener.Bind(new IPEndPoint(address, port));
+            socketListener.Listen(backlog: 1);
+            logger.LogInformation($"SCPI socket listening {socketListener.LocalEndPoint}");
+            try
+            {
+                while (true)
+                {
+                    cancelToken.ThrowIfCancellationRequested();
+                    var session = socketListener!.Accept();
+                    session.NoDelay = true;
+                    if (socketSession != null)
+                    {
+                        logger.LogInformation($"Dropping SCPI session {socketSession?.RemoteEndPoint} and accepting new SCPI session");
+                        try { socketSession?.Shutdown(SocketShutdown.Both); } catch { }
+                        try { socketSession?.Close(); } catch { }
+                        sessionCancelTokenSource?.Cancel();
+                    }
+                    logger.LogInformation($"SCPI session accepted ({session.RemoteEndPoint})");
+                    sessionCancelTokenSource = new CancellationTokenSource();
+                    taskSession = Task.Factory.StartNew(() => LoopSession(logger, session, sessionCancelTokenSource.Token), TaskCreationOptions.LongRunning);
+                    socketSession = session;
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch (SocketException ex)
+            {
+                logger.LogDebug($"SocketException: {ex.SocketErrorCode}");
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug($"Exception: {ex.Message}");
+            }
+            finally
+            {
+                if (!cancelToken.IsCancellationRequested)
+                    logger.LogCritical("SCPI socket closed");
+                else
+                    logger.LogDebug("SCPI socket closed");
+                socketListener = null;
+            }
+        }
+    }
+
+    private void LoopSession(ILogger logger, Socket socket, CancellationToken cancelToken)
+    {
+        string sessionID = socket.RemoteEndPoint?.ToString() ?? "Unknown";
+        var buffer = new byte[4096];
+        var sb = new StringBuilder();
+
+        try
+        {
+            while (true)
+            {
+                cancelToken.ThrowIfCancellationRequested();
+                int read = socket.Receive(buffer);
+                if (read == 0)
+                    break;
+
+                sb.Append(Encoding.UTF8.GetString(buffer, 0, read));
+                while (true)
+                {
+                    int newlineIndex = sb.ToString().IndexOf('\n');
+                    if (newlineIndex < 0)
+                        break;
+
+                    string message = sb.ToString(0, newlineIndex + 1);
+                    sb.Remove(0, newlineIndex + 1);
+
+                    string? response = ProcessSCPICommand(logger, settings, hardwareControl, processingControl, message.TrimEnd('\r', '\n'));
+
+                    if (response != null)
+                    {
+                        logger.LogDebug("SCPI response: '{String}'", response.Trim());
+                        byte[] respBytes = Encoding.UTF8.GetBytes(response);
+                        socket.Send(respBytes);
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (SocketException se)
+        {
+            logger.LogDebug($"SCPI SocketException {se.SocketErrorCode}");
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug($"SCPI Exception: {ex.Message}");
+        }
+        finally
+        {
+            logger.LogInformation($"SCPI session dropped ({sessionID})");
+            socketSession = null;
+            try { socket.Shutdown(SocketShutdown.Both); } catch { }
+            try { socket.Close(); } catch { }
+        }
     }
 
     public void OnUpdateSequence(uint seq)
     {
         sequence = seq;
-    }
-
-    public uint GetSequence()
-    {
-        return sequence;
-    }
-}
-
-internal class ScpiSession : TcpSession
-{
-    private readonly ILogger logger;
-    private readonly BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl;
-    private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
-    private readonly ThunderscopeSettings settings;
-    private ScpiServer server;
-
-    public ScpiSession(
-        ScpiServer server,
-        ILogger logger,
-        ThunderscopeSettings settings,
-        BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
-        BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl) : base(server)
-    {
-        this.logger = logger;
-        this.settings = settings;
-        this.hardwareControl = hardwareControl;
-        this.processingControl = processingControl;
-        this.server = server;
-    }
-
-    protected override void OnConnected()
-    {
-        logger.LogDebug($"SCPI session with ID {Id} connected!");
-        //SendAsync("Hello!");
-    }
-
-    protected override void OnDisconnected()
-    {
-        logger.LogDebug($"SCPI session with ID {Id} disconnected!");
-    }
-
-    protected override void OnReceived(byte[] buffer, long offset, long size)
-    {
-        string messageStream = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
-        var messages = messageStream.Split('\n');
-        foreach (var message in messages)
-        {
-            if (string.IsNullOrWhiteSpace(message)) { continue; }
-
-            string? response = ProcessSCPICommand(logger, settings, hardwareControl, processingControl, message.Trim());
-
-            if (response != null)
-            {
-                logger.LogDebug("SCPI response: '{String}'", response.Trim());
-                Send(response);
-            }
-        }
-    }
-
-    protected override void OnError(SocketError error)
-    {
-        logger.LogDebug($"SCPI session caught an error with code {error}");
     }
 
     public string? ProcessSCPICommand(
@@ -644,8 +691,7 @@ internal class ScpiSession : TcpSession
                         }
                     case "SEQNUM?":
                         {
-                            uint seq = this.server.GetSequence();
-                            return $"{seq}\n";
+                            return $"{sequence}\n";
                         }
                 }
             }
