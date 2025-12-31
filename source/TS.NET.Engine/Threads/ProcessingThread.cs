@@ -433,7 +433,6 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerDirection)} (no change)");
                             }
                             break;
-
                         case ProcessingGetStateRequest processingGetStateRequest:
                             processingControl.Response.Writer.Write(new ProcessingGetStateResponse(runMode));
                             logger.LogDebug($"{nameof(ProcessingGetStateRequest)}");
@@ -453,6 +452,10 @@ public class ProcessingThread : IThread
                         case ProcessingGetResolutionRequest processingGetResolutionRequest:
                             processingControl.Response.Writer.Write(new ProcessingGetResolutionResponse(processingConfig.AdcResolution));
                             logger.LogDebug($"{nameof(ProcessingGetResolutionRequest)}");
+                            break;
+                        case ProcessingGetEnabledRequest processingGetEnabledRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetEnabledResponse(processingConfig.EnabledChannels));
+                            logger.LogDebug($"{nameof(ProcessingGetEnabledRequest)}");
                             break;
                         case ProcessingGetTriggerSourceRequest processingGetTriggerSourceRequest:
                             processingControl.Response.Writer.Write(new ProcessingGetTriggerSourceResponse(processingConfig.TriggerChannel));

@@ -897,20 +897,21 @@ internal class ScpiServer : IThread
                     return null;
 
                 while (hardwareControl.Response.Reader.TryRead(out var _, 10)) { }
+                while (processingControl.Response.Reader.TryRead(out var _, 10)) { }
                 switch (command)
                 {
                     case var _ when command.Equals("STATE?", StringComparison.OrdinalIgnoreCase):
                         {
-                            hardwareControl.Request.Writer.Write(new HardwareGetEnabledRequest(channelIndex));
-                            if (hardwareControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
+                            processingControl.Request.Writer.Write(new ProcessingGetEnabledRequest());
+                            if (processingControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
                             {
-                                if (response is HardwareGetEnabledResponse hardwareGetEnabledResponse)
+                                if (response is ProcessingGetEnabledResponse processingGetEnabledResponse)
                                 {
-                                    return hardwareGetEnabledResponse.Enabled ? "ON\n" : "OFF\n";
+                                    return ((processingGetEnabledResponse.EnabledChannels >> channelIndex) & 0x1) > 0 ? "ON\n" : "OFF\n";
                                 }
                                 else
                                 {
-                                    logger.LogError($"{subject}:STATE? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                    logger.LogError($"{subject}:STATE? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                 }
                             }
                             else

@@ -24,11 +24,7 @@ public record HardwareSetChannelManualControl(int ChannelIndex, ThunderscopeChan
 public record HardwareSetAdcCalibration(ThunderscopeAdcCalibration AdcCalibration) : HardwareRequestDto;
 
 // Get
-public record HardwareGetRateRequest() : HardwareRequestDto;
-public record HardwareGetResolutionRequest() : HardwareRequestDto;
-
 public abstract record HardwareGetChannelFrontendRequest(int ChannelIndex) : HardwareRequestDto;
-public record HardwareGetEnabledRequest(int ChannelIndex) : HardwareGetChannelFrontendRequest(ChannelIndex);
 public record HardwareGetVoltOffsetRequest(int ChannelIndex) : HardwareGetChannelFrontendRequest(ChannelIndex);
 public record HardwareGetVoltFullScaleRequest(int ChannelIndex) : HardwareGetChannelFrontendRequest(ChannelIndex);
 public record HardwareGetBandwidthRequest(int ChannelIndex) : HardwareGetChannelFrontendRequest(ChannelIndex);

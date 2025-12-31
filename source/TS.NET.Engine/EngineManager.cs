@@ -174,9 +174,9 @@ public class EngineManager
         }
 
         //string bridgeNamespace = $"ThunderScope.{deviceIndex}";
-        int bufferLength = 3;
+        int bufferLength = 20;      // Used to be 3, but that caused buffer drops at 20M lengths.
         BlockingPool<DataDto> hardwarePool = new(bufferLength);
-        for (int i = 0; i < bufferLength / 2; i++)
+        for (int i = 0; i < bufferLength; i++)
         {
             var dataDto = new DataDto() { Memory = new ThunderscopeMemory(ThunderscopeSettings.SegmentLengthBytes) };
             hardwarePool.Return.Writer.Write(dataDto);

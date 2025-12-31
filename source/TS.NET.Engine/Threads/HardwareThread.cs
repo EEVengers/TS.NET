@@ -125,31 +125,6 @@ internal class HardwareThread : IThread
                                 logger.LogDebug($"{nameof(HardwareSetResolution)} (resolution: {hardwareSetResolutionRequest.Resolution})");
                                 break;
                             }
-                        case HardwareGetRateRequest hardwareGetRateRequest:
-                            {
-                                logger.LogDebug($"{nameof(HardwareGetRateRequest)}");
-                                var config = thunderscope.GetConfiguration();
-                                hardwareControl.Response.Writer.Write(new HardwareGetRateResponse(config.Acquisition.SampleRateHz));
-                                logger.LogDebug($"{nameof(HardwareGetRateResponse)}");
-                                break;
-                            }
-                        case HardwareGetResolutionRequest hardwareGetResolutionRequest:
-                            {
-                                logger.LogDebug($"{nameof(HardwareGetResolutionRequest)}");
-                                var config = thunderscope.GetConfiguration();
-                                hardwareControl.Response.Writer.Write(new HardwareGetResolutionResponse(config.Acquisition.Resolution));
-                                logger.LogDebug($"{nameof(HardwareGetResolutionResponse)}");
-                                break;
-                            }
-                        case HardwareGetEnabledRequest hardwareGetEnabledRequest:
-                            {
-                                logger.LogDebug($"{nameof(HardwareGetEnabledRequest)}");
-                                var config = thunderscope.GetConfiguration();
-                                var enabled = ((config.Acquisition.EnabledChannels >> hardwareGetEnabledRequest.ChannelIndex) & 0x01) > 0;
-                                hardwareControl.Response.Writer.Write(new HardwareGetEnabledResponse(enabled));
-                                logger.LogDebug($"{nameof(HardwareGetEnabledResponse)}");
-                                break;
-                            }
                         case HardwareGetVoltOffsetRequest hardwareGetVoltOffsetRequest:
                             {
                                 logger.LogDebug($"{nameof(HardwareGetVoltOffsetRequest)}");
@@ -253,8 +228,17 @@ internal class HardwareThread : IThread
                 {
                     if (!validDataDto)
                     {
-                        dataDto = hardwarePool.Return.Reader.Read(cancelToken);
-                        validDataDto = true;
+                        if(hardwarePool.Return.Reader.TryRead(out var newDataDto, 10, cancelToken))
+                        {
+                            dataDto = newDataDto;
+                            validDataDto = true;
+                        }
+                        else
+                        {
+                            // If there's no pool available, continue processing the hardwareControl requests
+                            logger.LogDebug("No pool data available");
+                            continue;
+                        }                       
                     }
                     if (thunderscope.TryRead(memory, out var hardwareConfig, out var sampleStartIndex, out var sampleLength))
                     {

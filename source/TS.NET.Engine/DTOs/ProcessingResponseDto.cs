@@ -12,6 +12,8 @@ public record ProcessingGetDepthResponse(int Depth) : ProcessingResponseDto();
 public record ProcessingGetRateResponse(ulong SampleRateHz) : ProcessingResponseDto;
 public record ProcessingGetResolutionResponse(AdcResolution Resolution) : ProcessingResponseDto();
 
+public record ProcessingGetEnabledResponse(byte EnabledChannels) : ProcessingResponseDto();
+
 // Trigger query responses
 public record ProcessingGetTriggerSourceResponse(TriggerChannel Channel) : ProcessingResponseDto();
 public record ProcessingGetTriggerTypeResponse(TriggerType Type) : ProcessingResponseDto();

@@ -4,10 +4,6 @@ public abstract record HardwareResponseDto();
 
 public record HardwareStopResponse() : HardwareResponseDto;
 
-public record HardwareGetRateResponse(ulong SampleRateHz) : HardwareResponseDto;
-public record HardwareGetResolutionResponse(AdcResolution Resolution) : HardwareResponseDto;
-
-public record HardwareGetEnabledResponse(bool Enabled) : HardwareResponseDto;
 public record HardwareGetVoltOffsetResponse(double RequestedVoltOffset, double ActualVoltOffset) : HardwareResponseDto;
 public record HardwareGetVoltFullScaleResponse(double RequestedVoltFullScale, double ActualVoltFullScale) : HardwareResponseDto;
 public record HardwareGetBandwidthResponse(ThunderscopeBandwidth Bandwidth) : HardwareResponseDto;

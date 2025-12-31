@@ -36,6 +36,8 @@ public record ProcessingGetDepthRequest() : ProcessingRequestDto;
 public record ProcessingGetRateRequest() : ProcessingRequestDto;
 public record ProcessingGetResolutionRequest() : ProcessingRequestDto;
 
+public record ProcessingGetEnabledRequest() : ProcessingRequestDto;
+
 public record ProcessingGetTriggerSourceRequest() : ProcessingRequestDto;
 public record ProcessingGetTriggerTypeRequest() : ProcessingRequestDto;
 public record ProcessingGetTriggerDelayRequest() : ProcessingRequestDto;
