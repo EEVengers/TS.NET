@@ -21,6 +21,8 @@ public class BetaTesterHwidStep : ModalUiStep
                     var button = buttonClicked.GetString();
                     if (button == "ok" || button == "cancel")
                     {
+                        HideUi();
+
                         if (button == "ok")
                         {
                             var serial = eventData.GetProperty("serialNumber").GetString() ?? string.Empty;
@@ -47,6 +49,34 @@ public class BetaTesterHwidStep : ModalUiStep
                             if (!string.IsNullOrWhiteSpace(mfgSig))
                                 Hwid.ManufacturingSignature = mfgSig.Trim();
 
+                            // DNA from form; allow hex with or without 0x, or decimal
+                            ulong dna = 0;
+                            if (eventData.TryGetProperty("dna", out var dnaProp))
+                            {
+                                var dnaStr = dnaProp.GetString() ?? string.Empty;
+                                dnaStr = dnaStr.Trim();
+
+                                if (!string.IsNullOrEmpty(dnaStr))
+                                {
+                                    if (dnaStr.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        ulong.TryParse(dnaStr[2..], System.Globalization.NumberStyles.HexNumber,
+                                            System.Globalization.CultureInfo.InvariantCulture, out dna);
+                                    }
+                                    else
+                                    {
+                                        // try hex first, then decimal
+                                        if (!ulong.TryParse(dnaStr, System.Globalization.NumberStyles.HexNumber,
+                                                System.Globalization.CultureInfo.InvariantCulture, out dna))
+                                        {
+                                            ulong.TryParse(dnaStr, out dna);
+                                        }
+                                    }
+                                }
+                            }
+
+                            Instruments.Instance.EraseFactoryDataAndAppendHwid(dna, Hwid);
+
                             status = Status.Done;
                         }
                         else
@@ -67,7 +97,7 @@ public class BetaTesterHwidStep : ModalUiStep
                 Thread.Sleep(50);
             }
 
-            HideUi();
+            
 
             return status;
         };

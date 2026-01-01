@@ -3,9 +3,12 @@
 
 @code {
     [Parameter]
-    public string SerialNumber { get; set; } = string.Empty;
+    public string Dna { get; set; } = "0x0000000000000000";
+
     [Parameter]
-    public string? BoardRevision { get; set; }
+    public string SerialNumber { get; set; } = "TS0000";
+    [Parameter]
+    public string? BoardRevision { get; set; } = "2";
     [Parameter]
     public string? BuildConfig { get; set; }
     [Parameter]
@@ -28,25 +31,43 @@
     <div class="flex-none border-b border-zinc-600"></div>
     <!-- Content -->
     <div class="flex-auto flex flex-col p-3 overflow-y-auto text-neutral-50 text-sm gap-3">
+
+        <div>
+            <label class="block mb-1">DNA</label>
+            <input id="modal-ui-dna"
+                   class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm"
+                   value="@Dna" />
+        </div>
+
         <div>
             <label class="block mb-1">Serial Number *</label>
-            <input id="modal-ui-serial-number" class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm" />
+            <input id="modal-ui-serial-number"
+                   class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm"
+                   value="@SerialNumber" />
         </div>
         <div>
             <label class="block mb-1">Board Revision</label>
-            <input id="modal-ui-board-revision" class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm" />
+            <input id="modal-ui-board-revision"
+                   class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm"
+                   value="@BoardRevision" />
         </div>
         <div>
             <label class="block mb-1">Build Config</label>
-            <input id="modal-ui-build-config" class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm" />
+            <input id="modal-ui-build-config"
+                   class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm"
+                   value="@BuildConfig" />
         </div>
         <div>
             <label class="block mb-1">Build Date</label>
-            <input id="modal-ui-build-date" class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm" />
+            <input id="modal-ui-build-date"
+                   class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm"
+                   value="@BuildDate" />
         </div>
         <div>
             <label class="block mb-1">Mfg Signature</label>
-            <input id="modal-ui-mfg-signature" class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm" />
+            <input id="modal-ui-mfg-signature"
+                   class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm"
+                   value="@ManufacturingSignature" />
         </div>
         <div class="flex-none flex flex-row justify-end gap-2 mt-3">
         @foreach (var button in GetButtons())
@@ -63,6 +84,7 @@
     function getBetaTesterHwidPayload(buttonId) {
         return {
             buttonClicked: buttonId,
+            dna: document.getElementById("modal-ui-dna").value,
             serialNumber: document.getElementById("modal-ui-serial-number").value,
             boardRevision: document.getElementById("modal-ui-board-revision").value,
             buildConfig: document.getElementById("modal-ui-build-config").value,

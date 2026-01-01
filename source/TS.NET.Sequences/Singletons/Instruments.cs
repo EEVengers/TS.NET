@@ -1,4 +1,7 @@
 using CommunityToolkit.HighPerformance.Buffers;
+using System.Buffers.Binary;
+using System.Text;
+using System.Text.Json;
 
 namespace TS.NET.Sequences;
 
@@ -127,34 +130,6 @@ public class Instruments
         ThunderscopeNonVolatileMemory.WriteUserCalibration(thunderScope, calibration);
     }
 
-    //public void SetThunderscopeChannel(int[] enabledChannelIndices, bool setDefaultRate = true)
-    //{
-    //    thunderScope?.WriteLine($"CHAN1:{(enabledChannelIndices.Contains(0) ? "ON" : "OFF")}");
-    //    thunderScope?.WriteLine($"CHAN2:{(enabledChannelIndices.Contains(1) ? "ON" : "OFF")}");
-    //    thunderScope?.WriteLine($"CHAN3:{(enabledChannelIndices.Contains(2) ? "ON" : "OFF")}");
-    //    thunderScope?.WriteLine($"CHAN4:{(enabledChannelIndices.Contains(3) ? "ON" : "OFF")}");
-    //    if (setDefaultRate)
-    //    {
-    //        // Set a default rate so that sequences get a consistent behaviour
-    //        switch (enabledChannelIndices.Length)
-    //        {
-    //            case 1:
-    //                SetThunderscopeRate(1_000_000_000);
-    //                break;
-    //            case 2:
-    //                SetThunderscopeRate(500_000_000);
-    //                break;
-    //            case 3:
-    //                SetThunderscopeRate(250_000_000);
-    //                break;
-    //            case 4:
-    //                SetThunderscopeRate(250_000_000);
-    //                break;
-    //            default:
-    //                throw new NotImplementedException();
-    //        }
-    //    }
-    //}
     public void SetThunderscopeChannel(int[] enabledChannelIndices)
     {
         if (!enabledChannelIndices.SequenceEqual(cachedChannelIndices))
@@ -167,12 +142,6 @@ public class Instruments
             cachedChannelIndices = enabledChannelIndices;
         }
     }
-
-    //public void SetThunderscopeRate(uint rateHz)
-    //{
-    //    thunderScope?.WriteLine($"ACQ:RATE {rateHz}");
-    //    Thread.Sleep(Variables.Instance.FrontEndSettlingTimeMs);
-    //}
 
     public void SetThunderscopeRate(uint rateHz)
     {
@@ -378,14 +347,14 @@ public class Instruments
         mean = branchMeans;
         stdev = branchStdDevs;
     }
-    
+
     public void GetThunderscopeFineBranchesSine(double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution, out double[] amplitudes, out double[] phases, out double[] offsets)
     {
         // Note: phases are not reliable, too much phase noise in the test system.
         // Approximate magnitudes of errors are:
         //    amplitude: 4 LSB
         //    offset: 0.2 LSB
-        
+
         // If multiple channels are enabled, branch parsing won't be valid
         var config = thunderScope!.GetConfiguration();
         if (config.Acquisition.EnabledChannelsCount() != 1)
@@ -458,9 +427,9 @@ public class Instruments
             {
                 f64Span[i] = i8Span[i] * vPerBit;
             }
-            var (amplitude, phaseDeg, dcOffset) = SineLeastSquaresFit.FitSineWave(sampleRateHz/8, f64Span, frequency);
+            var (amplitude, phaseDeg, dcOffset) = SineLeastSquaresFit.FitSineWave(sampleRateHz / 8, f64Span, frequency);
             var lsqVpp = amplitude * 2.0;
-            amplitudes[branch] =  lsqVpp;
+            amplitudes[branch] = lsqVpp;
             phases[branch] = phaseDeg;
             offsets[branch] = dcOffset;
         }
@@ -543,7 +512,7 @@ public class Instruments
         var config = thunderScope!.GetConfiguration();
         if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
             throw new TestbenchException("Requested channel index is not an enabled channel");
-        if(config.Acquisition.Resolution != AdcResolution.EightBit)
+        if (config.Acquisition.Resolution != AdcResolution.EightBit)
             throw new TestbenchException("Acquisition not set up up for 8 bit");
         if (outputBuffer.Length != sampleCount)
             throw new TestbenchException("Output buffer has incorrect length");
@@ -600,6 +569,24 @@ public class Instruments
         // Acquisition buffer is likely larger than requested sampleCount so use the end of the acquisition buffer and copy to output buffer
         channel = channel.Slice(channel.Length - sampleCount, sampleCount);
         channel.CopyTo(outputBuffer);
+    }
+
+    public void EraseFactoryDataAndAppendHwid(ulong dna, FactoryHwidJson hwid)
+    {
+        thunderScope?.FactoryDataErase(dna);
+        uint tag = TagStr(Encoding.ASCII.GetBytes("HWID"));
+        var hwidJsonBytes = JsonSerializer.SerializeToUtf8Bytes(hwid);
+        thunderScope?.FactoryDataAppend(tag, hwidJsonBytes);
+    }
+
+    private static uint TagStr(byte[] x)
+    {
+        // libtslitex source:
+        //    #define TAGSTR(x)   (uint32_t)(x[0] + (x[1] << 8) + (x[2] << 16) + (x[3] << 24))
+        // Should be the same output as BinaryPrimitives.ReadUInt32LittleEndian
+        if (x is null) throw new ArgumentNullException(nameof(x));
+        if (x.Length < 4) throw new ArgumentException("Tag must be at least 4 bytes.", nameof(x));
+        return (uint)(x[0] | (x[1] << 8) | (x[2] << 16) | (x[3] << 24));
     }
 
     //public (double amplitude, double phaseDeg, double offset) GetThunderscopeBodeAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)

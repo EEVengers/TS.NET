@@ -361,11 +361,12 @@ namespace TS.NET.Driver.Libtslitex
             if (restart)
                 Stop();
 
-            var format = resolution switch { 
+            var format = resolution switch
+            {
                 AdcResolution.EightBit => Interop.tsSampleFormat_t.Format8Bit,
                 AdcResolution.TwelveBit => Interop.tsSampleFormat_t.Format12BitMSB,
                 //AdcResolution.TwelveBit => Interop.tsSampleFormat_t.Format12BitLSB, 
-                _ => throw new NotImplementedException() 
+                _ => throw new NotImplementedException()
             };
             var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, format);
 
@@ -710,6 +711,28 @@ namespace TS.NET.Driver.Libtslitex
                     var retVal = Interop.UserDataWrite(tsHandle, bufferP, (uint)offset, (uint)buffer.Length);
                     if (retVal < 0)
                         throw new ThunderscopeException($"Failed to write user data ({GetLibraryReturnString(retVal)})");
+                    return retVal;
+                }
+            }
+        }
+
+        public int FactoryDataErase(ulong dna)
+        {
+            var retVal = Interop.FactoryDataErase(tsHandle, dna);
+            if (retVal < 0)
+                throw new ThunderscopeException($"Failed to erase factory data ({GetLibraryReturnString(retVal)})");
+            return retVal;
+        }
+
+        public int FactoryDataAppend(uint tag, Span<byte> buffer)
+        {
+            unsafe
+            {
+                fixed (byte* bufferP = buffer)
+                {
+                    var retVal = Interop.FactoryDataAppend(tsHandle, tag, (uint)buffer.Length, bufferP);
+                    if (retVal < 0)
+                        throw new ThunderscopeException($"Failed to append factory data ({GetLibraryReturnString(retVal)})");
                     return retVal;
                 }
             }

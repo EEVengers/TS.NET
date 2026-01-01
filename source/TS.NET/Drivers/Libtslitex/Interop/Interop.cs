@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 
 namespace TS.NET.Driver.Libtslitex
 {
@@ -182,6 +183,11 @@ namespace TS.NET.Driver.Libtslitex
         [LibraryImport(library, EntryPoint = "thunderscopeCalibrationManualCtrl")]
         public static unsafe partial int SetChannelManualControl(nint ts, uint channel, in tsChannelCtrl_t ctrl);
 
+        // Factory methods
+        [LibraryImport(library, EntryPoint = "thunderscopeFactoryProvisionPrepare")]
+        public static unsafe partial int FactoryDataErase(nint ts, ulong dna);
 
+        [LibraryImport(library, EntryPoint = "thunderscopeFactoryProvisionAppendTLV")]
+        public static unsafe partial int FactoryDataAppend(nint ts, uint tag, uint length, byte* content);
     }
 }
