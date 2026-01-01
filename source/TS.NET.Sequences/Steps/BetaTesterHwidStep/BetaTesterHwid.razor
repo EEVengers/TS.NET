@@ -8,13 +8,13 @@
     [Parameter]
     public string SerialNumber { get; set; } = "TS0000";
     [Parameter]
-    public string? BoardRevision { get; set; } = "2";
+    public string BoardRevision { get; set; } = "2";
     [Parameter]
-    public string? BuildConfig { get; set; }
+    public string BuildConfig { get; set; } = "";
     [Parameter]
-    public string? BuildDate { get; set; }
+    public string BuildDate { get; set; } = "";
     [Parameter]
-    public string? ManufacturingSignature { get; set; }
+    public string ManufacturingSignature { get; set; } = "";
 
     private List<(string Id, string Label)> GetButtons() => [("ok", "Ok"), ("cancel", "Cancel")];
 }

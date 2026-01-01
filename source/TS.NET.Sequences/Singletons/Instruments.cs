@@ -576,6 +576,17 @@ public class Instruments
         thunderScope?.FactoryDataErase(dna);
         uint tag = TagStr(Encoding.ASCII.GetBytes("HWID"));
         var hwidJsonBytes = JsonSerializer.SerializeToUtf8Bytes(hwid);
+
+        // Temporarily pad to multiple of 4 bytes (zero padding) until libtslitex supports arbitrary lengths
+        int remainder = hwidJsonBytes.Length & 0x3;
+        if (remainder != 0)
+        {
+            int paddedLength = hwidJsonBytes.Length + (4 - remainder);
+            byte[] padded = new byte[paddedLength];
+            Buffer.BlockCopy(hwidJsonBytes, 0, padded, 0, hwidJsonBytes.Length);
+            hwidJsonBytes = padded;
+        }
+
         thunderScope?.FactoryDataAppend(tag, hwidJsonBytes);
     }
 

@@ -48,22 +48,18 @@ namespace TS.NET
         public string SerialNumber { get; set; } = string.Empty;
 
         [JsonPropertyName("Board Revision")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public double? BoardRevision { get; set; }
+        public double BoardRevision { get; set; }
 
         [MaxLength(256)]
         [JsonPropertyName("Build Config")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? BuildConfig { get; set; }
+        public string BuildConfig { get; set; } = string.Empty;
 
         [MaxLength(256)]
         [JsonPropertyName("Build Date")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? BuildDate { get; set; }
+        public string BuildDate { get; set; } = string.Empty;
 
         [MaxLength(256)]
         [JsonPropertyName("Mfg Signature")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? ManufacturingSignature { get; set; }
+        public string ManufacturingSignature { get; set; } = string.Empty;
     }
 }
