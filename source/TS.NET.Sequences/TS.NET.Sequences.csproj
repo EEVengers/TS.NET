@@ -17,4 +17,8 @@
     <ProjectReference Include="..\TS.NET.Sequencer\TS.NET.Sequencer.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+	<EmbeddedResource Include="Steps\**\*.css" />
+  </ItemGroup>
+
 </Project>

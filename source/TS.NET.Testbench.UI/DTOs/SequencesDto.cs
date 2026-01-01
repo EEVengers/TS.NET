@@ -1,33 +1,35 @@
-﻿namespace TS.NET.Testbench.UI;
+﻿using TS.NET.Sequences;
+
+namespace TS.NET.Testbench.UI;
 
 public class SequencesDto : MessageDto
 {
-    public List<SequenceInfoDto> Sequences { get; init; } = new();
+    public List<SequenceInfo> Sequences { get; init; } = [];
 
-    public static SequencesDto CreateDefault() => new SequencesDto
+    public static SequencesDto CreateDefault() => new()
     {
         Type = "sequences",
         Sequences =
         [
-            new SequenceInfoDto
+            new SequenceInfo
             {
                 Id = "self-calibration",
                 Name = "Self calibration",
                 Description = "No additional instruments required. Partial calibration."
             },
-            new SequenceInfoDto
+            new SequenceInfo
             {
                 Id = "bench-calibration",
                 Name = "Bench calibration",
                 Description = "Requires 2x SDG2xxx signal generator. Full calibration."
             },
-            new SequenceInfoDto
+            new SequenceInfo
             {
                 Id = "noise-verification",
                 Name = "Noise verification",
                 Description = "No additional instruments required. Verifies frontend noise & creates noise spectral density plots."
             },
-            new SequenceInfoDto
+            new SequenceInfo
             {
                 Id = "bench-verification",
                 Name = "Bench verification",
@@ -39,13 +41,13 @@ public class SequencesDto : MessageDto
     public static SequencesDto CreateFactoryDefault()
     {
         var dto = CreateDefault();
-        dto.Sequences.AddRange(new SequenceInfoDto
+        dto.Sequences.AddRange(new SequenceInfo
         {
             Id = "factory-trim",
             Name = "Factory trim",
             Description = "Factory sequence. Adjust manual trims on the PCB."
         },
-        new SequenceInfoDto
+        new SequenceInfo
         {
             Id = "beta-tester-hwid",
             Name = "Beta tester HWID input",
@@ -55,9 +57,4 @@ public class SequencesDto : MessageDto
     }
 }
 
-public class SequenceInfoDto
-{
-    public string Id { get; init; } = string.Empty;
-    public string Name { get; init; } = string.Empty;
-    public string Description { get; init; } = string.Empty;
-}
+

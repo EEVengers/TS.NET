@@ -1,0 +1,83 @@
+@namespace TS.NET.Sequences
+@using TS.NET.Sequencer
+
+@code {
+    [Parameter]
+    public string SerialNumber { get; set; } = string.Empty;
+    [Parameter]
+    public string? BoardRevision { get; set; }
+    [Parameter]
+    public string? BuildConfig { get; set; }
+    [Parameter]
+    public string? BuildDate { get; set; }
+    [Parameter]
+    public string? ManufacturingSignature { get; set; }
+
+    private List<(string Id, string Label)> GetButtons() => [("ok", "Ok"), ("cancel", "Cancel")];
+}
+
+<style>
+    @((MarkupString)ModalUiStep.GetEmbeddedStyle<BetaTesterHwid>())
+</style>
+
+<div class="z-1 flex flex-col w-160 h-fit border border-zinc-600 bg-zinc-900 absolute inset-1/2 -translate-1/2">
+    <!-- Title bar -->
+    <div class="flex-none flex flex-row items-center gap-2 p-2 pl-2 pr-2 bg-zinc-800">
+        <div class="flex-none text-neutral-50 font-normal text-xs trim-box">Beta tester HWID</div>
+    </div>
+    <div class="flex-none border-b border-zinc-600"></div>
+    <!-- Content -->
+    <div class="flex-auto flex flex-col p-3 overflow-y-auto text-neutral-50 text-sm gap-3">
+        <div>
+            <label class="block mb-1">Serial Number *</label>
+            <input id="modal-ui-serial-number" class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm" />
+        </div>
+        <div>
+            <label class="block mb-1">Board Revision</label>
+            <input id="modal-ui-board-revision" class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm" />
+        </div>
+        <div>
+            <label class="block mb-1">Build Config</label>
+            <input id="modal-ui-build-config" class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm" />
+        </div>
+        <div>
+            <label class="block mb-1">Build Date</label>
+            <input id="modal-ui-build-date" class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm" />
+        </div>
+        <div>
+            <label class="block mb-1">Mfg Signature</label>
+            <input id="modal-ui-mfg-signature" class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm" />
+        </div>
+        <div class="flex-none flex flex-row justify-end gap-2 mt-3">
+        @foreach (var button in GetButtons())
+        {
+            <button id="modal-ui-@button.Id-button" type="button" class="border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
+                @button.Label
+            </button>
+        }
+        </div>
+    </div>
+</div>
+
+<script>
+    function getBetaTesterHwidPayload(buttonId) {
+        return {
+            buttonClicked: buttonId,
+            serialNumber: document.getElementById("modal-ui-serial-number").value,
+            boardRevision: document.getElementById("modal-ui-board-revision").value,
+            buildConfig: document.getElementById("modal-ui-build-config").value,
+            buildDate: document.getElementById("modal-ui-build-date").value,
+            manufacturingSignature: document.getElementById("modal-ui-mfg-signature").value
+        };
+    }
+
+    @foreach (var button in GetButtons())
+    {
+        <text>
+        document.getElementById("modal-ui-@button.Id-button").addEventListener("click", function () {
+            var message = { command: "modal-ui-event", event: getBetaTesterHwidPayload("@button.Id") };
+            window.external.sendMessage(JSON.stringify(message));
+        });
+        </text>
+    }
+</script>

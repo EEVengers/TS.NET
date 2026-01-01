@@ -15,7 +15,7 @@
   <ItemGroup>
     <EmbeddedResource Include="HTML\*.js" />
     <EmbeddedResource Include="HTML\*.css" />
-    <EmbeddedResource Include="Steps\*.css" />
+    <EmbeddedResource Include="Steps\**\*.css" />
   </ItemGroup>
 
 </Project>

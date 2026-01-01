@@ -81,15 +81,28 @@ public class ModalUiStep : Step
         });
     }
 
-    public static string GetEmbeddedStyle(string name)
+    public static string GetEmbeddedStyle<TDerived>()
     {
-        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"TS.NET.Sequencer.Steps.{name}.css");
-        if (stream != null)
+        var ns = typeof(TDerived).Namespace ?? string.Empty;
+        var fileName = $"{typeof(TDerived).Name}.css";
+
+        // Use the assembly that defines the derived component type
+        var assembly = typeof(TDerived).Assembly;
+        var resourceNames = assembly.GetManifestResourceNames();
+
+        var match = resourceNames.FirstOrDefault(r =>
+            r.Contains(ns, StringComparison.Ordinal) &&
+            r.EndsWith(fileName, StringComparison.Ordinal));
+        if (match != null)
         {
-            using var reader = new StreamReader(stream);
-            var content = reader.ReadToEnd();
-            return content;
+            using var stream = assembly.GetManifestResourceStream(match);
+            if (stream != null)
+            {
+                using var reader = new StreamReader(stream);
+                return reader.ReadToEnd();
+            }
         }
-        return "";
+
+        return string.Empty;
     }
 }

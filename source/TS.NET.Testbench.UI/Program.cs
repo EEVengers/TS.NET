@@ -8,6 +8,10 @@ using TS.NET.Sequences;
 
 namespace TS.NET.Testbench.UI;
 
+// cd build/
+// cmake --fresh .. -DENABLE_FACTORY_PROVISIONING=ON
+// cmake --build .
+
 class Program
 {
     [STAThread]
@@ -110,6 +114,11 @@ class Program
                                 var factoryTrimSequence = new FactoryTrimSequence(modalUiContext, factoryTrimVariables);
                                 variables = factoryTrimVariables;
                                 sequence = factoryTrimSequence;
+                                break;
+                            case "beta-tester-hwid":
+                                var betaVariables = new CommonVariables();
+                                var betaSequence = new BetaTesterHwidSequence(modalUiContext, betaVariables);
+                                sequence = betaSequence;
                                 break;
                             default:
                                 throw new InvalidDataException();

@@ -219,8 +219,8 @@
   .z-1 {
     z-index: 1;
   }
-  .float-right {
-    float: right;
+  .mt-3 {
+    margin-top: calc(var(--spacing) * 3);
   }
   .ml-2 {
     margin-left: calc(var(--spacing) * 2);
@@ -313,6 +313,9 @@
   }
   .justify-center {
     justify-content: center;
+  }
+  .justify-end {
+    justify-content: flex-end;
   }
   .gap-1 {
     gap: calc(var(--spacing) * 1);
