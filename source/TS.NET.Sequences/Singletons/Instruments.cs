@@ -576,28 +576,17 @@ public class Instruments
         thunderScope?.FactoryDataErase(dna);
         uint tag = TagStr(Encoding.ASCII.GetBytes("HWID"));
         var hwidJsonBytes = JsonSerializer.SerializeToUtf8Bytes(hwid);
-
-        // Temporarily pad to multiple of 4 bytes (zero padding) until libtslitex supports arbitrary lengths
-        int remainder = hwidJsonBytes.Length & 0x3;
-        if (remainder != 0)
-        {
-            int paddedLength = hwidJsonBytes.Length + (4 - remainder);
-            byte[] padded = new byte[paddedLength];
-            Buffer.BlockCopy(hwidJsonBytes, 0, padded, 0, hwidJsonBytes.Length);
-            hwidJsonBytes = padded;
-        }
-
         thunderScope?.FactoryDataAppend(tag, hwidJsonBytes);
     }
 
     private static uint TagStr(byte[] x)
     {
         // libtslitex source:
-        //    #define TAGSTR(x)   (uint32_t)(x[0] + (x[1] << 8) + (x[2] << 16) + (x[3] << 24))
-        // Should be the same output as BinaryPrimitives.ReadUInt32LittleEndian
+        // #define TAGSTR(x)   (uint32_t)((x[0] << 24) + (x[1] << 16) + (x[2] << 8) + x[3])
+        // Should be the same output as BinaryPrimitives.ReadUInt32BigEndian
         if (x is null) throw new ArgumentNullException(nameof(x));
         if (x.Length < 4) throw new ArgumentException("Tag must be at least 4 bytes.", nameof(x));
-        return (uint)(x[0] | (x[1] << 8) | (x[2] << 16) | (x[3] << 24));
+        return (uint)((x[0] << 24) + (x[1] << 16) + (x[2] << 8) + x[3]);
     }
 
     //public (double amplitude, double phaseDeg, double offset) GetThunderscopeBodeAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)
