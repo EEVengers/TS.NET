@@ -832,14 +832,8 @@ public class ProcessingThread : IThread
             // Locally scoped methods for deduplication
             void Capture(bool triggered, int triggerChannelCaptureIndex, ulong captureEndIndex)
             {
-                var sw = System.Diagnostics.Stopwatch.StartNew();
                 if (captureBuffer.TryStartWrite())
                 {
-                    sw.Stop();
-                    if (sw.ElapsedMilliseconds > 10)
-                    {
-                        logger.LogWarning($"captureBuffer.TryStartWrite() waited {sw.ElapsedMilliseconds}ms for readLock");
-                    }
                     int channelCount = currentHardwareConfig.Acquisition.EnabledChannelsCount();
                     switch (processingConfig.ChannelDataType)
                     {
@@ -968,6 +962,7 @@ public class ProcessingThread : IThread
 
             void UpdateRateAndCoerce(bool forceRateUpdate)
             {
+                // This logic should match the hardware/libtslitex logic with regards to coercing the rate
                 bool rateChanged = false;
                 switch (currentHardwareConfig.Acquisition.Resolution)
                 {
@@ -1031,11 +1026,7 @@ public class ProcessingThread : IThread
                 acquisitionBuffer.Reset();
 
                 // Reset capture buffers
-                var sw = System.Diagnostics.Stopwatch.StartNew();
                 captureBuffer.Configure(BitOperations.PopCount(currentHardwareConfig.Acquisition.EnabledChannels), processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
-                sw.Stop();
-                if (sw.ElapsedMilliseconds > 10)
-                    logger.LogWarning($"Capture buffer reconfiguration took {sw.ElapsedMilliseconds} ms");
 
                 ResetTrigger();
             }
