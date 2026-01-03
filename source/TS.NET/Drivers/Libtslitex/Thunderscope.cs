@@ -8,7 +8,7 @@ namespace TS.NET.Driver.Libtslitex
     {
         private readonly ILogger logger;
         private bool open = false;
-        private bool started = false;
+        private bool running = false;
         private nint tsHandle;
         private uint dmaBufferSize;
 
@@ -110,7 +110,7 @@ namespace TS.NET.Driver.Libtslitex
         {
             CheckOpen();
 
-            if (!started)
+            if (!running)
             {
                 DateTimeOffset start = DateTimeOffset.UtcNow;
                 while (true)
@@ -128,21 +128,26 @@ namespace TS.NET.Driver.Libtslitex
                     throw new ThunderscopeException($"Could not start ({GetLibraryReturnString(retVal)})");
             }
 
-            started = true;
+            running = true;
         }
 
         public void Stop()
         {
             CheckOpen();
 
-            if (started)
+            if (running)
             {
                 var retVal = Interop.DataEnable(tsHandle, 0);
                 if (retVal < 0)
                     throw new ThunderscopeException($"Could not stop ({GetLibraryReturnString(retVal)})");
             }
 
-            started = false;
+            running = false;
+        }
+
+        public bool Running()
+        {
+            return running;
         }
 
         public void Read(ThunderscopeMemory data)
@@ -161,11 +166,10 @@ namespace TS.NET.Driver.Libtslitex
             }
         }
 
-        public bool TryRead(ThunderscopeMemory data, out ThunderscopeHardwareConfig hardwareConfig, out ulong sampleStartIndex, out int sampleLength)
+        public bool TryRead(ThunderscopeMemory data, out ulong sampleStartIndex, out int sampleLength)
         {
             if (!open)
             {
-                hardwareConfig = GetConfiguration();
                 sampleStartIndex = 0;
                 sampleLength = 0;
                 return false;
@@ -178,7 +182,6 @@ namespace TS.NET.Driver.Libtslitex
                 int readLen = Interop.Read(tsHandle, data.DataLoadPointer, (uint)data.LengthBytes, out sampleStartIndex);
                 if (readLen < 0)
                 {
-                    hardwareConfig = GetConfiguration();
                     sampleStartIndex = 0;
                     sampleLength = 0;
                     return false;
@@ -186,7 +189,7 @@ namespace TS.NET.Driver.Libtslitex
                 else if (readLen != data.LengthBytes)
                     throw new ThunderscopeException($"Read incorrect sample length ({readLen})");
 
-                hardwareConfig = GetConfiguration();
+                var hardwareConfig = GetConfiguration();        // to do: remove this
                 sampleLength = hardwareConfig.Acquisition.AdcChannelMode switch
                 {
                     AdcChannelMode.Single => data.LengthBytes,
@@ -336,7 +339,7 @@ namespace TS.NET.Driver.Libtslitex
         {
             CheckOpen();
 
-            var restart = started;
+            var restart = running;
             if (restart)
                 Stop();
 

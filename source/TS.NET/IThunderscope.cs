@@ -4,13 +4,14 @@
     {
         void Start();
         void Stop();
+        bool Running();
         ThunderscopeChannelFrontend GetChannelFrontend(int channelIndex);
         ThunderscopeChannelCalibration GetChannelCalibration(int channelIndex);
         void SetChannelEnable(int channelIndex, bool enabled);
         void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel);
         void SetChannelCalibration(int channelIndex, ThunderscopeChannelCalibration channelCalibration);
         void Read(ThunderscopeMemory data);
-        bool TryRead(ThunderscopeMemory data, out ThunderscopeHardwareConfig hardwareConfig, out ulong sampleStartIndex, out int sampleLength);
+        bool TryRead(ThunderscopeMemory data, out ulong sampleStartIndex, out int sampleLength);
         ThunderscopeHardwareConfig GetConfiguration();
         void SetRate(ulong sampleRateHz);
         void SetResolution(AdcResolution resolution);

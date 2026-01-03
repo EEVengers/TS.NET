@@ -9,10 +9,10 @@ public record ProcessingGetRatesResponse(ulong[] SampleRatesHz) : ProcessingResp
 
 public record ProcessingGetModeResponse(Mode Mode) : ProcessingResponseDto();
 public record ProcessingGetDepthResponse(int Depth) : ProcessingResponseDto();
-public record ProcessingGetRateResponse(ulong SampleRateHz) : ProcessingResponseDto;
-public record ProcessingGetResolutionResponse(AdcResolution Resolution) : ProcessingResponseDto();
+public record HardwareGetRateResponse(ulong SampleRateHz) : ProcessingResponseDto;
+public record HardwareGetResolutionResponse(AdcResolution Resolution) : ProcessingResponseDto();
 
-public record ProcessingGetEnabledResponse(byte EnabledChannels) : ProcessingResponseDto();
+public record HardwareGetEnabledResponse(byte EnabledChannels) : ProcessingResponseDto();
 
 // Trigger query responses
 public record ProcessingGetTriggerSourceResponse(TriggerChannel Channel) : ProcessingResponseDto();
@@ -23,3 +23,9 @@ public record ProcessingGetTriggerInterpolationResponse(bool Enabled) : Processi
 
 public record ProcessingGetEdgeTriggerLevelResponse(double LevelVolts) : ProcessingResponseDto();
 public record ProcessingGetEdgeTriggerDirectionResponse(EdgeDirection Direction) : ProcessingResponseDto();
+
+public record HardwareGetVoltOffsetResponse(double RequestedVoltOffset, double ActualVoltOffset) : ProcessingResponseDto;
+public record HardwareGetVoltFullScaleResponse(double RequestedVoltFullScale, double ActualVoltFullScale) : ProcessingResponseDto;
+public record HardwareGetBandwidthResponse(ThunderscopeBandwidth Bandwidth) : ProcessingResponseDto;
+public record HardwareGetCouplingResponse(ThunderscopeCoupling Coupling) : ProcessingResponseDto;
+public record HardwareGetTerminationResponse(ThunderscopeTermination RequestedTermination, ThunderscopeTermination ActualTermination) : ProcessingResponseDto;

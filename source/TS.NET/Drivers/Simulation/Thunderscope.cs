@@ -67,9 +67,8 @@
             totalTimeSec += dataSpan.Length / sampleRateHz;
         }
 
-        public bool TryRead(ThunderscopeMemory data, out ThunderscopeHardwareConfig hardwareConfig, out ulong sampleStartIndex, out int sampleLength)
+        public bool TryRead(ThunderscopeMemory data, out ulong sampleStartIndex, out int sampleLength)
         {
-            hardwareConfig = new ThunderscopeHardwareConfig();
             sampleStartIndex = 0;
             sampleLength = 0;
             throw new NotImplementedException();
@@ -103,11 +102,11 @@
             var samplesFor500us = (int)(sampleRateHz * 500e-6f); // 500 microseconds in samples
             var totalPatternSamples = samplesFor500us * 2; // 500us sine + 500us zero = 1000us total pattern
 
-            var scale = (scaleRelativeToFull * (sbyte.MaxValue - sbyte.MinValue-20)) * 0.5f;
+            var scale = (scaleRelativeToFull * (sbyte.MaxValue - sbyte.MinValue - 20)) * 0.5f;
             var angularFrequency = (2.0f * MathF.PI * frequencyHz);
-            
+
             oneCycle = new sbyte[totalPatternSamples];
-            
+
             // Generate sine wave for first 500us
             for (int i = 0; i < samplesFor500us; i++)
             {
@@ -116,7 +115,7 @@
                 int scaledValue = (int)(sineValue * scale);
                 oneCycle.Span[i] = (sbyte)scaledValue;
             }
-            
+
             // Generate zero signal for next 500us
             for (int i = samplesFor500us; i < totalPatternSamples; i++)
             {
@@ -129,6 +128,11 @@
         public void Stop()
         {
             running = false;
+        }
+
+        public bool Running()
+        {
+            return running;
         }
 
         public ThunderscopeChannelCalibration GetChannelCalibration(int channelIndex)

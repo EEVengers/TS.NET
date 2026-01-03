@@ -21,7 +21,6 @@ public class EngineManager
     private ThunderscopeSettings? thunderscopeSettings = null;
     private IThunderscope? thunderscope = null;
 
-    private HardwareThread? hardwareThread;
     private ProcessingThread? processingThread;
     private ScpiServer? scpiServer;
     private IThread? waveformBufferReader;
@@ -182,7 +181,6 @@ public class EngineManager
             hardwarePool.Return.Writer.Write(dataDto);
         }
 
-        BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl = new();
         BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl = new();
 
         long captureBufferBytes = ((long)thunderscopeSettings.MaxCaptureLength) * 4 * ThunderscopeDataType.I16.ByteWidth();
@@ -196,22 +194,11 @@ public class EngineManager
         processingThread = new ProcessingThread(
             logger: loggerFactory.CreateLogger(nameof(ProcessingThread)),
             settings: thunderscopeSettings,
-            hardwareConfig: thunderscope.GetConfiguration(),
-            inputPool: hardwarePool,
-            hardwareControl: hardwareControl,
+            thunderscope: thunderscope!,
             processingControl: processingControl,
             uiNotifications: UiNotifications?.Writer,
             captureBuffer: captureBuffer);
         processingThread.Start(startSemaphore);
-
-        startSemaphore.Wait();
-        hardwareThread = new HardwareThread(
-            logger: loggerFactory.CreateLogger(nameof(HardwareThread)),
-            settings: thunderscopeSettings,
-            thunderscope: thunderscope,
-            hardwarePool: hardwarePool,
-            hardwareControl: hardwareControl);
-        hardwareThread.Start(startSemaphore);
 
         startSemaphore.Wait();
         scpiServer = new ScpiServer(
@@ -219,7 +206,6 @@ public class EngineManager
             thunderscopeSettings,
             System.Net.IPAddress.Any,
             5025,
-            hardwareControl,
             processingControl);
         scpiServer.Start(startSemaphore);
 
@@ -250,7 +236,6 @@ public class EngineManager
 
     public void Stop()
     {
-        hardwareThread?.Stop();
         processingThread?.Stop();
         scpiServer?.Stop();
         waveformBufferReader?.Stop();

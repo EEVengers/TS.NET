@@ -11,7 +11,6 @@ internal class ScpiServer : IThread
     private readonly ThunderscopeSettings settings;
     private readonly IPAddress address;
     private readonly int port;
-    private readonly BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl;
     private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
 
     private CancellationTokenSource? listenerCancelTokenSource;
@@ -29,14 +28,12 @@ internal class ScpiServer : IThread
         ThunderscopeSettings settings,
         IPAddress address,
         int port,
-        BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
         BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl)
     {
         this.logger = logger;
         this.settings = settings;
         this.address = address;
         this.port = port;
-        this.hardwareControl = hardwareControl;
         this.processingControl = processingControl;
     }
 
@@ -130,7 +127,7 @@ internal class ScpiServer : IThread
                     string message = sb.ToString(0, newlineIndex + 1);
                     sb.Remove(0, newlineIndex + 1);
 
-                    string? response = ProcessSCPICommand(logger, settings, hardwareControl, processingControl, message.TrimEnd('\r', '\n'));
+                    string? response = ProcessSCPICommand(logger, settings, processingControl, message.TrimEnd('\r', '\n'));
 
                     if (response != null)
                     {
@@ -167,12 +164,11 @@ internal class ScpiServer : IThread
     public string? ProcessSCPICommand(
         ILogger logger,
         ThunderscopeSettings settings,
-        BlockingRequestResponse<HardwareRequestDto, HardwareResponseDto> hardwareControl,
         BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
         string message)
     {
         const string InvalidParameters = "One or more invalid parameters";
-        const int processingControlTimeoutMs = 2000;
+        const int processingControlTimeoutMs = 1000;
         const int hardwareControlTimeoutMs = 500;
 
         string? argument = null;
@@ -309,8 +305,8 @@ internal class ScpiServer : IThread
                             case var _ when command.StartsWith("RATE") && argument != null:
                                 {
                                     ulong rate = Convert.ToUInt64(argument);
-                                    processingControl.Request.Writer.Write(new ProcessingSetRate(rate));
-                                    logger.LogDebug($"{nameof(ProcessingSetRate)} sent with argument: {rate}");
+                                    processingControl.Request.Writer.Write(new HardwareSetRate(rate));
+                                    logger.LogDebug($"{nameof(HardwareSetRate)} sent with argument: {rate}");
                                     return null;
                                 }
                             case var _ when command.StartsWith("DEPTH") && argument != null:
@@ -323,8 +319,8 @@ internal class ScpiServer : IThread
                             case var _ when command.StartsWith("RES") && argument != null:
                                 {
                                     var resolution = Convert.ToInt32(argument) switch { 8 => AdcResolution.EightBit, 12 => AdcResolution.TwelveBit, _ => AdcResolution.EightBit };
-                                    processingControl.Request.Writer.Write(new ProcessingSetResolution(resolution));
-                                    logger.LogDebug($"{nameof(ProcessingSetResolution)} sent with argument: {resolution}");
+                                    processingControl.Request.Writer.Write(new HardwareSetResolution(resolution));
+                                    logger.LogDebug($"{nameof(HardwareSetResolution)} sent with argument: {resolution}");
                                     return null;
                                 }
 
@@ -463,7 +459,7 @@ internal class ScpiServer : IThread
                         {
                             case "ON" or "OFF":
                                 {
-                                    processingControl.Request.Writer.Write(new ProcessingSetEnabled(channelIndex, command == "ON"));
+                                    processingControl.Request.Writer.Write(new HardwareSetChannelEnabled(channelIndex, command == "ON"));
                                     return null;
                                 }
                             case var _ when command.StartsWith("BAND") && argument != null:
@@ -472,7 +468,7 @@ internal class ScpiServer : IThread
                                     // CHAN1:BAND <arg>
                                     if (GetBandwidth(argument) is not ThunderscopeBandwidth thunderscopeBandwidth)
                                         return null;
-                                    hardwareControl.Request.Writer.Write(new HardwareSetBandwidth(channelIndex, thunderscopeBandwidth));
+                                    processingControl.Request.Writer.Write(new HardwareSetBandwidth(channelIndex, thunderscopeBandwidth));
                                     return null;
                                 }
                             case var _ when command.StartsWith("COUP") && argument != null:
@@ -490,7 +486,7 @@ internal class ScpiServer : IThread
                                         logger.LogWarning("Coupling parameter not recognised");
                                         return null;
                                     }
-                                    hardwareControl.Request.Writer.Write(new HardwareSetCoupling(channelIndex, (ThunderscopeCoupling)thunderscopeCoupling));
+                                    processingControl.Request.Writer.Write(new HardwareSetCoupling(channelIndex, (ThunderscopeCoupling)thunderscopeCoupling));
                                     return null;
                                 }
                             case var _ when command.StartsWith("TERM") && argument != null:
@@ -499,7 +495,7 @@ internal class ScpiServer : IThread
                                     // CHAN1:TERM <arg>
                                     if (GetTermination(argument) is not ThunderscopeTermination thunderscopeTermination)
                                         return null;
-                                    hardwareControl.Request.Writer.Write(new HardwareSetTermination(channelIndex, thunderscopeTermination));
+                                    processingControl.Request.Writer.Write(new HardwareSetTermination(channelIndex, thunderscopeTermination));
                                     return null;
                                 }
                             case var _ when command.StartsWith("OFFS") && argument != null:
@@ -508,14 +504,14 @@ internal class ScpiServer : IThread
                                     // CHAN1:OFFS <arg>
                                     double offset = Convert.ToDouble(argument);
                                     offset = Math.Clamp(offset, -50, 50);     // Change to final values later
-                                    hardwareControl.Request.Writer.Write(new HardwareSetVoltOffset(channelIndex, offset));
+                                    processingControl.Request.Writer.Write(new HardwareSetVoltOffset(channelIndex, offset));
                                     return null;
                                 }
                             case var _ when command.StartsWith("RANG") && argument != null:
                                 {
                                     double range = Convert.ToDouble(argument);
                                     range = Math.Clamp(range, -50, 50);       // Change to final values later
-                                    hardwareControl.Request.Writer.Write(new HardwareSetVoltFullScale(channelIndex, range));
+                                    processingControl.Request.Writer.Write(new HardwareSetVoltFullScale(channelIndex, range));
                                     return null;
                                 }
                             default:
@@ -605,7 +601,7 @@ internal class ScpiServer : IThread
                                             return null;
                                         channel.PgaFilter = thunderscopeBandwidth;
 
-                                        hardwareControl.Request.Writer.Write(new HardwareSetChannelManualControl(channelIndex, channel));
+                                        processingControl.Request.Writer.Write(new HardwareSetChannelManualControl(channelIndex, channel));
                                     }
                                     catch
                                     {
@@ -633,7 +629,7 @@ internal class ScpiServer : IThread
                                         adcCal.FineGainBranch6 = (byte)(Convert.ToSByte(args[5]) & 0x7F);
                                         adcCal.FineGainBranch7 = (byte)(Convert.ToSByte(args[6]) & 0x7F);
                                         adcCal.FineGainBranch8 = (byte)(Convert.ToSByte(args[7]) & 0x7F);
-                                        hardwareControl.Request.Writer.Write(new HardwareSetAdcCalibration(adcCal));
+                                        processingControl.Request.Writer.Write(new HardwareSetAdcCalibration(adcCal));
                                     }
                                     catch
                                     {
@@ -657,6 +653,7 @@ internal class ScpiServer : IThread
                         return "EEVengers,ThunderScope,NO_SERIAL,NO_VERSION\n";
                     case "STATE?":
                         {
+                            while (processingControl.Response.Reader.TryRead(out var _, 10)) { }
                             processingControl.Request.Writer.Write(new ProcessingGetStateRequest());
                             if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
                             {
@@ -674,6 +671,7 @@ internal class ScpiServer : IThread
                         }
                     case "MODE?":
                         {
+                            while (processingControl.Response.Reader.TryRead(out var _, 10)) { }
                             processingControl.Request.Writer.Write(new ProcessingGetModeRequest());
                             if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
                             {
@@ -711,12 +709,13 @@ internal class ScpiServer : IThread
                         return GetDepth();
                     case var _ when command.StartsWith("RES"):
                         {
-                            processingControl.Request.Writer.Write(new ProcessingGetResolutionRequest());
+                            while (processingControl.Response.Reader.TryRead(out var _, 10)) { }
+                            processingControl.Request.Writer.Write(new HardwareGetResolutionRequest());
                             if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
                             {
-                                if (response is ProcessingGetResolutionResponse processingGetResolutionResponse)
+                                if (response is HardwareGetResolutionResponse hardwareGetResolutionResponse)
                                 {
-                                    switch (processingGetResolutionResponse.Resolution)
+                                    switch (hardwareGetResolutionResponse.Resolution)
                                     {
                                         case AdcResolution.EightBit:
                                             return "8\n";
@@ -744,7 +743,7 @@ internal class ScpiServer : IThread
             else if (subject?.StartsWith("TRIG") == true)
             {
                 // Trigger query commands
-                while (processingControl.Response.Reader.TryRead(out var response, 10)) { }
+                while (processingControl.Response.Reader.TryRead(out var _, 10)) { }
                 switch (command)
                 {
                     case var _ when command.StartsWith("SOU"):
@@ -896,16 +895,15 @@ internal class ScpiServer : IThread
                 if (GetChannelIndex(subject) is not int channelIndex)
                     return null;
 
-                while (hardwareControl.Response.Reader.TryRead(out var _, 10)) { }
                 while (processingControl.Response.Reader.TryRead(out var _, 10)) { }
                 switch (command)
                 {
                     case var _ when command.Equals("STATE?", StringComparison.OrdinalIgnoreCase):
                         {
-                            processingControl.Request.Writer.Write(new ProcessingGetEnabledRequest());
+                            processingControl.Request.Writer.Write(new HardwareGetEnabledRequest());
                             if (processingControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
                             {
-                                if (response is ProcessingGetEnabledResponse processingGetEnabledResponse)
+                                if (response is HardwareGetEnabledResponse processingGetEnabledResponse)
                                 {
                                     return ((processingGetEnabledResponse.EnabledChannels >> channelIndex) & 0x1) > 0 ? "ON\n" : "OFF\n";
                                 }
@@ -916,14 +914,14 @@ internal class ScpiServer : IThread
                             }
                             else
                             {
-                                logger.LogError($"{subject}:STATE? - No response from {nameof(hardwareControl.Response.Reader)}");
+                                logger.LogError($"{subject}:STATE? - No response from {nameof(processingControl.Response.Reader)}");
                             }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("BAND", StringComparison.OrdinalIgnoreCase):
                         {
-                            hardwareControl.Request.Writer.Write(new HardwareGetBandwidthRequest(channelIndex));
-                            if (hardwareControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
+                            processingControl.Request.Writer.Write(new HardwareGetBandwidthRequest(channelIndex));
+                            if (processingControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
                             {
                                 if (response is HardwareGetBandwidthResponse hardwareGetBandwidthResponse)
                                 {
@@ -942,19 +940,19 @@ internal class ScpiServer : IThread
                                 }
                                 else
                                 {
-                                    logger.LogError($"{subject}:BAND? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                    logger.LogError($"{subject}:BAND? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                 }
                             }
                             else
                             {
-                                logger.LogError($"{subject}:BAND? - No response from {nameof(hardwareControl.Response.Reader)}");
+                                logger.LogError($"{subject}:BAND? - No response from {nameof(processingControl.Response.Reader)}");
                             }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("COUP", StringComparison.OrdinalIgnoreCase):
                         {
-                            hardwareControl.Request.Writer.Write(new HardwareGetCouplingRequest(channelIndex));
-                            if (hardwareControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
+                            processingControl.Request.Writer.Write(new HardwareGetCouplingRequest(channelIndex));
+                            if (processingControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
                             {
                                 if (response is HardwareGetCouplingResponse hardwareGetCouplingResponse)
                                 {
@@ -968,19 +966,19 @@ internal class ScpiServer : IThread
                                 }
                                 else
                                 {
-                                    logger.LogError($"{subject}:COUP? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                    logger.LogError($"{subject}:COUP? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                 }
                             }
                             else
                             {
-                                logger.LogError($"{subject}:COUP? - No response from {nameof(hardwareControl.Response.Reader)}");
+                                logger.LogError($"{subject}:COUP? - No response from {nameof(processingControl.Response.Reader)}");
                             }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("TERM", StringComparison.OrdinalIgnoreCase):
                         {
-                            hardwareControl.Request.Writer.Write(new HardwareGetTerminationRequest(channelIndex));
-                            if (hardwareControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
+                            processingControl.Request.Writer.Write(new HardwareGetTerminationRequest(channelIndex));
+                            if (processingControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
                             {
                                 if (response is HardwareGetTerminationResponse hardwareGetTerminationResponse)
                                 {
@@ -995,34 +993,34 @@ internal class ScpiServer : IThread
                                 }
                                 else
                                 {
-                                    logger.LogError($"{subject}:TERM? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                    logger.LogError($"{subject}:TERM? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                 }
                             }
                             else
                             {
-                                logger.LogError($"{subject}:TERM? - No response from {nameof(hardwareControl.Response.Reader)}");
+                                logger.LogError($"{subject}:TERM? - No response from {nameof(processingControl.Response.Reader)}");
                             }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("OFFS", StringComparison.OrdinalIgnoreCase):
                         {
-                            hardwareControl.Request.Writer.Write(new HardwareGetVoltOffsetRequest(channelIndex));
-                            if (hardwareControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
+                            processingControl.Request.Writer.Write(new HardwareGetVoltOffsetRequest(channelIndex));
+                            if (processingControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
                             {
                                 if (response is HardwareGetVoltOffsetResponse hardwareGetVoltOffsetResponse)
                                     return $"{hardwareGetVoltOffsetResponse.RequestedVoltOffset:0.######}\n";
-                                logger.LogError($"{subject}:OFFS? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                logger.LogError($"{subject}:OFFS? - Invalid response from {nameof(processingControl.Response.Reader)}");
                             }
                             else
                             {
-                                logger.LogError($"{subject}:OFFS? - No response from {nameof(hardwareControl.Response.Reader)}");
+                                logger.LogError($"{subject}:OFFS? - No response from {nameof(processingControl.Response.Reader)}");
                             }
                             return "Error: No/bad response from channel.\n";
                         }
                     case var _ when command.StartsWith("RANG", StringComparison.OrdinalIgnoreCase):
                         {
-                            hardwareControl.Request.Writer.Write(new HardwareGetVoltFullScaleRequest(channelIndex));
-                            if (hardwareControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
+                            processingControl.Request.Writer.Write(new HardwareGetVoltFullScaleRequest(channelIndex));
+                            if (processingControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
                             {
                                 if (response is HardwareGetVoltFullScaleResponse hardwareGetVoltFullScaleResponse)
                                 {
@@ -1030,12 +1028,12 @@ internal class ScpiServer : IThread
                                 }
                                 else
                                 {
-                                    logger.LogError($"{subject}:RANG? - Invalid response from {nameof(hardwareControl.Response.Reader)}");
+                                    logger.LogError($"{subject}:RANG? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                 }
                             }
                             else
                             {
-                                logger.LogError($"{subject}:RANG? - No response from {nameof(hardwareControl.Response.Reader)}");
+                                logger.LogError($"{subject}:RANG? - No response from {nameof(processingControl.Response.Reader)}");
                             }
                             return "Error: No/bad response from channel.\n";
                         }
@@ -1048,6 +1046,7 @@ internal class ScpiServer : IThread
 
         string GetRates()
         {
+            while (processingControl.Response.Reader.TryRead(out var _, 10)) { }
             processingControl.Request.Writer.Write(new ProcessingGetRatesRequest());
             if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
             {
@@ -1066,13 +1065,14 @@ internal class ScpiServer : IThread
 
         string GetRate()
         {
-            processingControl.Request.Writer.Write(new ProcessingGetRateRequest());
+            while (processingControl.Response.Reader.TryRead(out var _, 10)) { }
+            processingControl.Request.Writer.Write(new HardwareGetRateRequest());
             if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
             {
                 switch (response)
                 {
-                    case ProcessingGetRateResponse processingGetRateResponse:
-                        return $"{processingGetRateResponse.SampleRateHz}\n";
+                    case HardwareGetRateResponse hardwareGetRateResponse:
+                        return $"{hardwareGetRateResponse.SampleRateHz}\n";
                     default:
                         logger.LogError($"RATE? - Invalid response from {nameof(processingControl.Response.Reader)}");
                         break;

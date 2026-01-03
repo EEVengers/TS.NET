@@ -222,7 +222,7 @@ internal class DataServer : IThread
                     WaveformHeaderOld header = new()
                     {
                         seqnum = sequenceNumber,
-                        numChannels = (ushort)BitOperations.PopCount(captureMetadata.ProcessingConfig.EnabledChannels),
+                        numChannels = (ushort)BitOperations.PopCount(captureMetadata.HardwareConfig.Acquisition.EnabledChannels),
                         fsPerSample = femtosecondsPerSample,
                         triggerFs = (long)captureMetadata.ProcessingConfig.TriggerDelayFs,
                         hwWaveformsPerSec = 0
@@ -294,7 +294,7 @@ internal class DataServer : IThread
             {
                 if (captureBuffer.TryStartRead(out var captureMetadata))
                 {
-                    int channelCount = BitOperations.PopCount(captureMetadata.ProcessingConfig.EnabledChannels);
+                    int channelCount = BitOperations.PopCount(captureMetadata.HardwareConfig.Acquisition.EnabledChannels);
                     int channelSizeBytes = captureMetadata.ProcessingConfig.ChannelDataType.ByteWidth() * captureMetadata.ProcessingConfig.ChannelDataLength;
                     int waveformHeaderSize;
                     int channelHeaderSize;
@@ -419,7 +419,7 @@ internal class DataServer : IThread
                         int channelIndex = captureMetadata.HardwareConfig.Acquisition.GetChannelIndexByCaptureBufferIndex(captureMetadata.TriggerChannelCaptureIndex);
                         ThunderscopeChannelFrontend triggerChannelFrontend = captureMetadata.HardwareConfig.Frontend[channelIndex];
                         var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 256.0);     // 8-bit
-                        if (captureMetadata.ProcessingConfig.AdcResolution == AdcResolution.TwelveBit)
+                        if (captureMetadata.HardwareConfig.Acquisition.Resolution == AdcResolution.TwelveBit)
                             channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 65536.0);   // 16-bit
                             //channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 4096.0);   // 16-bit
                         var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
