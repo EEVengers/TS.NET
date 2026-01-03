@@ -10,8 +10,7 @@ namespace TS.NET.Driver.Libtslitex
         private bool open = false;
         private bool started = false;
         private nint tsHandle;
-        private uint readSegmentLengthBytes;
-        private ulong sampleStartIndex = 0;
+        private uint dmaBufferSize;
 
         private bool[] channelEnabled;
         private bool[] channelManualOverride;
@@ -36,11 +35,9 @@ namespace TS.NET.Driver.Libtslitex
             return devices;
         }
 
-        public Thunderscope(ILoggerFactory loggerFactory, int readSegmentLengthBytes)
+        public Thunderscope(ILoggerFactory loggerFactory, int dmaBufferSize)
         {
-            if (readSegmentLengthBytes % (512 * 1024) != 0)
-                throw new ArgumentException("readSegmentLengthBytes % (512 * 1024) != 0");
-            this.readSegmentLengthBytes = (uint)readSegmentLengthBytes;
+            this.dmaBufferSize = (uint)dmaBufferSize;
             logger = loggerFactory.CreateLogger("Driver.LiteX");
             channelEnabled = new bool[4];
             channelManualOverride = new bool[4];
@@ -129,7 +126,6 @@ namespace TS.NET.Driver.Libtslitex
                 var retVal = Interop.DataEnable(tsHandle, 1);
                 if (retVal < 0)
                     throw new ThunderscopeException($"Could not start ({GetLibraryReturnString(retVal)})");
-                sampleStartIndex = 0;
             }
 
             started = true;
@@ -152,23 +148,16 @@ namespace TS.NET.Driver.Libtslitex
         public void Read(ThunderscopeMemory data)
         {
             CheckOpen();
+            if (data.LengthBytes % dmaBufferSize != 0)
+                throw new ThunderscopeException("Read length not supported by driver, must be multiple of DMA_BUFFER_SIZE");
 
             unsafe
             {
-                ulong length = (ulong)data.LengthBytes;
-                ulong dataRead = 0;
-                while (length > 0)
-                {
-                    int readLen = Interop.Read(tsHandle, data.DataLoadPointer + dataRead, readSegmentLengthBytes);
-
-                    if (readLen < 0)
-                        throw new ThunderscopeException($"Failed to read samples ({readLen})");
-                    else if (readLen != readSegmentLengthBytes)
-                        throw new ThunderscopeException($"Read incorrect sample length ({readLen})");
-
-                    dataRead += (ulong)readSegmentLengthBytes;
-                    length -= (ulong)readSegmentLengthBytes;
-                }
+                int readLen = Interop.Read(tsHandle, data.DataLoadPointer, (uint)data.LengthBytes);
+                if (readLen < 0)
+                    throw new ThunderscopeException($"Failed to read samples ({readLen})");
+                else if (readLen != data.LengthBytes)
+                    throw new ThunderscopeException($"Read incorrect sample length ({readLen})");
             }
         }
 
@@ -177,35 +166,27 @@ namespace TS.NET.Driver.Libtslitex
             if (!open)
             {
                 hardwareConfig = GetConfiguration();
-                sampleStartIndex = this.sampleStartIndex;
+                sampleStartIndex = 0;
                 sampleLength = 0;
                 return false;
             }
-
+            if (data.LengthBytes % dmaBufferSize != 0)
+                throw new ThunderscopeException("Read length not supported by driver, must be multiple of DMA_BUFFER_SIZE");
             unsafe
             {
-                uint length = (uint)data.LengthBytes;
-                uint dataRead = 0;
-                while (length > 0)
+                //int readLen = Interop.Read(tsHandle, data.DataLoadPointer, (uint)data.LengthBytes);
+                int readLen = Interop.Read(tsHandle, data.DataLoadPointer, (uint)data.LengthBytes, out sampleStartIndex);
+                if (readLen < 0)
                 {
-                    int readLen = Interop.Read(tsHandle, data.DataLoadPointer + dataRead, readSegmentLengthBytes);
-
-                    if (readLen < 0)
-                    {
-                        hardwareConfig = GetConfiguration();
-                        sampleStartIndex = this.sampleStartIndex;
-                        sampleLength = 0;
-                        return false;
-                    }
-                    else if (readLen != readSegmentLengthBytes)
-                        throw new ThunderscopeException($"Read incorrect sample length ({readLen})");
-
-                    dataRead += readSegmentLengthBytes;
-                    length -= readSegmentLengthBytes;
+                    hardwareConfig = GetConfiguration();
+                    sampleStartIndex = 0;
+                    sampleLength = 0;
+                    return false;
                 }
-                hardwareConfig = GetConfiguration();
-                sampleStartIndex = this.sampleStartIndex;
+                else if (readLen != data.LengthBytes)
+                    throw new ThunderscopeException($"Read incorrect sample length ({readLen})");
 
+                hardwareConfig = GetConfiguration();
                 sampleLength = hardwareConfig.Acquisition.AdcChannelMode switch
                 {
                     AdcChannelMode.Single => data.LengthBytes,
@@ -215,9 +196,7 @@ namespace TS.NET.Driver.Libtslitex
                 };
                 if (cachedSampleResolution == AdcResolution.TwelveBit)
                     sampleLength /= 2;
-
-                this.sampleStartIndex += (ulong)sampleLength;
-
+                //logger.LogDebug($"sampleStartIndex: {sampleStartIndex}, sampleLength: {sampleLength}");
                 return true;
             }
         }
