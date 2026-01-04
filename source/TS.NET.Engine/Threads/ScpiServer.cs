@@ -372,6 +372,7 @@ internal class ScpiServer : IThread
                                         "BURST" => TriggerType.Burst,
                                         "DROPOUT" => TriggerType.Dropout,
                                         "SLEWRATE" => TriggerType.SlewRate,
+                                        "TEMP-EVENT" => TriggerType.Event,      // Temporary name, find a better name or SCPI subsystem
                                         _ => null
                                     };
 

@@ -12,6 +12,8 @@
         private ulong streamEndIndex;
 
         public int SamplesInBuffer { get { return samplesInBuffer; } }
+        public ulong BufferSampleStartIndex { get { return streamEndIndex - (ulong)samplesInBuffer; } }
+        public ulong BufferSampleEndIndex { get { return streamEndIndex; } }
 
         public AcquisitionCircularBuffer(int maxChannelLength, int segmentLengthBytes, ThunderscopeDataType maxDataType)
         {

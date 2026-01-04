@@ -146,13 +146,18 @@ public class ProcessingThread : IThread
 
             ITriggerI8 triggerI8 = null;
             ITriggerI16 triggerI16 = null;
+            IEventTrigger eventTrigger = null;
             ResetTrigger();
 
-            EdgeTriggerResults edgeTriggerResults = new EdgeTriggerResults()
+            var edgeTriggerResults = new EdgeTriggerResults()
             {
                 ArmIndices = new ulong[ThunderscopeSettings.SegmentLengthBytes / 1000],         // 1000 samples is the minimum window width
                 TriggerIndices = new ulong[ThunderscopeSettings.SegmentLengthBytes / 1000],     // 1000 samples is the minimum window width
                 CaptureEndIndices = new ulong[ThunderscopeSettings.SegmentLengthBytes / 1000]   // 1000 samples is the minimum window width
+            };
+            var eventTriggerResults = new EventTriggerResults()
+            {
+                CaptureEndIndices = new ulong[ThunderscopeSettings.SegmentLengthBytes / 1000],         // 1000 samples is the minimum window width
             };
             bool runMode = false;
             bool forceTriggerLatch = false;
@@ -168,10 +173,6 @@ public class ProcessingThread : IThread
 
             logger.LogInformation("Started");
             startSemaphore.Release();
-
-#if DEBUG
-            thunderscope.Start();
-#endif
 
             while (true)
             {
@@ -219,16 +220,16 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(HardwareSetResolution)} (no change)");
                             }
                             break;
-                        case HardwareSetChannelEnabled processingSetEnabled:
-                            var enabledChannels = CalculateChannelMask(currentHardwareConfig.Acquisition.EnabledChannels, processingSetEnabled.ChannelIndex, processingSetEnabled.Enabled);
+                        case HardwareSetChannelEnabled hardwareSetChannelEnabled:
+                            var enabledChannels = CalculateChannelMask(currentHardwareConfig.Acquisition.EnabledChannels, hardwareSetChannelEnabled.ChannelIndex, hardwareSetChannelEnabled.Enabled);
                             if (currentHardwareConfig.Acquisition.EnabledChannels != enabledChannels)
                             {
                                 UpdateRateAndCoerce(forceRateUpdate: false);
-                                thunderscope.SetChannelEnable(processingSetEnabled.ChannelIndex, processingSetEnabled.Enabled);
+                                thunderscope.SetChannelEnable(hardwareSetChannelEnabled.ChannelIndex, hardwareSetChannelEnabled.Enabled);
                                 currentHardwareConfig = thunderscope.GetConfiguration();
                                 ResetAll();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
-                                logger.LogDebug($"{nameof(HardwareSetChannelEnabled)} ({processingSetEnabled.ChannelIndex} {processingSetEnabled.Enabled})");
+                                logger.LogDebug($"{nameof(HardwareSetChannelEnabled)} ({hardwareSetChannelEnabled.ChannelIndex} {hardwareSetChannelEnabled.Enabled})");
                             }
                             else
                             {
@@ -327,15 +328,12 @@ public class ProcessingThread : IThread
                             ResetAll();
                             if (processingConfig.Mode == Mode.Single)
                                 singleTriggerLatch = true;
-                            runMode = true;
-                            thunderscope.Start();
+                            Start();
                             uiNotifications?.TryWrite(processingRun);
                             logger.LogDebug($"{nameof(ProcessingRun)}");
                             break;
                         case ProcessingStop processingStop:
-                            runMode = false;
-                            forceTriggerLatch = false;
-                            thunderscope.Stop();
+                            Stop();
                             uiNotifications?.TryWrite(processingStop);
                             logger.LogDebug($"{nameof(ProcessingStop)}");
                             break;
@@ -364,8 +362,7 @@ public class ProcessingThread : IThread
                                 case Mode.Single:                // SINGLE forces runMode.
                                     if (runMode != true)
                                     {
-                                        runMode = true;
-                                        thunderscope.Start();
+                                        Start();
                                     }
                                     singleTriggerLatch = true;
                                     processingConfig.Mode = processingSetMode.Mode;
@@ -479,7 +476,7 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerDirection)} (no change)");
                             }
                             break;
-                        
+
                         case ProcessingGetStateRequest processingGetStateRequest:
                             processingControl.Response.Writer.Write(new ProcessingGetStateResponse(runMode));
                             logger.LogDebug($"{nameof(ProcessingGetStateRequest)}");
@@ -523,7 +520,6 @@ public class ProcessingThread : IThread
 
                         case ProcessingGetRatesRequest processingGetRatesRequest:
                             {
-                                logger.LogDebug("===========Processing control request");
                                 logger.LogDebug($"{nameof(ProcessingGetRatesRequest)}");
                                 List<ulong> rates = [];
                                 switch (settings.HardwareDriver.ToLower())
@@ -704,11 +700,36 @@ public class ProcessingThread : IThread
                                             if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
                                             {
                                                 singleTriggerLatch = false;
-                                                runMode = false;
-                                                forceTriggerLatch = false;
-                                                thunderscope.Stop();
+                                                Stop();
                                                 break;
                                             }
+                                        }
+                                    }
+                                    if (processingConfig.TriggerType == TriggerType.Event)
+                                    {
+                                        while (thunderscope.TryGetEvent(out var thunderscopeEvent, out var eventSampleIndex))
+                                        {
+                                            logger.LogDebug($"Event. eventSampleIndex: {eventSampleIndex}, sampleStartIndex: {sampleStartIndex}");
+                                            eventTrigger.EnqueueEvent(eventSampleIndex);
+                                        }
+
+                                        eventTrigger.Process(sampleLength, sampleStartIndex, ref eventTriggerResults);
+
+                                        if (eventTriggerResults.CaptureEndCount > 0)
+                                        {
+                                            for (int i = 0; i < eventTriggerResults.CaptureEndCount; i++)
+                                            {
+                                                logger.LogDebug($"Capture {eventTriggerResults.CaptureEndIndices[i]}");
+                                                Capture(triggered: false, 0, eventTriggerResults.CaptureEndIndices[i]);
+
+                                                if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
+                                                {
+                                                    singleTriggerLatch = false;
+                                                    Stop();
+                                                    break;
+                                                }
+                                            }
+                                            autoTimeoutTimer.Restart();     // Restart the auto timeout as a normal trigger happened
                                         }
                                     }
                                     else if (currentHardwareConfig.Acquisition.IsTriggerChannelAnEnabledChannel(processingConfig.TriggerChannel))
@@ -780,9 +801,7 @@ public class ProcessingThread : IThread
                                                 if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
                                                 {
                                                     singleTriggerLatch = false;
-                                                    runMode = false;
-                                                    forceTriggerLatch = false;
-                                                    thunderscope.Stop();
+                                                    Stop();
                                                     break;
                                                 }
                                             }
@@ -1033,6 +1052,20 @@ public class ProcessingThread : IThread
 
             void ResetTrigger()
             {
+                ulong femtosecondsPerSample = 1000000000000000 / currentHardwareConfig.Acquisition.SampleRateHz;
+                long windowTriggerPosition = (long)(processingConfig.TriggerDelayFs / femtosecondsPerSample);
+                long additionalHoldoff = (long)(processingConfig.TriggerHoldoffFs / femtosecondsPerSample);
+
+                if (processingConfig.TriggerType == TriggerType.Event)
+                {
+                    eventTrigger = new EventTrigger();
+                    eventTrigger.SetHorizontal(processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
+                    // Temporary - force external sync input for event trigger.
+                    currentHardwareConfig.ExternalSync = ThunderscopeExternalSync.Input;
+                    thunderscope.SetExternalSync(currentHardwareConfig.ExternalSync);
+                    return;
+                }
+
                 // Reset triggers
                 if (processingConfig.TriggerChannel == TriggerChannel.None)
                 {
@@ -1067,9 +1100,6 @@ public class ProcessingThread : IThread
                 };
 
                 // Set trigger horizontal parameters
-                ulong femtosecondsPerSample = 1000000000000000 / currentHardwareConfig.Acquisition.SampleRateHz;
-                long windowTriggerPosition = (long)(processingConfig.TriggerDelayFs / femtosecondsPerSample);
-                long additionalHoldoff = (long)(processingConfig.TriggerHoldoffFs / femtosecondsPerSample);
                 triggerI8.SetHorizontal(processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
                 triggerI16.SetHorizontal(processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
             }
@@ -1086,6 +1116,19 @@ public class ProcessingThread : IThread
                     newMask &= (byte)~(1 << channelIndex);
                 }
                 return newMask;
+            }
+
+            void Start()
+            {
+                runMode = true;
+                thunderscope.Start();
+            }
+
+            void Stop()
+            {
+                runMode = false;
+                forceTriggerLatch = false;
+                thunderscope.Stop();
             }
         }
         catch (OperationCanceledException)

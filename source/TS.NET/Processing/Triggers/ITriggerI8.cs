@@ -1,8 +1,7 @@
-﻿namespace TS.NET
+﻿namespace TS.NET;
+
+public interface ITriggerI8
 {
-    public interface ITriggerI8
-    {
-        void SetHorizontal(long windowWidth, long windowTriggerPosition, long additionalHoldoff);
-        void Process(ReadOnlySpan<sbyte> input, ulong sampleStartIndex, ref EdgeTriggerResults results);
-    }
+    void SetHorizontal(long windowWidth, long windowTriggerPosition, long additionalHoldoff);
+    void Process(ReadOnlySpan<sbyte> input, ulong sampleStartIndex, ref EdgeTriggerResults results);
 }

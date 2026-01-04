@@ -87,6 +87,7 @@ namespace TS.NET.Driver.Libtslitex
 
             SetSampleMode(initialHardwareConfiguration.Acquisition.SampleRateHz, initialHardwareConfiguration.Acquisition.Resolution, updateFrontends: false);
             UpdateFrontends();
+            SetExternalSync(initialHardwareConfiguration.ExternalSync);
         }
 
         public void Close()

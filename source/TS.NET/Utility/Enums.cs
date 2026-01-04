@@ -36,7 +36,9 @@ public enum TriggerType : byte
     Interval = 5,
     Burst = 6,
     Dropout = 7,
-    SlewRate = 8
+    SlewRate = 8,
+    // FPGA provided event
+    Event = 9
 }
 
 // 9 bit =     4x sum, 1x >>

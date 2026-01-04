@@ -161,6 +161,7 @@ public class EngineManager
                     initialHardwareConfiguration.Calibration[2] = thunderscopeCalibrationSettings.Channel3.ToDriver();
                     initialHardwareConfiguration.Calibration[3] = thunderscopeCalibrationSettings.Channel4.ToDriver();
                     initialHardwareConfiguration.AdcCalibration = thunderscopeCalibrationSettings.Adc.ToDriver();
+                    initialHardwareConfiguration.ExternalSync = ThunderscopeExternalSync.Disabled;
                     ts.Configure(initialHardwareConfiguration, thunderscopeSettings.HardwareRevision);
                     thunderscope = ts;
                     break;
