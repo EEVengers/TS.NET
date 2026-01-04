@@ -24,6 +24,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <TrimmerRootDescriptor Include="Linker.xml" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <EmbeddedResource Include="Resources\**" />
   </ItemGroup>
 

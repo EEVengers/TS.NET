@@ -1,0 +1,6 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<linker>
+    <assembly fullname="TS.NET.Testbench.UI" preserve="all" />
+    <assembly fullname="TS.NET.Sequences" preserve="all" />
+    <assembly fullname="TS.NET.Sequencer" preserve="all" />
+</linker>

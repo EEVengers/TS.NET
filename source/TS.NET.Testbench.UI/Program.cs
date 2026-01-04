@@ -32,16 +32,11 @@ class Program
 #endif
 
         PhotinoWindow? window = null;
-        Action<ModalUiUpdate> modalUiUpdate = (ModalUiUpdate modalUiUpdate) =>
+
+        void modalUiUpdate(ModalUiUpdate modalUiUpdate)
         {
-            var dto = new ModalUiUpdateDto
-            {
-                Type = "modal-ui-update",
-                Html = modalUiUpdate.Html,
-                Script = modalUiUpdate.Script
-            };
-            window?.SendWebMessage(JsonSerializer.Serialize(dto, CamelCaseContext.Default.ModalUiUpdateDto));
-        };
+            window?.SendWebMessage(JsonSerializer.Serialize(ModalUiUpdateDto.FromModalUiUpdate(modalUiUpdate), CamelCaseContext.Default.ModalUiUpdateDto));
+        }
         var modalUiContext = new ModalUiContext(modalUiUpdate);
 
         window = new PhotinoWindow()
