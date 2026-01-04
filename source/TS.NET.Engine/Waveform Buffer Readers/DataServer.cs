@@ -282,14 +282,16 @@ internal class DataServer : IThread
         }
     }
 
+    byte[]? poolArray;
     private void SendScopehal(Socket socket, CancellationToken cancelToken)
     {
         bool noCapturesAvailable = false;
+        bool send = false;
         while (true)
         {
             cancelToken.ThrowIfCancellationRequested();
-            byte[]? poolArray = null;
             int totalSendLength = 0;
+
             lock (captureBuffer.ReadLock)
             {
                 if (captureBuffer.TryStartRead(out var captureMetadata))
@@ -305,8 +307,16 @@ internal class DataServer : IThread
                     }
                     totalSendLength = waveformHeaderSize + channelCount * (channelHeaderSize + channelSizeBytes);
 
+                    if (poolArray == null || totalSendLength > poolArray.Length)
+                    {
+                        if (poolArray != null)
+                        {
+                            ArrayPool<byte>.Shared.Return(poolArray);
+                        }
+                        poolArray = ArrayPool<byte>.Shared.Rent(totalSendLength);
+                    }
+
                     // Socket.Send is synchronous so build up the send data, release the capture buffer ReadLock then Socket.Send.
-                    poolArray = ArrayPool<byte>.Shared.Rent(totalSendLength);
                     Span<byte> poolSpan = poolArray;
                     int poolSpanPointer = 0;
 
@@ -412,7 +422,7 @@ internal class DataServer : IThread
                     captureBuffer.FinishRead();
                     if (poolSpanPointer != totalSendLength)
                         throw new ThunderscopeException("Bytes written to span don't match expected length");
-
+                    send = true;
                     float CalculateTriggerInterpolation(int pointA, int pointB)
                     {
                         int triggerIndex = (int)(captureMetadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
@@ -443,10 +453,9 @@ internal class DataServer : IThread
                 else
                     noCapturesAvailable = true;
             }
-            if (poolArray != null)
+            if (send)
             {
-                socket.Send(poolArray, totalSendLength, SocketFlags.None);
-                ArrayPool<byte>.Shared.Return(poolArray);
+                socket.Send(poolArray!, totalSendLength, SocketFlags.None);
                 break;
             }
             if (noCapturesAvailable)
