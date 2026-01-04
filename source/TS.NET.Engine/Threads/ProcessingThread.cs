@@ -124,8 +124,15 @@ public class ProcessingThread : IThread
 
             // Periodic debug display variables
             DateTimeOffset startTime = DateTimeOffset.UtcNow;
-            ulong totalReadCount = 0;
-            uint periodicReadCount = 0;
+            long totalReadChunks = 0;
+            long totalReadBytes = 0;
+            long totalReadSamplesPerChannel = 0;
+
+            long periodicReadChunks = 0;
+            long periodicReadBytes = 0;
+            long periodicReadSamplesPerChannel = 0;
+
+            long periodicCaptureSamplesPerChannel = 0;
 
             Stopwatch periodicUpdateTimer = Stopwatch.StartNew();
 
@@ -575,10 +582,14 @@ public class ProcessingThread : IThread
 
                 if (thunderscope.Running())
                 {
-                    if (thunderscope.TryRead(preShuffleMemory, out var sampleStartIndex, out var sampleLength))
+                    if (thunderscope.TryRead(preShuffleMemory, out var sampleStartIndex, out var sampleLengthPerChannel))
                     {
-                        totalReadCount++;
-                        periodicReadCount++;
+                        totalReadChunks++;
+                        totalReadBytes += preShuffleMemory.LengthBytes;
+                        totalReadSamplesPerChannel += sampleLengthPerChannel;
+                        periodicReadChunks++;
+                        periodicReadBytes += preShuffleMemory.LengthBytes;
+                        periodicReadSamplesPerChannel += sampleLengthPerChannel;
 
                         // To do: decide if the "Shuffle" and "Write to acquisition buffers" regions should move inside the `if (runMode) { }`
                         // Shuffle
@@ -693,7 +704,7 @@ public class ProcessingThread : IThread
                                         //    TRIG:SOURCE 1/2/3/4
                                         if (acquisitionBuffer.SamplesInBuffer >= processingConfig.ChannelDataLength)
                                         {
-                                            Capture(triggered: false, triggerChannelCaptureIndex: 0, captureEndIndex: sampleStartIndex + (ulong)sampleLength);
+                                            Capture(triggered: false, triggerChannelCaptureIndex: 0, captureEndIndex: sampleStartIndex + (ulong)sampleLengthPerChannel);
                                             forceTriggerLatch = false;
                                             autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
 
@@ -713,7 +724,7 @@ public class ProcessingThread : IThread
                                             eventTrigger.EnqueueEvent(eventSampleIndex);
                                         }
 
-                                        eventTrigger.Process(sampleLength, sampleStartIndex, ref eventTriggerResults);
+                                        eventTrigger.Process(sampleLengthPerChannel, sampleStartIndex, ref eventTriggerResults);
 
                                         if (eventTriggerResults.CaptureEndCount > 0)
                                         {
@@ -818,33 +829,52 @@ public class ProcessingThread : IThread
                                     break;
                             }
                         }
-
-                        // Debug information
-                        var elapsedTime = periodicUpdateTimer.Elapsed.TotalSeconds;
-                        if (elapsedTime >= 10)
-                        {
-                            var segmentLengthBytes = ThunderscopeSettings.SegmentLengthBytes;
-                            var oneSecondEnqueueCount = periodicReadCount / periodicUpdateTimer.Elapsed.TotalSeconds;
-                            logger.LogDebug($"[Stream] MB/sec: {(oneSecondEnqueueCount * segmentLengthBytes / 1000 / 1000):F3}, MiB/sec: {(oneSecondEnqueueCount * segmentLengthBytes / 1024 / 1024):F3}");
-
-                            if (thunderscope is Driver.Libtslitex.Thunderscope liteXThunderscope)
-                            {
-                                var status = liteXThunderscope.GetStatus();
-                                logger.LogDebug($"[LiteX] lost buffers: {status.AdcSamplesLost}, temp: {status.FpgaTemp:F2}, VCC int: {status.VccInt:F3}, VCC aux: {status.VccAux:F3}, VCC BRAM: {status.VccBram:F3}, ADC Sync: {status.AdcFrameSync}");
-                            }
-
-                            var intervalCaptureTotal = captureBuffer.IntervalCaptureTotal;
-                            var intervalCaptureDrops = captureBuffer.IntervalCaptureDrops;
-                            var intervalCaptureReads = captureBuffer.IntervalCaptureReads;
-
-                            logger.LogDebug($"[Capture stats] total/s: {intervalCaptureTotal / elapsedTime:F2}, drops/s: {intervalCaptureDrops / elapsedTime:F2}, UI reads/s: {intervalCaptureReads / elapsedTime:F2}");
-                            logger.LogDebug($"[Capture buffer] capacity: {captureBuffer.MaxCaptureCount}, current: {captureBuffer.CurrentCaptureCount}, channel count: {captureBuffer.ChannelCount}, total: {captureBuffer.CaptureTotal}, drops: {captureBuffer.CaptureDrops}, reads: {captureBuffer.CaptureReads}");
-                            periodicUpdateTimer.Restart();
-
-                            periodicReadCount = 0;
-                            captureBuffer.ResetIntervalStats();
-                        }
                     }
+                }
+
+                // Debug information
+                var elapsedTime = periodicUpdateTimer.Elapsed.TotalSeconds;
+                if (elapsedTime >= 10)
+                {
+                    var oneSecondReadBytes = periodicReadBytes / periodicUpdateTimer.Elapsed.TotalSeconds;
+                    logger.LogDebug($"[Stream] MB/sec: {(oneSecondReadBytes / 1000 / 1000):F3}, MiB/sec: {(oneSecondReadBytes / 1024 / 1024):F3}");
+
+                    if (thunderscope is Driver.Libtslitex.Thunderscope liteXThunderscope)
+                    {
+                        var status = liteXThunderscope.GetStatus();
+                        logger.LogDebug($"[LiteX] lost buffers: {status.AdcSamplesLost}, temp: {status.FpgaTemp:F2}, VCC int: {status.VccInt:F3}, VCC aux: {status.VccAux:F3}, VCC BRAM: {status.VccBram:F3}, ADC Sync: {status.AdcFrameSync}");
+                    }
+
+                    var intervalCaptureTotal = captureBuffer.IntervalCaptureTotal;
+                    var intervalCaptureDrops = captureBuffer.IntervalCaptureDrops;
+                    var intervalCaptureReads = captureBuffer.IntervalCaptureReads;
+
+                    var sampleReadPercent = 0.0;
+                    if(periodicCaptureSamplesPerChannel > 0)
+                    {
+                        sampleReadPercent = ((double)periodicCaptureSamplesPerChannel / (double)periodicReadSamplesPerChannel) * 100.0;
+                        if (sampleReadPercent > 100.0)
+                            sampleReadPercent = 100.0;
+                    }
+
+                    var captureReadPercent = 0.0;
+                    if (intervalCaptureTotal > 0)
+                    {
+                        captureReadPercent = ((double)intervalCaptureReads / (double)intervalCaptureTotal) * 100.0;
+                        if (captureReadPercent > 100.0)
+                            captureReadPercent = 100.0;
+                    }
+
+                    logger.LogDebug($"[Capture stats] total/s: {intervalCaptureTotal / elapsedTime:F2}, drops/s: {intervalCaptureDrops / elapsedTime:F2}, reads/s: {intervalCaptureReads / elapsedTime:F2}");
+                    logger.LogDebug($"[Capture stats #2] {sampleReadPercent:F2}% samples captured, {captureReadPercent:F0}% captures read by DataServer");
+                    logger.LogDebug($"[Capture buffer] capacity: {captureBuffer.MaxCaptureCount}, current: {captureBuffer.CurrentCaptureCount}, channel count: {captureBuffer.ChannelCount}, total: {captureBuffer.CaptureTotal}, drops: {captureBuffer.CaptureDrops}, reads: {captureBuffer.CaptureReads}");
+                    periodicUpdateTimer.Restart();
+
+                    periodicReadChunks = 0;
+                    periodicReadBytes = 0;
+                    periodicReadSamplesPerChannel = 0;
+                    periodicCaptureSamplesPerChannel = 0;
+                    captureBuffer.ResetIntervalStats();
                 }
             }
 
@@ -864,6 +894,7 @@ public class ProcessingThread : IThread
                                         {
                                             var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
                                             acquisitionBuffer.Read1Channel(buffer1, captureEndIndex);
+                                            periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
                                     case 2:
@@ -871,6 +902,7 @@ public class ProcessingThread : IThread
                                             var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
                                             var buffer2 = captureBuffer.GetChannelWriteBuffer<sbyte>(1);
                                             acquisitionBuffer.Read2Channel(buffer1, buffer2, captureEndIndex);
+                                            periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
                                     case 3:
@@ -879,6 +911,7 @@ public class ProcessingThread : IThread
                                             var buffer2 = captureBuffer.GetChannelWriteBuffer<sbyte>(1);
                                             var buffer3 = captureBuffer.GetChannelWriteBuffer<sbyte>(2);
                                             acquisitionBuffer.Read3Channel(buffer1, buffer2, buffer3, captureEndIndex);
+                                            periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
                                     case 4:
@@ -888,6 +921,7 @@ public class ProcessingThread : IThread
                                             var buffer3 = captureBuffer.GetChannelWriteBuffer<sbyte>(2);
                                             var buffer4 = captureBuffer.GetChannelWriteBuffer<sbyte>(3);
                                             acquisitionBuffer.Read4Channel(buffer1, buffer2, buffer3, buffer4, captureEndIndex);
+                                            periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
                                     default:
@@ -903,6 +937,7 @@ public class ProcessingThread : IThread
                                         {
                                             var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
                                             acquisitionBuffer.Read1Channel(buffer1, captureEndIndex);
+                                            periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
                                     case 2:
@@ -910,6 +945,7 @@ public class ProcessingThread : IThread
                                             var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
                                             var buffer2 = captureBuffer.GetChannelWriteBuffer<short>(1);
                                             acquisitionBuffer.Read2Channel(buffer1, buffer2, captureEndIndex);
+                                            periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
                                     case 3:
@@ -918,6 +954,7 @@ public class ProcessingThread : IThread
                                             var buffer2 = captureBuffer.GetChannelWriteBuffer<short>(1);
                                             var buffer3 = captureBuffer.GetChannelWriteBuffer<short>(2);
                                             acquisitionBuffer.Read3Channel(buffer1, buffer2, buffer3, captureEndIndex);
+                                            periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
                                     case 4:
@@ -927,6 +964,7 @@ public class ProcessingThread : IThread
                                             var buffer3 = captureBuffer.GetChannelWriteBuffer<short>(2);
                                             var buffer4 = captureBuffer.GetChannelWriteBuffer<short>(3);
                                             acquisitionBuffer.Read4Channel(buffer1, buffer2, buffer3, buffer4, captureEndIndex);
+                                            periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
                                     default:

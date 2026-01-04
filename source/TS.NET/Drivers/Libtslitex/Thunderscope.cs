@@ -167,12 +167,12 @@ namespace TS.NET.Driver.Libtslitex
             }
         }
 
-        public bool TryRead(ThunderscopeMemory data, out ulong sampleStartIndex, out int sampleLength)
+        public bool TryRead(ThunderscopeMemory data, out ulong sampleStartIndex, out int sampleLengthPerChannel)
         {
             if (!open)
             {
                 sampleStartIndex = 0;
-                sampleLength = 0;
+                sampleLengthPerChannel = 0;
                 return false;
             }
             if (data.LengthBytes % dmaBufferSize != 0)
@@ -184,14 +184,14 @@ namespace TS.NET.Driver.Libtslitex
                 if (readLen < 0)
                 {
                     sampleStartIndex = 0;
-                    sampleLength = 0;
+                    sampleLengthPerChannel = 0;
                     return false;
                 }
                 else if (readLen != data.LengthBytes)
                     throw new ThunderscopeException($"Read incorrect sample length ({readLen})");
 
                 var hardwareConfig = GetConfiguration();        // to do: remove this
-                sampleLength = hardwareConfig.Acquisition.AdcChannelMode switch
+                sampleLengthPerChannel = hardwareConfig.Acquisition.AdcChannelMode switch
                 {
                     AdcChannelMode.Single => data.LengthBytes,
                     AdcChannelMode.Dual => data.LengthBytes / 2,
@@ -199,7 +199,7 @@ namespace TS.NET.Driver.Libtslitex
                     _ => throw new NotImplementedException()
                 };
                 if (cachedSampleResolution == AdcResolution.TwelveBit)
-                    sampleLength /= 2;
+                    sampleLengthPerChannel /= 2;
                 //logger.LogDebug($"sampleStartIndex: {sampleStartIndex}, sampleLength: {sampleLength}");
                 return true;
             }
