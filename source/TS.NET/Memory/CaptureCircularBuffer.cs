@@ -137,7 +137,7 @@ namespace TS.NET
                 {
                     captureDrops++;
                     intervalCaptureDrops++;
-                    FinishRead();       // Remove oldest buffer
+                    FinishRead(drop: true);       // Remove oldest buffer
                 }
             }
             writeInProgress = true;
@@ -194,12 +194,20 @@ namespace TS.NET
 
         public void FinishRead()
         {
+            FinishRead(drop: false);
+        }
+
+        private void FinishRead(bool drop = false)
+        {
             currentCaptureCount--;
             readCaptureOffset += (channelCount * channelCaptureLength);
             if (readCaptureOffset >= wraparoundOffset)
                 readCaptureOffset = 0;
             captureReads++;
-            intervalCaptureReads++;
+            if (!drop)
+            {
+                intervalCaptureReads++;
+            }
             readInProgress = false;
         }
 

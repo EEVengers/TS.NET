@@ -831,6 +831,10 @@ public class ProcessingThread : IThread
                         }
                     }
                 }
+                else
+                {
+                    Thread.Sleep(10);
+                }
 
                 // Debug information
                 var elapsedTime = periodicUpdateTimer.Elapsed.TotalSeconds;
@@ -850,7 +854,7 @@ public class ProcessingThread : IThread
                     var intervalCaptureReads = captureBuffer.IntervalCaptureReads;
 
                     var sampleReadPercent = 0.0;
-                    if(periodicCaptureSamplesPerChannel > 0)
+                    if (periodicCaptureSamplesPerChannel > 0)
                     {
                         sampleReadPercent = ((double)periodicCaptureSamplesPerChannel / (double)periodicReadSamplesPerChannel) * 100.0;
                         if (sampleReadPercent > 100.0)
