@@ -724,7 +724,7 @@ public class ProcessingThread : IThread
                                             eventTrigger.EnqueueEvent(eventSampleIndex);
                                         }
 
-                                        eventTrigger.Process(sampleLengthPerChannel, sampleStartIndex, ref eventTriggerResults);
+                                        eventTrigger.Process(sampleLengthPerChannel, sampleStartIndex, acquisitionBuffer.SamplesInBuffer, ref eventTriggerResults);
 
                                         if (eventTriggerResults.CaptureEndCount > 0)
                                         {

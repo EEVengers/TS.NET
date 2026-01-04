@@ -4,5 +4,5 @@ public interface IEventTrigger
 {
     void SetHorizontal(long windowWidth, long windowTriggerPosition, long additionalHoldoff);
     void EnqueueEvent(ulong sampleIndex);
-    void Process(int inputLength, ulong sampleStartIndex, ref EventTriggerResults results);
+    void Process(int inputLength, ulong sampleStartIndex, int acquisitionSamplesInBuffer, ref EventTriggerResults results);
 }
