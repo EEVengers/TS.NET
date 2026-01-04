@@ -692,7 +692,7 @@ namespace TS.NET.Driver.Libtslitex
         public void SetExternalSync(ThunderscopeExternalSync externalSync)
         {
             CheckOpen();
-            var retVal = Interop.ConfigureExtSync(tsHandle, (tsSyncMode_t)externalSync);
+            var retVal = Interop.ConfigureExtSync(tsHandle, (Interop.tsSyncMode_t)externalSync);
             if (retVal < 0)
                 throw new ThunderscopeException($"Failed to set external sync ({GetLibraryReturnString(retVal)})");
         }
