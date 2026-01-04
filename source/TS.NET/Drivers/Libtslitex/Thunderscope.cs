@@ -204,6 +204,25 @@ namespace TS.NET.Driver.Libtslitex
             }
         }
 
+        public bool TryGetEvent(out ThunderscopeEvent thunderscopeEvent, out ulong eventSampleIndex)
+        {
+            CheckOpen();
+            var retVal = Interop.GetEvent(tsHandle, out var tsEvent);
+            if (retVal < 0)
+                throw new ThunderscopeException($"Failed to get event ({GetLibraryReturnString(retVal)})");
+            switch(tsEvent.type)
+            {
+                case Interop.tsEventType_t.TS_EVT_EXT_SYNC:
+                    thunderscopeEvent = ThunderscopeEvent.SyncInputRisingEdge;
+                    eventSampleIndex = tsEvent.index;
+                    return true;
+                default:
+                    thunderscopeEvent = 0;
+                    eventSampleIndex = 0;
+                    return false;
+            }
+        }
+
         public ThunderscopeChannelFrontend GetChannelFrontend(int channelIndex)
         {
             CheckOpen();
@@ -668,6 +687,14 @@ namespace TS.NET.Driver.Libtslitex
                 throw new ThunderscopeException($"Failed to set channel {channelIndex} config ({GetLibraryReturnString(retVal)})");
 
             channelManualOverride[channelIndex] = true;
+        }
+
+        public void SetExternalSync(ThunderscopeExternalSync externalSync)
+        {
+            CheckOpen();
+            var retVal = Interop.ConfigureExtSync(tsHandle, (tsSyncMode_t)externalSync);
+            if (retVal < 0)
+                throw new ThunderscopeException($"Failed to set external sync ({GetLibraryReturnString(retVal)})");
         }
 
         public int UserDataRead(Span<byte> buffer, int offset)

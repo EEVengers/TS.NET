@@ -100,19 +100,6 @@ namespace TS.NET.Driver.Libtslitex
             Format14Bit
         }
 
-        public enum tsEventType_t
-        {
-            TS_EVT_NONE = 0,
-            TS_EVT_HOST_SW,
-            TS_EVT_EXT_SYNC,
-        }
-
-        public struct tsEvent_t
-        {
-            tsEventType_t ID;
-            ulong event_sample;
-        }
-
         [DllImport(library, EntryPoint = "thunderscopeListDevices")]        // Use runtime marshalling for now. Custom marshalling later.
         public static extern int ListDevices(uint devIndex, out tsDeviceInfo_t devInfo);
 
@@ -142,9 +129,6 @@ namespace TS.NET.Driver.Libtslitex
 
         [LibraryImport(library, EntryPoint = "thunderscopeReadCount")]
         public static unsafe partial int Read(nint ts, byte* buffer, uint len, out ulong count);
-
-        [LibraryImport(library, EntryPoint = "thunderscopeEventGet")]
-        public static unsafe partial int GetEvent(nint ts, out tsEvent_t evt);
 
         [LibraryImport(library, EntryPoint = "thunderscopeFwUpdate")]
         public static unsafe partial int FirmwareUpdate(nint ts, byte* bitstream, uint len);
@@ -182,6 +166,32 @@ namespace TS.NET.Driver.Libtslitex
 
         [LibraryImport(library, EntryPoint = "thunderscopeCalibrationManualCtrl")]
         public static unsafe partial int SetChannelManualControl(nint ts, uint channel, in tsChannelCtrl_t ctrl);
+
+        public enum tsEventType_t
+        {
+            TS_EVT_NONE = 0,
+            TS_EVT_HOST_SW,
+            TS_EVT_EXT_SYNC,
+        }
+
+        public struct tsEvent_t
+        {
+            public tsEventType_t type;
+            public ulong index;
+        }
+
+        [LibraryImport(library, EntryPoint = "thunderscopeEventGet")]
+        public static unsafe partial int GetEvent(nint ts, out tsEvent_t evt);
+
+        public enum tsSyncMode_t
+        {
+            TS_SYNC_DISABLED = 0,
+            TS_SYNC_OUT,
+            TS_SYNC_IN
+        }
+
+        [LibraryImport(library, EntryPoint = "thunderscopeExtSyncConfig")]
+        public static unsafe partial int ConfigureExtSync(nint ts, tsSyncMode_t mode);
 
         // Factory methods
         [LibraryImport(library, EntryPoint = "thunderscopeFactoryProvisionPrepare")]
