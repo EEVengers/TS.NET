@@ -142,9 +142,6 @@ public class EngineManager
                     }
 
                     ThunderscopeHardwareConfig initialHardwareConfiguration = new();
-                    //initialHardwareConfiguration.AdcChannelMode = AdcChannelMode.Quad;
-                    //initialHardwareConfiguration.EnabledChannels = 0x0F;
-                    //initialHardwareConfiguration.SampleRateHz = 250000000;
                     initialHardwareConfiguration.Acquisition = new ThunderscopeAcquisitionConfig
                     {
                         AdcChannelMode = AdcChannelMode.Single,

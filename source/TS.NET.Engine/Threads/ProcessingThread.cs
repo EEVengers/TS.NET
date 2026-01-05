@@ -102,9 +102,6 @@ public class ProcessingThread : IThread
             };
             var processingConfig = new ThunderscopeProcessingConfig
             {
-                //AdcResolution = initialHardwareConfig.Acquisition.Resolution,
-                //SampleRateHz = 1_000_000_000,
-                //EnabledChannels = initialHardwareConfig.Acquisition.EnabledChannels,
                 ChannelDataLength = 1000,
                 ChannelDataType = initialChannelDataType,
                 Mode = Mode.Normal,     // Temporary, change back to AUTO when NotImplementedException fixed
@@ -180,6 +177,8 @@ public class ProcessingThread : IThread
 
             logger.LogInformation("Started");
             startSemaphore.Release();
+
+            //Start();
 
             while (true)
             {
@@ -596,7 +595,7 @@ public class ProcessingThread : IThread
                         switch (currentHardwareConfig.Acquisition.AdcChannelMode)
                         {
                             case AdcChannelMode.Single:
-                                preShuffleMemory.DataSpanI8.CopyTo(postShuffleMemory.DataSpanI8);
+                                (preShuffleMemory, postShuffleMemory) = (postShuffleMemory, preShuffleMemory); // No shuffle, swap memory
                                 break;
                             case AdcChannelMode.Dual:
                                 switch (processingConfig.ChannelDataType)
