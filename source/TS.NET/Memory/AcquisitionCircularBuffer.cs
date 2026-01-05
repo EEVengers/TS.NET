@@ -8,12 +8,12 @@
         private readonly NativeMemoryAligned memory4;
         private int capacity;
         private int tail;
-        private int samplesInBuffer;
+        private int samplesInBufferPerChannel;
         private ulong streamEndIndex;
 
-        public int SamplesInBuffer { get { return samplesInBuffer; } }
-        public ulong BufferSampleStartIndex { get { return streamEndIndex - (ulong)samplesInBuffer; } }
-        public ulong BufferSampleEndIndex { get { return streamEndIndex; } }
+        public int SamplesInBufferPerChannel { get { return samplesInBufferPerChannel; } }
+        //public ulong BufferSampleStartIndex { get { return streamEndIndex - (ulong)samplesInBufferPerChannel; } }
+        //public ulong BufferSampleEndIndex { get { return streamEndIndex; } }
 
         public AcquisitionCircularBuffer(int maxChannelLength, int segmentLengthBytes, ThunderscopeDataType maxDataType)
         {
@@ -38,7 +38,7 @@
         public void Reset()
         {
             tail = 0;
-            samplesInBuffer = 0;
+            samplesInBufferPerChannel = 0;
             memory1.Clear();
             memory2.Clear();
             memory3.Clear();
@@ -63,9 +63,9 @@
                 channel1.Slice(firstCopy, remainingCopy).CopyTo(memory1.AsSpan<T>(0, remainingCopy));
             tail = (tail + length) % capacity;
 
-            samplesInBuffer += length;
-            if (samplesInBuffer > capacity)
-                samplesInBuffer = capacity;
+            samplesInBufferPerChannel += length;
+            if (samplesInBufferPerChannel > capacity)
+                samplesInBufferPerChannel = capacity;
         }
 
         public void Write2Channel<T>(ReadOnlySpan<T> channel1, ReadOnlySpan<T> channel2, ulong sampleStartIndex) where T : unmanaged
@@ -95,9 +95,9 @@
             }
             tail = (tail + length) % capacity;
 
-            samplesInBuffer += length;
-            if (samplesInBuffer > capacity)
-                samplesInBuffer = capacity;
+            samplesInBufferPerChannel += length;
+            if (samplesInBufferPerChannel > capacity)
+                samplesInBufferPerChannel = capacity;
         }
 
         public void Write4Channel<T>(ReadOnlySpan<T> channel1, ReadOnlySpan<T> channel2, ReadOnlySpan<T> channel3, ReadOnlySpan<T> channel4, ulong sampleStartIndex) where T : unmanaged
@@ -131,9 +131,9 @@
             }
             tail = (tail + length) % capacity;
 
-            samplesInBuffer += length;
-            if (samplesInBuffer > capacity)
-                samplesInBuffer = capacity;
+            samplesInBufferPerChannel += length;
+            if (samplesInBufferPerChannel > capacity)
+                samplesInBufferPerChannel = capacity;
         }
 
         public void Read1Channel<T>(Span<T> channel1, ulong captureEndIndex) where T : unmanaged
@@ -142,7 +142,7 @@
 
             if (length > capacity)
                 throw new Exception($"{nameof(AcquisitionCircularBuffer)} too small to read {length} samples");
-            if (length > samplesInBuffer)
+            if (length > samplesInBufferPerChannel)
                 throw new Exception($"{nameof(AcquisitionCircularBuffer)} does not contain {length} samples");
 
             int endOffset = (int)(streamEndIndex - captureEndIndex);
@@ -161,7 +161,7 @@
             if (remainingCopy > 0)
                 memory1.AsSpan<T>(capacity - remainingCopy, remainingCopy).CopyTo(channel1);
 
-            samplesInBuffer = endOffset;
+            samplesInBufferPerChannel -= length;
         }
 
         public void Read2Channel<T>(Span<T> channel1, Span<T> channel2, ulong captureEndIndex) where T : unmanaged
@@ -173,7 +173,7 @@
 
             if (length > capacity)
                 throw new Exception($"{nameof(AcquisitionCircularBuffer)} too small to read {length} samples");
-            if (length > samplesInBuffer)
+            if (length > samplesInBufferPerChannel)
                 throw new Exception($"{nameof(AcquisitionCircularBuffer)} does not contain {length} samples");
 
             int endOffset = (int)(streamEndIndex - captureEndIndex);
@@ -198,7 +198,7 @@
                 memory2.AsSpan<T>(capacity - remainingCopy, remainingCopy).CopyTo(channel2);
             }
 
-            samplesInBuffer = endOffset;
+            samplesInBufferPerChannel -= length;
         }
 
         public void Read3Channel<T>(Span<T> channel1, Span<T> channel2, Span<T> channel3, ulong captureEndIndex) where T : unmanaged
@@ -210,7 +210,7 @@
 
             if (length > capacity)
                 throw new Exception($"{nameof(AcquisitionCircularBuffer)} too small to read {length} samples");
-            if (length > samplesInBuffer)
+            if (length > samplesInBufferPerChannel)
                 throw new Exception($"{nameof(AcquisitionCircularBuffer)} does not contain {length} samples");
 
             int endOffset = (int)(streamEndIndex - captureEndIndex);
@@ -237,7 +237,7 @@
                 memory3.AsSpan<T>(capacity - remainingCopy, remainingCopy).CopyTo(channel3);
             }
 
-            samplesInBuffer = endOffset;
+            samplesInBufferPerChannel -= length;
 
         }
         public void Read4Channel<T>(Span<T> channel1, Span<T> channel2, Span<T> channel3, Span<T> channel4, ulong captureEndIndex) where T : unmanaged
@@ -249,7 +249,7 @@
 
             if (length > capacity)
                 throw new Exception($"{nameof(AcquisitionCircularBuffer)} too small to read {length} samples");
-            if (length > samplesInBuffer)
+            if (length > samplesInBufferPerChannel)
                 throw new Exception($"{nameof(AcquisitionCircularBuffer)} does not contain {length} samples");
 
             int endOffset = (int)(streamEndIndex - captureEndIndex);
@@ -278,7 +278,7 @@
                 memory4.AsSpan<T>(capacity - remainingCopy, remainingCopy).CopyTo(channel4);
             }
 
-            samplesInBuffer = endOffset;
+            samplesInBufferPerChannel -= length;
         }
     }
 }

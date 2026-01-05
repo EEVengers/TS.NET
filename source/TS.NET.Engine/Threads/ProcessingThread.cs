@@ -702,7 +702,7 @@ public class ProcessingThread : IThread
                                         //    SINGLE
                                         //    FORCE
                                         //    TRIG:SOURCE 1/2/3/4
-                                        if (acquisitionBuffer.SamplesInBuffer >= processingConfig.ChannelDataLength)
+                                        if (acquisitionBuffer.SamplesInBufferPerChannel >= processingConfig.ChannelDataLength)
                                         {
                                             Capture(triggered: false, triggerChannelCaptureIndex: 0, captureEndIndex: sampleStartIndex + (ulong)sampleLengthPerChannel);
                                             forceTriggerLatch = false;
@@ -724,7 +724,7 @@ public class ProcessingThread : IThread
                                             eventTrigger.EnqueueEvent(eventSampleIndex);
                                         }
 
-                                        eventTrigger.Process(sampleLengthPerChannel, sampleStartIndex, acquisitionBuffer.SamplesInBuffer, ref eventTriggerResults);
+                                        eventTrigger.Process(sampleLengthPerChannel, sampleStartIndex, acquisitionBuffer.SamplesInBufferPerChannel, ref eventTriggerResults);
 
                                         if (eventTriggerResults.CaptureEndCount > 0)
                                         {
@@ -992,7 +992,7 @@ public class ProcessingThread : IThread
             void StreamCapture()
             {
                 int channelLength = processingConfig.ChannelDataLength;
-                while (acquisitionBuffer.SamplesInBuffer > channelLength)
+                while (acquisitionBuffer.SamplesInBufferPerChannel > channelLength)
                 {
                     throw new NotImplementedException();    // Need to figure out captureEndIndex below
                     Capture(triggered: false, triggerChannelCaptureIndex: 0, captureEndIndex: 0);
