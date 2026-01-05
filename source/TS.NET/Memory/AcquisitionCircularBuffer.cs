@@ -152,7 +152,7 @@
                 offsetTail = (tail - endOffset);        // Offset tail being the index of the last byte we want
             else
                 offsetTail = capacity - (endOffset - tail);
-            //uint offsetTail = tail % capacity;
+
             int firstCopy = Math.Min(length, offsetTail);
             if (firstCopy > 0)
                 memory1.AsSpan<T>(offsetTail - firstCopy, firstCopy).CopyTo(channel1.Slice(length - firstCopy));
@@ -183,7 +183,7 @@
                 offsetTail = (tail - endOffset);        // Offset tail being the index of the last byte we want
             else
                 offsetTail = capacity - (endOffset - tail);
-            //uint offsetTail = tail % capacity;
+
             int firstCopy = Math.Min(length, offsetTail);
             if (firstCopy > 0)
             {
@@ -220,7 +220,7 @@
                 offsetTail = (tail - endOffset);        // Offset tail being the index of the last byte we want
             else
                 offsetTail = capacity - (endOffset - tail);
-            //uint offsetTail = tail % capacity;
+
             int firstCopy = Math.Min(length, offsetTail);
             if (firstCopy > 0)
             {
@@ -240,6 +240,7 @@
             samplesInBufferPerChannel -= length;
 
         }
+        
         public void Read4Channel<T>(Span<T> channel1, Span<T> channel2, Span<T> channel3, Span<T> channel4, ulong captureEndIndex) where T : unmanaged
         {
             if (channel1.Length != channel2.Length || channel2.Length != channel3.Length || channel3.Length != channel4.Length)
@@ -259,7 +260,7 @@
                 offsetTail = (tail - endOffset);        // Offset tail being the index of the last byte we want
             else
                 offsetTail = capacity - (endOffset - tail);
-            //uint offsetTail = tail % capacity;
+
             int firstCopy = Math.Min(length, offsetTail);
             if (firstCopy > 0)
             {
@@ -276,6 +277,118 @@
                 memory2.AsSpan<T>(capacity - remainingCopy, remainingCopy).CopyTo(channel2);
                 memory3.AsSpan<T>(capacity - remainingCopy, remainingCopy).CopyTo(channel3);
                 memory4.AsSpan<T>(capacity - remainingCopy, remainingCopy).CopyTo(channel4);
+            }
+
+            samplesInBufferPerChannel -= length;
+        }
+
+        public void Read1ChannelFromStart<T>(Span<T> channel1) where T : unmanaged
+        {
+            var length = channel1.Length;
+
+            if (length > capacity)
+                throw new Exception($"{nameof(AcquisitionCircularBuffer)} too small to read {length} samples");
+            if (length > samplesInBufferPerChannel)
+                throw new Exception($"{nameof(AcquisitionCircularBuffer)} does not contain {length} samples");
+
+            int startIndex = (tail - samplesInBufferPerChannel + capacity) % capacity;
+
+            int firstCopy = Math.Min(length, capacity - startIndex);
+            if (firstCopy > 0)
+                memory1.AsSpan<T>(startIndex, firstCopy).CopyTo(channel1.Slice(0, firstCopy));
+
+            int remainingCopy = length - firstCopy;
+            if (remainingCopy > 0)
+                memory1.AsSpan<T>(0, remainingCopy).CopyTo(channel1.Slice(firstCopy, remainingCopy));
+
+            samplesInBufferPerChannel -= length;
+        }
+
+        public void Read2ChannelFromStart<T>(Span<T> channel1, Span<T> channel2) where T : unmanaged
+        {
+            var length = channel1.Length;
+
+            if (length > capacity)
+                throw new Exception($"{nameof(AcquisitionCircularBuffer)} too small to read {length} samples");
+            if (length > samplesInBufferPerChannel)
+                throw new Exception($"{nameof(AcquisitionCircularBuffer)} does not contain {length} samples");
+
+            int startIndex = (tail - samplesInBufferPerChannel + capacity) % capacity;
+
+            int firstCopy = Math.Min(length, capacity - startIndex);
+            if (firstCopy > 0)
+            {
+                memory1.AsSpan<T>(startIndex, firstCopy).CopyTo(channel1.Slice(0, firstCopy));
+                memory2.AsSpan<T>(startIndex, firstCopy).CopyTo(channel2.Slice(0, firstCopy));
+            }
+
+            int remainingCopy = length - firstCopy;
+            if (remainingCopy > 0)
+            {
+                memory1.AsSpan<T>(0, remainingCopy).CopyTo(channel1.Slice(firstCopy, remainingCopy));
+                memory2.AsSpan<T>(0, remainingCopy).CopyTo(channel2.Slice(firstCopy, remainingCopy));
+            }
+
+            samplesInBufferPerChannel -= length;
+        }
+
+        public void Read3ChannelFromStart<T>(Span<T> channel1, Span<T> channel2, Span<T> channel3) where T : unmanaged
+        {
+            var length = channel1.Length;
+
+            if (length > capacity)
+                throw new Exception($"{nameof(AcquisitionCircularBuffer)} too small to read {length} samples");
+            if (length > samplesInBufferPerChannel)
+                throw new Exception($"{nameof(AcquisitionCircularBuffer)} does not contain {length} samples");
+
+            int startIndex = (tail - samplesInBufferPerChannel + capacity) % capacity;
+
+            int firstCopy = Math.Min(length, capacity - startIndex);
+            if (firstCopy > 0)
+            {
+                memory1.AsSpan<T>(startIndex, firstCopy).CopyTo(channel1.Slice(0, firstCopy));
+                memory2.AsSpan<T>(startIndex, firstCopy).CopyTo(channel2.Slice(0, firstCopy));
+                memory3.AsSpan<T>(startIndex, firstCopy).CopyTo(channel3.Slice(0, firstCopy));
+            }
+
+            int remainingCopy = length - firstCopy;
+            if (remainingCopy > 0)
+            {
+                memory1.AsSpan<T>(0, remainingCopy).CopyTo(channel1.Slice(firstCopy, remainingCopy));
+                memory2.AsSpan<T>(0, remainingCopy).CopyTo(channel2.Slice(firstCopy, remainingCopy));
+                memory3.AsSpan<T>(0, remainingCopy).CopyTo(channel3.Slice(firstCopy, remainingCopy));
+            }
+
+            samplesInBufferPerChannel -= length;
+        }
+
+        public void Read4ChannelFromStart<T>(Span<T> channel1, Span<T> channel2, Span<T> channel3, Span<T> channel4) where T : unmanaged
+        {
+            var length = channel1.Length;
+
+            if (length > capacity)
+                throw new Exception($"{nameof(AcquisitionCircularBuffer)} too small to read {length} samples");
+            if (length > samplesInBufferPerChannel)
+                throw new Exception($"{nameof(AcquisitionCircularBuffer)} does not contain {length} samples");
+
+            int startIndex = (tail - samplesInBufferPerChannel + capacity) % capacity;
+
+            int firstCopy = Math.Min(length, capacity - startIndex);
+            if (firstCopy > 0)
+            {
+                memory1.AsSpan<T>(startIndex, firstCopy).CopyTo(channel1.Slice(0, firstCopy));
+                memory2.AsSpan<T>(startIndex, firstCopy).CopyTo(channel2.Slice(0, firstCopy));
+                memory3.AsSpan<T>(startIndex, firstCopy).CopyTo(channel3.Slice(0, firstCopy));
+                memory4.AsSpan<T>(startIndex, firstCopy).CopyTo(channel4.Slice(0, firstCopy));
+            }
+
+            int remainingCopy = length - firstCopy;
+            if (remainingCopy > 0)
+            {
+                memory1.AsSpan<T>(0, remainingCopy).CopyTo(channel1.Slice(firstCopy, remainingCopy));
+                memory2.AsSpan<T>(0, remainingCopy).CopyTo(channel2.Slice(firstCopy, remainingCopy));
+                memory3.AsSpan<T>(0, remainingCopy).CopyTo(channel3.Slice(firstCopy, remainingCopy));
+                memory4.AsSpan<T>(0, remainingCopy).CopyTo(channel4.Slice(firstCopy, remainingCopy));
             }
 
             samplesInBufferPerChannel -= length;
