@@ -136,7 +136,7 @@
                 samplesInBufferPerChannel = capacity;
         }
 
-        public void Read1Channel<T>(Span<T> channel1, ulong captureEndIndex) where T : unmanaged
+        public void Read1ChannelWithEndIndex<T>(Span<T> channel1, ulong captureEndIndex) where T : unmanaged
         {
             var length = channel1.Length;
 
@@ -164,7 +164,7 @@
             samplesInBufferPerChannel -= length;
         }
 
-        public void Read2Channel<T>(Span<T> channel1, Span<T> channel2, ulong captureEndIndex) where T : unmanaged
+        public void Read2ChannelWithEndIndex<T>(Span<T> channel1, Span<T> channel2, ulong captureEndIndex) where T : unmanaged
         {
             if (channel1.Length != channel2.Length)
                 throw new ThunderscopeException("Channel lengths don't match");
@@ -201,7 +201,7 @@
             samplesInBufferPerChannel -= length;
         }
 
-        public void Read3Channel<T>(Span<T> channel1, Span<T> channel2, Span<T> channel3, ulong captureEndIndex) where T : unmanaged
+        public void Read3ChannelWithEndIndex<T>(Span<T> channel1, Span<T> channel2, Span<T> channel3, ulong captureEndIndex) where T : unmanaged
         {
             if (channel1.Length != channel2.Length || channel2.Length != channel3.Length)
                 throw new ThunderscopeException("Channel lengths don't match");
@@ -241,7 +241,7 @@
 
         }
         
-        public void Read4Channel<T>(Span<T> channel1, Span<T> channel2, Span<T> channel3, Span<T> channel4, ulong captureEndIndex) where T : unmanaged
+        public void Read4ChannelWithEndIndex<T>(Span<T> channel1, Span<T> channel2, Span<T> channel3, Span<T> channel4, ulong captureEndIndex) where T : unmanaged
         {
             if (channel1.Length != channel2.Length || channel2.Length != channel3.Length || channel3.Length != channel4.Length)
                 throw new ThunderscopeException("Channel lengths don't match");

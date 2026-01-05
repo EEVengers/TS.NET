@@ -871,7 +871,7 @@ public class ProcessingThread : IThread
                     }
 
                     logger.LogDebug($"[Capture stats] total/s: {intervalCaptureTotal / elapsedTime:F2}, drops/s: {intervalCaptureDrops / elapsedTime:F2}, reads/s: {intervalCaptureReads / elapsedTime:F2}");
-                    logger.LogDebug($"[Capture stats #2] {sampleReadPercent:F2}% samples captured, {captureReadPercent:F0}% captures read by DataServer");
+                    logger.LogDebug($"[Capture stats #2] {sampleReadPercent:F1}% samples captured, {captureReadPercent:F0}% captures read by DataServer");
                     logger.LogDebug($"[Capture buffer] capacity: {captureBuffer.MaxCaptureCount}, current: {captureBuffer.CurrentCaptureCount}, channel count: {captureBuffer.ChannelCount}, total: {captureBuffer.CaptureTotal}, drops: {captureBuffer.CaptureDrops}, reads: {captureBuffer.CaptureReads}");
                     periodicUpdateTimer.Restart();
 
@@ -898,7 +898,7 @@ public class ProcessingThread : IThread
                                     case 1:
                                         {
                                             var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
-                                            acquisitionBuffer.Read1Channel(buffer1, captureEndIndex);
+                                            acquisitionBuffer.Read1ChannelWithEndIndex(buffer1, captureEndIndex);
                                             periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
@@ -906,7 +906,7 @@ public class ProcessingThread : IThread
                                         {
                                             var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
                                             var buffer2 = captureBuffer.GetChannelWriteBuffer<sbyte>(1);
-                                            acquisitionBuffer.Read2Channel(buffer1, buffer2, captureEndIndex);
+                                            acquisitionBuffer.Read2ChannelWithEndIndex(buffer1, buffer2, captureEndIndex);
                                             periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
@@ -915,7 +915,7 @@ public class ProcessingThread : IThread
                                             var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
                                             var buffer2 = captureBuffer.GetChannelWriteBuffer<sbyte>(1);
                                             var buffer3 = captureBuffer.GetChannelWriteBuffer<sbyte>(2);
-                                            acquisitionBuffer.Read3Channel(buffer1, buffer2, buffer3, captureEndIndex);
+                                            acquisitionBuffer.Read3ChannelWithEndIndex(buffer1, buffer2, buffer3, captureEndIndex);
                                             periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
@@ -925,7 +925,7 @@ public class ProcessingThread : IThread
                                             var buffer2 = captureBuffer.GetChannelWriteBuffer<sbyte>(1);
                                             var buffer3 = captureBuffer.GetChannelWriteBuffer<sbyte>(2);
                                             var buffer4 = captureBuffer.GetChannelWriteBuffer<sbyte>(3);
-                                            acquisitionBuffer.Read4Channel(buffer1, buffer2, buffer3, buffer4, captureEndIndex);
+                                            acquisitionBuffer.Read4ChannelWithEndIndex(buffer1, buffer2, buffer3, buffer4, captureEndIndex);
                                             periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
@@ -941,7 +941,7 @@ public class ProcessingThread : IThread
                                     case 1:
                                         {
                                             var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
-                                            acquisitionBuffer.Read1Channel(buffer1, captureEndIndex);
+                                            acquisitionBuffer.Read1ChannelWithEndIndex(buffer1, captureEndIndex);
                                             periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
@@ -949,7 +949,7 @@ public class ProcessingThread : IThread
                                         {
                                             var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
                                             var buffer2 = captureBuffer.GetChannelWriteBuffer<short>(1);
-                                            acquisitionBuffer.Read2Channel(buffer1, buffer2, captureEndIndex);
+                                            acquisitionBuffer.Read2ChannelWithEndIndex(buffer1, buffer2, captureEndIndex);
                                             periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
@@ -958,7 +958,7 @@ public class ProcessingThread : IThread
                                             var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
                                             var buffer2 = captureBuffer.GetChannelWriteBuffer<short>(1);
                                             var buffer3 = captureBuffer.GetChannelWriteBuffer<short>(2);
-                                            acquisitionBuffer.Read3Channel(buffer1, buffer2, buffer3, captureEndIndex);
+                                            acquisitionBuffer.Read3ChannelWithEndIndex(buffer1, buffer2, buffer3, captureEndIndex);
                                             periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
@@ -968,7 +968,7 @@ public class ProcessingThread : IThread
                                             var buffer2 = captureBuffer.GetChannelWriteBuffer<short>(1);
                                             var buffer3 = captureBuffer.GetChannelWriteBuffer<short>(2);
                                             var buffer4 = captureBuffer.GetChannelWriteBuffer<short>(3);
-                                            acquisitionBuffer.Read4Channel(buffer1, buffer2, buffer3, buffer4, captureEndIndex);
+                                            acquisitionBuffer.Read4ChannelWithEndIndex(buffer1, buffer2, buffer3, buffer4, captureEndIndex);
                                             periodicCaptureSamplesPerChannel += buffer1.Length;
                                         }
                                         break;
