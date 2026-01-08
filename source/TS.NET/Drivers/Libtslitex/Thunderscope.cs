@@ -20,6 +20,7 @@ namespace TS.NET.Driver.Libtslitex
 
         uint cachedSampleRateHz = 1_000_000_000;
         AdcResolution cachedSampleResolution = AdcResolution.EightBit;
+        AdcChannelMode cachedAdcChannelMode = AdcChannelMode.Single;
 
         private bool beta = false;
 
@@ -190,8 +191,7 @@ namespace TS.NET.Driver.Libtslitex
                 else if (readLen != data.LengthBytes)
                     throw new ThunderscopeException($"Read incorrect sample length ({readLen})");
 
-                var hardwareConfig = GetConfiguration();        // to do: remove this
-                sampleLengthPerChannel = hardwareConfig.Acquisition.AdcChannelMode switch
+                sampleLengthPerChannel = cachedAdcChannelMode switch
                 {
                     AdcChannelMode.Single => data.LengthBytes,
                     AdcChannelMode.Dual => data.LengthBytes / 2,
@@ -304,6 +304,7 @@ namespace TS.NET.Driver.Libtslitex
             GetStatus();
             acquisitionConfig.SampleRateHz = cachedSampleRateHz;
             acquisitionConfig.Resolution = cachedSampleResolution;
+            cachedAdcChannelMode = acquisitionConfig.AdcChannelMode;
             return acquisitionConfig;
         }
 
@@ -665,6 +666,8 @@ namespace TS.NET.Driver.Libtslitex
             // There is a channel-count vs. scale relationship so update frontends
             if (updateFrontends)
                 UpdateFrontends();
+
+            GetAcquisitionConfig();     // Update cachedAdcChannelMode
         }
 
         public void SetChannelManualControl(int channelIndex, ThunderscopeChannelFrontendManualControl channel)
