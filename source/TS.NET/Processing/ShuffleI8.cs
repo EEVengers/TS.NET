@@ -16,12 +16,15 @@ public static class ShuffleI8
         if (Avx2.IsSupported)       // Const after JIT/AOT
         {
             var processingLength = Vector256<sbyte>.Count * 4;  // 128
-            if (input.Length % processingLength != 0) throw new ArgumentException($"Input length must be multiple of {processingLength}");
+            if (input.Length % processingLength != 0)
+                throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
             int ch2Offset = channelBlockSize;
             int ch3Offset = channelBlockSize * 2;
             int ch4Offset = channelBlockSize * 3;
-            Vector256<sbyte> shuffleMask = Vector256.Create(0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15).AsSByte();
+            Vector256<sbyte> shuffleMask = Vector256.Create(
+                0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15,       // 128-bit lane
+                0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15);      // 128-bit lane
             Vector256<int> permuteMask = Vector256.Create(0, 4, 2, 6, 1, 5, 3, 7);
             unsafe
             {
@@ -87,16 +90,16 @@ public static class ShuffleI8
                         var loaded2 = Vector128.LoadAlignedNonTemporal(inputPtr + Vector128<sbyte>.Count);
                         var loaded3 = Vector128.LoadAlignedNonTemporal(inputPtr + Vector128<sbyte>.Count * 2);
                         var loaded4 = Vector128.LoadAlignedNonTemporal(inputPtr + Vector128<sbyte>.Count * 3);
-                        var shuffled1 = Ssse3.Shuffle(loaded1, shuffleMask);
-                        var shuffled2 = Ssse3.Shuffle(loaded2, shuffleMask);
-                        var shuffled3 = Ssse3.Shuffle(loaded3, shuffleMask);
-                        var shuffled4 = Ssse3.Shuffle(loaded4, shuffleMask);
-                        var unpackLow = Sse2.UnpackLow(shuffled1.AsUInt32(), shuffled2.AsUInt32()).AsUInt64();
-                        var unpackLow2 = Sse2.UnpackLow(shuffled3.AsUInt32(), shuffled4.AsUInt32()).AsUInt64();
+                        var shuffle1 = Ssse3.Shuffle(loaded1, shuffleMask);
+                        var shuffle2 = Ssse3.Shuffle(loaded2, shuffleMask);
+                        var shuffle3 = Ssse3.Shuffle(loaded3, shuffleMask);
+                        var shuffle4 = Ssse3.Shuffle(loaded4, shuffleMask);
+                        var unpackLow = Sse2.UnpackLow(shuffle1.AsUInt32(), shuffle2.AsUInt32()).AsUInt64();
+                        var unpackLow2 = Sse2.UnpackLow(shuffle3.AsUInt32(), shuffle4.AsUInt32()).AsUInt64();
                         var channel1 = Sse2.UnpackLow(unpackLow.AsUInt64(), unpackLow2.AsUInt64()).AsSByte();
                         var channel2 = Sse2.UnpackHigh(unpackLow.AsUInt64(), unpackLow2.AsUInt64()).AsSByte();
-                        var unpackHigh = Sse2.UnpackHigh(shuffled1.AsUInt32(), shuffled2.AsUInt32()).AsUInt64();
-                        var unpackHigh2 = Sse2.UnpackHigh(shuffled3.AsUInt32(), shuffled4.AsUInt32()).AsUInt64();
+                        var unpackHigh = Sse2.UnpackHigh(shuffle1.AsUInt32(), shuffle2.AsUInt32()).AsUInt64();
+                        var unpackHigh2 = Sse2.UnpackHigh(shuffle3.AsUInt32(), shuffle4.AsUInt32()).AsUInt64();
                         var channel3 = Sse2.UnpackLow(unpackHigh.AsUInt64(), unpackHigh2.AsUInt64()).AsSByte();
                         var channel4 = Sse2.UnpackHigh(unpackHigh.AsUInt64(), unpackHigh2.AsUInt64()).AsSByte();
                         Vector128.StoreAlignedNonTemporal(channel1, outputPtr);
@@ -126,7 +129,7 @@ public static class ShuffleI8
                 {
                     // Naive way
                     // var loaded1 = AdvSimd.LoadVector128(inputPtr);  // 0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3
-                    // var shuffled = AdvSimd.Arm64.VectorTableLookup(loaded1, Vector128.Create(0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15).AsSByte()).AsUInt32();  // 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3
+                    // var shuffle = AdvSimd.Arm64.VectorTableLookup(loaded1, Vector128.Create(0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15).AsSByte()).AsUInt32();  // 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3
 
                     byte* inputPtr = (byte*)inputP;
                     byte* outputPtr = (byte*)outputP;
@@ -190,7 +193,9 @@ public static class ShuffleI8
                 throw new ArgumentException($"Input length must be multiple of {processingLength}");
 
             int ch2Offset = channelBlockSize;
-            Vector256<sbyte> shuffleMask = Vector256.Create(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15, 0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15).AsSByte();
+            Vector256<sbyte> shuffleMask = Vector256.Create(
+                0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15,       // 128-bit lane
+                0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15);      // 128-bit lane
             Vector256<int> permuteMask = Vector256.Create(0, 1, 4, 5, 2, 3, 6, 7);
             unsafe
             {
@@ -204,10 +209,10 @@ public static class ShuffleI8
                     {
                         var loaded1 = Vector256.LoadAlignedNonTemporal(inputPtr);
                         var loaded2 = Vector256.LoadAlignedNonTemporal(inputPtr + Vector256<sbyte>.Count);
-                        var shuffled1 = Avx2.Shuffle(loaded1, shuffleMask);
-                        var shuffled2 = Avx2.Shuffle(loaded2, shuffleMask);
-                        var permuted1 = Avx2.PermuteVar8x32(shuffled1.AsInt32(), permuteMask);
-                        var permuted2 = Avx2.PermuteVar8x32(shuffled2.AsInt32(), permuteMask);
+                        var shuffle1 = Avx2.Shuffle(loaded1, shuffleMask);
+                        var shuffle2 = Avx2.Shuffle(loaded2, shuffleMask);
+                        var permuted1 = Avx2.PermuteVar8x32(shuffle1.AsInt32(), permuteMask);
+                        var permuted2 = Avx2.PermuteVar8x32(shuffle2.AsInt32(), permuteMask);
                         var channel1 = Avx2.Permute2x128(permuted1, permuted2, 0x20).AsSByte();
                         var channel2 = Avx2.Permute2x128(permuted1, permuted2, 0x31).AsSByte();
                         Vector256.StoreAlignedNonTemporal(channel1, outputPtr);
@@ -239,10 +244,10 @@ public static class ShuffleI8
                     {
                         var loaded1 = Vector128.LoadAlignedNonTemporal(inputPtr);
                         var loaded2 = Vector128.LoadAlignedNonTemporal(inputPtr + Vector128<sbyte>.Count);
-                        var shuffled1 = Ssse3.Shuffle(loaded1, shuffleMask);
-                        var shuffled2 = Ssse3.Shuffle(loaded2, shuffleMask);
-                        var channel1 = Sse2.UnpackLow(shuffled1.AsUInt64(), shuffled2.AsUInt64()).AsSByte();
-                        var channel2 = Sse2.UnpackHigh(shuffled1.AsUInt64(), shuffled2.AsUInt64()).AsSByte();
+                        var shuffle1 = Ssse3.Shuffle(loaded1, shuffleMask);
+                        var shuffle2 = Ssse3.Shuffle(loaded2, shuffleMask);
+                        var channel1 = Sse2.UnpackLow(shuffle1.AsUInt64(), shuffle2.AsUInt64()).AsSByte();
+                        var channel2 = Sse2.UnpackHigh(shuffle1.AsUInt64(), shuffle2.AsUInt64()).AsSByte();
                         Vector128.StoreAlignedNonTemporal(channel1, outputPtr);
                         Vector128.StoreAlignedNonTemporal(channel2, outputPtr + ch2Offset);
                         inputPtr += processingLength;

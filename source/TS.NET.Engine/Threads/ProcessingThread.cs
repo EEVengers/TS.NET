@@ -102,7 +102,7 @@ public class ProcessingThread : IThread
             };
             var processingConfig = new ThunderscopeProcessingConfig
             {
-                ChannelDataLength = 1000,
+                ChannelDataLength = 1_000_000,
                 ChannelDataType = initialChannelDataType,
                 Mode = Mode.Normal,     // Temporary, change back to AUTO when NotImplementedException fixed
                 TriggerChannel = TriggerChannel.Channel1,
@@ -590,7 +590,6 @@ public class ProcessingThread : IThread
                         periodicReadBytes += preShuffleMemory.LengthBytes;
                         periodicReadSamplesPerChannel += sampleLengthPerChannel;
 
-                        // To do: decide if the "Shuffle" and "Write to acquisition buffers" regions should move inside the `if (runMode) { }`
                         // Shuffle
                         switch (currentHardwareConfig.Acquisition.AdcChannelMode)
                         {
@@ -607,7 +606,7 @@ public class ProcessingThread : IThread
                                         if (!optimisationWarning)
                                         {
                                             optimisationWarning = true;
-                                            logger.LogWarning("Unoptimised ShuffleI16.TwoChannels");
+                                            logger.LogWarning("Unoptimised ShuffleI16.TwoChannels, missing Ssse3 & Arm64 paths");
                                         }
                                         ShuffleI16.TwoChannels(input: preShuffleMemory.DataSpanI16, output: postShuffleMemory.DataSpanI16);
                                         break;
@@ -623,7 +622,7 @@ public class ProcessingThread : IThread
                                         if (!optimisationWarning)
                                         {
                                             optimisationWarning = true;
-                                            logger.LogWarning("Unoptimised ShuffleI16.FourChannels");
+                                            logger.LogWarning("Unoptimised ShuffleI16.FourChannels, missing Ssse3 & Arm64 paths");
                                         }
                                         ShuffleI16.FourChannels(input: preShuffleMemory.DataSpanI16, output: postShuffleMemory.DataSpanI16);
                                         break;

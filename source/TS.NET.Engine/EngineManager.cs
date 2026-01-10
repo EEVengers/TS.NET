@@ -146,7 +146,7 @@ public class EngineManager
                     {
                         AdcChannelMode = AdcChannelMode.Single,
                         EnabledChannels = 0x01,
-                        SampleRateHz = 1000000000,
+                        SampleRateHz = 1_000_000_000,
                         Resolution = AdcResolution.EightBit
                     };
                     initialHardwareConfiguration.Frontend[0] = ThunderscopeChannelFrontend.Default();
