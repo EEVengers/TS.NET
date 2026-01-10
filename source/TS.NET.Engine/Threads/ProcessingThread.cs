@@ -581,7 +581,7 @@ public class ProcessingThread : IThread
 
                 if (thunderscope.Running())
                 {
-                    if (thunderscope.TryRead(preShuffleMemory, out var sampleStartIndex, out var sampleLengthPerChannel))
+                    if (thunderscope.TryRead(preShuffleMemory.DataSpanU8, out var sampleStartIndex, out var sampleLengthPerChannel))
                     {
                         totalReadChunks++;
                         totalReadBytes += preShuffleMemory.LengthBytes;

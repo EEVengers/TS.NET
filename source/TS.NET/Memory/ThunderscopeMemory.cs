@@ -32,6 +32,14 @@ public unsafe class ThunderscopeMemory
         this.pointer = pointer;
     }
 
+    public Span<byte> DataSpanU8
+    {
+        get
+        {
+            return new Span<byte>(DataLoadPointer, LengthBytes);
+        }
+    }
+
     public Span<sbyte> DataSpanI8
     {
         get
@@ -39,6 +47,7 @@ public unsafe class ThunderscopeMemory
             return new Span<sbyte>(DataLoadPointer, LengthBytes);
         }
     }
+
     public Span<short> DataSpanI16
     {
         get

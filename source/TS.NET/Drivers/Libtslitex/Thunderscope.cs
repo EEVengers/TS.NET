@@ -168,7 +168,7 @@ namespace TS.NET.Driver.Libtslitex
             }
         }
 
-        public bool TryRead(ThunderscopeMemory data, out ulong sampleStartIndex, out int sampleLengthPerChannel)
+        public bool TryRead(Span<byte> data, out ulong sampleStartIndex, out int sampleLengthPerChannel)
         {
             if (!open)
             {
@@ -176,31 +176,31 @@ namespace TS.NET.Driver.Libtslitex
                 sampleLengthPerChannel = 0;
                 return false;
             }
-            if (data.LengthBytes % dmaBufferSize != 0)
+            if (data.Length % dmaBufferSize != 0)
                 throw new ThunderscopeException("Read length not supported by driver, must be multiple of DMA_BUFFER_SIZE");
             unsafe
             {
-                //int readLen = Interop.Read(tsHandle, data.DataLoadPointer, (uint)data.LengthBytes);
-                int readLen = Interop.Read(tsHandle, data.DataLoadPointer, (uint)data.LengthBytes, out sampleStartIndex);
-                if (readLen < 0)
+                fixed (byte* dataP = data)
                 {
-                    sampleStartIndex = 0;
-                    sampleLengthPerChannel = 0;
-                    return false;
+                    int readLen = Interop.Read(tsHandle, dataP, (uint)data.Length, out sampleStartIndex);
+                    if (readLen < 0)
+                    {
+                        sampleStartIndex = 0;
+                        sampleLengthPerChannel = 0;
+                        return false;
+                    }
+                    else if (readLen != data.Length)
+                        throw new ThunderscopeException($"Read incorrect sample length ({readLen})");
                 }
-                else if (readLen != data.LengthBytes)
-                    throw new ThunderscopeException($"Read incorrect sample length ({readLen})");
-
                 sampleLengthPerChannel = cachedAdcChannelMode switch
                 {
-                    AdcChannelMode.Single => data.LengthBytes,
-                    AdcChannelMode.Dual => data.LengthBytes / 2,
-                    AdcChannelMode.Quad => data.LengthBytes / 4,
+                    AdcChannelMode.Single => data.Length,
+                    AdcChannelMode.Dual => data.Length / 2,
+                    AdcChannelMode.Quad => data.Length / 4,
                     _ => throw new NotImplementedException()
                 };
                 if (cachedSampleResolution == AdcResolution.TwelveBit)
                     sampleLengthPerChannel /= 2;
-                //logger.LogDebug($"sampleStartIndex: {sampleStartIndex}, sampleLength: {sampleLength}");
                 return true;
             }
         }
@@ -211,7 +211,7 @@ namespace TS.NET.Driver.Libtslitex
             var retVal = Interop.GetEvent(tsHandle, out var tsEvent);
             if (retVal < 0)
                 throw new ThunderscopeException($"Failed to get event ({GetLibraryReturnString(retVal)})");
-            switch(tsEvent.type)
+            switch (tsEvent.type)
             {
                 case Interop.tsEventType_t.TS_EVT_EXT_SYNC:
                     thunderscopeEvent = ThunderscopeEvent.SyncInputRisingEdge;

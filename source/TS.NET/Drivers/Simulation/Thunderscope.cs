@@ -67,14 +67,14 @@
             totalTimeSec += dataSpan.Length / sampleRateHz;
         }
 
-        public bool TryRead(ThunderscopeMemory data, out ulong sampleStartIndex, out int sampleLength)
+        public bool TryRead(Span<byte> data, out ulong sampleStartIndex, out int sampleLength)
         {
             sampleStartIndex = 0;
             sampleLength = 0;
             throw new NotImplementedException();
             if (!running)
                 return false;
-            Read(data);
+            //Read(data);
             return true;
         }
 
