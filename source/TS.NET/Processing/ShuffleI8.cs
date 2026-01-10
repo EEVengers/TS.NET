@@ -36,6 +36,7 @@ public static class ShuffleI8
                     sbyte* finishPtr = inputP + input.Length;
                     while (inputPtr < finishPtr)
                     {
+                        // Loads are non-temporal because the data is never used again. Store as normal.
                         var loaded1 = Vector256.LoadAlignedNonTemporal(inputPtr);
                         var loaded2 = Vector256.LoadAlignedNonTemporal(inputPtr + Vector256<sbyte>.Count);
                         var loaded3 = Vector256.LoadAlignedNonTemporal(inputPtr + Vector256<sbyte>.Count * 2);
@@ -56,15 +57,14 @@ public static class ShuffleI8
                         var channel2 = Avx2.PermuteVar8x32(unpackHigh3, permuteMask).AsSByte();
                         var channel3 = Avx2.PermuteVar8x32(unpackLow4, permuteMask).AsSByte();
                         var channel4 = Avx2.PermuteVar8x32(unpackHigh4, permuteMask).AsSByte();
-                        Vector256.StoreAlignedNonTemporal(channel1, outputPtr);
-                        Vector256.StoreAlignedNonTemporal(channel2, outputPtr + ch2Offset);
-                        Vector256.StoreAlignedNonTemporal(channel3, outputPtr + ch3Offset);
-                        Vector256.StoreAlignedNonTemporal(channel4, outputPtr + ch4Offset);
+                        Vector256.StoreAligned(channel1, outputPtr);
+                        Vector256.StoreAligned(channel2, outputPtr + ch2Offset);
+                        Vector256.StoreAligned(channel3, outputPtr + ch3Offset);
+                        Vector256.StoreAligned(channel4, outputPtr + ch4Offset);
                         inputPtr += processingLength;
                         outputPtr += Vector256<sbyte>.Count;
                     }
                 }
-                Sse2.MemoryFence();
             }
         }
         else if (Ssse3.IsSupported)
@@ -86,6 +86,7 @@ public static class ShuffleI8
                     sbyte* finishPtr = inputP + input.Length;
                     while (inputPtr < finishPtr)
                     {
+                        // Loads are non-temporal because the data is never used again. Store as normal.
                         var loaded1 = Vector128.LoadAlignedNonTemporal(inputPtr);
                         var loaded2 = Vector128.LoadAlignedNonTemporal(inputPtr + Vector128<sbyte>.Count);
                         var loaded3 = Vector128.LoadAlignedNonTemporal(inputPtr + Vector128<sbyte>.Count * 2);
@@ -102,15 +103,14 @@ public static class ShuffleI8
                         var unpackHigh2 = Sse2.UnpackHigh(shuffle3.AsUInt32(), shuffle4.AsUInt32()).AsUInt64();
                         var channel3 = Sse2.UnpackLow(unpackHigh.AsUInt64(), unpackHigh2.AsUInt64()).AsSByte();
                         var channel4 = Sse2.UnpackHigh(unpackHigh.AsUInt64(), unpackHigh2.AsUInt64()).AsSByte();
-                        Vector128.StoreAlignedNonTemporal(channel1, outputPtr);
-                        Vector128.StoreAlignedNonTemporal(channel2, outputPtr + ch2Offset);
-                        Vector128.StoreAlignedNonTemporal(channel3, outputPtr + ch3Offset);
-                        Vector128.StoreAlignedNonTemporal(channel4, outputPtr + ch4Offset);
+                        Vector128.StoreAligned(channel1, outputPtr);
+                        Vector128.StoreAligned(channel2, outputPtr + ch2Offset);
+                        Vector128.StoreAligned(channel3, outputPtr + ch3Offset);
+                        Vector128.StoreAligned(channel4, outputPtr + ch4Offset);
                         inputPtr += processingLength;
                         outputPtr += Vector128<sbyte>.Count;
                     }
                 }
-                Sse2.MemoryFence();
             }
         }
         else if (AdvSimd.Arm64.IsSupported)
@@ -207,6 +207,7 @@ public static class ShuffleI8
                     sbyte* finishPtr = inputP + input.Length;
                     while (inputPtr < finishPtr)
                     {
+                        // Loads are non-temporal because the data is never used again. Store as normal.
                         var loaded1 = Vector256.LoadAlignedNonTemporal(inputPtr);
                         var loaded2 = Vector256.LoadAlignedNonTemporal(inputPtr + Vector256<sbyte>.Count);
                         var shuffle1 = Avx2.Shuffle(loaded1, shuffleMask);
@@ -215,13 +216,12 @@ public static class ShuffleI8
                         var permuted2 = Avx2.PermuteVar8x32(shuffle2.AsInt32(), permuteMask);
                         var channel1 = Avx2.Permute2x128(permuted1, permuted2, 0x20).AsSByte();
                         var channel2 = Avx2.Permute2x128(permuted1, permuted2, 0x31).AsSByte();
-                        Vector256.StoreAlignedNonTemporal(channel1, outputPtr);
-                        Vector256.StoreAlignedNonTemporal(channel2, outputPtr + ch2Offset);
+                        Vector256.StoreAligned(channel1, outputPtr);
+                        Vector256.StoreAligned(channel2, outputPtr + ch2Offset);
                         inputPtr += processingLength;
                         outputPtr += Vector256<sbyte>.Count;
                     }
                 }
-                Sse2.MemoryFence();
             }
         }
         else if (Ssse3.IsSupported)
@@ -242,19 +242,19 @@ public static class ShuffleI8
                     sbyte* finishPtr = inputP + input.Length;
                     while (inputPtr < finishPtr)
                     {
+                        // Loads are non-temporal because the data is never used again. Store as normal.
                         var loaded1 = Vector128.LoadAlignedNonTemporal(inputPtr);
                         var loaded2 = Vector128.LoadAlignedNonTemporal(inputPtr + Vector128<sbyte>.Count);
                         var shuffle1 = Ssse3.Shuffle(loaded1, shuffleMask);
                         var shuffle2 = Ssse3.Shuffle(loaded2, shuffleMask);
                         var channel1 = Sse2.UnpackLow(shuffle1.AsUInt64(), shuffle2.AsUInt64()).AsSByte();
                         var channel2 = Sse2.UnpackHigh(shuffle1.AsUInt64(), shuffle2.AsUInt64()).AsSByte();
-                        Vector128.StoreAlignedNonTemporal(channel1, outputPtr);
-                        Vector128.StoreAlignedNonTemporal(channel2, outputPtr + ch2Offset);
+                        Vector128.StoreAligned(channel1, outputPtr);
+                        Vector128.StoreAligned(channel2, outputPtr + ch2Offset);
                         inputPtr += processingLength;
                         outputPtr += Vector128<sbyte>.Count;
                     }
                 }
-                Sse2.MemoryFence();
             }
         }
         else if (AdvSimd.Arm64.IsSupported)
