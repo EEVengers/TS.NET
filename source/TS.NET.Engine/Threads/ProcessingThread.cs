@@ -702,7 +702,15 @@ public class ProcessingThread : IThread
                                         //    TRIG:SOURCE 1/2/3/4
                                         if (acquisitionBuffer.SamplesInBufferPerChannel >= processingConfig.ChannelDataLength)
                                         {
-                                            Capture(triggered: false, triggerChannelCaptureIndex: 0, captureEndIndex: sampleStartIndex + (ulong)sampleLengthPerChannel);
+                                            switch (processingConfig.ChannelDataType)
+                                            {
+                                                case ThunderscopeDataType.I8:
+                                                    Capture<sbyte>(triggered: false, triggerChannelCaptureIndex: 0, captureEndIndex: sampleStartIndex + (ulong)sampleLengthPerChannel);
+                                                    break;
+                                                case ThunderscopeDataType.I16:
+                                                    Capture<short>(triggered: false, triggerChannelCaptureIndex: 0, captureEndIndex: sampleStartIndex + (ulong)sampleLengthPerChannel);
+                                                    break;
+                                            }
                                             forceTriggerLatch = false;
                                             autoTimeoutTimer.Restart();     // Restart the auto timeout as a force trigger happened
 
@@ -729,8 +737,15 @@ public class ProcessingThread : IThread
                                             for (int i = 0; i < eventTriggerResults.CaptureEndCount; i++)
                                             {
                                                 logger.LogDebug($"Capture {eventTriggerResults.CaptureEndIndices[i]}");
-                                                Capture(triggered: false, 0, eventTriggerResults.CaptureEndIndices[i]);
-
+                                                switch (processingConfig.ChannelDataType)
+                                                {
+                                                    case ThunderscopeDataType.I8:
+                                                        Capture<sbyte>(triggered: false, triggerChannelCaptureIndex: 0, eventTriggerResults.CaptureEndIndices[i]);
+                                                        break;
+                                                    case ThunderscopeDataType.I16:
+                                                        Capture<short>(triggered: false, triggerChannelCaptureIndex: 0, eventTriggerResults.CaptureEndIndices[i]);
+                                                        break;
+                                                }
                                                 if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
                                                 {
                                                     singleTriggerLatch = false;
@@ -805,8 +820,15 @@ public class ProcessingThread : IThread
                                         {
                                             for (int i = 0; i < edgeTriggerResults.CaptureEndCount; i++)
                                             {
-                                                Capture(triggered: true, triggerChannelCaptureIndex, edgeTriggerResults.CaptureEndIndices[i]);
-
+                                                switch (processingConfig.ChannelDataType)
+                                                {
+                                                    case ThunderscopeDataType.I8:
+                                                        Capture<sbyte>(triggered: true, triggerChannelCaptureIndex, edgeTriggerResults.CaptureEndIndices[i]);
+                                                        break;
+                                                    case ThunderscopeDataType.I16:
+                                                        Capture<short>(triggered: true, triggerChannelCaptureIndex, edgeTriggerResults.CaptureEndIndices[i]);
+                                                        break;
+                                                }
                                                 if (singleTriggerLatch)         // If this was a single trigger, reset the singleTrigger & runTrigger latches
                                                 {
                                                     singleTriggerLatch = false;
@@ -820,11 +842,28 @@ public class ProcessingThread : IThread
 
                                     if (processingConfig.Mode == Mode.Auto && autoTimeoutTimer.ElapsedMilliseconds > processingConfig.AutoTimeoutMs)
                                     {
-                                        StreamCapture();
+                                        switch (processingConfig.ChannelDataType)
+                                        {
+                                            case ThunderscopeDataType.I8:
+                                                StreamCapture<sbyte>();
+                                                break;
+                                            case ThunderscopeDataType.I16:
+                                                StreamCapture<short>();
+                                                break;
+                                        }
+                                        
                                     }
                                     break;
                                 case Mode.Stream:
-                                    StreamCapture();
+                                    switch (processingConfig.ChannelDataType)
+                                    {
+                                        case ThunderscopeDataType.I8:
+                                            StreamCapture<sbyte>();
+                                            break;
+                                        case ThunderscopeDataType.I16:
+                                            StreamCapture<short>();
+                                            break;
+                                    }
                                     break;
                             }
                         }
@@ -882,99 +921,49 @@ public class ProcessingThread : IThread
             }
 
             // Locally scoped methods for deduplication
-            void Capture(bool triggered, int triggerChannelCaptureIndex, ulong captureEndIndex)
+            void Capture<T>(bool triggered, int triggerChannelCaptureIndex, ulong captureEndIndex) where T : unmanaged
             {
                 if (captureBuffer.TryStartWrite())
                 {
                     int channelCount = currentHardwareConfig.Acquisition.EnabledChannelsCount();
-                    switch (processingConfig.ChannelDataType)
+                    switch (channelCount)
                     {
-                        case ThunderscopeDataType.I8:
+                        case 1:
                             {
-                                switch (channelCount)
-                                {
-                                    case 1:
-                                        {
-                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
-                                            acquisitionBuffer.Read1ChannelWithEndIndex(buffer1, captureEndIndex);
-                                            periodicCaptureSamplesPerChannel += buffer1.Length;
-                                        }
-                                        break;
-                                    case 2:
-                                        {
-                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
-                                            var buffer2 = captureBuffer.GetChannelWriteBuffer<sbyte>(1);
-                                            acquisitionBuffer.Read2ChannelWithEndIndex(buffer1, buffer2, captureEndIndex);
-                                            periodicCaptureSamplesPerChannel += buffer1.Length;
-                                        }
-                                        break;
-                                    case 3:
-                                        {
-                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
-                                            var buffer2 = captureBuffer.GetChannelWriteBuffer<sbyte>(1);
-                                            var buffer3 = captureBuffer.GetChannelWriteBuffer<sbyte>(2);
-                                            acquisitionBuffer.Read3ChannelWithEndIndex(buffer1, buffer2, buffer3, captureEndIndex);
-                                            periodicCaptureSamplesPerChannel += buffer1.Length;
-                                        }
-                                        break;
-                                    case 4:
-                                        {
-                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
-                                            var buffer2 = captureBuffer.GetChannelWriteBuffer<sbyte>(1);
-                                            var buffer3 = captureBuffer.GetChannelWriteBuffer<sbyte>(2);
-                                            var buffer4 = captureBuffer.GetChannelWriteBuffer<sbyte>(3);
-                                            acquisitionBuffer.Read4ChannelWithEndIndex(buffer1, buffer2, buffer3, buffer4, captureEndIndex);
-                                            periodicCaptureSamplesPerChannel += buffer1.Length;
-                                        }
-                                        break;
-                                    default:
-                                        throw new NotImplementedException();
-                                }
+                                var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
+                                acquisitionBuffer.Read1ChannelWithEndIndex(buffer1, captureEndIndex);
+                                periodicCaptureSamplesPerChannel += buffer1.Length;
                             }
                             break;
-                        case ThunderscopeDataType.I16:
+                        case 2:
                             {
-                                switch (channelCount)
-                                {
-                                    case 1:
-                                        {
-                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
-                                            acquisitionBuffer.Read1ChannelWithEndIndex(buffer1, captureEndIndex);
-                                            periodicCaptureSamplesPerChannel += buffer1.Length;
-                                        }
-                                        break;
-                                    case 2:
-                                        {
-                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
-                                            var buffer2 = captureBuffer.GetChannelWriteBuffer<short>(1);
-                                            acquisitionBuffer.Read2ChannelWithEndIndex(buffer1, buffer2, captureEndIndex);
-                                            periodicCaptureSamplesPerChannel += buffer1.Length;
-                                        }
-                                        break;
-                                    case 3:
-                                        {
-                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
-                                            var buffer2 = captureBuffer.GetChannelWriteBuffer<short>(1);
-                                            var buffer3 = captureBuffer.GetChannelWriteBuffer<short>(2);
-                                            acquisitionBuffer.Read3ChannelWithEndIndex(buffer1, buffer2, buffer3, captureEndIndex);
-                                            periodicCaptureSamplesPerChannel += buffer1.Length;
-                                        }
-                                        break;
-                                    case 4:
-                                        {
-                                            var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
-                                            var buffer2 = captureBuffer.GetChannelWriteBuffer<short>(1);
-                                            var buffer3 = captureBuffer.GetChannelWriteBuffer<short>(2);
-                                            var buffer4 = captureBuffer.GetChannelWriteBuffer<short>(3);
-                                            acquisitionBuffer.Read4ChannelWithEndIndex(buffer1, buffer2, buffer3, buffer4, captureEndIndex);
-                                            periodicCaptureSamplesPerChannel += buffer1.Length;
-                                        }
-                                        break;
-                                    default:
-                                        throw new NotImplementedException();
-                                }
+                                var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
+                                var buffer2 = captureBuffer.GetChannelWriteBuffer<T>(1);
+                                acquisitionBuffer.Read2ChannelWithEndIndex(buffer1, buffer2, captureEndIndex);
+                                periodicCaptureSamplesPerChannel += buffer1.Length;
                             }
                             break;
+                        case 3:
+                            {
+                                var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
+                                var buffer2 = captureBuffer.GetChannelWriteBuffer<T>(1);
+                                var buffer3 = captureBuffer.GetChannelWriteBuffer<T>(2);
+                                acquisitionBuffer.Read3ChannelWithEndIndex(buffer1, buffer2, buffer3, captureEndIndex);
+                                periodicCaptureSamplesPerChannel += buffer1.Length;
+                            }
+                            break;
+                        case 4:
+                            {
+                                var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
+                                var buffer2 = captureBuffer.GetChannelWriteBuffer<T>(1);
+                                var buffer3 = captureBuffer.GetChannelWriteBuffer<T>(2);
+                                var buffer4 = captureBuffer.GetChannelWriteBuffer<T>(3);
+                                acquisitionBuffer.Read4ChannelWithEndIndex(buffer1, buffer2, buffer3, buffer4, captureEndIndex);
+                                periodicCaptureSamplesPerChannel += buffer1.Length;
+                            }
+                            break;
+                        default:
+                            throw new NotImplementedException();
                     }
 
                     var captureMetadata = new CaptureMetadata
@@ -988,7 +977,7 @@ public class ProcessingThread : IThread
                 }
             }
 
-            void StreamCapture()
+            void StreamCapture<T>() where T : unmanaged
             {
                 int channelLength = processingConfig.ChannelDataLength;
                 while (acquisitionBuffer.SamplesInBufferPerChannel > channelLength)
@@ -996,94 +985,44 @@ public class ProcessingThread : IThread
                     if (captureBuffer.TryStartWrite())
                     {
                         int channelCount = currentHardwareConfig.Acquisition.EnabledChannelsCount();
-                        switch (processingConfig.ChannelDataType)
+                        switch (channelCount)
                         {
-                            case ThunderscopeDataType.I8:
+                            case 1:
                                 {
-                                    switch (channelCount)
-                                    {
-                                        case 1:
-                                            {
-                                                var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
-                                                acquisitionBuffer.Read1ChannelFromStart(buffer1);
-                                                periodicCaptureSamplesPerChannel += buffer1.Length;
-                                            }
-                                            break;
-                                        case 2:
-                                            {
-                                                var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
-                                                var buffer2 = captureBuffer.GetChannelWriteBuffer<sbyte>(1);
-                                                acquisitionBuffer.Read2ChannelFromStart(buffer1, buffer2);
-                                                periodicCaptureSamplesPerChannel += buffer1.Length;
-                                            }
-                                            break;
-                                        case 3:
-                                            {
-                                                var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
-                                                var buffer2 = captureBuffer.GetChannelWriteBuffer<sbyte>(1);
-                                                var buffer3 = captureBuffer.GetChannelWriteBuffer<sbyte>(2);
-                                                acquisitionBuffer.Read3ChannelFromStart(buffer1, buffer2, buffer3);
-                                                periodicCaptureSamplesPerChannel += buffer1.Length;
-                                            }
-                                            break;
-                                        case 4:
-                                            {
-                                                var buffer1 = captureBuffer.GetChannelWriteBuffer<sbyte>(0);
-                                                var buffer2 = captureBuffer.GetChannelWriteBuffer<sbyte>(1);
-                                                var buffer3 = captureBuffer.GetChannelWriteBuffer<sbyte>(2);
-                                                var buffer4 = captureBuffer.GetChannelWriteBuffer<sbyte>(3);
-                                                acquisitionBuffer.Read4ChannelFromStart(buffer1, buffer2, buffer3, buffer4);
-                                                periodicCaptureSamplesPerChannel += buffer1.Length;
-                                            }
-                                            break;
-                                        default:
-                                            throw new NotImplementedException();
-                                    }
+                                    var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
+                                    acquisitionBuffer.Read1ChannelFromStart(buffer1);
+                                    periodicCaptureSamplesPerChannel += buffer1.Length;
                                 }
                                 break;
-                            case ThunderscopeDataType.I16:
+                            case 2:
                                 {
-                                    switch (channelCount)
-                                    {
-                                        case 1:
-                                            {
-                                                var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
-                                                acquisitionBuffer.Read1ChannelFromStart(buffer1);
-                                                periodicCaptureSamplesPerChannel += buffer1.Length;
-                                            }
-                                            break;
-                                        case 2:
-                                            {
-                                                var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
-                                                var buffer2 = captureBuffer.GetChannelWriteBuffer<short>(1);
-                                                acquisitionBuffer.Read2ChannelFromStart(buffer1, buffer2);
-                                                periodicCaptureSamplesPerChannel += buffer1.Length;
-                                            }
-                                            break;
-                                        case 3:
-                                            {
-                                                var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
-                                                var buffer2 = captureBuffer.GetChannelWriteBuffer<short>(1);
-                                                var buffer3 = captureBuffer.GetChannelWriteBuffer<short>(2);
-                                                acquisitionBuffer.Read3ChannelFromStart(buffer1, buffer2, buffer3);
-                                                periodicCaptureSamplesPerChannel += buffer1.Length;
-                                            }
-                                            break;
-                                        case 4:
-                                            {
-                                                var buffer1 = captureBuffer.GetChannelWriteBuffer<short>(0);
-                                                var buffer2 = captureBuffer.GetChannelWriteBuffer<short>(1);
-                                                var buffer3 = captureBuffer.GetChannelWriteBuffer<short>(2);
-                                                var buffer4 = captureBuffer.GetChannelWriteBuffer<short>(3);
-                                                acquisitionBuffer.Read4ChannelFromStart(buffer1, buffer2, buffer3, buffer4);
-                                                periodicCaptureSamplesPerChannel += buffer1.Length;
-                                            }
-                                            break;
-                                        default:
-                                            throw new NotImplementedException();
-                                    }
+                                    var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
+                                    var buffer2 = captureBuffer.GetChannelWriteBuffer<T>(1);
+                                    acquisitionBuffer.Read2ChannelFromStart(buffer1, buffer2);
+                                    periodicCaptureSamplesPerChannel += buffer1.Length;
                                 }
                                 break;
+                            case 3:
+                                {
+                                    var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
+                                    var buffer2 = captureBuffer.GetChannelWriteBuffer<T>(1);
+                                    var buffer3 = captureBuffer.GetChannelWriteBuffer<T>(2);
+                                    acquisitionBuffer.Read3ChannelFromStart(buffer1, buffer2, buffer3);
+                                    periodicCaptureSamplesPerChannel += buffer1.Length;
+                                }
+                                break;
+                            case 4:
+                                {
+                                    var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
+                                    var buffer2 = captureBuffer.GetChannelWriteBuffer<T>(1);
+                                    var buffer3 = captureBuffer.GetChannelWriteBuffer<T>(2);
+                                    var buffer4 = captureBuffer.GetChannelWriteBuffer<T>(3);
+                                    acquisitionBuffer.Read4ChannelFromStart(buffer1, buffer2, buffer3, buffer4);
+                                    periodicCaptureSamplesPerChannel += buffer1.Length;
+                                }
+                                break;
+                            default:
+                                throw new NotImplementedException();
                         }
 
                         var captureMetadata = new CaptureMetadata
@@ -1284,9 +1223,6 @@ public class ProcessingThread : IThread
         finally
         {
             logger.LogDebug("Stopped");
-            //NativeMemory.AlignedFree(processingBufferP);
-            //NativeMemory.AlignedFree(processingBufferI16P);
-            //NativeMemory.AlignedFree(processingBufferI16P_2);
         }
     }
 }
