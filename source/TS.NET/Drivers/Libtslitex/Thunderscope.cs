@@ -648,6 +648,10 @@ namespace TS.NET.Driver.Libtslitex
         {
             CheckOpen();
 
+            var restart = running;
+            if (restart)
+                Stop();
+
             var tsChannel = new Interop.tsChannelParam_t();
             var retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, out tsChannel);
 
@@ -666,6 +670,9 @@ namespace TS.NET.Driver.Libtslitex
             // There is a channel-count vs. scale relationship so update frontends
             if (updateFrontends)
                 UpdateFrontends();
+
+            if (restart)
+                Start();
 
             GetAcquisitionConfig();     // Update cachedAdcChannelMode
         }
