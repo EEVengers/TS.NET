@@ -174,8 +174,8 @@ public class EngineManager
         BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl = new();
 
         long captureBufferBytes = ((long)thunderscopeSettings.MaxCaptureLength) * 4 * ThunderscopeDataType.I16.ByteWidth();
-        logger?.LogDebug($"{nameof(CaptureCircularBuffer)} bytes: {captureBufferBytes}");
-        var captureBuffer = new CaptureCircularBuffer(loggerFactory.CreateLogger(nameof(CaptureCircularBuffer)), captureBufferBytes);
+        logger?.LogDebug($"{nameof(CaptureBufferManager)} bytes: {captureBufferBytes}");
+        var captureBuffer = new CaptureBufferManager(loggerFactory.CreateLogger(nameof(CaptureBufferManager)), captureBufferBytes);
 
         // Start threads
         SemaphoreSlim startSemaphore = new(1);
@@ -187,7 +187,7 @@ public class EngineManager
             thunderscope: thunderscope!,
             processingControl: processingControl,
             uiNotifications: UiNotifications?.Writer,
-            captureBuffer: captureBuffer);
+            captureBufferManager: captureBuffer);
         processingThread.Start(startSemaphore);
 
         startSemaphore.Wait();

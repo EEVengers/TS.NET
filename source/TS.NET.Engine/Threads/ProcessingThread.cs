@@ -11,7 +11,7 @@ public class ProcessingThread : IThread
     private readonly IThunderscope thunderscope;
     private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
     private readonly BlockingChannelWriter<INotificationDto>? uiNotifications;
-    private readonly CaptureCircularBuffer captureBuffer;
+    private readonly CaptureBufferManager captureBufferManager;
 
     private CancellationTokenSource? cancelTokenSource;
     private Task? taskLoop;
@@ -22,14 +22,14 @@ public class ProcessingThread : IThread
         IThunderscope thunderscope,
         BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
         BlockingChannelWriter<INotificationDto>? uiNotifications,
-        CaptureCircularBuffer captureBuffer)
+        CaptureBufferManager captureBufferManager)
     {
         this.logger = logger;
         this.settings = settings;
         this.thunderscope = thunderscope;
         this.processingControl = processingControl;
         this.uiNotifications = uiNotifications;
-        this.captureBuffer = captureBuffer;
+        this.captureBufferManager = captureBufferManager;
     }
 
     public void Start(SemaphoreSlim startSemaphore)
@@ -41,7 +41,7 @@ public class ProcessingThread : IThread
             thunderscope: thunderscope,
             processingControl: processingControl,
             uiNotifications: uiNotifications,
-            captureBuffer: captureBuffer,
+            captureBufferManager: captureBufferManager,
             startSemaphore: startSemaphore,
             cancelToken: cancelTokenSource.Token), TaskCreationOptions.LongRunning);
     }
@@ -58,7 +58,7 @@ public class ProcessingThread : IThread
         IThunderscope thunderscope,
         BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
         BlockingChannelWriter<INotificationDto>? uiNotifications,
-        CaptureCircularBuffer captureBuffer,
+        CaptureBufferManager captureBufferManager,
         SemaphoreSlim startSemaphore,
         CancellationToken cancelToken)
     {
@@ -135,7 +135,7 @@ public class ProcessingThread : IThread
 
             var acquisitionBuffer = new AcquisitionCircularBuffer(settings.MaxCaptureLength, ThunderscopeSettings.SegmentLengthBytes, ThunderscopeDataType.I16);
 
-            captureBuffer.Configure(initialChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
+            captureBufferManager.Configure(initialChannelCount, processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
 
             // Triggering:
             // There are 3 states for Trigger Mode: normal, single, auto.
@@ -887,9 +887,9 @@ public class ProcessingThread : IThread
                         logger.LogDebug($"[LiteX] lost buffers: {status.AdcSamplesLost}, temp: {status.FpgaTemp:F2}, VCC int: {status.VccInt:F3}, VCC aux: {status.VccAux:F3}, VCC BRAM: {status.VccBram:F3}, ADC Sync: {status.AdcFrameSync}");
                     }
 
-                    var intervalCaptureTotal = captureBuffer.IntervalCaptureTotal;
-                    var intervalCaptureDrops = captureBuffer.IntervalCaptureDrops;
-                    var intervalCaptureReads = captureBuffer.IntervalCaptureReads;
+                    var intervalCaptureWrites = captureBufferManager.IntervalCaptureWrites;
+                    var intervalCaptureDrops = captureBufferManager.IntervalCaptureDrops;
+                    var intervalCaptureReads = captureBufferManager.IntervalCaptureReads;
 
                     var sampleReadPercent = 0.0;
                     if (periodicCaptureSamplesPerChannel > 0)
@@ -900,64 +900,64 @@ public class ProcessingThread : IThread
                     }
 
                     var captureReadPercent = 0.0;
-                    if (intervalCaptureTotal > 0)
+                    if (intervalCaptureWrites > 0)
                     {
-                        captureReadPercent = ((double)intervalCaptureReads / (double)intervalCaptureTotal) * 100.0;
+                        captureReadPercent = ((double)intervalCaptureReads / (double)intervalCaptureWrites) * 100.0;
                         if (captureReadPercent > 100.0)
                             captureReadPercent = 100.0;
                     }
 
-                    logger.LogDebug($"[Capture stats] total/s: {intervalCaptureTotal / elapsedTime:F2}, drops/s: {intervalCaptureDrops / elapsedTime:F2}, reads/s: {intervalCaptureReads / elapsedTime:F2}");
+                    logger.LogDebug($"[Capture stats] writes/s: {intervalCaptureWrites / elapsedTime:F2}, reads/s: {intervalCaptureReads / elapsedTime:F2}, drops/s: {intervalCaptureDrops / elapsedTime:F2}");
                     logger.LogDebug($"[Capture stats #2] {sampleReadPercent:F1}% samples captured, {captureReadPercent:F0}% captures read by DataServer");
-                    logger.LogDebug($"[Capture buffer] capacity: {captureBuffer.MaxCaptureCount}, current: {captureBuffer.CurrentCaptureCount}, channel count: {captureBuffer.ChannelCount}, total: {captureBuffer.CaptureTotal}, drops: {captureBuffer.CaptureDrops}, reads: {captureBuffer.CaptureReads}");
+                    logger.LogDebug($"[Capture buffer] capacity: {captureBufferManager.MaxCaptureCount}, current: {captureBufferManager.CurrentCaptureCount}, writes: {captureBufferManager.CaptureWrites}, reads: {captureBufferManager.CaptureReads}, drops: {captureBufferManager.CaptureDrops}");
                     periodicUpdateTimer.Restart();
 
                     periodicReadChunks = 0;
                     periodicReadBytes = 0;
                     periodicReadSamplesPerChannel = 0;
                     periodicCaptureSamplesPerChannel = 0;
-                    captureBuffer.ResetIntervalStats();
+                    captureBufferManager.ResetIntervalStats();
                 }
             }
 
             // Locally scoped methods for deduplication
             void Capture<T>(bool triggered, int triggerChannelCaptureIndex, ulong captureEndIndex) where T : unmanaged
             {
-                if (captureBuffer.TryStartWrite())
+                if (captureBufferManager.TryStartWrite(out var buffer))
                 {
                     int channelCount = currentHardwareConfig.Acquisition.EnabledChannelsCount();
                     switch (channelCount)
                     {
                         case 1:
                             {
-                                var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
+                                var buffer1 = buffer!.GetChannelWriteBuffer<T>(0);
                                 acquisitionBuffer.Read1ChannelWithEndIndex(buffer1, captureEndIndex);
                                 periodicCaptureSamplesPerChannel += buffer1.Length;
                             }
                             break;
                         case 2:
                             {
-                                var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
-                                var buffer2 = captureBuffer.GetChannelWriteBuffer<T>(1);
+                                var buffer1 = buffer!.GetChannelWriteBuffer<T>(0);
+                                var buffer2 = buffer!.GetChannelWriteBuffer<T>(1);
                                 acquisitionBuffer.Read2ChannelWithEndIndex(buffer1, buffer2, captureEndIndex);
                                 periodicCaptureSamplesPerChannel += buffer1.Length;
                             }
                             break;
                         case 3:
                             {
-                                var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
-                                var buffer2 = captureBuffer.GetChannelWriteBuffer<T>(1);
-                                var buffer3 = captureBuffer.GetChannelWriteBuffer<T>(2);
+                                var buffer1 = buffer!.GetChannelWriteBuffer<T>(0);
+                                var buffer2 = buffer!.GetChannelWriteBuffer<T>(1);
+                                var buffer3 = buffer!.GetChannelWriteBuffer<T>(2);
                                 acquisitionBuffer.Read3ChannelWithEndIndex(buffer1, buffer2, buffer3, captureEndIndex);
                                 periodicCaptureSamplesPerChannel += buffer1.Length;
                             }
                             break;
                         case 4:
                             {
-                                var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
-                                var buffer2 = captureBuffer.GetChannelWriteBuffer<T>(1);
-                                var buffer3 = captureBuffer.GetChannelWriteBuffer<T>(2);
-                                var buffer4 = captureBuffer.GetChannelWriteBuffer<T>(3);
+                                var buffer1 = buffer!.GetChannelWriteBuffer<T>(0);
+                                var buffer2 = buffer!.GetChannelWriteBuffer<T>(1);
+                                var buffer3 = buffer!.GetChannelWriteBuffer<T>(2);
+                                var buffer4 = buffer!.GetChannelWriteBuffer<T>(3);
                                 acquisitionBuffer.Read4ChannelWithEndIndex(buffer1, buffer2, buffer3, buffer4, captureEndIndex);
                                 periodicCaptureSamplesPerChannel += buffer1.Length;
                             }
@@ -973,7 +973,7 @@ public class ProcessingThread : IThread
                         HardwareConfig = currentHardwareConfig,
                         ProcessingConfig = processingConfig
                     };
-                    captureBuffer.FinishWrite(captureMetadata);
+                    captureBufferManager.FinishWrite(captureMetadata);
                 }
             }
 
@@ -982,41 +982,41 @@ public class ProcessingThread : IThread
                 int channelLength = processingConfig.ChannelDataLength;
                 while (acquisitionBuffer.SamplesInBufferPerChannel > channelLength)
                 {
-                    if (captureBuffer.TryStartWrite())
+                    if (captureBufferManager.TryStartWrite(out var buffer))
                     {
                         int channelCount = currentHardwareConfig.Acquisition.EnabledChannelsCount();
                         switch (channelCount)
                         {
                             case 1:
                                 {
-                                    var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
+                                    var buffer1 = buffer!.GetChannelWriteBuffer<T>(0);
                                     acquisitionBuffer.Read1ChannelFromStart(buffer1);
                                     periodicCaptureSamplesPerChannel += buffer1.Length;
                                 }
                                 break;
                             case 2:
                                 {
-                                    var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
-                                    var buffer2 = captureBuffer.GetChannelWriteBuffer<T>(1);
+                                    var buffer1 = buffer!.GetChannelWriteBuffer<T>(0);
+                                    var buffer2 = buffer!.GetChannelWriteBuffer<T>(1);
                                     acquisitionBuffer.Read2ChannelFromStart(buffer1, buffer2);
                                     periodicCaptureSamplesPerChannel += buffer1.Length;
                                 }
                                 break;
                             case 3:
                                 {
-                                    var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
-                                    var buffer2 = captureBuffer.GetChannelWriteBuffer<T>(1);
-                                    var buffer3 = captureBuffer.GetChannelWriteBuffer<T>(2);
+                                    var buffer1 = buffer!.GetChannelWriteBuffer<T>(0);
+                                    var buffer2 = buffer!.GetChannelWriteBuffer<T>(1);
+                                    var buffer3 = buffer!.GetChannelWriteBuffer<T>(2);
                                     acquisitionBuffer.Read3ChannelFromStart(buffer1, buffer2, buffer3);
                                     periodicCaptureSamplesPerChannel += buffer1.Length;
                                 }
                                 break;
                             case 4:
                                 {
-                                    var buffer1 = captureBuffer.GetChannelWriteBuffer<T>(0);
-                                    var buffer2 = captureBuffer.GetChannelWriteBuffer<T>(1);
-                                    var buffer3 = captureBuffer.GetChannelWriteBuffer<T>(2);
-                                    var buffer4 = captureBuffer.GetChannelWriteBuffer<T>(3);
+                                    var buffer1 = buffer!.GetChannelWriteBuffer<T>(0);
+                                    var buffer2 = buffer!.GetChannelWriteBuffer<T>(1);
+                                    var buffer3 = buffer!.GetChannelWriteBuffer<T>(2);
+                                    var buffer4 = buffer!.GetChannelWriteBuffer<T>(3);
                                     acquisitionBuffer.Read4ChannelFromStart(buffer1, buffer2, buffer3, buffer4);
                                     periodicCaptureSamplesPerChannel += buffer1.Length;
                                 }
@@ -1032,7 +1032,7 @@ public class ProcessingThread : IThread
                             HardwareConfig = currentHardwareConfig,
                             ProcessingConfig = processingConfig
                         };
-                        captureBuffer.FinishWrite(captureMetadata);
+                        captureBufferManager.FinishWrite(captureMetadata);
                     }
                 }
             }
@@ -1125,7 +1125,7 @@ public class ProcessingThread : IThread
                 acquisitionBuffer.Reset();
 
                 // Reset capture buffers
-                captureBuffer.Configure(BitOperations.PopCount(currentHardwareConfig.Acquisition.EnabledChannels), processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
+                captureBufferManager.Configure(BitOperations.PopCount(currentHardwareConfig.Acquisition.EnabledChannels), processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
 
                 ResetTrigger();
             }
