@@ -43,6 +43,17 @@ namespace TS.NET
                 throw new ArgumentOutOfRangeException();
             return new Span<T>((byte*)memory + startByte, length);
         }
+         
+        public byte* AsPointer(long start, int length)
+        {
+            var startByte = start * sizeof(byte);
+            var lengthByte = length * sizeof(byte);
+
+            if ((startByte + lengthByte) > memoryLengthBytes)
+                throw new ArgumentOutOfRangeException();
+
+            return (byte*)memory + startByte;
+        }
 
         public void Clear()
         {

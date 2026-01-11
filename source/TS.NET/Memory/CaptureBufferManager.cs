@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using System.Buffers;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -27,14 +26,16 @@ namespace TS.NET
         public double CapturesPerSec;
     }
 
-    public class CaptureBuffer(int managerConfiguration, int channelCount, int channelLength, ThunderscopeDataType dataType, byte[] buffer)
+    public unsafe class CaptureBuffer(int managerConfiguration, int channelCount, int channelLength, ThunderscopeDataType dataType, byte* buffer, int bufferLength)
     {
         public int ManagerConfiguration { get; } = managerConfiguration;       // Used to discard the capture buffer if it's returned after a reconfiguration happened
         public int ChannelCount { get; } = channelCount;
         public int ChannelLength { get; } = channelLength;
         public ThunderscopeDataType DataType { get; } = dataType;
-        public byte[] Buffer { get; } = buffer;
         public CaptureMetadata Metadata { get; set; } = new CaptureMetadata();
+
+        private readonly byte* buffer = buffer;
+        private readonly int bufferLength = bufferLength;
 
         public Span<T> GetChannelWriteBuffer<T>(int channelIndex) where T : unmanaged
         {
@@ -56,9 +57,9 @@ namespace TS.NET
                 throw new ArgumentOutOfRangeException(nameof(DataType));
             int channelByteLength = ChannelLength * byteWidth;
             int offset = channelIndex * channelByteLength;
-            if (offset < 0 || offset + channelByteLength > Buffer.Length)
+            if (offset < 0 || offset + channelByteLength > bufferLength)
                 throw new ArgumentOutOfRangeException(nameof(channelIndex));
-            return new Span<byte>(Buffer, offset, channelByteLength);
+            return new Span<byte>(buffer + offset, channelByteLength);
         }
 
         public ReadOnlySpan<T> GetChannelReadBuffer<T>(int channelIndex) where T : unmanaged
@@ -81,15 +82,16 @@ namespace TS.NET
                 throw new ArgumentOutOfRangeException(nameof(DataType));
             int channelByteLength = ChannelLength * byteWidth;
             int offset = channelIndex * channelByteLength;
-            if (offset < 0 || offset + channelByteLength > Buffer.Length)
+            if (offset < 0 || offset + channelByteLength > bufferLength)
                 throw new ArgumentOutOfRangeException(nameof(channelIndex));
-            return new ReadOnlySpan<byte>(Buffer, offset, channelByteLength);
+            return new ReadOnlySpan<byte>(buffer + offset, channelByteLength);
         }
     }
 
     public class CaptureBufferManager : ICaptureBufferManagerReader, ICaptureBufferManagerWriter
     {
         private readonly Lock readLock = new();
+        private readonly NativeMemoryAligned memory;
 
         private readonly ILogger logger;
         private readonly BlockingCollection<CaptureBuffer> availableBuffers;
@@ -131,6 +133,8 @@ namespace TS.NET
         public CaptureBufferManager(ILogger logger, long maxMemoryLimitBytes)
         {
             this.logger = logger;
+            memory = new NativeMemoryAligned(maxMemoryLimitBytes);
+            logger?.LogDebug($"Allocated {maxMemoryLimitBytes} bytes");
             availableBuffers = new BlockingCollection<CaptureBuffer>();
             filledBuffers = new BlockingCollection<CaptureBuffer>();
             this.maxMemoryLimitBytes = maxMemoryLimitBytes;
@@ -157,13 +161,14 @@ namespace TS.NET
 
             lock (readLock)
             {
-                while (availableBuffers.TryTake(out var entry))
+                while (availableBuffers.TryTake(out _)) { }
+                while (filledBuffers.TryTake(out _)) { }
+
+                if (readInProgress)
                 {
-                    ArrayPool<byte>.Shared.Return(entry.Buffer);
-                }
-                while (filledBuffers.TryTake(out var entry))
-                {
-                    ArrayPool<byte>.Shared.Return(entry.Buffer);
+                    logger.LogWarning("Reconfiguring while a read is in progress; the read buffer may be corrupted.");
+                    // To do - determine the affected buffers, and add them to a "configurationChangedBuffers" queue, to be emptied and added to availableBuffers on next FinishRead()
+                    // then this warning can be removed
                 }
 
                 var captureByteLength = checked((int)potentialTotalCaptureLengthBytes);
@@ -180,8 +185,11 @@ namespace TS.NET
 
                 for (int i = 0; i < maxCaptureCount; i++)
                 {
-                    byte[] buffer = ArrayPool<byte>.Shared.Rent(captureByteLength);
-                    availableBuffers.Add(new CaptureBuffer(ManagerConfiguration, channelCount, channelCaptureLength, captureDataType, buffer));
+                    unsafe
+                    {
+                        var bufferP = memory.AsPointer(i * captureByteLength, captureByteLength);
+                        availableBuffers.Add(new CaptureBuffer(ManagerConfiguration, channelCount, channelCaptureLength, captureDataType, bufferP, captureByteLength));
+                    }
                 }
 
                 captureWrites = 0;
@@ -269,6 +277,8 @@ namespace TS.NET
                     buffer = null;
                     return false;
                 }
+                captureReads++;             // Reads will always finish, so do stats update here. This improves the odds of sensible numbers in debug messages.
+                intervalCaptureReads++;
                 buffer = filledBuffer;
                 readInProgress = true;
                 currentReadBuffer = filledBuffer;
@@ -283,15 +293,9 @@ namespace TS.NET
 
             lock (readLock)
             {
-                // If the currentReadBuffer is from a different configuration, discard it
-                if (currentReadBuffer.ManagerConfiguration != ManagerConfiguration)
+                // If the currentReadBuffer is from the current configuration, add it to available buffers
+                if (currentReadBuffer.ManagerConfiguration == ManagerConfiguration)
                 {
-                    ArrayPool<byte>.Shared.Return(currentReadBuffer.Buffer);
-                }
-                else
-                {
-                    captureReads++;
-                    intervalCaptureReads++;
                     availableBuffers.Add(currentReadBuffer);
                 }
                 readInProgress = false;
