@@ -9,6 +9,7 @@ internal class ScpiServer : IThread
 {
     private readonly ILogger logger;
     private readonly ThunderscopeSettings settings;
+    private readonly string thunderscopeSerial;
     private readonly IPAddress address;
     private readonly int port;
     private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
@@ -26,12 +27,14 @@ internal class ScpiServer : IThread
     public ScpiServer(
         ILogger logger,
         ThunderscopeSettings settings,
+        string thunderscopeSerial,
         IPAddress address,
         int port,
         BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl)
     {
         this.logger = logger;
         this.settings = settings;
+        this.thunderscopeSerial = thunderscopeSerial;
         this.address = address;
         this.port = port;
         this.processingControl = processingControl;
@@ -127,7 +130,7 @@ internal class ScpiServer : IThread
                     string message = sb.ToString(0, newlineIndex + 1);
                     sb.Remove(0, newlineIndex + 1);
 
-                    string? response = ProcessSCPICommand(logger, settings, processingControl, message.TrimEnd('\r', '\n'));
+                    string? response = ProcessSCPICommand(logger, settings, thunderscopeSerial, processingControl, message.TrimEnd('\r', '\n'));
 
                     if (response != null)
                     {
@@ -164,6 +167,7 @@ internal class ScpiServer : IThread
     public string? ProcessSCPICommand(
         ILogger logger,
         ThunderscopeSettings settings,
+        string thunderscopeSerial,
         BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
         string message)
     {
@@ -651,7 +655,8 @@ internal class ScpiServer : IThread
                 switch (command)
                 {
                     case "*IDN?":
-                        return "EEVengers,ThunderScope,NO_SERIAL,NO_VERSION\n";
+                        var engineVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "NO_VERSION";
+                        return $"EEVengers,ThunderScope,{thunderscopeSerial},{engineVersion}\n";
                     case "STATE?":
                         {
                             while (processingControl.Response.Reader.TryRead(out var _, 10)) { }

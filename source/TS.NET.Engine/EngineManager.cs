@@ -6,13 +6,10 @@ using System.Text;
 
 namespace TS.NET.Engine;
 
-// The aim is to have a thread-safe lock-free dataflow architecture (to prevent various classes of bugs).
 // The use of async/await for processing is avoided as the task thread pool is of little use here.
 //   Fire up threads to handle specific loops with extremely high utilisation. These threads are created once only, so the overhead of thread creation isn't important (one of the design goals of async/await).
 //   Optionally pin CPU cores to exclusively process a particular thread, perhaps with high/rt priority.
 //   Task.Factory.StartNew(() => Loop(...TaskCreationOptions.LongRunning) is just a shorthand for creating a new Thread to process a loop, the task thread pool isn't used.
-// The use of BlockingRequestResponse is to prevent 2 classes of bug: locking and thread safety.
-//   By serialising the config-update/data-read it also allows for specific behaviours (like pausing acquisition on certain config updates) and ensuring a perfect match between sample-block & hardware configuration that created it.
 public class EngineManager
 {
     private readonly ILoggerFactory loggerFactory;
@@ -72,6 +69,7 @@ public class EngineManager
             }
         }
 
+        string thunderscopeSerial = "NO_SERIAL";
         switch (thunderscopeSettings.HardwareDriver.ToLower())
         {
             case "simulation":
@@ -118,6 +116,15 @@ public class EngineManager
 
                     // Later this will switch to using device serial.
                     uint deviceIndex = uint.Parse(deviceSerial);
+                    if(deviceIndex >= devices.Count)
+                    {
+                        logger?.LogCritical($"Device index {deviceIndex} out of range, {devices.Count} devices available");
+                        return false;
+                    }
+                    if (!string.IsNullOrWhiteSpace(devices[(int)deviceIndex].SerialNumber.Trim()))
+                    {
+                        thunderscopeSerial = devices[(int)deviceIndex].SerialNumber.Trim();
+                    }
                     ts.Open(deviceIndex);
 
                     ThunderscopeCalibrationSettings thunderscopeCalibrationSettings = new();
@@ -174,7 +181,6 @@ public class EngineManager
         BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl = new();
 
         long captureBufferBytes = ((long)thunderscopeSettings.MaxCaptureLength) * 4 * ThunderscopeDataType.I16.ByteWidth();
-        logger?.LogDebug($"{nameof(CaptureBufferManager)} bytes: {captureBufferBytes}");
         var captureBuffer = new CaptureBufferManager(loggerFactory.CreateLogger(nameof(CaptureBufferManager)), captureBufferBytes);
 
         // Start threads
@@ -194,6 +200,7 @@ public class EngineManager
         scpiServer = new ScpiServer(
             logger: loggerFactory.CreateLogger(nameof(ScpiServer)),
             thunderscopeSettings,
+            thunderscopeSerial,
             System.Net.IPAddress.Any,
             5025,
             processingControl);
