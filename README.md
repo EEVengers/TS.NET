@@ -6,42 +6,38 @@
 - Exposes SCPI socket & data socket for user interface.
 - High emphasis on cross-platform compatibility & ease of build from source.
 
-## Build on Windows
-
-- Install .NET 10 SDK using downloaded installer or winget
-```
-winget install Microsoft.DotNet.SDK.10
-```
-- Run build script using command prompt in `build-scripts` directory
-
-```
-powershell -ExecutionPolicy Bypass -File "TS.NET.Engine (win-x64).ps1"
-```
-- Build output can be found at `builds\TS.NET.Engine\win-x64`
-
-## Build on Linux
+## Build
 
 - Install .NET 10 SDK
 
-https://learn.microsoft.com/en-us/dotnet/core/install/linux
+    https://dotnet.microsoft.com/en-us/download/dotnet/10.0   
 
-- Run build script
+- Run build script using command prompt in `build-scripts` directory
 
-```
-./build-scripts/"TS.NET.Engine (linux-x64)"
-```
-- Build output can be found at `builds/TS.NET.Engine/linux-x64`
+    Windows:
+
+    ```
+    dotnet TS.NET.Engine.cs
+    ```
+
+    Linux/macOS:
+    ```
+    chmod +x ./TS.NET.Engine.cs
+    ./TS.NET.Engine.cs
+    ```
+
+- Upon successful build, script output will show `Publish folder: [path]`  
 
 ## Profiling on Windows
 
 - Install profiling tool
-```
-dotnet tool install -g Ultra
-```
+    ```
+    dotnet tool install -g Ultra
+    ```
 - Run profiling tool from build directory
-```
-ultra.exe profile -- TS.NET.Engine.exe -seconds 10
-```
+    ```
+    ultra.exe profile -- TS.NET.Engine.exe -seconds 10
+    ```
 - Use the generated json.gz on https://profiler.firefox.com
 
 ## Testbench on linux
