@@ -575,7 +575,7 @@ public class Instruments
     {
         thunderScope?.FactoryDataErase(dna);
         uint tag = TagStr(Encoding.ASCII.GetBytes("HWID"));
-        var hwidJsonBytes = JsonSerializer.SerializeToUtf8Bytes(hwid);
+        var hwidJsonBytes = JsonSerializer.SerializeToUtf8Bytes(hwid, DefaultCaseContext.Default.FactoryHwidJson);
         thunderScope?.FactoryDataAppend(tag, hwidJsonBytes);
     }
 

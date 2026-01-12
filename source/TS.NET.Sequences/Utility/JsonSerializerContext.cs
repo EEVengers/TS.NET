@@ -7,4 +7,5 @@ namespace TS.NET.Sequences;
 [JsonSerializable(typeof(SelfCalibrationVariables))]
 [JsonSerializable(typeof(NoiseVerificationVariables))]
 [JsonSerializable(typeof(BenchVerificationVariables))]
+[JsonSerializable(typeof(FactoryHwidJson))]
 internal partial class DefaultCaseContext : JsonSerializerContext { }
