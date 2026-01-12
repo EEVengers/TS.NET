@@ -8,47 +8,30 @@
 
 ## Build on Windows
 
-- Install .NET 9 SDK using downloaded installer or winget
+- Install .NET 10 SDK using downloaded installer or winget
 ```
-winget install Microsoft.DotNet.SDK.9
+winget install Microsoft.DotNet.SDK.10
 ```
 - Run build script using command prompt in `build-scripts` directory
 
 ```
 powershell -ExecutionPolicy Bypass -File "TS.NET.Engine (win-x64).ps1"
 ```
-- Build output can be found at `builds\win-x64\TS.NET.Engine`
+- Build output can be found at `builds\TS.NET.Engine\win-x64`
 
 ## Build on Linux
 
-TS.NET requires .NET SDK. to build, installation varies by distro.
+- Install .NET 10 SDK
 
-### Ubuntu
+https://learn.microsoft.com/en-us/dotnet/core/install/linux
 
- Optionally (depending on Ubuntu version):
- ```
- sudo add-apt-repository ppa:dotnet/backports
- ```
+- Run build script
 
- ```
- sudo apt-get update
- sudo apt-get install -y dotnet-sdk-9.0
- ```
-### Arch
-  ```
-  sudo pacman -S dotnet-sdk
-  ```
-Run build script
 ```
 ./build-scripts/"TS.NET.Engine (linux-x64)"
 ```
-Build output can be found at `builds/TS.NET.Engine/linux-x64`
+- Build output can be found at `builds/TS.NET.Engine/linux-x64`
 
-to run TS.NET.Engine use below commands, there should be no errors if everything went alright.
-```
-cd builds/TS.NET.Engine/linux-x64
-./TS.NET.Engine
-```
 ## Profiling on Windows
 
 - Install profiling tool
@@ -60,3 +43,11 @@ dotnet tool install -g Ultra
 ultra.exe profile -- TS.NET.Engine.exe -seconds 10
 ```
 - Use the generated json.gz on https://profiler.firefox.com
+
+## Testbench on linux
+
+If there is a blank screen on startup of TS.NET.Testbench.UI, one of these env vars may fix it:
+
+`WEBKIT_DISABLE_DMABUF_RENDERER=1`
+
+`LIBGL_ALWAYS_SOFTWARE=1`
