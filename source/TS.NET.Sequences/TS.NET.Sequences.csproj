@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\TS.NET\source\TS.NET\TS.NET.csproj" />
+    <ProjectReference Include="..\TS.NET\TS.NET.csproj" />
     <ProjectReference Include="..\TS.NET.Sequencer\TS.NET.Sequencer.csproj" />
   </ItemGroup>
 
