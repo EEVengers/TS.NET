@@ -96,9 +96,9 @@ static IReadOnlyList<string> ResolveTargetRids(string[] args)
 	var knownRids = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
 	{
 		"win-x64",
-        "win-arm64",
+		"win-arm64",
 		"linux-x64",
-        "linux-arm64",
+		"linux-arm64",
 		"osx-x64",
 		"osx-arm64"
 	};
@@ -209,8 +209,8 @@ static bool BuildForRid(string rid, string rootDirectory, string scriptDirectory
 		File.Delete(tempPath);
 	}
 
-    // Repeat publish folder message to make it more visible after build.
-    Console.ForegroundColor = ConsoleColor.Green;
+	// Repeat publish folder message to make it more visible after build.
+	Console.ForegroundColor = ConsoleColor.Green;
 	Console.WriteLine($"Publish folder: {publishFolder}");
 	Console.ResetColor();
 

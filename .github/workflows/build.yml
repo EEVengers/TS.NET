@@ -69,7 +69,7 @@ jobs:
                if [ "$RUNNER_OS" == "Linux" ]; then
                     dotnet publish ../source/TS.NET.Testbench.UI/TS.NET.Testbench.UI.csproj -r linux-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Testbench.UI/linux-x64
                elif [ "$RUNNER_OS" == "Windows" ]; then
-                    dotnet publish ../source/TS.NET.Engine/TS.NET.Testbench.csproj -r win-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Testbench/win-x64
+                    dotnet publish ../source/TS.NET.Testbench.UI/TS.NET.Testbench.UI.csproj -r win-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Testbench.UI/win-x64
                elif [ "$RUNNER_OS" == "macOS" ]; then
                     dotnet publish ../source/TS.NET.Testbench.UI/TS.NET.Testbench.UI.csproj -r osx-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Testbench.UI/macos-x64
                     dotnet publish ../source/TS.NET.Testbench.UI/TS.NET.Testbench.UI.csproj -r osx-arm64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Testbench.UI/macos-arm64

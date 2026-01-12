@@ -209,7 +209,7 @@ static bool BuildForRid(string rid, string rootDirectory, string scriptDirectory
 	}
 
 	// Repeat publish folder message to make it more visible after build.
-    Console.ForegroundColor = ConsoleColor.Green;
+	Console.ForegroundColor = ConsoleColor.Green;
 	Console.WriteLine($"Publish folder: {publishFolder}");
 	Console.ResetColor();
 

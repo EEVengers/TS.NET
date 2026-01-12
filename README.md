@@ -14,15 +14,14 @@
 
 - Run build script using command prompt in `build-scripts` directory
 
-    Windows:
+    Windows/macOS:
 
     ```
     dotnet TS.NET.Engine.cs
     ```
 
-    Linux/macOS:
+    Linux:
     ```
-    chmod +x ./TS.NET.Engine.cs
     ./TS.NET.Engine.cs
     ```
 
