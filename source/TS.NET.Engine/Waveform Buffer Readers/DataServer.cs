@@ -214,7 +214,7 @@ internal class DataServer : IThread
 
             if (captureBufferManager.TryStartRead(out var buffer))
             {
-                ulong femtosecondsPerSample = 1000000000000000 / buffer.Metadata.HardwareConfig.Acquisition.SampleRateHz;
+                ulong femtosecondsPerSample = 1000000000000000 / buffer!.Metadata.HardwareConfig.Acquisition.SampleRateHz;
                 WaveformHeaderOld header = new()
                 {
                     seqnum = sequenceNumber,
@@ -291,7 +291,7 @@ internal class DataServer : IThread
 
             if (captureBufferManager.TryStartRead(out var captureBuffer))
             {
-                int channelCount = BitOperations.PopCount(captureBuffer.Metadata.HardwareConfig.Acquisition.EnabledChannels);
+                int channelCount = BitOperations.PopCount(captureBuffer!.Metadata.HardwareConfig.Acquisition.EnabledChannels);
                 noCapturesAvailable = false;
                 ulong femtosecondsPerSample = 1000000000000000 / captureBuffer.Metadata.HardwareConfig.Acquisition.SampleRateHz;
                 WaveformHeader waveformHeader = new()

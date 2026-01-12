@@ -12,7 +12,6 @@ public static partial class NotificationMapper
 
 public class ProcessingConfigDto : INotificationDto
 {
-    public ushort ChannelCount { get; set; }
     public int ChannelDataLength { get; set; }
     public ThunderscopeDataType ChannelDataType { get; set; }
 
@@ -25,8 +24,8 @@ public class ProcessingConfigDto : INotificationDto
 
     public long AutoTimeoutMs { get; set; }
 
-    //public EdgeTriggerParameters EdgeTriggerParameters;
-    //public BurstTriggerParameters BurstTriggerParameters;
+    public EdgeTriggerParameters EdgeTriggerParameters;
+    public BurstTriggerParameters BurstTriggerParameters;
 
-    //public BoxcarAveraging BoxcarAveraging;
+    public BoxcarAveraging BoxcarAveraging;
 }

@@ -148,9 +148,9 @@ public class ProcessingThread : IThread
             // forceTriggerLatch: disregards the Trigger Mode, push update immediately and set forceTrigger to false. If a standard trigger happened at the same time as a force, the force is ignored so the bridge only updates once.
             // singleTriggerLatch: used in Single mode to stop the trigger subsystem after a trigger.
 
-            ITriggerI8 triggerI8 = null;
-            ITriggerI16 triggerI16 = null;
-            IEventTrigger eventTrigger = null;
+            ITriggerI8? triggerI8 = null;
+            ITriggerI16? triggerI16 = null;
+            IEventTrigger? eventTrigger = null;
             ResetTrigger();
 
             var edgeTriggerResults = new EdgeTriggerResults()
@@ -727,10 +727,10 @@ public class ProcessingThread : IThread
                                         while (thunderscope.TryGetEvent(out var thunderscopeEvent, out var eventSampleIndex))
                                         {
                                             logger.LogDebug($"Event. eventSampleIndex: {eventSampleIndex}, sampleStartIndex: {sampleStartIndex}");
-                                            eventTrigger.EnqueueEvent(eventSampleIndex);
+                                            eventTrigger?.EnqueueEvent(eventSampleIndex);
                                         }
 
-                                        eventTrigger.Process(sampleLengthPerChannel, sampleStartIndex, acquisitionBuffer.SamplesInBufferPerChannel, ref eventTriggerResults);
+                                        eventTrigger?.Process(sampleLengthPerChannel, sampleStartIndex, acquisitionBuffer.SamplesInBufferPerChannel, ref eventTriggerResults);
 
                                         if (eventTriggerResults.CaptureEndCount > 0)
                                         {
@@ -809,10 +809,10 @@ public class ProcessingThread : IThread
                                         switch (processingConfig.ChannelDataType)
                                         {
                                             case ThunderscopeDataType.I8:
-                                                triggerI8.Process(input: triggerChannelBufferI8, sampleStartIndex, ref edgeTriggerResults);
+                                                triggerI8?.Process(input: triggerChannelBufferI8, sampleStartIndex, ref edgeTriggerResults);
                                                 break;
                                             case ThunderscopeDataType.I16:
-                                                triggerI16.Process(input: triggerChannelBufferI16, sampleStartIndex, ref edgeTriggerResults);
+                                                triggerI16?.Process(input: triggerChannelBufferI16, sampleStartIndex, ref edgeTriggerResults);
                                                 break;
                                         }
 

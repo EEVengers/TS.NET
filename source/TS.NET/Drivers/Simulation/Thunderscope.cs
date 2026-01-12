@@ -72,10 +72,6 @@
             sampleStartIndex = 0;
             sampleLength = 0;
             throw new NotImplementedException();
-            if (!running)
-                return false;
-            //Read(data);
-            return true;
         }
 
         public bool TryGetEvent(out ThunderscopeEvent thunderscopeEvent, out ulong eventSampleIndex)
