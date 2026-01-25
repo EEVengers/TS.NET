@@ -103,7 +103,7 @@ internal class DataServer : IThread
         }
     }
 
-    private void CheckForAcks(ILogger logger, Socket socket)
+    private bool CheckForAcks(ILogger logger, Socket socket)
     {
         //See if we have data ready to read. Grab the ACKs if so (may be >1 queued)
         Span<byte> ack = stackalloc byte[4];
@@ -120,9 +120,19 @@ internal class DataServer : IThread
                 inflight = sequenceNumber - nack;
                 //logger.LogInformation($"Got ACK: {nack}, last sequenceNumber={sequenceNumber}, {inflight} in flight");
             }
+
+            //If socket is closed or we have a read error, bail out
+            else if(read <= 0)
+            {
+                //logger.LogWarning($"Read returned {read}");
+                return false;
+            }
+
             else
                 logger.LogWarning("TODO handle partial read");
         }
+
+        return true;
     }
 
     private uint nack = 0;
@@ -142,7 +152,8 @@ internal class DataServer : IThread
                 //New credit-based flow control path
                 if (creditMode)
                 {
-                    CheckForAcks(logger, socket);
+                    if(!CheckForAcks(logger, socket))
+                        break;
                     inflight = sequenceNumber - nack;
 
                     //Figure out how many un-acked waveforms we have, block if >5 in flight
