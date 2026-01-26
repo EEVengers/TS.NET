@@ -268,7 +268,6 @@ internal class ScpiServer : IThread
                     {
                         switch (command)
                         {
-                            case "START":   //Obsolete
                             case "RUN":
                                 processingControl.Request.Writer.Write(new ProcessingRun());
                                 logger.LogDebug($"{nameof(ProcessingRun)} sent");
@@ -430,7 +429,7 @@ internal class ScpiServer : IThread
                                 {
                                     // TRIGger:EDGE:LEVel <arg>
                                     // TRIG:EDGE:LEV <arg>
-                                    float level = (float)Convert.ToDouble(argument);
+                                    float level = Convert.ToSingle(argument);
                                     logger.LogDebug($"Set trigger level to {level}V");
                                     processingControl.Request.Writer.Write(new ProcessingSetEdgeTriggerLevel(level));
                                     return null;
@@ -507,14 +506,14 @@ internal class ScpiServer : IThread
                                 {
                                     // CHANnel1:OFFSet <arg>
                                     // CHAN1:OFFS <arg>
-                                    double offset = Convert.ToDouble(argument);
+                                    float offset = Convert.ToSingle(argument);
                                     offset = Math.Clamp(offset, -50, 50);     // Change to final values later
                                     processingControl.Request.Writer.Write(new HardwareSetVoltOffset(channelIndex, offset));
                                     return null;
                                 }
                             case var _ when command.StartsWith("RANG") && argument != null:
                                 {
-                                    double range = Convert.ToDouble(argument);
+                                    float range = Convert.ToSingle(argument);
                                     range = Math.Clamp(range, -50, 50);       // Change to final values later
                                     processingControl.Request.Writer.Write(new HardwareSetVoltFullScale(channelIndex, range));
                                     return null;
@@ -760,6 +759,8 @@ internal class ScpiServer : IThread
                                 switch (response)
                                 {
                                     case ProcessingGetTriggerSourceResponse triggerSourceResponse:
+                                        if(triggerSourceResponse.Channel == TriggerChannel.None)
+                                            return "NONE\n";
                                         return $"CHAN{(int)triggerSourceResponse.Channel}\n";
                                     default:
                                         logger.LogError($"TRIG:SOU? - Invalid response from {nameof(processingControl.Response.Reader)}");
@@ -840,7 +841,7 @@ internal class ScpiServer : IThread
                                 switch (response)
                                 {
                                     case ProcessingGetTriggerInterpolationResponse triggerInterpolationResponse:
-                                        return $"{(triggerInterpolationResponse.Enabled ? "1" : "0")}\n";
+                                        return $"{(triggerInterpolationResponse.Enabled ? "true" : "false")}\n";
                                     default:
                                         logger.LogError($"TRIG:INTER? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                         break;
@@ -1059,7 +1060,7 @@ internal class ScpiServer : IThread
                 switch (response)
                 {
                     case ProcessingGetRatesResponse processingGetRatesResponse:
-                        return $"{string.Join(",", processingGetRatesResponse.SampleRatesHz)},\n";
+                        return $"{string.Join(",", processingGetRatesResponse.SampleRatesHz)}\n";
                     default:
                         logger.LogError($"RATES? - Invalid response from {nameof(processingControl.Response.Reader)}");
                         break;
@@ -1105,7 +1106,7 @@ internal class ScpiServer : IThread
                     break;
             }
             // Perhaps take into account the sample rate to get 1ms/2ms/5ms/10ms/etc windows instead?
-            return $"{string.Join(",", depths)},\n";
+            return $"{string.Join(",", depths)}\n";
         }
 
         string GetDepth()

@@ -27,8 +27,8 @@ public record HardwareSetResolution(AdcResolution Resolution) : ProcessingReques
 public record HardwareSetChannelEnabled(int ChannelIndex, bool Enabled) : ProcessingRequestDto, INotificationDto;
 
 public abstract record HardwareSetChannelFrontendRequest(int ChannelIndex) : ProcessingRequestDto;
-public record HardwareSetVoltOffset(int ChannelIndex, double VoltOffset) : HardwareSetChannelFrontendRequest(ChannelIndex);
-public record HardwareSetVoltFullScale(int ChannelIndex, double VoltFullScale) : HardwareSetChannelFrontendRequest(ChannelIndex);
+public record HardwareSetVoltOffset(int ChannelIndex, float VoltOffset) : HardwareSetChannelFrontendRequest(ChannelIndex);
+public record HardwareSetVoltFullScale(int ChannelIndex, float VoltFullScale) : HardwareSetChannelFrontendRequest(ChannelIndex);
 public record HardwareSetBandwidth(int ChannelIndex, ThunderscopeBandwidth Bandwidth) : HardwareSetChannelFrontendRequest(ChannelIndex);
 public record HardwareSetCoupling(int ChannelIndex, ThunderscopeCoupling Coupling) : HardwareSetChannelFrontendRequest(ChannelIndex);
 public record HardwareSetTermination(int ChannelIndex, ThunderscopeTermination Termination) : HardwareSetChannelFrontendRequest(ChannelIndex);

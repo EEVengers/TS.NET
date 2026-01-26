@@ -112,11 +112,9 @@ public class EngineManager
                         logger?.LogInformation(sb.ToString());
                     }
 
-                    
-
                     // Later this will switch to using device serial.
                     uint deviceIndex = uint.Parse(deviceSerial);
-                    if(deviceIndex >= devices.Count)
+                    if (deviceIndex >= devices.Count)
                     {
                         logger?.LogCritical($"Device index {deviceIndex} out of range, {devices.Count} devices available");
                         return false;
@@ -186,6 +184,21 @@ public class EngineManager
         // Start threads
         SemaphoreSlim startSemaphore = new(1);
 
+        DataServer? dataServer = null;
+        switch (thunderscopeSettings.WaveformBufferReader)
+        {
+            case "DataServer":
+                dataServer = new DataServer(loggerFactory.CreateLogger(nameof(DataServer)), thunderscopeSettings, System.Net.IPAddress.Any, 5026, captureBuffer, seq => scpiServer?.OnUpdateSequence(seq));
+                waveformBufferReader = dataServer;
+                break;
+            case "None":
+                waveformBufferReader = new EmptyWaveformBufferReader();
+                break;
+            default:
+                logger?.LogCritical($"{thunderscopeSettings.WaveformBufferReader} waveform buffer reader not supported");
+                return false;
+        }
+
         startSemaphore.Wait();
         processingThread = new ProcessingThread(
             logger: loggerFactory.CreateLogger(nameof(ProcessingThread)),
@@ -207,19 +220,6 @@ public class EngineManager
         scpiServer.Start(startSemaphore);
 
         startSemaphore.Wait();
-        switch (thunderscopeSettings.WaveformBufferReader)
-        {
-            case "DataServer":
-                DataServer dataServer = new(loggerFactory.CreateLogger(nameof(DataServer)), thunderscopeSettings, System.Net.IPAddress.Any, 5026, captureBuffer, scpiServer);
-                waveformBufferReader = dataServer;
-                break;
-            case "None":
-                waveformBufferReader = new EmptyWaveformBufferReader();
-                break;
-            default:
-                logger?.LogCritical($"{thunderscopeSettings.WaveformBufferReader} waveform buffer reader not supported");
-                return false;
-        }
         waveformBufferReader.Start(startSemaphore);
 
         //catch (IOException)

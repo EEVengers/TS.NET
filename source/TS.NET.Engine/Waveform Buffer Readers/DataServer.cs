@@ -12,7 +12,7 @@ internal class DataServer : IThread
     private readonly IPAddress address;
     private readonly int port;
     private readonly ICaptureBufferManagerReader captureBufferManager;
-    private readonly ScpiServer scpi;
+    private readonly Action<uint> onSequenceUpdate;
 
     private CancellationTokenSource? listenerCancelTokenSource;
     private Task? taskListener;
@@ -28,14 +28,14 @@ internal class DataServer : IThread
         IPAddress address,
         int port,
         ICaptureBufferManagerReader captureBuffer,
-        ScpiServer scpi)
+        Action<uint> onSequenceUpdate)
     {
         this.logger = logger;
         this.settings = settings;
         this.address = address;
         this.port = port;
         this.captureBufferManager = captureBuffer;
-        this.scpi = scpi;
+        this.onSequenceUpdate = onSequenceUpdate;
     }
 
     public void Start(SemaphoreSlim startSemaphore)
@@ -169,7 +169,7 @@ internal class DataServer : IThread
                     {
                         SendScopehal(socket, cancelToken);
                         //logger.LogInformation($"Sending waveform (seq={sequenceNumber})");
-                        scpi.OnUpdateSequence(sequenceNumber);
+                        onSequenceUpdate(sequenceNumber);
                     }
                 }
 
@@ -184,9 +184,6 @@ internal class DataServer : IThread
                     byte cmd = cmdBuf[0];
                     switch (cmd)
                     {
-                        case (byte)'K':
-                            SendScopehalOld(socket, cancelToken);
-                            break;
                         case (byte)'S':
                             SendScopehal(socket, cancelToken);
                             break;
@@ -216,83 +213,6 @@ internal class DataServer : IThread
     }
 
     private uint sequenceNumber = 0;
-    private void SendScopehalOld(Socket socket, CancellationToken cancelToken)
-    {
-        while (true)
-        {
-            cancelToken.ThrowIfCancellationRequested();
-            bool noCapturesAvailable = false;
-
-            if (captureBufferManager.TryStartRead(out var buffer))
-            {
-                ulong femtosecondsPerSample = 1000000000000000 / buffer!.Metadata.HardwareConfig.Acquisition.SampleRateHz;
-                WaveformHeaderOld header = new()
-                {
-                    seqnum = sequenceNumber,
-                    numChannels = (ushort)BitOperations.PopCount(buffer.Metadata.HardwareConfig.Acquisition.EnabledChannels),
-                    fsPerSample = femtosecondsPerSample,
-                    triggerFs = (long)buffer.Metadata.ProcessingConfig.TriggerDelayFs,
-                    hwWaveformsPerSec = 0
-                };
-                ChannelHeaderOld chHeader = new()
-                {
-                    depth = (ulong)buffer.Metadata.ProcessingConfig.ChannelDataLength,
-                    clipping = 0
-                };
-                if (buffer.Metadata.Triggered && buffer.Metadata.ProcessingConfig.TriggerInterpolation)
-                {
-                    ReadOnlySpan<sbyte> triggerChannelBuffer = buffer.GetChannelReadBuffer<sbyte>(buffer.Metadata.TriggerChannelCaptureIndex);
-                    int triggerIndex = (int)(buffer.Metadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
-                    if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
-                    {
-                        int channelIndex = buffer.Metadata.HardwareConfig.Acquisition.GetChannelIndexByCaptureBufferIndex(buffer.Metadata.TriggerChannelCaptureIndex);
-                        ThunderscopeChannelFrontend triggerChannelFrontend = buffer.Metadata.HardwareConfig.Frontend[channelIndex];
-                        var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 256.0);
-                        var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
-                        float fa = channelScale * triggerChannelBuffer[triggerIndex - 1] - channelOffset;
-                        float fb = channelScale * triggerChannelBuffer[triggerIndex] - channelOffset;
-                        float triggerLevel = buffer.Metadata.ProcessingConfig.EdgeTriggerParameters.LevelV + channelOffset;
-                        float slope = fb - fa;
-                        float delta = triggerLevel - fa;
-                        float trigphase = delta / slope;
-                        chHeader.trigphase = femtosecondsPerSample * (1 - trigphase);
-                        if (!double.IsFinite(chHeader.trigphase))
-                            chHeader.trigphase = 0;
-                        var delay = buffer.Metadata.ProcessingConfig.TriggerDelayFs - (ulong)triggerIndex * femtosecondsPerSample;
-                        chHeader.trigphase += delay;
-                    }
-                }
-                unsafe
-                {
-                    socket.Send(new ReadOnlySpan<byte>(&header, sizeof(WaveformHeaderOld)));
-                    for (byte captureBufferIndex = 0; captureBufferIndex < buffer.ChannelCount; captureBufferIndex++)
-                    {
-                        int channelIndex = buffer.Metadata.HardwareConfig.Acquisition.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
-                        ThunderscopeChannelFrontend thunderscopeChannel = buffer.Metadata.HardwareConfig.Frontend[channelIndex];
-                        chHeader.channelIndex = (byte)channelIndex;
-                        chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 256.0);
-                        chHeader.offset = (float)thunderscopeChannel.ActualVoltOffset;
-                        socket.Send(new ReadOnlySpan<byte>(&chHeader, sizeof(ChannelHeaderOld)));
-                        var channelBuffer = buffer.GetChannelReadByteBuffer(captureBufferIndex);
-                        socket.Send(channelBuffer);
-                    }
-                }
-                sequenceNumber++;
-                captureBufferManager.FinishRead();
-                break;
-            }
-            else
-            {
-                noCapturesAvailable = true;
-            }
-
-            if (noCapturesAvailable)
-            {
-                Thread.Sleep(10);
-            }
-        }
-    }
-
     private void SendScopehal(Socket socket, CancellationToken cancelToken)
     {
         bool noCapturesAvailable = false;
