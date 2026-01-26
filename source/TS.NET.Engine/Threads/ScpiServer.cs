@@ -694,6 +694,7 @@ internal class ScpiServer : IThread
                         }
                     case "SEQNUM?":
                         {
+                            // The last sequence number sent on the data server socket
                             return $"{sequence}\n";
                         }
                 }
