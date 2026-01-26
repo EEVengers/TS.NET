@@ -70,12 +70,13 @@ internal class DataServer : IThread
                     cancelToken.ThrowIfCancellationRequested();
                     var session = socketListener!.Accept();
                     session.NoDelay = true;
-                    if (socketSession != null)
+                    if (taskSession != null)
                     {
-                        logger.LogInformation($"Dropping data session {socketSession?.RemoteEndPoint} and accepting new session");
+                        logger.LogInformation($"Dropping data session ({socketSession?.RemoteEndPoint?.ToString() ?? "Unknown"}) and accepting new session");
                         try { socketSession?.Shutdown(SocketShutdown.Both); } catch { }
                         try { socketSession?.Close(); } catch { }
                         sessionCancelTokenSource?.Cancel();
+                        taskSession?.Wait();
                     }
                     logger.LogInformation($"Data session accepted ({session.RemoteEndPoint})");
                     sessionCancelTokenSource = new CancellationTokenSource();
@@ -103,43 +104,12 @@ internal class DataServer : IThread
         }
     }
 
-    private bool CheckForAcks(ILogger logger, Socket socket)
-    {
-        //See if we have data ready to read. Grab the ACKs if so (may be >1 queued)
-        Span<byte> ack = stackalloc byte[4];
-        while (socket.Poll(1000, SelectMode.SelectRead))
-        {
-            //Get the ACK number (if we see one).
-            //TODO: this assumes all 4 bytes are always in the same TCP segment. Probably reasonable
-            //but for max robustness we'd want to handle partial acks somehow
-            int read = 0;
-            read = socket.Receive(ack);
-            if (read == 4)
-            {
-                nack = BitConverter.ToUInt32(ack);
-                inflight = sequenceNumber - nack;
-                //logger.LogInformation($"Got ACK: {nack}, last sequenceNumber={sequenceNumber}, {inflight} in flight");
-            }
-
-            //If socket is closed or we have a read error, bail out
-            else if(read <= 0)
-            {
-                //logger.LogWarning($"Read returned {read}");
-                return false;
-            }
-
-            else
-                logger.LogWarning("TODO handle partial read");
-        }
-
-        return true;
-    }
-
-    private uint nack = 0;
-    private uint inflight = 0;
     private void LoopSession(ILogger logger, Socket socket, CancellationToken cancelToken)
     {
         string sessionID = socket.RemoteEndPoint?.ToString() ?? "Unknown";
+        uint sequenceNumber = 0;
+        uint nack = 0;
+        uint inflight = 0;
 
         try
         {
@@ -148,32 +118,27 @@ internal class DataServer : IThread
             while (true)
             {
                 cancelToken.ThrowIfCancellationRequested();
-
-                //New credit-based flow control path
                 if (creditMode)
                 {
-                    if(!CheckForAcks(logger, socket))
+                    if (!CheckForAcks(logger, socket))
                         break;
                     inflight = sequenceNumber - nack;
 
-                    //Figure out how many un-acked waveforms we have, block if >5 in flight
-                    //TODO: tune this for latency/throughput tradeoff?
+                    // Figure out how many un-acked waveforms we have, block if >5 in flight
+                    // TODO: tune this for latency/throughput tradeoff?
                     if (inflight >= 5)
                     {
                         cancelToken.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(1));
                         continue;
                     }
-
-                    //Send data
                     else
                     {
-                        SendScopehal(socket, cancelToken);
                         //logger.LogInformation($"Sending waveform (seq={sequenceNumber})");
+                        SendScopehal(socket, sequenceNumber, cancelToken);
                         onSequenceUpdate(sequenceNumber);
+                        sequenceNumber++;
                     }
                 }
-
-                //Legacy path (plus entry to credit mode)
                 else
                 {
                     int read = 0;
@@ -185,10 +150,12 @@ internal class DataServer : IThread
                     switch (cmd)
                     {
                         case (byte)'S':
-                            SendScopehal(socket, cancelToken);
+                            SendScopehal(socket, sequenceNumber, cancelToken);
+                            sequenceNumber++;
                             break;
                         case (byte)'C':
                             creditMode = true;
+                            logger.LogInformation("Switching to credit mode");
                             break;
                         default:
                             break;
@@ -210,132 +177,164 @@ internal class DataServer : IThread
             logger.LogInformation($"Session dropped ({sessionID})");
             socketSession = null;
         }
-    }
 
-    private uint sequenceNumber = 0;
-    private void SendScopehal(Socket socket, CancellationToken cancelToken)
-    {
-        bool noCapturesAvailable = false;
-        while (true)
+        bool CheckForAcks(ILogger logger, Socket socket)
         {
-            cancelToken.ThrowIfCancellationRequested();
-
-            if (captureBufferManager.TryStartRead(out var captureBuffer))
+            //See if we have data ready to read. Grab the ACKs if so (may be >1 queued)
+            Span<byte> ack = stackalloc byte[4];
+            while (socket.Poll(1000, SelectMode.SelectRead))
             {
-                int channelCount = BitOperations.PopCount(captureBuffer!.Metadata.HardwareConfig.Acquisition.EnabledChannels);
-                noCapturesAvailable = false;
-                ulong femtosecondsPerSample = 1000000000000000 / captureBuffer.Metadata.HardwareConfig.Acquisition.SampleRateHz;
-                WaveformHeader waveformHeader = new()
+                //Get the ACK number (if we see one).
+                //TODO: this assumes all 4 bytes are always in the same TCP segment. Probably reasonable
+                //but for max robustness we'd want to handle partial acks somehow
+                int read = 0;
+                read = socket.Receive(ack);
+                if (read == 4)
                 {
-                    version = 1,
-                    seqnum = sequenceNumber,
-                    numChannels = (ushort)channelCount,
-                    fsPerSample = femtosecondsPerSample,
-                    triggerFs = (long)captureBuffer.Metadata.ProcessingConfig.TriggerDelayFs,
-                    hwWaveformsPerSec = captureBuffer.Metadata.CapturesPerSec
-                };
-                ChannelHeader channelHeader = new()
-                {
-                    depth = (ulong)captureBuffer.Metadata.ProcessingConfig.ChannelDataLength,
-                    dataType = (byte)captureBuffer.Metadata.ProcessingConfig.ChannelDataType,
-                    trigphase = 0
-                };
-
-                // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
-                if (captureBuffer.Metadata.Triggered && captureBuffer.Metadata.ProcessingConfig.TriggerInterpolation)
-                {
-                    switch (captureBuffer.Metadata.ProcessingConfig.ChannelDataType)
-                    {
-                        case ThunderscopeDataType.I8:
-                            {
-                                ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetChannelReadBuffer<sbyte>(captureBuffer.Metadata.TriggerChannelCaptureIndex);
-                                int triggerIndex = (int)(captureBuffer.Metadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
-                                if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
-                                {
-                                    channelHeader.trigphase = CalculateTriggerInterpolation(triggerChannelBuffer[triggerIndex - 1], triggerChannelBuffer[triggerIndex]);
-                                }
-                                else
-                                {
-                                    channelHeader.trigphase = 0;
-                                }
-                            }
-                            break;
-                        case ThunderscopeDataType.I16:
-                            {
-                                ReadOnlySpan<short> triggerChannelBuffer = captureBuffer.GetChannelReadBuffer<short>(captureBuffer.Metadata.TriggerChannelCaptureIndex);
-                                int triggerIndex = (int)(captureBuffer.Metadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
-                                if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
-                                {
-                                    channelHeader.trigphase = CalculateTriggerInterpolation(triggerChannelBuffer[triggerIndex - 1], triggerChannelBuffer[triggerIndex]);
-                                }
-                                else
-                                {
-                                    channelHeader.trigphase = 0;
-                                }
-                            }
-                            break;
-                    }
+                    nack = BitConverter.ToUInt32(ack);
+                    inflight = sequenceNumber - nack;
+                    //logger.LogInformation($"Got ACK: {nack}, last sequenceNumber={sequenceNumber}, {inflight} in flight");
                 }
 
-                unsafe
+                //If socket is closed or we have a read error, bail out
+                else if (read <= 0)
                 {
-                    socket.Send(new ReadOnlySpan<byte>(&waveformHeader, sizeof(WaveformHeader)));
-                    for (byte captureBufferIndex = 0; captureBufferIndex < captureBuffer.ChannelCount; captureBufferIndex++)
+                    //logger.LogWarning($"Read returned {read}");
+                    return false;
+                }
+
+                else
+                    logger.LogWarning("TODO handle partial read");
+            }
+
+            return true;
+        }
+    }
+
+    private void SendScopehal(Socket socket, uint sequenceNumber, CancellationToken cancelToken)
+    {
+        bool loop = true;
+        while (loop)
+        {
+            cancelToken.ThrowIfCancellationRequested();
+            if (captureBufferManager.TryStartRead(out var captureBuffer))
+            {
+                try
+                {
+                    int channelCount = BitOperations.PopCount(captureBuffer!.Metadata.HardwareConfig.Acquisition.EnabledChannels);
+                    ulong femtosecondsPerSample = 1000000000000000 / captureBuffer.Metadata.HardwareConfig.Acquisition.SampleRateHz;
+                    WaveformHeader waveformHeader = new()
                     {
-                        // Build channel header
-                        int channelIndex = captureBuffer.Metadata.HardwareConfig.Acquisition.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
-                        ThunderscopeChannelFrontend thunderscopeChannel = captureBuffer.Metadata.HardwareConfig.Frontend[channelIndex];
-                        channelHeader.channelIndex = (byte)channelIndex;
+                        version = 1,
+                        seqnum = sequenceNumber,
+                        numChannels = (ushort)channelCount,
+                        fsPerSample = femtosecondsPerSample,
+                        triggerFs = (long)captureBuffer.Metadata.ProcessingConfig.TriggerDelayFs,
+                        hwWaveformsPerSec = captureBuffer.Metadata.CapturesPerSec
+                    };
+                    ChannelHeader channelHeader = new()
+                    {
+                        depth = (ulong)captureBuffer.Metadata.ProcessingConfig.ChannelDataLength,
+                        dataType = (byte)captureBuffer.Metadata.ProcessingConfig.ChannelDataType,
+                        trigphase = 0
+                    };
+
+                    // If this is a triggered acquisition run trigger interpolation and set trigphase value to be the same for all channels
+                    if (captureBuffer.Metadata.Triggered && captureBuffer.Metadata.ProcessingConfig.TriggerInterpolation)
+                    {
                         switch (captureBuffer.Metadata.ProcessingConfig.ChannelDataType)
                         {
                             case ThunderscopeDataType.I8:
-                                channelHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 256.0);
+                                {
+                                    ReadOnlySpan<sbyte> triggerChannelBuffer = captureBuffer.GetChannelReadBuffer<sbyte>(captureBuffer.Metadata.TriggerChannelCaptureIndex);
+                                    int triggerIndex = (int)(captureBuffer.Metadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
+                                    if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
+                                    {
+                                        channelHeader.trigphase = CalculateTriggerInterpolation(triggerChannelBuffer[triggerIndex - 1], triggerChannelBuffer[triggerIndex]);
+                                    }
+                                    else
+                                    {
+                                        channelHeader.trigphase = 0;
+                                    }
+                                }
                                 break;
                             case ThunderscopeDataType.I16:
-                                channelHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 65536.0);
-                                //chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 4096.0);
+                                {
+                                    ReadOnlySpan<short> triggerChannelBuffer = captureBuffer.GetChannelReadBuffer<short>(captureBuffer.Metadata.TriggerChannelCaptureIndex);
+                                    int triggerIndex = (int)(captureBuffer.Metadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
+                                    if (triggerIndex > 0 && triggerIndex < triggerChannelBuffer.Length)
+                                    {
+                                        channelHeader.trigphase = CalculateTriggerInterpolation(triggerChannelBuffer[triggerIndex - 1], triggerChannelBuffer[triggerIndex]);
+                                    }
+                                    else
+                                    {
+                                        channelHeader.trigphase = 0;
+                                    }
+                                }
                                 break;
                         }
-                        channelHeader.offset = (float)thunderscopeChannel.ActualVoltOffset;
-                        socket.Send(new ReadOnlySpan<byte>(&channelHeader, sizeof(ChannelHeader)));
-                        ReadOnlySpan<byte> channelBuffer = captureBuffer.GetChannelReadByteBuffer(captureBufferIndex);
-                        socket.Send(channelBuffer);
+                    }
+
+                    unsafe
+                    {
+                        socket.Send(new ReadOnlySpan<byte>(&waveformHeader, sizeof(WaveformHeader)));
+                        for (byte captureBufferIndex = 0; captureBufferIndex < captureBuffer.ChannelCount; captureBufferIndex++)
+                        {
+                            // Build channel header
+                            int channelIndex = captureBuffer.Metadata.HardwareConfig.Acquisition.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
+                            ThunderscopeChannelFrontend thunderscopeChannel = captureBuffer.Metadata.HardwareConfig.Frontend[channelIndex];
+                            channelHeader.channelIndex = (byte)channelIndex;
+                            switch (captureBuffer.Metadata.ProcessingConfig.ChannelDataType)
+                            {
+                                case ThunderscopeDataType.I8:
+                                    channelHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 256.0);
+                                    break;
+                                case ThunderscopeDataType.I16:
+                                    channelHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 65536.0);
+                                    //chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 4096.0);
+                                    break;
+                            }
+                            channelHeader.offset = (float)thunderscopeChannel.ActualVoltOffset;
+                            socket.Send(new ReadOnlySpan<byte>(&channelHeader, sizeof(ChannelHeader)));
+                            ReadOnlySpan<byte> channelBuffer = captureBuffer.GetChannelReadByteBuffer(captureBufferIndex);
+                            socket.Send(channelBuffer);
+                        }
+                    }
+
+                    float CalculateTriggerInterpolation(int pointA, int pointB)
+                    {
+                        int triggerIndex = (int)(captureBuffer.Metadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
+                        int channelIndex = captureBuffer.Metadata.HardwareConfig.Acquisition.GetChannelIndexByCaptureBufferIndex(captureBuffer.Metadata.TriggerChannelCaptureIndex);
+                        ThunderscopeChannelFrontend triggerChannelFrontend = captureBuffer.Metadata.HardwareConfig.Frontend[channelIndex];
+                        var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 256.0);     // 8-bit
+                        if (captureBuffer.Metadata.HardwareConfig.Acquisition.Resolution == AdcResolution.TwelveBit)
+                            channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 65536.0);   // 16-bit
+                                                                                                            //channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 4096.0);   // 16-bit
+                        var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
+
+                        float fa = channelScale * pointA - channelOffset;
+                        float fb = channelScale * pointB - channelOffset;
+                        float triggerLevel = captureBuffer.Metadata.ProcessingConfig.EdgeTriggerParameters.LevelV + channelOffset;
+                        float slope = fb - fa;
+                        float delta = triggerLevel - fa;
+                        float trigphase = delta / slope;
+                        if (trigphase > 1.0f || trigphase < -1.0f)
+                            trigphase = 0.0f;
+                        var result = femtosecondsPerSample * (1 - trigphase);
+                        if (!double.IsFinite(result))
+                            result = 0;
+                        var delay = captureBuffer.Metadata.ProcessingConfig.TriggerDelayFs - (ulong)triggerIndex * femtosecondsPerSample;
+                        result += delay;
+                        return result;
                     }
                 }
-                sequenceNumber++;
-                captureBufferManager.FinishRead();
-                float CalculateTriggerInterpolation(int pointA, int pointB)
+                finally
                 {
-                    int triggerIndex = (int)(captureBuffer.Metadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
-                    int channelIndex = captureBuffer.Metadata.HardwareConfig.Acquisition.GetChannelIndexByCaptureBufferIndex(captureBuffer.Metadata.TriggerChannelCaptureIndex);
-                    ThunderscopeChannelFrontend triggerChannelFrontend = captureBuffer.Metadata.HardwareConfig.Frontend[channelIndex];
-                    var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 256.0);     // 8-bit
-                    if (captureBuffer.Metadata.HardwareConfig.Acquisition.Resolution == AdcResolution.TwelveBit)
-                        channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 65536.0);   // 16-bit
-                                                                                                        //channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 4096.0);   // 16-bit
-                    var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
-
-                    float fa = channelScale * pointA - channelOffset;
-                    float fb = channelScale * pointB - channelOffset;
-                    float triggerLevel = captureBuffer.Metadata.ProcessingConfig.EdgeTriggerParameters.LevelV + channelOffset;
-                    float slope = fb - fa;
-                    float delta = triggerLevel - fa;
-                    float trigphase = delta / slope;
-                    if (trigphase > 1.0f || trigphase < -1.0f)
-                        trigphase = 0.0f;
-                    var result = femtosecondsPerSample * (1 - trigphase);
-                    if (!double.IsFinite(result))
-                        result = 0;
-                    var delay = captureBuffer.Metadata.ProcessingConfig.TriggerDelayFs - (ulong)triggerIndex * femtosecondsPerSample;
-                    result += delay;
-                    return result;
+                    captureBufferManager.FinishRead();
+                    loop = false;
                 }
             }
             else
-            {
-                noCapturesAvailable = true;
-            }
-            if (noCapturesAvailable)
             {
                 cancelToken.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(1));
             }
