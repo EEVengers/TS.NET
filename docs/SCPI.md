@@ -145,7 +145,7 @@ Subject matches `REFCLK` via `subject.StartsWith("REFCLK")`.
 
 | Command | Args | Description |
 |---|---:|---|
-| `REFCLK:MODE` | `IN`, `OUT`, `DISABLED` | Set mode of REFCLK IN/OUT BNC. |
+| `REFCLK:MODE` | `IN`, `OUT`, `OFF` | Set mode of REFCLK IN/OUT BNC. |
 | `REFCLK:FREQ` | `uint` | Set the input clock frequency if in IN mode, or output frequency if in OUT mode. |
 
 ## Processing subsystem (`PRO...`)

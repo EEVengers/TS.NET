@@ -531,7 +531,7 @@ internal class ScpiServer : IThread
                                 {
                                     ThunderscopeRefClockMode? mode = argument.ToUpper() switch
                                     {
-                                        "DISABLED" => ThunderscopeRefClockMode.Disabled,
+                                        "OFF" => ThunderscopeRefClockMode.Disabled,
                                         "IN" => ThunderscopeRefClockMode.Input,
                                         "OUT" => ThunderscopeRefClockMode.Output,
                                         _ => null
