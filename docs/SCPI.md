@@ -39,6 +39,7 @@ This document lists the SCPI commands currently implemented by `TS.NET.Engine/Th
 | `*IDN?` | - | `EEVengers,ThunderScope,TS0001,0.1.0` | Standard identification string. |
 | `STATE?` | - | `RUN` or `STOP` | Current run state. |
 | `MODE?` | - | `SINGLE`, `NORMAL`, `AUTO`, `STREAM` | Current acquisition mode. |
+| `SEQNUM?` | - | `12345` | The last sequence number sent on the data server socket. |
 
 ## Acquisition subsystem (`ACQ...`)
 
@@ -115,9 +116,12 @@ Subject matches `CHAN`/`CHANnel` abbreviations via `subject.StartsWith("CHAN")` 
 | `CHAN<n>:STATE?` | none | `ON` or `OFF` | Get whether channel `<n>` is enabled. |
 | `CHAN<n>:BAND?` | none | `FULL`, `750M`, `650M`, `350M`, `200M`, `100M`, `20M` | Get channel bandwidth (maps from enum). |
 | `CHAN<n>:COUP?` | none | `DC` or `AC` | Get channel coupling. |
-| `CHAN<n>:TERM?` | none | `1M` or `50` | Get channel termination (returns *actual* termination, may not match commanded termination). |
+| `CHAN<n>:TERM?` | none | `1M` or `50` | Get requested channel termination. |
 | `CHAN<n>:OFFS?` | none | `<volts>` | Get requested voltage offset (formatted `0.######`). |
 | `CHAN<n>:RANG?` | none | `<volts>` | Get requested full-scale range (formatted `0.######`). |
+| `CHAN<n>:TERM:ACT?` | none | `1M` or `50` | Get actual channel termination (driver may coerce termination). |
+| `CHAN<n>:OFFS:ACT?` | none | `<volts>` | Get actual voltage offset (formatted `0.######`). |
+| `CHAN<n>:RANG:ACT?` | none | `<volts>` | Get actual full-scale range (formatted `0.######`). |
 
 ## Processing subsystem (`PRO...`)
 

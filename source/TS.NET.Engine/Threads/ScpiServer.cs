@@ -705,12 +705,8 @@ internal class ScpiServer : IThread
                 // ACQ
                 switch (command)
                 {
-                    case "RATES?":
-                        return GetRates();
                     case "RATE?":
                         return GetRate();
-                    case "DEPTHS?":
-                        return GetDepths();
                     case "DEPTH?":
                         return GetDepth();
                     case var _ when command.StartsWith("RES"):
@@ -743,7 +739,10 @@ internal class ScpiServer : IThread
                             }
                             return "Error: No/bad response from channel.\n";
                         }
-
+                    case "RATES?":
+                        return GetRates();
+                    case "DEPTHS?":
+                        return GetDepths();
                 }
             }
             else if (subject?.StartsWith("TRIG") == true)
@@ -983,6 +982,7 @@ internal class ScpiServer : IThread
                             }
                             return "Error: No/bad response from channel.\n";
                         }
+
                     case var _ when command.StartsWith("TERM", StringComparison.OrdinalIgnoreCase):
                         {
                             processingControl.Request.Writer.Write(new HardwareGetTerminationRequest(channelIndex));
@@ -990,8 +990,7 @@ internal class ScpiServer : IThread
                             {
                                 if (response is HardwareGetTerminationResponse hardwareGetTerminationResponse)
                                 {
-                                    // RANG/OFFS returns requested values (requested can be changed by driver), TERM returns actual
-                                    string termination = hardwareGetTerminationResponse.ActualTermination switch
+                                    string termination = hardwareGetTerminationResponse.RequestedTermination switch
                                     {
                                         ThunderscopeTermination.OneMegaohm => "1M",
                                         ThunderscopeTermination.FiftyOhm => "50",
@@ -1042,6 +1041,68 @@ internal class ScpiServer : IThread
                             else
                             {
                                 logger.LogError($"{subject}:RANG? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            return "Error: No/bad response from channel.\n";
+                        }
+
+                    case var _ when command.StartsWith("TERM:ACT?", StringComparison.OrdinalIgnoreCase):
+                        {
+                            processingControl.Request.Writer.Write(new HardwareGetTerminationRequest(channelIndex));
+                            if (processingControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
+                            {
+                                if (response is HardwareGetTerminationResponse hardwareGetTerminationResponse)
+                                {
+                                    string termination = hardwareGetTerminationResponse.ActualTermination switch
+                                    {
+                                        ThunderscopeTermination.OneMegaohm => "1M",
+                                        ThunderscopeTermination.FiftyOhm => "50",
+                                        _ => throw new NotImplementedException()
+                                    };
+                                    return termination + "\n";
+                                }
+                                else
+                                {
+                                    logger.LogError($"{subject}:TERM:ACT? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                                }
+                            }
+                            else
+                            {
+                                logger.LogError($"{subject}:TERM:ACT? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            return "Error: No/bad response from channel.\n";
+                        }
+                    case var _ when command.StartsWith("OFFS:ACT?", StringComparison.OrdinalIgnoreCase):
+                        {
+                            processingControl.Request.Writer.Write(new HardwareGetVoltOffsetRequest(channelIndex));
+                            if (processingControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
+                            {
+                                if (response is HardwareGetVoltOffsetResponse hardwareGetVoltOffsetResponse)
+                                    return $"{hardwareGetVoltOffsetResponse.ActualVoltOffset:0.######}\n";
+                                logger.LogError($"{subject}:OFFS:ACT? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            else
+                            {
+                                logger.LogError($"{subject}:OFFS:ACT? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            return "Error: No/bad response from channel.\n";
+                        }
+                    case var _ when command.StartsWith("RANG:ACT?", StringComparison.OrdinalIgnoreCase):
+                        {
+                            processingControl.Request.Writer.Write(new HardwareGetVoltFullScaleRequest(channelIndex));
+                            if (processingControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
+                            {
+                                if (response is HardwareGetVoltFullScaleResponse hardwareGetVoltFullScaleResponse)
+                                {
+                                    return $"{hardwareGetVoltFullScaleResponse.ActualVoltFullScale:0.######}\n";
+                                }
+                                else
+                                {
+                                    logger.LogError($"{subject}:RANG:ACT? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                                }
+                            }
+                            else
+                            {
+                                logger.LogError($"{subject}:RANG:ACT? - No response from {nameof(processingControl.Response.Reader)}");
                             }
                             return "Error: No/bad response from channel.\n";
                         }
