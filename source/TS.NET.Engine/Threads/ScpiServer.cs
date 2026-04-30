@@ -97,7 +97,7 @@ internal class ScpiServer : IThread
             finally
             {
                 if (!cancelToken.IsCancellationRequested)
-                    logger.LogCritical("SCPI socket closed");
+                    logger.LogError("SCPI socket closed");
                 else
                     logger.LogDebug("SCPI socket closed");
                 socketListener = null;

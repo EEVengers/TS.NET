@@ -96,7 +96,7 @@ internal class DataServer : IThread
             finally
             {
                 if (!cancelToken.IsCancellationRequested)
-                    logger.LogCritical($"Data socket closed");
+                    logger.LogError($"Data socket closed");
                 else
                     logger.LogDebug($"Data socket closed");
                 socketListener = null;

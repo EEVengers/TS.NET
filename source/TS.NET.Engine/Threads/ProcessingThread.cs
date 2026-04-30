@@ -7,6 +7,7 @@ namespace TS.NET.Engine;
 public class ProcessingThread : IThread
 {
     private readonly ILogger logger;
+    private readonly CancellationTokenSource appCancellationTokenSource;
     private readonly ThunderscopeSettings settings;
     private readonly IThunderscope thunderscope;
     private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
@@ -18,6 +19,7 @@ public class ProcessingThread : IThread
 
     public ProcessingThread(
         ILogger logger,
+        CancellationTokenSource appCancellationTokenSource,
         ThunderscopeSettings settings,
         IThunderscope thunderscope,
         BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
@@ -25,6 +27,7 @@ public class ProcessingThread : IThread
         CaptureBufferManager captureBufferManager)
     {
         this.logger = logger;
+        this.appCancellationTokenSource = appCancellationTokenSource;
         this.settings = settings;
         this.thunderscope = thunderscope;
         this.processingControl = processingControl;
@@ -37,6 +40,7 @@ public class ProcessingThread : IThread
         cancelTokenSource = new CancellationTokenSource();
         taskLoop = Task.Factory.StartNew(() => Loop(
             logger: logger,
+            appCancellationTokenSource: appCancellationTokenSource,
             settings: settings,
             thunderscope: thunderscope,
             processingControl: processingControl,
@@ -54,6 +58,7 @@ public class ProcessingThread : IThread
 
     private static unsafe void Loop(
         ILogger logger,
+        CancellationTokenSource appCancellationTokenSource,
         ThunderscopeSettings settings,
         IThunderscope thunderscope,
         BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
@@ -1234,7 +1239,7 @@ public class ProcessingThread : IThread
         catch (Exception ex)
         {
             logger.LogCritical(ex, "Error");
-            throw;
+            appCancellationTokenSource.Cancel();
         }
         finally
         {

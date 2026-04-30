@@ -80,15 +80,15 @@ class Program
 #endif
         var loggerFactory = new LoggerFactory().AddSerilog(serilog);
         var logger = loggerFactory.CreateLogger("TS.NET.Engine");
+        var appCancellationTokenSource = new CancellationTokenSource();
 
-        var engine = new EngineManager(loggerFactory);
+        var engine = new EngineManager(loggerFactory, appCancellationTokenSource);
         var deviceSerial = deviceIndex.ToString();
         if (!engine.TryStart(configurationFile, calibrationFile, deviceSerial))
             return;
 
         DateTimeOffset startTime = DateTimeOffset.UtcNow;
-        bool loop = true;
-        while (loop)
+        while (!appCancellationTokenSource.IsCancellationRequested)
         {
             if (Console.KeyAvailable)
             {
@@ -96,7 +96,7 @@ class Program
                 switch (key.Key)
                 {
                     case ConsoleKey.Escape:
-                        loop = false;
+                        appCancellationTokenSource.Cancel();
                         break;
                 }
             }

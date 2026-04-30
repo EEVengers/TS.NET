@@ -14,6 +14,7 @@ public class EngineManager
 {
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger logger;
+    private readonly CancellationTokenSource appCancellationTokenSource;
 
     private ThunderscopeSettings? thunderscopeSettings = null;
     private IThunderscope? thunderscope = null;
@@ -24,10 +25,11 @@ public class EngineManager
 
     public BlockingChannel<INotificationDto>? UiNotifications;
 
-    public EngineManager(ILoggerFactory loggerFactory)
+    public EngineManager(ILoggerFactory loggerFactory, CancellationTokenSource appCancellationTokenSource)
     {
         this.loggerFactory = loggerFactory;
         logger = loggerFactory.CreateLogger(nameof(EngineManager));
+        this.appCancellationTokenSource = appCancellationTokenSource;
     }
 
     public bool TryStart(string configurationFile, string calibrationFile, string deviceSerial)
@@ -204,6 +206,7 @@ public class EngineManager
         startSemaphore.Wait();
         processingThread = new ProcessingThread(
             logger: loggerFactory.CreateLogger(nameof(ProcessingThread)),
+            appCancellationTokenSource: appCancellationTokenSource,
             settings: thunderscopeSettings,
             thunderscope: thunderscope!,
             processingControl: processingControl,
