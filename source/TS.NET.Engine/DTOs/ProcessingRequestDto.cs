@@ -26,6 +26,9 @@ public record HardwareSetRate(ulong Rate) : ProcessingRequestDto, INotificationD
 public record HardwareSetResolution(AdcResolution Resolution) : ProcessingRequestDto, INotificationDto;
 public record HardwareSetChannelEnabled(int ChannelIndex, bool Enabled) : ProcessingRequestDto, INotificationDto;
 
+public record HardwareSetRefClockMode(ThunderscopeRefClockMode Mode) : ProcessingRequestDto, INotificationDto;
+public record HardwareSetRefClockFrequency(uint FrequencyHz) : ProcessingRequestDto, INotificationDto;
+
 public abstract record HardwareSetChannelFrontendRequest(int ChannelIndex) : ProcessingRequestDto;
 public record HardwareSetVoltOffset(int ChannelIndex, float VoltOffset) : HardwareSetChannelFrontendRequest(ChannelIndex);
 public record HardwareSetVoltFullScale(int ChannelIndex, float VoltFullScale) : HardwareSetChannelFrontendRequest(ChannelIndex);

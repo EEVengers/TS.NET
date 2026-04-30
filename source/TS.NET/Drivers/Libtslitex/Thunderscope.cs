@@ -21,6 +21,8 @@ namespace TS.NET.Driver.Libtslitex
         uint cachedSampleRateHz = 1_000_000_000;
         AdcResolution cachedSampleResolution = AdcResolution.EightBit;
         AdcChannelMode cachedAdcChannelMode = AdcChannelMode.Single;
+        ThunderscopeRefClockMode cachedRefClockMode = ThunderscopeRefClockMode.Disabled;
+        uint cachedRefClockFrequencyHz = 10_000_000;
 
         private bool beta = false;
 
@@ -88,7 +90,9 @@ namespace TS.NET.Driver.Libtslitex
 
             SetSampleMode(initialHardwareConfiguration.Acquisition.SampleRateHz, initialHardwareConfiguration.Acquisition.Resolution, updateFrontends: false);
             UpdateFrontends();
-            SetExternalSync(initialHardwareConfiguration.ExternalSync);
+            SetExtSyncMode(initialHardwareConfiguration.ExtSyncMode);
+            SetRefClockMode(initialHardwareConfiguration.RefClockMode);
+            SetRefClockFrequency(initialHardwareConfiguration.RefClockFrequencyHz);
         }
 
         public void Close()
@@ -700,12 +704,30 @@ namespace TS.NET.Driver.Libtslitex
             channelManualOverride[channelIndex] = true;
         }
 
-        public void SetExternalSync(ThunderscopeExternalSync externalSync)
+        public void SetExtSyncMode(ThunderscopeExtSyncMode extSyncMode)
         {
             CheckOpen();
-            var retVal = Interop.ConfigureExtSync(tsHandle, (Interop.tsSyncMode_t)externalSync);
+            var retVal = Interop.ConfigureExtSync(tsHandle, (Interop.tsSyncMode_t)extSyncMode);
             if (retVal < 0)
-                throw new ThunderscopeException($"Failed to set external sync ({GetLibraryReturnString(retVal)})");
+                throw new ThunderscopeException($"Failed to set external sync mode ({GetLibraryReturnString(retVal)})");
+        }
+
+        public void SetRefClockMode(ThunderscopeRefClockMode refClockMode)
+        {
+            CheckOpen();
+            var retVal = Interop.ConfigureRefClock(tsHandle, (Interop.tsRefClockMode_t)refClockMode, cachedRefClockFrequencyHz);
+            if (retVal < 0)
+                throw new ThunderscopeException($"Failed to set reference clock mode ({GetLibraryReturnString(retVal)})");
+            cachedRefClockMode = refClockMode;
+        }
+
+        public void SetRefClockFrequency(uint refClockFrequencyHz)
+        {
+            CheckOpen();
+            var retVal = Interop.ConfigureRefClock(tsHandle, (Interop.tsRefClockMode_t)cachedRefClockMode, refClockFrequencyHz);
+            if (retVal < 0)
+                throw new ThunderscopeException($"Failed to set reference clock frequency ({GetLibraryReturnString(retVal)})");
+            cachedRefClockFrequencyHz = refClockFrequencyHz;
         }
 
         public int UserDataRead(Span<byte> buffer, int offset)

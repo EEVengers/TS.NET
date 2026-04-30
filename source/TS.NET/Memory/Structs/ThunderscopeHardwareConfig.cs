@@ -10,7 +10,9 @@ namespace TS.NET
         public ThunderscopeChannelFrontendArray Frontend;
         public ThunderscopeChannelCalibrationArray Calibration;
         public ThunderscopeAdcCalibration AdcCalibration;
-        public ThunderscopeExternalSync ExternalSync;
+        public ThunderscopeExtSyncMode ExtSyncMode;
+        public ThunderscopeRefClockMode RefClockMode;
+        public uint RefClockFrequencyHz;
     }
 
     public struct ThunderscopeAcquisitionConfig

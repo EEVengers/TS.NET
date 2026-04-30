@@ -16,7 +16,9 @@
         ThunderscopeHardwareConfig GetConfiguration();
         void SetRate(ulong sampleRateHz);
         void SetResolution(AdcResolution resolution);
-        void SetExternalSync(ThunderscopeExternalSync externalSync);
+        void SetExtSyncMode(ThunderscopeExtSyncMode externalSyncMode);
+        void SetRefClockMode(ThunderscopeRefClockMode refClockMode);
+        void SetRefClockFrequency(uint frequencyHz);
     }
 
     public enum ThunderscopeEvent : byte
@@ -24,7 +26,14 @@
         SyncInputRisingEdge = 1
     }
 
-    public enum ThunderscopeExternalSync : byte
+    public enum ThunderscopeExtSyncMode : byte
+    {
+        Disabled = 0,
+        Output = 1,
+        Input = 2
+    }
+
+    public enum ThunderscopeRefClockMode : byte
     {
         Disabled = 0,
         Output = 1,

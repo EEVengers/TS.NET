@@ -193,6 +193,16 @@ namespace TS.NET.Driver.Libtslitex
         [LibraryImport(library, EntryPoint = "thunderscopeExtSyncConfig")]
         public static unsafe partial int ConfigureExtSync(nint ts, tsSyncMode_t mode);
 
+        public enum tsRefClockMode_t
+        {
+            TS_REFCLK_NONE = 0,
+            TS_REFCLK_OUT = 1,
+            TS_REFCLK_IN = 2
+        }
+
+        [LibraryImport(library, EntryPoint = "thunderscopeRefClockSet")]
+        public static unsafe partial int ConfigureRefClock(nint ts, tsRefClockMode_t mode, uint refclk_freq);
+
         // Factory methods
         [LibraryImport(library, EntryPoint = "thunderscopeFactoryProvisionPrepare")]
         public static unsafe partial int FactoryDataErase(nint ts, ulong dna);

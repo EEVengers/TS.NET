@@ -75,7 +75,7 @@
         }
 
         public bool TryGetEvent(out ThunderscopeEvent thunderscopeEvent, out ulong eventSampleIndex)
-        {             
+        {
             thunderscopeEvent = 0;
             eventSampleIndex = 0;
             return false;
@@ -149,12 +149,18 @@
 
         public void SetResolution(AdcResolution resolution)
         {
-
         }
 
-        public void SetExternalSync(ThunderscopeExternalSync externalSync)
+        public void SetExtSyncMode(ThunderscopeExtSyncMode extSyncMode)
         {
+        }
 
+        public void SetRefClockMode(ThunderscopeRefClockMode refClockMode)
+        {
+        }
+
+        public void SetRefClockFrequency(uint frequencyHz)
+        {
         }
     }
 }

@@ -242,6 +242,22 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(HardwareSetChannelEnabled)} (no change)");
                             }
                             break;
+
+                        case HardwareSetRefClockMode hardwareSetRefClockMode:
+                            {
+                                currentHardwareConfig.RefClockMode = hardwareSetRefClockMode.Mode;
+                                thunderscope.SetRefClockMode(hardwareSetRefClockMode.Mode);
+                                logger.LogDebug($"{nameof(HardwareSetRefClockMode)} ({hardwareSetRefClockMode.Mode})");
+                                break;
+                            }
+                        case HardwareSetRefClockFrequency hardwareSetRefClockFrequency:
+                            {
+                                currentHardwareConfig.RefClockFrequencyHz = hardwareSetRefClockFrequency.FrequencyHz;
+                                thunderscope.SetRefClockFrequency(hardwareSetRefClockFrequency.FrequencyHz);
+                                logger.LogDebug($"{nameof(HardwareSetRefClockFrequency)} ({hardwareSetRefClockFrequency.FrequencyHz})");
+                                break;
+                            }
+
                         case HardwareSetChannelFrontendRequest hardwareConfigureChannelFrontendDto:
                             {
                                 var channelIndex = ((HardwareSetChannelFrontendRequest)request).ChannelIndex;
@@ -851,7 +867,7 @@ public class ProcessingThread : IThread
                                                 StreamCapture<short>();
                                                 break;
                                         }
-                                        
+
                                     }
                                     break;
                                 case Mode.Stream:
@@ -1141,8 +1157,8 @@ public class ProcessingThread : IThread
                     eventTrigger = new EventTrigger();
                     eventTrigger.SetHorizontal(processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
                     // Temporary - force external sync input for event trigger.
-                    currentHardwareConfig.ExternalSync = ThunderscopeExternalSync.Input;
-                    thunderscope.SetExternalSync(currentHardwareConfig.ExternalSync);
+                    currentHardwareConfig.ExtSyncMode = ThunderscopeExtSyncMode.Input;
+                    thunderscope.SetExtSyncMode(currentHardwareConfig.ExtSyncMode);
                     return;
                 }
 

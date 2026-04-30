@@ -18,7 +18,21 @@ This document lists the SCPI commands currently implemented by `TS.NET.Engine/Th
 - Many commands require an argument separated by a space (`COMMAND <arg>`).
 - Unknown commands log a warning and return no response.
 
-## Global (no subject)
+## Subsystems
+
+Commands/queries are logically grouped into subsystems, with the exception of the global namespace (for commands like `RUN` & `STOP`).
+
+| Subsystem | Description |
+|---|---|
+| `-` | Global namespace for commands like `RUN` & `STOP`. |
+| `ACQ` | Acquisition subsystem for ADC & capture configuration. |
+| `TRIG` | Trigger subsystem for trigger configuration. |
+| `CHAN` | Channel subsystem for input frontend configuration. |
+| `REFCLK` | Reference clock subsystem for REFCLK IN/OUT BNC configuration. |
+| `PRO` | Processing subsystem for data processing configuration. |
+| `CAL` | Calibration subsystem for frontend/ADC calibration. |
+
+## Global namespace
 
 ### Commands
 
@@ -50,8 +64,8 @@ Subject matches `ACQ`/`ACQuisition` abbreviations via `subject.StartsWith("ACQ")
 | Command | Args | Description |
 |---|---:|---|
 | `ACQ:RATE <rateHz>` | `ulong` | Set sample rate (Hz). |
-| `ACQ:DEPTH <samples>` | `int` | Set capture depth/length. |
-| `ACQ:RES <bits>` | `int` | Set ADC resolution. Supported: `8` or `12`. Unsupported values default to 8-bit. |
+| `ACQ:DEPTH <samples>` | `uint` | Set capture depth/length. |
+| `ACQ:RES <bits>` | `uint` | Set ADC resolution. Supported: `8` or `12`. Unsupported values default to 8-bit. |
 
 ### Queries
 
@@ -74,7 +88,7 @@ Subject matches `TRIG`/`TRIGger` abbreviations via `subject.StartsWith("TRIG")`.
 | `TRIG:SOU <CHAN1..CHAN4\|NONE>` | `string` | Set trigger source channel or `NONE`. |
 | `TRIG:TYPE <EDGE\|BURST>` | `string` | Set trigger type. |
 | `TRIG:DEL <femtoseconds>` | `long` | Set trigger delay in femtoseconds. Negative values clamp to 0 (to be reviewed). |
-| `TRIG:HOLD <femtoseconds>` | `long` | Set trigger holdoff in femtoseconds. |
+| `TRIG:HOLD <femtoseconds>` | `ulong` | Set trigger holdoff in femtoseconds. |
 | `TRIG:INTER <true\|false>` | `bool` | Enable/disable trigger interpolation. `<1\|0>` is supported. |
 | `TRIG:EDGE:LEV <volts>` | `float` | Set edge trigger level in volts. |
 | `TRIG:EDGE:DIR <RISING\|FALLING\|ANY>` | `string` | Set edge direction. |
@@ -83,7 +97,7 @@ Subject matches `TRIG`/`TRIGger` abbreviations via `subject.StartsWith("TRIG")`.
 
 | Command | Args | Response | Description |
 |---|---:|---|---|
-| `TRIG:SOU?` | none | `CHAN<1..4>` or `NONE` | Get trigger source. (Formatting is `CHAN{(int)channel}`). |
+| `TRIG:SOU?` | none | `CHAN<1..4>` or `NONE` | Get trigger source. (Formatting is `CHAN{(uint)channel}`). |
 | `TRIG:TYPE?` | none | `<EDGE\|BURST>` | Get trigger type as uppercase enum name. |
 | `TRIG:DEL?` | none | `<femtoseconds>` | Get trigger delay. |
 | `TRIG:HOLD?` | none | `<femtoseconds>` | Get trigger holdoff. |
@@ -122,6 +136,17 @@ Subject matches `CHAN`/`CHANnel` abbreviations via `subject.StartsWith("CHAN")` 
 | `CHAN<n>:TERM:ACT?` | none | `1M` or `50` | Get actual channel termination (driver may coerce termination). |
 | `CHAN<n>:OFFS:ACT?` | none | `<volts>` | Get actual voltage offset (formatted `0.######`). |
 | `CHAN<n>:RANG:ACT?` | none | `<volts>` | Get actual full-scale range (formatted `0.######`). |
+
+## Reference clock subsystem (`REFCLK...`)
+
+Subject matches `REFCLK` via `subject.StartsWith("REFCLK")`.
+
+### Commands
+
+| Command | Args | Description |
+|---|---:|---|
+| `REFCLK:MODE` | `IN`, `OUT`, `DISABLED` | Set mode of REFCLK IN/OUT BNC. |
+| `REFCLK:FREQ` | `uint` | Set the input clock frequency if in IN mode, or output frequency if in OUT mode. |
 
 ## Processing subsystem (`PRO...`)
 

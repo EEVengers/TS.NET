@@ -314,14 +314,14 @@ internal class ScpiServer : IThread
                                 }
                             case var _ when command.StartsWith("DEPTH") && argument != null:
                                 {
-                                    var depth = Convert.ToInt32(argument);
-                                    processingControl.Request.Writer.Write(new ProcessingSetDepth(depth));
+                                    var depth = Convert.ToUInt32(argument);
+                                    processingControl.Request.Writer.Write(new ProcessingSetDepth((int)depth));
                                     logger.LogDebug($"{nameof(ProcessingSetDepth)} sent with argument: {depth}");
                                     return null;
                                 }
                             case var _ when command.StartsWith("RES") && argument != null:
                                 {
-                                    var resolution = Convert.ToInt32(argument) switch { 8 => AdcResolution.EightBit, 12 => AdcResolution.TwelveBit, _ => AdcResolution.EightBit };
+                                    var resolution = Convert.ToUInt32(argument) switch { 8 => AdcResolution.EightBit, 12 => AdcResolution.TwelveBit, _ => AdcResolution.EightBit };
                                     processingControl.Request.Writer.Write(new HardwareSetResolution(resolution));
                                     logger.LogDebug($"{nameof(HardwareSetResolution)} sent with argument: {resolution}");
                                     return null;
@@ -352,7 +352,7 @@ internal class ScpiServer : IThread
                                     var triggerChannel = TriggerChannel.None;
                                     if (argument != "NONE")
                                     {
-                                        int source = Convert.ToInt32(argument.ToArray()[^1]) - '0';
+                                        var source = Convert.ToUInt32(argument.ToArray()[^1]) - '0';
                                         if (source < 1 || source > 4)
                                             source = 1;
                                         triggerChannel = (TriggerChannel)source;
@@ -393,7 +393,7 @@ internal class ScpiServer : IThread
                                 {
                                     // TRIGger:DELay <arg>
                                     // TRIG:DEL <arg>
-                                    long delay = Convert.ToInt64(argument);
+                                    var delay = Convert.ToInt64(argument);
                                     logger.LogDebug($"Set trigger delay to {delay}fs");
                                     if (delay < 0)
                                         delay = 0;      // To do: allow negative delays
@@ -404,9 +404,9 @@ internal class ScpiServer : IThread
                                 {
                                     // TRIGger:HOLDoff <arg>
                                     // TRIG:HOLD <arg>
-                                    long holdoff = Convert.ToInt64(argument);
+                                    var holdoff = Convert.ToUInt64(argument);
                                     logger.LogDebug($"Set trigger holdoff to {holdoff}fs");
-                                    processingControl.Request.Writer.Write(new ProcessingSetTriggerHoldoff((ulong)holdoff));
+                                    processingControl.Request.Writer.Write(new ProcessingSetTriggerHoldoff(holdoff));
                                     return null;
                                 }
                             case var _ when command.StartsWith("INTER") && argument != null:
@@ -523,7 +523,39 @@ internal class ScpiServer : IThread
                         }
                         break;
                     }
-                // Change this to a better name later
+                case var _ when subject.StartsWith("REFCLK"):
+                    {
+                        switch (command)
+                        {
+                            case var _ when command.StartsWith("MODE") && argument != null:
+                                {
+                                    ThunderscopeRefClockMode? mode = argument.ToUpper() switch
+                                    {
+                                        "DISABLED" => ThunderscopeRefClockMode.Disabled,
+                                        "IN" => ThunderscopeRefClockMode.Input,
+                                        "OUT" => ThunderscopeRefClockMode.Output,
+                                        _ => null
+                                    };
+                                    if (mode == null)
+                                    {
+                                        logger.LogWarning("Reference clock mode parameter not recognised: {Argument}. Valid values: IN, OUT.", argument);
+                                        return null;
+                                    }
+
+                                    logger.LogDebug($"Set reference clock mode to {argument.ToUpper()}");
+                                    processingControl.Request.Writer.Write(new HardwareSetRefClockMode(mode.Value));
+                                    return null;
+                                }
+                            case var _ when command.StartsWith("FREQ") && argument != null:
+                                {
+                                    uint frequencyHz = Convert.ToUInt32(argument);
+                                    logger.LogDebug($"Set reference clock frequency to {frequencyHz}");
+                                    processingControl.Request.Writer.Write(new HardwareSetRefClockFrequency(frequencyHz));
+                                    return null;
+                                }
+                        }
+                        break;
+                    }
                 case var _ when subject.StartsWith("PRO"):
                     {
                         // :PROcessing
@@ -557,6 +589,7 @@ internal class ScpiServer : IThread
                         }
                         break;
                     }
+
                 case var _ when subject.StartsWith("CAL"):
                     {
                         // :CALibration
