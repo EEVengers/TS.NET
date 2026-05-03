@@ -18,16 +18,16 @@ public class FallingEdgeTriggerI8 : ITriggerI8
     private long holdoffSamples;
     private long holdoffRemaining;
 
-    public FallingEdgeTriggerI8(EdgeTriggerParameters parameters, double triggerChannelVpp)
+    public FallingEdgeTriggerI8(EdgeTriggerParameters parameters, double triggerChannelVpp, double triggerChannelOffsetV)
     {
-        SetParameters(parameters, triggerChannelVpp);
+        SetParameters(parameters, triggerChannelVpp, triggerChannelOffsetV);
         SetHorizontal(1000000, 0, 0);
     }
 
-    private void SetParameters(EdgeTriggerParameters parameters, double triggerChannelVpp)
+    private void SetParameters(EdgeTriggerParameters parameters, double triggerChannelVpp, double triggerChannelOffsetV)
     {
         int hysteresisCount = TriggerUtility.HysteresisValue(AdcResolution.EightBit, parameters.HysteresisPercent);
-        int levelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.LevelV, triggerChannelVpp);
+        int levelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.LevelV, triggerChannelVpp, triggerChannelOffsetV);
 
         if (levelCount <= sbyte.MinValue)
             levelCount = sbyte.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms

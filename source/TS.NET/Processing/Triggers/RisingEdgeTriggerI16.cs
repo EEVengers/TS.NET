@@ -18,16 +18,16 @@ public class RisingEdgeTriggerI16 : ITriggerI16
     private long holdoffSamples;
     private long holdoffRemaining;
 
-    public RisingEdgeTriggerI16(EdgeTriggerParameters parameters, AdcResolution adcResolution, double triggerChannelVpp)
+    public RisingEdgeTriggerI16(EdgeTriggerParameters parameters, AdcResolution adcResolution, double triggerChannelVpp, double triggerChannelOffsetV)
     {
-        SetParameters(parameters, adcResolution, triggerChannelVpp);
+        SetParameters(parameters, adcResolution, triggerChannelVpp, triggerChannelOffsetV);
         SetHorizontal(1000000, 0, 0);
     }
 
-    private void SetParameters(EdgeTriggerParameters parameters, AdcResolution adcResolution, double triggerChannelVpp)
+    private void SetParameters(EdgeTriggerParameters parameters, AdcResolution adcResolution, double triggerChannelVpp, double triggerChannelOffsetV)
     {
         int hysteresisCount = TriggerUtility.HysteresisValue(adcResolution, parameters.HysteresisPercent);
-        int levelCount = TriggerUtility.LevelValue(adcResolution, parameters.LevelV, triggerChannelVpp);
+        int levelCount = TriggerUtility.LevelValue(adcResolution, parameters.LevelV, triggerChannelVpp, triggerChannelOffsetV);
 
         if (levelCount >= TriggerUtility.AdcMax(adcResolution))
             levelCount = TriggerUtility.AdcMax(adcResolution) - 1;  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms             

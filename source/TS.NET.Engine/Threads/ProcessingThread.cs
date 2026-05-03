@@ -199,7 +199,8 @@ public class ProcessingThread : IThread
                                 currentHardwareConfig.Acquisition.SampleRateHz = hardwareSetRate.Rate;
                                 UpdateRateAndCoerce(forceRateUpdate: true);
                                 currentHardwareConfig = thunderscope.GetConfiguration();
-                                ResetAll();
+                                ResetBuffers();
+                                ResetTrigger();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(HardwareSetRate)} ({currentHardwareConfig.Acquisition.SampleRateHz})");
                             }
@@ -222,7 +223,8 @@ public class ProcessingThread : IThread
                                 UpdateRateAndCoerce(forceRateUpdate: false);
                                 thunderscope.SetResolution(hardwareSetResolution.Resolution);
                                 currentHardwareConfig = thunderscope.GetConfiguration();
-                                ResetAll();
+                                ResetBuffers();
+                                ResetTrigger();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(HardwareSetResolution)} ({hardwareSetResolution.Resolution})");
                             }
@@ -238,7 +240,8 @@ public class ProcessingThread : IThread
                                 UpdateRateAndCoerce(forceRateUpdate: false);
                                 thunderscope.SetChannelEnable(hardwareSetChannelEnabled.ChannelIndex, hardwareSetChannelEnabled.Enabled);
                                 currentHardwareConfig = thunderscope.GetConfiguration();
-                                ResetAll();
+                                ResetBuffers();
+                                ResetTrigger();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(HardwareSetChannelEnabled)} ({hardwareSetChannelEnabled.ChannelIndex} {hardwareSetChannelEnabled.Enabled})");
                             }
@@ -295,6 +298,7 @@ public class ProcessingThread : IThread
                                 }
                                 thunderscope.SetChannelFrontend(channelIndex, channelFrontend);
                                 currentHardwareConfig = thunderscope.GetConfiguration();
+                                ResetTrigger(); // Todo: could check if channel is the trigger channel
                                 break;
                             }
 
@@ -352,7 +356,8 @@ public class ProcessingThread : IThread
                             }
 
                         case ProcessingRun processingRun:
-                            ResetAll();
+                            ResetBuffers();
+                            ResetTrigger();
                             if (processingConfig.Mode == Mode.Single)
                                 singleTriggerLatch = true;
                             Start();
@@ -395,7 +400,8 @@ public class ProcessingThread : IThread
                                     processingConfig.Mode = processingSetMode.Mode;
                                     break;
                             }
-                            ResetAll();
+                            ResetBuffers();
+                            ResetTrigger();
                             uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                             logger.LogDebug($"{nameof(ProcessingSetMode)} (mode: {processingConfig.Mode})");
                             break;
@@ -403,7 +409,8 @@ public class ProcessingThread : IThread
                             if (processingConfig.ChannelDataLength != processingSetDepth.Samples)
                             {
                                 processingConfig.ChannelDataLength = processingSetDepth.Samples;
-                                ResetAll();
+                                ResetBuffers();
+                                ResetTrigger();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(ProcessingSetDepth)} ({processingConfig.ChannelDataLength})");
                             }
@@ -1138,21 +1145,21 @@ public class ProcessingThread : IThread
                     thunderscope.SetRate(currentHardwareConfig.Acquisition.SampleRateHz);
             }
 
-            void ResetAll()
+            void ResetBuffers()
             {
-                logger.LogDebug("ResetAll");
+                logger.LogDebug("ResetBuffers");
 
                 // Reset acquisition buffers
                 acquisitionBuffer.Reset();
 
                 // Reset capture buffers
                 captureBufferManager.Configure(BitOperations.PopCount(currentHardwareConfig.Acquisition.EnabledChannels), processingConfig.ChannelDataLength, processingConfig.ChannelDataType);
-
-                ResetTrigger();
             }
 
             void ResetTrigger()
             {
+                logger.LogDebug("ResetTrigger");
+
                 ulong femtosecondsPerSample = 1000000000000000 / currentHardwareConfig.Acquisition.SampleRateHz;
                 long windowTriggerPosition = (long)(processingConfig.TriggerDelayFs / femtosecondsPerSample);
                 long additionalHoldoff = (long)(processingConfig.TriggerHoldoffFs / femtosecondsPerSample);
@@ -1179,9 +1186,9 @@ public class ProcessingThread : IThread
                 {
                     TriggerType.Edge => processingConfig.EdgeTriggerParameters.Direction switch
                     {
-                        EdgeDirection.Rising => new RisingEdgeTriggerI8(processingConfig.EdgeTriggerParameters, triggerChannel.ActualVoltFullScale),
-                        EdgeDirection.Falling => new FallingEdgeTriggerI8(processingConfig.EdgeTriggerParameters, triggerChannel.ActualVoltFullScale),
-                        EdgeDirection.Any => new AnyEdgeTriggerI8(processingConfig.EdgeTriggerParameters, triggerChannel.ActualVoltFullScale),
+                        EdgeDirection.Rising => new RisingEdgeTriggerI8(processingConfig.EdgeTriggerParameters, triggerChannel.ActualVoltFullScale, triggerChannel.ActualVoltOffset),
+                        EdgeDirection.Falling => new FallingEdgeTriggerI8(processingConfig.EdgeTriggerParameters, triggerChannel.ActualVoltFullScale, triggerChannel.ActualVoltOffset),
+                        EdgeDirection.Any => new AnyEdgeTriggerI8(processingConfig.EdgeTriggerParameters, triggerChannel.ActualVoltFullScale, triggerChannel.ActualVoltOffset),
                         _ => throw new NotImplementedException()
                     },
                     TriggerType.Burst => new BurstTriggerI8(processingConfig.BurstTriggerParameters),
@@ -1191,7 +1198,7 @@ public class ProcessingThread : IThread
                 {
                     TriggerType.Edge => processingConfig.EdgeTriggerParameters.Direction switch
                     {
-                        EdgeDirection.Rising => new RisingEdgeTriggerI16(processingConfig.EdgeTriggerParameters, currentHardwareConfig.Acquisition.Resolution, triggerChannel.ActualVoltFullScale),
+                        EdgeDirection.Rising => new RisingEdgeTriggerI16(processingConfig.EdgeTriggerParameters, currentHardwareConfig.Acquisition.Resolution, triggerChannel.ActualVoltFullScale, triggerChannel.ActualVoltOffset),
                         EdgeDirection.Falling => throw new NotImplementedException(),
                         EdgeDirection.Any => throw new NotImplementedException(),
                         _ => throw new NotImplementedException()

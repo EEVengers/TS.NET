@@ -14,9 +14,9 @@
             return hysteresisValue;
         }
 
-        public static int LevelValue(AdcResolution adcResolution, double levelV, double triggerChannelVpp)
+        public static int LevelValue(AdcResolution adcResolution, double levelV, double triggerChannelVpp, double triggerChannelOffsetV)
         {
-            var channelRangeRatio = levelV / triggerChannelVpp;
+            var channelRangeRatio = (levelV - triggerChannelOffsetV) / triggerChannelVpp;
             int levelValue = (int)Math.Clamp(Math.Round(channelRangeRatio * AdcRange(adcResolution)), AdcMin(adcResolution), AdcMax(adcResolution));
 
             return levelValue;
