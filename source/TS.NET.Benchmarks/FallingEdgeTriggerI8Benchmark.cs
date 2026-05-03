@@ -11,7 +11,7 @@ namespace TS.NET.Benchmarks
         private void* inputP_50percent;
 
         private readonly Memory<int> captureEndIndicesU64 = new int[byteBufferSize / 64];
-        private readonly FallingEdgeTriggerI8 trigger = new(new EdgeTriggerParameters() { LevelV = 0, HysteresisPercent = 5, Direction = EdgeDirection.Falling }, 1);
+        private readonly FallingEdgeTriggerI8 trigger = new(new EdgeTriggerParameters() { LevelV = 0, HysteresisPercent = 5, Direction = EdgeDirection.Falling }, 1, 0);
         private EdgeTriggerResults edgeTriggerResults = new()
         {
             ArmIndices = new ulong[1000],

@@ -18,7 +18,7 @@ namespace TS.NET.Benchmarks
         private readonly Memory<sbyte> buffer1MHz = new sbyte[byteBufferSize];
         private readonly Memory<sbyte> buffer1KHz = new sbyte[byteBufferSize];
         private readonly Memory<int> captureEndIndicesU64 = new int[byteBufferSize / 64];
-        private readonly AnyEdgeTriggerI8 trigger = new(new EdgeTriggerParameters() { LevelV = 0, HysteresisPercent = 5, Direction = EdgeDirection.Any }, 1);
+        private readonly AnyEdgeTriggerI8 trigger = new(new EdgeTriggerParameters() { LevelV = 0, HysteresisPercent = 5, Direction = EdgeDirection.Any }, 1, 0);
         private EdgeTriggerResults edgeTriggerResults = new ()
         {
             ArmIndices = new ulong[1000],
