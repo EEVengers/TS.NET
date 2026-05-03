@@ -1199,13 +1199,17 @@ public class ProcessingThread : IThread
                     TriggerType.Edge => processingConfig.EdgeTriggerParameters.Direction switch
                     {
                         EdgeDirection.Rising => new RisingEdgeTriggerI16(processingConfig.EdgeTriggerParameters, currentHardwareConfig.Acquisition.Resolution, triggerChannel.ActualVoltFullScale, triggerChannel.ActualVoltOffset),
-                        EdgeDirection.Falling => throw new NotImplementedException(),
-                        EdgeDirection.Any => throw new NotImplementedException(),
+                        EdgeDirection.Falling => new NotImplementedTriggerI16(),
+                        EdgeDirection.Any => new NotImplementedTriggerI16(),
                         _ => throw new NotImplementedException()
                     },
-                    TriggerType.Burst => throw new NotImplementedException(),
+                    TriggerType.Burst => new NotImplementedTriggerI16(),
                     _ => throw new NotImplementedException()
                 };
+                if(triggerI16 is NotImplementedTriggerI16)
+                {
+                    logger.LogWarning($"Trigger type is not implemented for I16 data.");
+                }
 
                 // Set trigger horizontal parameters
                 triggerI8.SetHorizontal(processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
