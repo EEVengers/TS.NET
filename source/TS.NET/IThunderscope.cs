@@ -12,10 +12,12 @@
         void SetChannelCalibration(int channelIndex, ThunderscopeChannelCalibration channelCalibration);
         void Read(ThunderscopeMemory data);
         bool TryRead(Span<byte> data, out ulong sampleStartIndex, out int sampleLengthPerChannel);
-        bool TryGetEvent(out ThunderscopeEvent thunderscopeEvent, out ulong eventSampleIndex);
         ThunderscopeHardwareConfig GetConfiguration();
         void SetRate(ulong sampleRateHz);
         void SetResolution(AdcResolution resolution);
+        bool TryGetEvent(out ThunderscopeEvent thunderscopeEvent, out ulong eventSampleIndex);
+        void AssertEvent();
+        void SetPeriodicEventSync(uint period_us);
         void SetExtSyncMode(ThunderscopeExtSyncMode externalSyncMode);
         void SetRefClockMode(ThunderscopeRefClockMode refClockMode);
         void SetRefClockFrequency(uint frequencyHz);
@@ -23,7 +25,9 @@
 
     public enum ThunderscopeEvent : byte
     {
-        SyncInputRisingEdge = 1
+        None = 0,
+        SyncOutputRisingEdge = 1,
+        SyncInputRisingEdge = 2
     }
 
     public enum ThunderscopeExtSyncMode : byte

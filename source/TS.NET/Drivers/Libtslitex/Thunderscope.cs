@@ -209,25 +209,6 @@ namespace TS.NET.Driver.Libtslitex
             }
         }
 
-        public bool TryGetEvent(out ThunderscopeEvent thunderscopeEvent, out ulong eventSampleIndex)
-        {
-            CheckOpen();
-            var retVal = Interop.GetEvent(tsHandle, out var tsEvent);
-            if (retVal < 0)
-                throw new ThunderscopeException($"Failed to get event ({GetLibraryReturnString(retVal)})");
-            switch (tsEvent.type)
-            {
-                case Interop.tsEventType_t.TS_EVT_EXT_SYNC:
-                    thunderscopeEvent = ThunderscopeEvent.SyncInputRisingEdge;
-                    eventSampleIndex = tsEvent.index;
-                    return true;
-                default:
-                    thunderscopeEvent = 0;
-                    eventSampleIndex = 0;
-                    return false;
-            }
-        }
-
         public ThunderscopeChannelFrontend GetChannelFrontend(int channelIndex)
         {
             CheckOpen();
@@ -371,8 +352,8 @@ namespace TS.NET.Driver.Libtslitex
             var format = resolution switch
             {
                 AdcResolution.EightBit => Interop.tsSampleFormat_t.Format8Bit,
-                AdcResolution.TwelveBit => Interop.tsSampleFormat_t.Format12BitMSB,
-                //AdcResolution.TwelveBit => Interop.tsSampleFormat_t.Format12BitLSB, 
+                AdcResolution.TwelveBit => Interop.tsSampleFormat_t.Format12BitLSB, 
+                //AdcResolution.TwelveBit => Interop.tsSampleFormat_t.Format12BitMSB,
                 _ => throw new NotImplementedException()
             };
             var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, format);
@@ -702,6 +683,45 @@ namespace TS.NET.Driver.Libtslitex
                 throw new ThunderscopeException($"Failed to set channel {channelIndex} config ({GetLibraryReturnString(retVal)})");
 
             channelManualOverride[channelIndex] = true;
+        }
+
+        public bool TryGetEvent(out ThunderscopeEvent thunderscopeEvent, out ulong eventSampleIndex)
+        {
+            CheckOpen();
+            var retVal = Interop.GetEvent(tsHandle, out var tsEvent);
+            if (retVal < 0)
+                throw new ThunderscopeException($"Failed to get event ({GetLibraryReturnString(retVal)})");
+            switch (tsEvent.type)
+            {
+                case Interop.tsEventType_t.TS_EVT_HOST_SW:
+                    thunderscopeEvent = ThunderscopeEvent.SyncOutputRisingEdge;
+                    eventSampleIndex = tsEvent.index;
+                    return true;
+                case Interop.tsEventType_t.TS_EVT_EXT_SYNC:
+                    thunderscopeEvent = ThunderscopeEvent.SyncInputRisingEdge;
+                    eventSampleIndex = tsEvent.index;
+                    return true;
+                default:
+                    thunderscopeEvent = 0;
+                    eventSampleIndex = 0;
+                    return false;
+            }
+        }
+
+        public void AssertEvent()
+        {
+            CheckOpen();
+            var retVal = Interop.AssertEventSync(tsHandle);
+            if (retVal < 0)
+                throw new ThunderscopeException($"Failed to assert event ({GetLibraryReturnString(retVal)})");
+        }
+
+        public void SetPeriodicEventSync(uint periodMicrosec)
+        {
+            CheckOpen();
+            var retVal = Interop.ConfigurePeriodicEventSync(tsHandle, periodMicrosec);
+            if (retVal < 0)
+                throw new ThunderscopeException($"Failed to set periodic event sync ({GetLibraryReturnString(retVal)})");
         }
 
         public void SetExtSyncMode(ThunderscopeExtSyncMode extSyncMode)

@@ -121,6 +121,8 @@ namespace TS.NET.Driver.Libtslitex
         [LibraryImport(library, EntryPoint = "thunderscopeSampleModeSet")]
         public static partial int SetSampleMode(nint ts, uint rate, tsSampleFormat_t mode);
 
+        //thunderscopeSampleInterruptRate
+
         [LibraryImport(library, EntryPoint = "thunderscopeDataEnable")]
         public static partial int DataEnable(nint ts, byte enable);
 
@@ -189,6 +191,12 @@ namespace TS.NET.Driver.Libtslitex
             TS_SYNC_OUT,
             TS_SYNC_IN
         }
+
+        [LibraryImport(library, EntryPoint = "thunderscopeEventSyncAssert")]
+        public static unsafe partial int AssertEventSync(nint ts);
+
+        [LibraryImport(library, EntryPoint = "thunderscopeEventSyncPeriodicConfig")]
+        public static unsafe partial int ConfigurePeriodicEventSync(nint ts, uint period_us);
 
         [LibraryImport(library, EntryPoint = "thunderscopeExtSyncConfig")]
         public static unsafe partial int ConfigureExtSync(nint ts, tsSyncMode_t mode);

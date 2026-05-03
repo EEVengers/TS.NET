@@ -284,19 +284,10 @@ internal class DataServer : IThread
                             int channelIndex = captureBuffer.Metadata.HardwareConfig.Acquisition.GetChannelIndexByCaptureBufferIndex(captureBufferIndex);
                             ThunderscopeChannelFrontend thunderscopeChannel = captureBuffer.Metadata.HardwareConfig.Frontend[channelIndex];
                             channelHeader.channelIndex = (byte)channelIndex;
-                            switch (captureBuffer.Metadata.ProcessingConfig.ChannelDataType)
-                            {
-                                case ThunderscopeDataType.I8:
-                                    channelHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 256.0);
-                                    break;
-                                case ThunderscopeDataType.I16:
-                                    channelHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 65536.0);
-                                    //chHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / 4096.0);
-                                    break;
-                            }
+                            channelHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / TriggerUtility.AdcRange(captureBuffer.Metadata.HardwareConfig.Acquisition.Resolution));
                             channelHeader.offset = (float)thunderscopeChannel.ActualVoltOffset;
                             socket.Send(new ReadOnlySpan<byte>(&channelHeader, sizeof(ChannelHeader)));
-                            ReadOnlySpan<byte> channelBuffer = captureBuffer.GetChannelReadByteBuffer(captureBufferIndex);
+                            var channelBuffer = captureBuffer.GetChannelReadByteBuffer(captureBufferIndex);
                             socket.Send(channelBuffer);
                         }
                     }
@@ -306,10 +297,7 @@ internal class DataServer : IThread
                         int triggerIndex = (int)(captureBuffer.Metadata.ProcessingConfig.TriggerDelayFs / femtosecondsPerSample);
                         int channelIndex = captureBuffer.Metadata.HardwareConfig.Acquisition.GetChannelIndexByCaptureBufferIndex(captureBuffer.Metadata.TriggerChannelCaptureIndex);
                         ThunderscopeChannelFrontend triggerChannelFrontend = captureBuffer.Metadata.HardwareConfig.Frontend[channelIndex];
-                        var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 256.0);     // 8-bit
-                        if (captureBuffer.Metadata.HardwareConfig.Acquisition.Resolution == AdcResolution.TwelveBit)
-                            channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 65536.0);   // 16-bit
-                                                                                                            //channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / 4096.0);   // 16-bit
+                        var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / TriggerUtility.AdcRange(captureBuffer.Metadata.HardwareConfig.Acquisition.Resolution));
                         var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
 
                         float fa = channelScale * pointA - channelOffset;

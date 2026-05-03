@@ -268,7 +268,10 @@ namespace TS.NET
         public bool TryStartRead(out CaptureBuffer? buffer)
         {
             if (readInProgress || currentReadBuffer != null)
-                throw new InvalidOperationException();
+            {
+                buffer = null;
+                return false;
+            }
 
             lock (readLock)
             {

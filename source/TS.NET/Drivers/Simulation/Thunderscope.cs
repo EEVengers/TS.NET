@@ -145,22 +145,37 @@
 
         public void SetRate(ulong sampleRateHz)
         {
+            throw new NotImplementedException();
         }
 
         public void SetResolution(AdcResolution resolution)
         {
+            throw new NotImplementedException();
         }
 
         public void SetExtSyncMode(ThunderscopeExtSyncMode extSyncMode)
         {
+            throw new NotImplementedException();
         }
 
         public void SetRefClockMode(ThunderscopeRefClockMode refClockMode)
         {
+            throw new NotImplementedException();
         }
 
         public void SetRefClockFrequency(uint frequencyHz)
         {
+            throw new NotImplementedException();
+        }
+
+        public void AssertEvent()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetPeriodicEventSync(uint period_us)
+        {
+            throw new NotImplementedException();
         }
     }
 }
