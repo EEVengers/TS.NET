@@ -28,7 +28,7 @@ Commands/queries are logically grouped into subsystems, with the exception of th
 | `ACQ` | Acquisition subsystem for ADC & capture configuration. |
 | `TRIG` | Trigger subsystem for trigger configuration. |
 | `CHAN` | Channel subsystem for input frontend configuration. |
-| `REFCLK` | Reference clock subsystem for REFCLK IN/OUT BNC configuration. |
+| `REFCL` | Reference clock subsystem for REFCLK IN/OUT BNC configuration. |
 | `PRO` | Processing subsystem for data processing configuration. |
 | `CAL` | Calibration subsystem for frontend/ADC calibration. |
 
@@ -137,16 +137,16 @@ Subject matches `CHAN`/`CHANnel` abbreviations via `subject.StartsWith("CHAN")` 
 | `CHAN<n>:OFFS:ACT?` | none | `<volts>` | Get actual voltage offset (formatted `0.######`). |
 | `CHAN<n>:RANG:ACT?` | none | `<volts>` | Get actual full-scale range (formatted `0.######`). |
 
-## Reference clock subsystem (`REFCLK...`)
+## Reference clock subsystem (`REFCL...`)
 
-Subject matches `REFCLK` via `subject.StartsWith("REFCLK")`.
+Subject matches `REFCL` via `subject.StartsWith("REFCL")`.
 
 ### Commands
 
 | Command | Args | Description |
 |---|---:|---|
-| `REFCLK:MODE` | `IN`, `OUT`, `OFF` | Set mode of REFCLK IN/OUT BNC. |
-| `REFCLK:FREQ` | `uint` | Set the input clock frequency if in IN mode, or output frequency if in OUT mode. |
+| `REFCL:MODE` | `IN`, `OUT`, `OFF` | Set mode of REFCLK IN/OUT BNC. |
+| `REFCL:FREQ` | `uint` | Set the input clock frequency if in IN mode, or output frequency if in OUT mode. |
 
 ## Processing subsystem (`PRO...`)
 
