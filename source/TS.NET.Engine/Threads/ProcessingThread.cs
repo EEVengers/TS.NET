@@ -296,17 +296,32 @@ public class ProcessingThread : IThread
                                 }
                                 thunderscope.SetChannelFrontend(channelIndex, channelFrontend);
                                 currentHardwareConfig = thunderscope.GetConfiguration();
-                                switch(request)
+                                switch (request)
                                 {
                                     case HardwareSetVoltOffset hardwareSetOffsetRequest:
                                         logger.LogDebug($"{nameof(HardwareSetVoltOffset)} (channel: {channelIndex}, requested: {hardwareSetOffsetRequest.VoltOffset}, actual: {currentHardwareConfig.Frontend[channelIndex].ActualVoltOffset:F4}, min: {currentHardwareConfig.Frontend[channelIndex].MinVoltOffset:F4}, max: {currentHardwareConfig.Frontend[channelIndex].MaxVoltOffset:F4})");
                                         break;
-                                        case HardwareSetVoltFullScale hardwareSetVoltFullScale:
+                                    case HardwareSetVoltFullScale hardwareSetVoltFullScale:
                                         logger.LogDebug($"{nameof(HardwareSetVoltFullScale)} (channel: {channelIndex}, requested: {hardwareSetVoltFullScale.VoltFullScale}, actual: {currentHardwareConfig.Frontend[channelIndex].ActualVoltFullScale:F4})");
                                         break;
 
                                 }
                                 ResetTrigger(); // Todo: could check if channel is the trigger channel
+                                break;
+                            }
+
+                        case HardwareSetChannelManualControl hardwareSetChannelManualControl:
+                            {
+                                var ts = (Driver.Libtslitex.Thunderscope)thunderscope;
+                                ts.SetChannelManualControl(hardwareSetChannelManualControl.ChannelIndex, hardwareSetChannelManualControl.Channel);
+                                logger.LogDebug($"{nameof(HardwareSetChannelManualControl)} (channel: {hardwareSetChannelManualControl.ChannelIndex})");
+                                break;
+                            }
+                        case HardwareSetAdcCalibration hardwareSetAdcCalibration:
+                            {
+                                var ts = (Driver.Libtslitex.Thunderscope)thunderscope;
+                                ts.SetAdcCalibration(hardwareSetAdcCalibration.AdcCalibration);
+                                logger.LogDebug($"{nameof(HardwareSetAdcCalibration)}");
                                 break;
                             }
 
@@ -1214,7 +1229,7 @@ public class ProcessingThread : IThread
                     TriggerType.Burst => new NotImplementedTriggerI16(),
                     _ => throw new NotImplementedException()
                 };
-                if(triggerI16 is NotImplementedTriggerI16)
+                if (triggerI16 is NotImplementedTriggerI16)
                 {
                     logger.LogWarning($"Trigger type is not implemented for I16 data.");
                 }
