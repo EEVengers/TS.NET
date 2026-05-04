@@ -273,12 +273,10 @@ public class ProcessingThread : IThread
                                 switch (request)
                                 {
                                     case HardwareSetVoltOffset hardwareSetOffsetRequest:
-                                        logger.LogDebug($"{nameof(HardwareSetVoltOffset)} (channel: {channelIndex}, offset: {hardwareSetOffsetRequest.VoltOffset})");
                                         channelFrontend.RequestedVoltOffset = hardwareSetOffsetRequest.VoltOffset;
                                         break;
-                                    case HardwareSetVoltFullScale hardwareSetVdivRequest:
-                                        logger.LogDebug($"{nameof(HardwareSetVoltFullScale)} (channel: {channelIndex}, scale: {hardwareSetVdivRequest.VoltFullScale})");
-                                        channelFrontend.RequestedVoltFullScale = hardwareSetVdivRequest.VoltFullScale;
+                                    case HardwareSetVoltFullScale hardwareSetVoltFullScale:
+                                        channelFrontend.RequestedVoltFullScale = hardwareSetVoltFullScale.VoltFullScale;
                                         break;
                                     case HardwareSetBandwidth hardwareSetBandwidthRequest:
                                         logger.LogDebug($"{nameof(HardwareSetBandwidth)} (channel: {channelIndex}, bandwidth: {hardwareSetBandwidthRequest.Bandwidth})");
@@ -298,6 +296,16 @@ public class ProcessingThread : IThread
                                 }
                                 thunderscope.SetChannelFrontend(channelIndex, channelFrontend);
                                 currentHardwareConfig = thunderscope.GetConfiguration();
+                                switch(request)
+                                {
+                                    case HardwareSetVoltOffset hardwareSetOffsetRequest:
+                                        logger.LogDebug($"{nameof(HardwareSetVoltOffset)} (channel: {channelIndex}, requested: {hardwareSetOffsetRequest.VoltOffset}, actual: {currentHardwareConfig.Frontend[channelIndex].ActualVoltOffset:F4})");
+                                        break;
+                                        case HardwareSetVoltFullScale hardwareSetVoltFullScale:
+                                        logger.LogDebug($"{nameof(HardwareSetVoltFullScale)} (channel: {channelIndex}, requested: {hardwareSetVoltFullScale.VoltFullScale}, actual: {currentHardwareConfig.Frontend[channelIndex].ActualVoltFullScale:F4})");
+                                        break;
+
+                                }
                                 ResetTrigger(); // Todo: could check if channel is the trigger channel
                                 break;
                             }

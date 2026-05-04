@@ -405,9 +405,17 @@ namespace TS.NET.Driver.Libtslitex
             //requestedChannelVoltScale[channelIndex] = channel.RequestedVoltFullScale;
             //requestedChannelVoltOffset[channelIndex] = channel.RequestedVoltOffset;
 
-            // To calculate:
-            //channel.ActualVoltOffset;
+            // Note: PGA input voltage should not go beyond +/-0.6V from 2.5V so that enforces a limit in some gain scenarios. 
+            //       Datasheet says +/-0.6V. Testing shows up to +/-1.3V. Use datasheet specification.
+            const double pgaInputMaxDeviationFromBiasV = 0.6;
 
+            // Calculates the voltage headroom at the PGA input which has a limited allowed range (pgaInputMaxDeviationFromBiasV).
+            double CalculatePgaOffsetHeadroomV(ThunderscopeChannelPathCalibration path)
+            {
+                return pgaInputMaxDeviationFromBiasV - (CalculateBufferInputVpp(path) / 2.0);
+            }
+
+            // Calculates the voltage peak-peak at the BNC input with a given calibration path & frontend config.
             double CalculateConnectorInputVpp(ThunderscopeChannelPathCalibration path, ThunderscopeTermination termination, bool mainAttenuator, double mainAttenuatorScale)
             {
                 var scaleFactor = 1.0;
@@ -420,6 +428,7 @@ namespace TS.NET.Driver.Libtslitex
                 return CalculateBufferInputVpp(path) / scaleFactor;
             }
 
+            // Calculates the voltage peak-peak at the buffer input with a given calibration path.
             double CalculateBufferInputVpp(ThunderscopeChannelPathCalibration path)
             {
                 var channelCount = channelEnabled.Count(chE => chE);
@@ -429,6 +438,18 @@ namespace TS.NET.Driver.Libtslitex
                     throw new ThunderscopeException("Calibration data does not contain a PgaLoadScale for requested configuration");
                 var gain = channelCalibration[channelIndex].PgaLoadScales.First(s => s.SampleRate == cachedSampleRateHz && s.ChannelCount == channelCount).Scale;
                 return path.BufferInputVpp * (1.0 / gain);
+            }
+
+            // Calculates if the requested voltage offset is supported with the given calibration path & frontend config.
+            bool SupportsRequestedOffset(ThunderscopeChannelPathCalibration path, bool mainAttenuator)
+            {
+                // To do: take into account the allowable DAC range
+                var pgaHeadroom = CalculatePgaOffsetHeadroomV(path);
+                if (pgaHeadroom <= 0)
+                    return false;
+
+                var gainFactor = mainAttenuator ? channelCalibration[channelIndex].AttenuatorScale : 1.0;
+                return Math.Abs(channel.RequestedVoltOffset * gainFactor) <= pgaHeadroom;
             }
 
             bool pathFound = false;
@@ -446,20 +467,23 @@ namespace TS.NET.Driver.Libtslitex
             var runRangeSearch = !vppTooSmall && !vppTooLarge;
             channel.ActualTermination = channel.RequestedTermination;       // True in most cases, there is below that can change it
 
-            // To do: search logic should also take into account the RequestedVoltOffset so that the attenuator can operate for large offsets;
             while (runRangeSearch)
             {
-                // Scan through the frontend gain configurations until the actual volt range would exceed the requested voltage range
+                // Scan through the frontend gain configurations until the actual volt range would exceed the requested voltage range and ensure requested offset is reachable with the chosen path.
                 // Pga with no attenuator
                 foreach (var path in channelCalibration[channelIndex].Paths)
                 {
                     var potentialVpp = CalculateConnectorInputVpp(path, channel.RequestedTermination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
                     if (potentialVpp > channel.RequestedVoltFullScale)
                     {
+                        if (!SupportsRequestedOffset(path, attenuator))
+                        {
+                            continue;
+                        }
+
                         pathFound = true;
                         selectedPath = path;
                         channel.ActualVoltFullScale = potentialVpp;
-                        channel.ActualVoltOffset = 0;       // To do
                         break;
                     }
                 }
@@ -472,10 +496,14 @@ namespace TS.NET.Driver.Libtslitex
                     var potentialVpp = CalculateConnectorInputVpp(path, channel.RequestedTermination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
                     if (potentialVpp > channel.RequestedVoltFullScale)
                     {
+                        if (!SupportsRequestedOffset(path, attenuator))
+                        {
+                            continue;
+                        }
+
                         pathFound = true;
                         selectedPath = path;
                         channel.ActualVoltFullScale = potentialVpp;
-                        channel.ActualVoltOffset = 0;       // To do
                         break;
                     }
                 }
@@ -492,18 +520,25 @@ namespace TS.NET.Driver.Libtslitex
                         {
                             selectedPath = channelCalibration[channelIndex].Paths.Last();
                             attenuator = true;
-                            channel.RequestedVoltFullScale = maximumDesignRangeForTermination;
-                            channel.ActualVoltFullScale = CalculateConnectorInputVpp(selectedPath, channel.RequestedTermination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
+                            logger.LogWarning($"Requested range too large");
                         }
-                        else
+                        else if (vppTooSmall)
                         {
                             selectedPath = channelCalibration[channelIndex].Paths.First();
                             attenuator = false;
-                            channel.RequestedVoltFullScale = minimumDesignRange;
-                            channel.ActualVoltFullScale = CalculateConnectorInputVpp(selectedPath, channel.RequestedTermination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
+                            logger.LogWarning("Requested range too small");
                         }
-                        channel.ActualVoltOffset = 0;       // To do
+                        else
+                        {                       
+                            selectedPath = channelCalibration[channelIndex].Paths.Last();
+                            attenuator = true;
+                            if (!SupportsRequestedOffset(selectedPath, attenuator))
+                            {
+                                logger.LogWarning("Requested offset too large");
+                            }
+                        }
                         break;
+
                     case ThunderscopeTermination.FiftyOhm:
                         if (vppTooLarge)
                         {
@@ -512,25 +547,36 @@ namespace TS.NET.Driver.Libtslitex
                             logger.LogWarning("Termination changed to 1M");
 
                             selectedPath = channelCalibration[channelIndex].Paths.Last();
-                            channel.RequestedVoltFullScale = maximumDesignRangeForTermination;
                             attenuator = true;
+                            logger.LogWarning("Requested range too large");
+                        }
+                        else if (vppTooSmall)
+                        {
+                            selectedPath = channelCalibration[channelIndex].Paths.First();
+                            attenuator = false;
+                            logger.LogWarning("Requested range too small");
                         }
                         else
                         {
-                            selectedPath = channelCalibration[channelIndex].Paths.First();
-                            channel.RequestedVoltFullScale = minimumDesignRange;
-                            attenuator = false;
+                            // Switch off the 50R termination
+                            channel.ActualTermination = ThunderscopeTermination.OneMegaohm;
+                            logger.LogWarning("Termination changed to 1M");
+
+                            selectedPath = channelCalibration[channelIndex].Paths.Last();
+                            attenuator = true;
+                            if (!SupportsRequestedOffset(selectedPath, attenuator))
+                            {
+                                logger.LogWarning("Requested offset too large");
+                            }
                         }
-                        var potentialVpp = CalculateConnectorInputVpp(selectedPath, channel.RequestedTermination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
-                        channel.ActualVoltFullScale = potentialVpp;
-                        channel.ActualVoltOffset = 0;       // To do
                         break;
                 }
+                channel.ActualVoltFullScale = CalculateConnectorInputVpp(selectedPath, channel.RequestedTermination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
             }
 
             // Note: PGA input voltage should not go beyond +/-0.6V from 2.5V so that enforces a limit in some gain scenarios. 
             //   Datasheet says +/-0.6V. Testing shows up to +/-1.3V. Use datasheet specification.
-            var dacValueMaxDeviation = (int)((0.6 - (CalculateBufferInputVpp(selectedPath) / 2.0)) / (selectedPath.BufferInputVpp * selectedPath.TrimOffsetDacScale));
+            var dacValueMaxDeviation = (int)(CalculatePgaOffsetHeadroomV(selectedPath) / (selectedPath.BufferInputVpp * selectedPath.TrimOffsetDacScale));
 
             // Note: attenuator is the only source of gainFactor change. Probe scaling should be accounted for at the UI level.
             double gainFactor = 1.0;
