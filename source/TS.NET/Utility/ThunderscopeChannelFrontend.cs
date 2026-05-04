@@ -15,6 +15,8 @@ namespace TS.NET
         public ThunderscopeTermination ActualTermination;
         public double ActualVoltFullScale;
         public double ActualVoltOffset;
+        public double MinVoltOffset;
+        public double MaxVoltOffset;
 
         public static ThunderscopeChannelFrontend Default()
         {

@@ -299,7 +299,7 @@ public class ProcessingThread : IThread
                                 switch(request)
                                 {
                                     case HardwareSetVoltOffset hardwareSetOffsetRequest:
-                                        logger.LogDebug($"{nameof(HardwareSetVoltOffset)} (channel: {channelIndex}, requested: {hardwareSetOffsetRequest.VoltOffset}, actual: {currentHardwareConfig.Frontend[channelIndex].ActualVoltOffset:F4})");
+                                        logger.LogDebug($"{nameof(HardwareSetVoltOffset)} (channel: {channelIndex}, requested: {hardwareSetOffsetRequest.VoltOffset}, actual: {currentHardwareConfig.Frontend[channelIndex].ActualVoltOffset:F4}, min: {currentHardwareConfig.Frontend[channelIndex].MinVoltOffset:F4}, max: {currentHardwareConfig.Frontend[channelIndex].MaxVoltOffset:F4})");
                                         break;
                                         case HardwareSetVoltFullScale hardwareSetVoltFullScale:
                                         logger.LogDebug($"{nameof(HardwareSetVoltFullScale)} (channel: {channelIndex}, requested: {hardwareSetVoltFullScale.VoltFullScale}, actual: {currentHardwareConfig.Frontend[channelIndex].ActualVoltFullScale:F4})");

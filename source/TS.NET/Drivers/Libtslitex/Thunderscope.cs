@@ -443,13 +443,56 @@ namespace TS.NET.Driver.Libtslitex
             // Calculates if the requested voltage offset is supported with the given calibration path & frontend config.
             bool SupportsRequestedOffset(ThunderscopeChannelPathCalibration path, bool mainAttenuator)
             {
-                // To do: take into account the allowable DAC range
-                var pgaHeadroom = CalculatePgaOffsetHeadroomV(path);
-                if (pgaHeadroom <= 0)
-                    return false;
+                CalculateAllowableOffsetRangeV(path, mainAttenuator, out var minOffsetV, out var maxOffsetV);
+                return channel.RequestedVoltOffset >= minOffsetV && channel.RequestedVoltOffset <= maxOffsetV;
+            }
 
+            // Calculates the allowable requested offset range at the connector input for a given calibration path.
+            // Note: this considers both PGA headroom limits and DAC range limits.
+            void CalculateAllowableOffsetRangeV(ThunderscopeChannelPathCalibration path, bool mainAttenuator, out double minOffsetV, out double maxOffsetV)
+            {
                 var gainFactor = mainAttenuator ? channelCalibration[channelIndex].AttenuatorScale : 1.0;
-                return Math.Abs(channel.RequestedVoltOffset * gainFactor) <= pgaHeadroom;
+                if (gainFactor <= 0)
+                {
+                    logger.LogCritical("Invalid gain factor <= 0");
+                    minOffsetV = 0;
+                    maxOffsetV = 0;
+                    return;
+                }
+
+                var pgaHeadroomV = CalculatePgaOffsetHeadroomV(path);
+                if (pgaHeadroomV <= 0)
+                {
+                    logger.LogCritical("Invalid PGA headroom <= 0");
+                    minOffsetV = 0;
+                    maxOffsetV = 0;
+                    return;
+                }
+
+                var minOffsetFromPgaV = -pgaHeadroomV / gainFactor;
+                var maxOffsetFromPgaV = pgaHeadroomV / gainFactor;
+
+                var offsetDacLsbV = path.BufferInputVpp * path.TrimOffsetDacScale;
+                if (offsetDacLsbV <= 0)
+                {
+                    logger.LogCritical("Invalid offset DAC LSB <= 0");
+                    minOffsetV = minOffsetFromPgaV;
+                    maxOffsetV = maxOffsetFromPgaV;
+                    return;
+                }
+
+                var minOffsetFromDacV = (0 - path.TrimOffsetDacZero) * offsetDacLsbV / gainFactor;
+                var maxOffsetFromDacV = (4095 - path.TrimOffsetDacZero) * offsetDacLsbV / gainFactor;
+
+                minOffsetV = Math.Max(minOffsetFromPgaV, minOffsetFromDacV);
+                maxOffsetV = Math.Min(maxOffsetFromPgaV, maxOffsetFromDacV);
+
+                if (minOffsetV > maxOffsetV)
+                {
+                    logger.LogCritical("Invalid offset calculation, min offset > max offset");
+                    minOffsetV = 0;
+                    maxOffsetV = 0;
+                }
             }
 
             bool pathFound = false;
@@ -574,22 +617,13 @@ namespace TS.NET.Driver.Libtslitex
                 channel.ActualVoltFullScale = CalculateConnectorInputVpp(selectedPath, channel.RequestedTermination, attenuator, channelCalibration[channelIndex].AttenuatorScale);
             }
 
-            // Note: PGA input voltage should not go beyond +/-0.6V from 2.5V so that enforces a limit in some gain scenarios. 
-            //   Datasheet says +/-0.6V. Testing shows up to +/-1.3V. Use datasheet specification.
-            var dacValueMaxDeviation = (int)(CalculatePgaOffsetHeadroomV(selectedPath) / (selectedPath.BufferInputVpp * selectedPath.TrimOffsetDacScale));
-
             // Note: attenuator is the only source of gainFactor change. Probe scaling should be accounted for at the UI level.
             double gainFactor = 1.0;
             if (attenuator)
                 gainFactor = channelCalibration[channelIndex].AttenuatorScale;
-
             // Note: if desired offset is beyond acceptable range for PGA input voltage limits, clamp it.
             // -1 to make the SCPI API match most scope vendors, i.e. if input signal has 100mV offset, send CHAN1:OFFS 0.1 to cancel it out.
             var dacOffset = -1 * (int)((channel.RequestedVoltOffset * gainFactor) / (selectedPath.BufferInputVpp * selectedPath.TrimOffsetDacScale));
-            if (dacOffset > dacValueMaxDeviation)
-                dacOffset = dacValueMaxDeviation;
-            if (dacOffset < -dacValueMaxDeviation)
-                dacOffset = -dacValueMaxDeviation;
             var dacValue = selectedPath.TrimOffsetDacZero - dacOffset;
 
             // Note: last resort clamping of DAC value.
@@ -600,6 +634,9 @@ namespace TS.NET.Driver.Libtslitex
 
             // Note: calculate actual offset so UI can use it.
             channel.ActualVoltOffset = ((dacValue - selectedPath.TrimOffsetDacZero) * (selectedPath.BufferInputVpp * selectedPath.TrimOffsetDacScale)) / gainFactor;
+            CalculateAllowableOffsetRangeV(selectedPath, attenuator, out var minOffsetV, out var maxOffsetV);
+            channel.MinVoltOffset = minOffsetV;
+            channel.MaxVoltOffset = maxOffsetV;
 
             var manualControl = new ThunderscopeChannelFrontendManualControl()
             {
