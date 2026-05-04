@@ -1199,8 +1199,8 @@ public class ProcessingThread : IThread
                     TriggerType.Edge => processingConfig.EdgeTriggerParameters.Direction switch
                     {
                         EdgeDirection.Rising => new RisingEdgeTriggerI16(processingConfig.EdgeTriggerParameters, currentHardwareConfig.Acquisition.Resolution, triggerChannel.ActualVoltFullScale, triggerChannel.ActualVoltOffset),
-                        EdgeDirection.Falling => new NotImplementedTriggerI16(),
-                        EdgeDirection.Any => new NotImplementedTriggerI16(),
+                        EdgeDirection.Falling => new FallingEdgeTriggerI16(processingConfig.EdgeTriggerParameters, currentHardwareConfig.Acquisition.Resolution, triggerChannel.ActualVoltFullScale, triggerChannel.ActualVoltOffset),
+                        EdgeDirection.Any => new AnyEdgeTriggerI16(processingConfig.EdgeTriggerParameters, currentHardwareConfig.Acquisition.Resolution, triggerChannel.ActualVoltFullScale, triggerChannel.ActualVoltOffset),
                         _ => throw new NotImplementedException()
                     },
                     TriggerType.Burst => new NotImplementedTriggerI16(),
