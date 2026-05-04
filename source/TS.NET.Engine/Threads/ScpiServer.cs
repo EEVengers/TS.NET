@@ -523,7 +523,7 @@ internal class ScpiServer : IThread
                         }
                         break;
                     }
-                case var _ when subject.StartsWith("REFCLK"):
+                case var _ when subject.StartsWith("REFCL"):
                     {
                         switch (command)
                         {
@@ -792,7 +792,7 @@ internal class ScpiServer : IThread
                                 switch (response)
                                 {
                                     case ProcessingGetTriggerSourceResponse triggerSourceResponse:
-                                        if(triggerSourceResponse.Channel == TriggerChannel.None)
+                                        if (triggerSourceResponse.Channel == TriggerChannel.None)
                                             return "NONE\n";
                                         return $"CHAN{(int)triggerSourceResponse.Channel}\n";
                                     default:
