@@ -17,11 +17,11 @@ public class TrimOffsetDacGainStep : Step
 
             pathCalibration.TrimScaleDac = pathConfig.TrimScaleDacInitial;
 
-            if (!Utility.TryTrimDacBinarySearch(channelIndex, pathCalibration, 118, 120, variables.FrontEndSettlingTimeMs, cancellationToken, out ushort pos100Dac, out double pos100Average))
+            if (!Utility.TryTrimDacBinarySearch(channelIndex, pathCalibration, 114, 126, variables.FrontEndSettlingTimeMs, cancellationToken, out ushort pos100Dac, out double pos100Average))
             {
                 throw new TestbenchException("Could not converge");
             }
-            if (!Utility.TryTrimDacBinarySearch(channelIndex, pathCalibration, -120, -118, variables.FrontEndSettlingTimeMs, cancellationToken, out ushort neg100Dac, out double neg100Average))
+            if (!Utility.TryTrimDacBinarySearch(channelIndex, pathCalibration, -126, -114, variables.FrontEndSettlingTimeMs, cancellationToken, out ushort neg100Dac, out double neg100Average))
             {
                 throw new TestbenchException("Could not converge");
             }

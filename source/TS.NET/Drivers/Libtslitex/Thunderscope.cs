@@ -93,6 +93,20 @@ namespace TS.NET.Driver.Libtslitex
             SetExtSyncMode(initialHardwareConfiguration.ExtSyncMode);
             SetRefClockMode(initialHardwareConfiguration.RefClockMode);
             SetRefClockFrequency(initialHardwareConfiguration.RefClockFrequencyHz);
+
+            int channelIndex = 0;
+
+            foreach (var path in channelCalibration[channelIndex].Paths)
+            {
+                CalculateAllowableOffsetRangeV(0, path, mainAttenuator: false, out var minOffsetV, out var maxOffsetV);
+                logger.LogDebug($"Input range: {path.BufferInputVpp:F3}Vpp, input offset: {minOffsetV:F3}V to {maxOffsetV:F3}V [{path.PgaPreampGain}, {path.PgaLadderAttenuator}, attenuator off]");
+            }
+
+            foreach (var path in channelCalibration[channelIndex].Paths)
+            {
+                CalculateAllowableOffsetRangeV(0, path, mainAttenuator: true, out var minOffsetV, out var maxOffsetV);
+                logger.LogDebug($"Input range: {path.BufferInputVpp / channelCalibration[0].AttenuatorScale:F3}Vpp, input offset: {minOffsetV:F3}V to {maxOffsetV:F3}V [{path.PgaPreampGain}, {path.PgaLadderAttenuator}, attenuator on]");
+            }
         }
 
         public void Close()
@@ -341,36 +355,6 @@ namespace TS.NET.Driver.Libtslitex
             SetSampleMode(sampleRateHz, resolution, updateFrontends: true);
         }
 
-        private void SetSampleMode(ulong sampleRateHz, AdcResolution resolution, bool updateFrontends)
-        {
-            CheckOpen();
-
-            var restart = running;
-            if (restart)
-                Stop();
-
-            var format = resolution switch
-            {
-                AdcResolution.EightBit => Interop.tsSampleFormat_t.Format8Bit,
-                AdcResolution.TwelveBit => Interop.tsSampleFormat_t.Format12BitLSB, 
-                //AdcResolution.TwelveBit => Interop.tsSampleFormat_t.Format12BitMSB,
-                _ => throw new NotImplementedException()
-            };
-            var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, format);
-
-            // There is a rate vs. scale relationship so update frontends
-            if (updateFrontends)
-                UpdateFrontends();
-
-            if (retVal == -2)
-                logger.LogTrace($"Failed to set sample rate ({sampleRateHz}): {GetLibraryReturnString(retVal)}");
-            else if (retVal < 0)
-                throw new ThunderscopeException($"Error trying to set sample rate {sampleRateHz} ({GetLibraryReturnString(retVal)})");
-
-            if (restart)
-                Start();
-        }
-
         public void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel)
         {
             CheckOpen();
@@ -437,45 +421,8 @@ namespace TS.NET.Driver.Libtslitex
             // Calculates if the requested voltage offset is supported with the given calibration path & frontend config.
             bool SupportsRequestedOffset(ThunderscopeChannelPathCalibration path, bool mainAttenuator)
             {
-                CalculateAllowableOffsetRangeV(path, mainAttenuator, out var minOffsetV, out var maxOffsetV);
+                CalculateAllowableOffsetRangeV(channelIndex, path, mainAttenuator, out var minOffsetV, out var maxOffsetV);
                 return channel.RequestedVoltOffset >= minOffsetV && channel.RequestedVoltOffset <= maxOffsetV;
-            }
-
-            // Calculates the allowable requested offset range at the connector input for a given calibration path.
-            void CalculateAllowableOffsetRangeV(ThunderscopeChannelPathCalibration path, bool mainAttenuator, out double minOffsetV, out double maxOffsetV)
-            {
-                // Note: PGA input CM limit (pgaInputMaxDeviationFromBiasV) is enforced by the path calibration dpot never going below '4' (1562.5 ohms = around 1.9V to 3.1V input CM)
-
-                var gainFactor = mainAttenuator ? channelCalibration[channelIndex].AttenuatorScale : 1.0;
-                if (gainFactor <= 0)
-                {
-                    logger.LogCritical("Invalid gain factor <= 0");
-                    minOffsetV = 0;
-                    maxOffsetV = 0;
-                    return;
-                }
-
-                var offsetDacLsbV = path.BufferInputVpp * path.TrimOffsetDacScale;
-                if (offsetDacLsbV <= 0)
-                {
-                    logger.LogCritical("Invalid offset DAC LSB <= 0");
-                    minOffsetV = 0;
-                    maxOffsetV = 0;
-                    return;
-                }
-
-                var minOffsetFromDacV = (0 - path.TrimOffsetDacZero) * offsetDacLsbV / gainFactor;
-                var maxOffsetFromDacV = (4095 - path.TrimOffsetDacZero) * offsetDacLsbV / gainFactor;
-
-                minOffsetV = minOffsetFromDacV;
-                maxOffsetV = maxOffsetFromDacV;
-
-                if (minOffsetV > maxOffsetV)
-                {
-                    logger.LogCritical("Invalid offset calculation, min offset > max offset");
-                    minOffsetV = 0;
-                    maxOffsetV = 0;
-                }
             }
 
             bool pathFound = false;
@@ -617,7 +564,7 @@ namespace TS.NET.Driver.Libtslitex
 
             // Note: calculate actual offset so UI can use it.
             channel.ActualVoltOffset = ((dacValue - selectedPath.TrimOffsetDacZero) * (selectedPath.BufferInputVpp * selectedPath.TrimOffsetDacScale)) / gainFactor;
-            CalculateAllowableOffsetRangeV(selectedPath, attenuator, out var minOffsetV, out var maxOffsetV);
+            CalculateAllowableOffsetRangeV(channelIndex, selectedPath, attenuator, out var minOffsetV, out var maxOffsetV);
             channel.MinVoltOffset = minOffsetV;
             channel.MaxVoltOffset = maxOffsetV;
 
@@ -894,6 +841,73 @@ namespace TS.NET.Driver.Libtslitex
                 -2 => "TS_INVALID_PARAM",
                 _ => "Unknown"
             };
+        }
+
+        private void SetSampleMode(ulong sampleRateHz, AdcResolution resolution, bool updateFrontends)
+        {
+            CheckOpen();
+
+            var restart = running;
+            if (restart)
+                Stop();
+
+            var format = resolution switch
+            {
+                AdcResolution.EightBit => Interop.tsSampleFormat_t.Format8Bit,
+                AdcResolution.TwelveBit => Interop.tsSampleFormat_t.Format12BitLSB,
+                //AdcResolution.TwelveBit => Interop.tsSampleFormat_t.Format12BitMSB,
+                _ => throw new NotImplementedException()
+            };
+            var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, format);
+
+            // There is a rate vs. scale relationship so update frontends
+            if (updateFrontends)
+                UpdateFrontends();
+
+            if (retVal == -2)
+                logger.LogTrace($"Failed to set sample rate ({sampleRateHz}): {GetLibraryReturnString(retVal)}");
+            else if (retVal < 0)
+                throw new ThunderscopeException($"Error trying to set sample rate {sampleRateHz} ({GetLibraryReturnString(retVal)})");
+
+            if (restart)
+                Start();
+        }
+
+        private void CalculateAllowableOffsetRangeV(int channelIndex, ThunderscopeChannelPathCalibration path, bool mainAttenuator, out double minOffsetV, out double maxOffsetV)
+        {
+            // Calculates the allowable requested offset range at the connector input for a given calibration path.
+            // Note: PGA input CM limit (pgaInputMaxDeviationFromBiasV) is enforced by the path calibration dpot never going below '4' (1562.5 ohms = around 1.9V to 3.1V input CM)
+
+            var gainFactor = mainAttenuator ? channelCalibration[channelIndex].AttenuatorScale : 1.0;
+            if (gainFactor <= 0)
+            {
+                logger.LogCritical("Invalid gain factor <= 0");
+                minOffsetV = 0;
+                maxOffsetV = 0;
+                return;
+            }
+
+            var offsetDacLsbV = path.BufferInputVpp * path.TrimOffsetDacScale;
+            if (offsetDacLsbV <= 0)
+            {
+                logger.LogCritical("Invalid offset DAC LSB <= 0");
+                minOffsetV = 0;
+                maxOffsetV = 0;
+                return;
+            }
+
+            var minOffsetFromDacV = (0 - path.TrimOffsetDacZero) * offsetDacLsbV / gainFactor;
+            var maxOffsetFromDacV = (4095 - path.TrimOffsetDacZero) * offsetDacLsbV / gainFactor;
+
+            minOffsetV = minOffsetFromDacV;
+            maxOffsetV = maxOffsetFromDacV;
+
+            if (minOffsetV > maxOffsetV)
+            {
+                logger.LogCritical("Invalid offset calculation, min offset > max offset");
+                minOffsetV = 0;
+                maxOffsetV = 0;
+            }
         }
     }
 }
