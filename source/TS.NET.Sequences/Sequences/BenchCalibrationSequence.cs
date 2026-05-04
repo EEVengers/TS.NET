@@ -40,9 +40,9 @@ public class BenchCalibrationSequence : Sequence
             
             new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { SigGens.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
-            new TrimOffsetDacGainStep("Channel 1 - Trim offset DAC scale - HG L0", 0, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
-            new TrimOffsetDacGainStep("Channel 1 - Trim offset DAC scale - HG L1", 0, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
-            new TrimOffsetDacGainStep("Channel 1 - Trim offset DAC scale - HG L2", 0, PgaPreampGain.High, pgaLadder: 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacGainStep("Channel 1 - Trim offset DAC scale - HG L0", 0, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 5 },
+            new TrimOffsetDacGainStep("Channel 1 - Trim offset DAC scale - HG L1", 0, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 5 },
+            new TrimOffsetDacGainStep("Channel 1 - Trim offset DAC scale - HG L2", 0, PgaPreampGain.High, pgaLadder: 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 5 },
             new TrimOffsetDacGainStep("Channel 1 - Trim offset DAC scale - HG L3", 0, PgaPreampGain.High, pgaLadder: 3, Variables),
             new TrimOffsetDacGainStep("Channel 1 - Trim offset DAC scale - HG L4", 0, PgaPreampGain.High, pgaLadder: 4, Variables),
             new TrimOffsetDacGainStep("Channel 1 - Trim offset DAC scale - HG L5", 0, PgaPreampGain.High, pgaLadder: 5, Variables),
@@ -133,9 +133,9 @@ public class BenchCalibrationSequence : Sequence
 
             new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { SigGens.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
-            new TrimOffsetDacGainStep("Channel 2 - Trim offset DAC scale - HG L0", 1, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
-            new TrimOffsetDacGainStep("Channel 2 - Trim offset DAC scale - HG L1", 1, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
-            new TrimOffsetDacGainStep("Channel 2 - Trim offset DAC scale - HG L2", 1, PgaPreampGain.High, pgaLadder: 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacGainStep("Channel 2 - Trim offset DAC scale - HG L0", 1, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 5 },
+            new TrimOffsetDacGainStep("Channel 2 - Trim offset DAC scale - HG L1", 1, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 5 },
+            new TrimOffsetDacGainStep("Channel 2 - Trim offset DAC scale - HG L2", 1, PgaPreampGain.High, pgaLadder: 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 5 },
             new TrimOffsetDacGainStep("Channel 2 - Trim offset DAC scale - HG L3", 1, PgaPreampGain.High, pgaLadder: 3, Variables),
             new TrimOffsetDacGainStep("Channel 2 - Trim offset DAC scale - HG L4", 1, PgaPreampGain.High, pgaLadder: 4, Variables),
             new TrimOffsetDacGainStep("Channel 2 - Trim offset DAC scale - HG L5", 1, PgaPreampGain.High, pgaLadder: 5, Variables),
@@ -226,9 +226,9 @@ public class BenchCalibrationSequence : Sequence
 
             new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { SigGens.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
-            new TrimOffsetDacGainStep("Channel 3 - Trim offset DAC scale - HG L0", 2, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
-            new TrimOffsetDacGainStep("Channel 3 - Trim offset DAC scale - HG L1", 2, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
-            new TrimOffsetDacGainStep("Channel 3 - Trim offset DAC scale - HG L2", 2, PgaPreampGain.High, pgaLadder: 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacGainStep("Channel 3 - Trim offset DAC scale - HG L0", 2, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 5 },
+            new TrimOffsetDacGainStep("Channel 3 - Trim offset DAC scale - HG L1", 2, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 5 },
+            new TrimOffsetDacGainStep("Channel 3 - Trim offset DAC scale - HG L2", 2, PgaPreampGain.High, pgaLadder: 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 5 },
             new TrimOffsetDacGainStep("Channel 3 - Trim offset DAC scale - HG L3", 2, PgaPreampGain.High, pgaLadder: 3, Variables),
             new TrimOffsetDacGainStep("Channel 3 - Trim offset DAC scale - HG L4", 2, PgaPreampGain.High, pgaLadder: 4, Variables),
             new TrimOffsetDacGainStep("Channel 3 - Trim offset DAC scale - HG L5", 2, PgaPreampGain.High, pgaLadder: 5, Variables),
@@ -319,9 +319,9 @@ public class BenchCalibrationSequence : Sequence
 
             new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { SigGens.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
-            new TrimOffsetDacGainStep("Channel 4 - Trim offset DAC scale - HG L0", 3, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
-            new TrimOffsetDacGainStep("Channel 4 - Trim offset DAC scale - HG L1", 3, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
-            new TrimOffsetDacGainStep("Channel 4 - Trim offset DAC scale - HG L2", 3, PgaPreampGain.High, pgaLadder: 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 3 },
+            new TrimOffsetDacGainStep("Channel 4 - Trim offset DAC scale - HG L0", 3, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 5 },
+            new TrimOffsetDacGainStep("Channel 4 - Trim offset DAC scale - HG L1", 3, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 5 },
+            new TrimOffsetDacGainStep("Channel 4 - Trim offset DAC scale - HG L2", 3, PgaPreampGain.High, pgaLadder: 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 5 },
             new TrimOffsetDacGainStep("Channel 4 - Trim offset DAC scale - HG L3", 3, PgaPreampGain.High, pgaLadder: 3, Variables),
             new TrimOffsetDacGainStep("Channel 4 - Trim offset DAC scale - HG L4", 3, PgaPreampGain.High, pgaLadder: 4, Variables),
             new TrimOffsetDacGainStep("Channel 4 - Trim offset DAC scale - HG L5", 3, PgaPreampGain.High, pgaLadder: 5, Variables),

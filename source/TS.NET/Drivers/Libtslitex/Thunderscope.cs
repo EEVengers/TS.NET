@@ -409,12 +409,6 @@ namespace TS.NET.Driver.Libtslitex
             //       Datasheet says +/-0.6V. Testing shows up to +/-1.3V. Use datasheet specification.
             const double pgaInputMaxDeviationFromBiasV = 0.6;
 
-            // Calculates the voltage headroom at the PGA input which has a limited allowed range (pgaInputMaxDeviationFromBiasV).
-            double CalculatePgaOffsetHeadroomV(ThunderscopeChannelPathCalibration path)
-            {
-                return pgaInputMaxDeviationFromBiasV - (CalculateBufferInputVpp(path) / 2.0);
-            }
-
             // Calculates the voltage peak-peak at the BNC input with a given calibration path & frontend config.
             double CalculateConnectorInputVpp(ThunderscopeChannelPathCalibration path, ThunderscopeTermination termination, bool mainAttenuator, double mainAttenuatorScale)
             {
@@ -448,9 +442,10 @@ namespace TS.NET.Driver.Libtslitex
             }
 
             // Calculates the allowable requested offset range at the connector input for a given calibration path.
-            // Note: this considers both PGA headroom limits and DAC range limits.
             void CalculateAllowableOffsetRangeV(ThunderscopeChannelPathCalibration path, bool mainAttenuator, out double minOffsetV, out double maxOffsetV)
             {
+                // Note: PGA input CM limit (pgaInputMaxDeviationFromBiasV) is enforced by the path calibration dpot never going below '4' (1562.5 ohms = around 1.9V to 3.1V input CM)
+
                 var gainFactor = mainAttenuator ? channelCalibration[channelIndex].AttenuatorScale : 1.0;
                 if (gainFactor <= 0)
                 {
@@ -460,32 +455,20 @@ namespace TS.NET.Driver.Libtslitex
                     return;
                 }
 
-                var pgaHeadroomV = CalculatePgaOffsetHeadroomV(path);
-                if (pgaHeadroomV <= 0)
-                {
-                    logger.LogCritical("Invalid PGA headroom <= 0");
-                    minOffsetV = 0;
-                    maxOffsetV = 0;
-                    return;
-                }
-
-                var minOffsetFromPgaV = -pgaHeadroomV / gainFactor;
-                var maxOffsetFromPgaV = pgaHeadroomV / gainFactor;
-
                 var offsetDacLsbV = path.BufferInputVpp * path.TrimOffsetDacScale;
                 if (offsetDacLsbV <= 0)
                 {
                     logger.LogCritical("Invalid offset DAC LSB <= 0");
-                    minOffsetV = minOffsetFromPgaV;
-                    maxOffsetV = maxOffsetFromPgaV;
+                    minOffsetV = 0;
+                    maxOffsetV = 0;
                     return;
                 }
 
                 var minOffsetFromDacV = (0 - path.TrimOffsetDacZero) * offsetDacLsbV / gainFactor;
                 var maxOffsetFromDacV = (4095 - path.TrimOffsetDacZero) * offsetDacLsbV / gainFactor;
 
-                minOffsetV = Math.Max(minOffsetFromPgaV, minOffsetFromDacV);
-                maxOffsetV = Math.Min(maxOffsetFromPgaV, maxOffsetFromDacV);
+                minOffsetV = minOffsetFromDacV;
+                maxOffsetV = maxOffsetFromDacV;
 
                 if (minOffsetV > maxOffsetV)
                 {
