@@ -1,6 +1,6 @@
 {
   "SchemaVersion": "0",
-  "DeviceSerial": "",
+  "SerialNumber": "",
   "CalibrationTimestamp": "",
   "Channel1": {
     "AttenuatorScale": 0.019786,
