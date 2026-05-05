@@ -391,11 +391,11 @@ public class ProcessingThread : IThread
                             }
                         case HardwareGetTemperatureRequest hardwareGetTemperatureRequest:
                             {
-                                double temp = 25.0;
+                                float temp = 25.0f;
                                 if (thunderscope is Driver.Libtslitex.Thunderscope liteXThunderscope)
                                 {
                                     var status = liteXThunderscope.GetStatus();
-                                    temp = status.FpgaTemp;
+                                    temp = (float)status.FpgaTemp;
                                 }
                                 processingControl.Response.Writer.Write(new HardwareGetTemperatureResponse(temp));
                                 logger.LogDebug($"{nameof(HardwareGetTemperatureRequest)}");
