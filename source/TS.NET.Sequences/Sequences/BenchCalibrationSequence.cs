@@ -37,7 +37,7 @@ public class BenchCalibrationSequence : Sequence
             new AdcBranchGainPhaseOffsetStep("Channel 1 - ADC branch gains - 500 MSPS", 0, 500_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
             new AdcBranchGainPhaseOffsetStep("Channel 1 - ADC branch gains - 660 MSPS", 0, 660_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
             new AdcBranchGainPhaseOffsetStep("Channel 1 - ADC branch gains - 1 GSPS", 0, 1_000_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
-            
+
             new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { SigGens.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
             new TrimOffsetDacGainStep("Channel 1 - Trim offset DAC scale - HG L0", 0, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(30), MaxRetries = 5 },
@@ -412,6 +412,12 @@ public class BenchCalibrationSequence : Sequence
 
             new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { SigGens.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
 
+            new Step("Update calibration"){ Action = (CancellationToken cancellationToken) => {
+                Variables.Calibration.Serial = Variables.HwidSerial;
+                Variables.CalibrationTimestamp = DateTimeOffset.Now;
+                Variables.Calibration.Timestamp = Variables.CalibrationTimestamp.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                return Sequencer.Status.Done;
+            }},
             new SaveUserCalToFileStep("Save calibration to file", Variables) { AllowSkip = true },
             new SaveUserCalToDeviceStep("Save calibration to device", Variables) { AllowSkip = true },
 

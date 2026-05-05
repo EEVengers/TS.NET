@@ -17,8 +17,16 @@ class Program
     [STAThread]
     static void Main(string[] args)
     {
+        // Load serial from first thunderscope found
+        var hwidSerial = "";
+        var devices = Driver.Libtslitex.Thunderscope.ListDevices();
+        if(devices.Count > 0)
+        {
+            hwidSerial = devices[0].Serial;
+        }
+
         Sequence sequence = new();
-        IJsonVariables variables = new SelfCalibrationVariables();
+        IJsonVariables variables = new SelfCalibrationVariables() { HwidSerial = hwidSerial };
         var cancellationTokenSource = new CancellationTokenSource();
         var variablesFile = VariablesFile.FromJsonFile("variables.json");
 
@@ -69,8 +77,9 @@ class Program
                         switch (sequenceString)
                         {
                             case "self-calibration":
-                                var selfCalibrationVariables = new SelfCalibrationVariables();
+                                var selfCalibrationVariables = new SelfCalibrationVariables() { HwidSerial = hwidSerial };
                                 var selfCalibrationSequence = new SelfCalibrationSequence(modalUiContext, selfCalibrationVariables);
+                                
                                 variables = selfCalibrationVariables;
                                 sequence = selfCalibrationSequence;
                                 break;
@@ -78,14 +87,15 @@ class Program
                                 var benchCalibrationVariables = new BenchCalibrationVariables
                                 {
                                     SigGen1Host = variablesFile.SigGen1Ip,
-                                    SigGen2Host = variablesFile.SigGen2Ip
+                                    SigGen2Host = variablesFile.SigGen2Ip,
+                                    HwidSerial = hwidSerial
                                 };
                                 var benchCalibrationSequence = new BenchCalibrationSequence(modalUiContext, benchCalibrationVariables);
                                 variables = benchCalibrationVariables;
                                 sequence = benchCalibrationSequence;
                                 break;
                             case "noise-verification":
-                                var noiseVerificationVariables = new NoiseVerificationVariables();
+                                var noiseVerificationVariables = new NoiseVerificationVariables() { HwidSerial = hwidSerial };
                                 var noiseVerificationSequence = new NoiseVerificationSequence(modalUiContext, noiseVerificationVariables);
                                 variables = noiseVerificationVariables;
                                 sequence = noiseVerificationSequence;
@@ -94,7 +104,8 @@ class Program
                                 var benchVerificationVariables = new BenchVerificationVariables
                                 {
                                     SigGen1Host = variablesFile.SigGen1Ip,
-                                    SigGen2Host = variablesFile.SigGen2Ip
+                                    SigGen2Host = variablesFile.SigGen2Ip,
+                                    HwidSerial = hwidSerial
                                 };
                                 var benchVerificationSequence = new BenchVerificationSequence(modalUiContext, benchVerificationVariables);
                                 variables = benchVerificationVariables;
@@ -104,14 +115,15 @@ class Program
                                 var factoryTrimVariables = new BenchVerificationVariables
                                 {
                                     SigGen1Host = variablesFile.SigGen1Ip,
-                                    SigGen2Host = variablesFile.SigGen2Ip
+                                    SigGen2Host = variablesFile.SigGen2Ip,
+                                    HwidSerial = hwidSerial
                                 };
                                 var factoryTrimSequence = new FactoryTrimSequence(modalUiContext, factoryTrimVariables);
                                 variables = factoryTrimVariables;
                                 sequence = factoryTrimSequence;
                                 break;
                             case "beta-tester-hwid":
-                                var betaVariables = new CommonVariables();
+                                var betaVariables = new CommonVariables() { HwidSerial = hwidSerial };
                                 var betaSequence = new BetaTesterHwidSequence(modalUiContext, betaVariables);
                                 sequence = betaSequence;
                                 break;

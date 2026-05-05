@@ -413,9 +413,9 @@ public class ProcessingThread : IThread
                             break;
 
                         case ProcessingSetMode processingSetMode:
-                            singleTriggerLatch = false;
                             ResetBuffers();
                             ResetTrigger();
+                            singleTriggerLatch = false;
                             switch (processingSetMode.Mode)
                             {
                                 case Mode.Normal:                // NORMAL/STREAM/AUTO use RUN/STOP on user demand

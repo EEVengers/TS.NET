@@ -89,9 +89,8 @@ public class EngineManager
                         logger?.LogCritical($"tslitex not found");
                         return false;
                     }
-                    var ts = new Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
 
-                    var devices = ts.ListDevices();
+                    var devices = Driver.Libtslitex.Thunderscope.ListDevices();
                     if (devices.Count > 0)
                     {
                         StringBuilder sb = new();
@@ -103,10 +102,10 @@ public class EngineManager
                             sb.AppendLine($"   DeviceID: {device.DeviceID}");
                             sb.AppendLine($"   DevicePath: {device.DevicePath.Trim()}");
                             sb.AppendLine($"   Identity: {device.Identity.Trim()}");
-                            sb.AppendLine($"   SerialNumber: {device.SerialNumber.Trim()}");
-                            sb.AppendLine($"   BuildConfig: {device.BuildConfig.Trim()}");
+                            sb.AppendLine($"   Serial: {device.Serial.Trim()}");
+                            sb.AppendLine($"   BuildConfiguration: {device.BuildConfiguration.Trim()}");
                             sb.AppendLine($"   BuildDate: {device.BuildDate.Trim()}");
-                            sb.AppendLine($"   MfgSignature: {device.MfgSignature.Trim()}");
+                            sb.AppendLine($"   ManufacturingSignature: {device.ManufacturingSignature.Trim()}");
                             if (!device.Equals(devices.Last()))
                                 sb.AppendLine("");
 
@@ -121,10 +120,11 @@ public class EngineManager
                         logger?.LogCritical($"Device index {deviceIndex} out of range, {devices.Count} devices available");
                         return false;
                     }
-                    if (!string.IsNullOrWhiteSpace(devices[(int)deviceIndex].SerialNumber.Trim()))
+                    if (!string.IsNullOrWhiteSpace(devices[(int)deviceIndex].Serial.Trim()))
                     {
-                        thunderscopeSerial = devices[(int)deviceIndex].SerialNumber.Trim();
+                        thunderscopeSerial = devices[(int)deviceIndex].Serial.Trim();
                     }
+                    var ts = new Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
                     ts.Open(deviceIndex);
 
                     ThunderscopeCalibrationSettings thunderscopeCalibrationSettings = new();

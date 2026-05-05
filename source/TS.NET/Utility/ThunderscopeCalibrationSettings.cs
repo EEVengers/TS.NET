@@ -1,17 +1,32 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace TS.NET
 {
-    [JsonSourceGenerationOptions(WriteIndented = true, UseStringEnumConverter = true)]
+    public class CamelCaseJsonStringEnumConverter<TEnum>() : JsonStringEnumConverter<TEnum>(JsonNamingPolicy.CamelCase) where TEnum : struct, Enum;
+
+    [JsonSourceGenerationOptions(
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true, 
+        PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, 
+        Converters = [typeof(CamelCaseJsonStringEnumConverter<PgaPreampGain>)])]
     [JsonSerializable(typeof(ThunderscopeCalibrationSettings))]
     internal partial class SourceGenerationContext : JsonSerializerContext { }
 
+    [JsonSourceGenerationOptions(
+        WriteIndented = false,
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+        Converters = [typeof(CamelCaseJsonStringEnumConverter<PgaPreampGain>)])]
+    [JsonSerializable(typeof(ThunderscopeCalibrationSettings))]
+    internal partial class SourceGenerationMinifiedContext : JsonSerializerContext { }
+
     public class ThunderscopeCalibrationSettings
     {
-        public string SchemaVersion { get; set; } = "0";
-        public string SerialNumber { get; set; } = "";
-        public string CalibrationTimestamp { get; set; } = "";
+        public int Version { get; set; } = 1;
+        public string Serial { get; set; } = "";
+        public string Timestamp { get; set; } = "";
         public ThunderscopeChannelCalibrationSettings Channel1 { get; set; } = ThunderscopeChannelCalibrationSettings.Default();
         public ThunderscopeChannelCalibrationSettings Channel2 { get; set; } = ThunderscopeChannelCalibrationSettings.Default();
         public ThunderscopeChannelCalibrationSettings Channel3 { get; set; } = ThunderscopeChannelCalibrationSettings.Default();
@@ -40,6 +55,11 @@ namespace TS.NET
         public string ToJson()
         {
             return JsonSerializer.Serialize(this, SourceGenerationContext.Default.ThunderscopeCalibrationSettings);
+        }
+
+        public string ToDeviceJson()
+        {
+            return JsonSerializer.Serialize(this, SourceGenerationMinifiedContext.Default.ThunderscopeCalibrationSettings);
         }
 
         public static ThunderscopeCalibrationSettings FromJson(string json)

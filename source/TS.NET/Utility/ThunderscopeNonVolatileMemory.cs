@@ -27,8 +27,8 @@ public static class ThunderscopeNonVolatileMemory
 
         var utf8 = Encoding.UTF8.GetString(payloadBytes);
         var json = JsonDocument.Parse(utf8);
-        var schemaVersion = json.RootElement.GetProperty("SchemaVersion").GetString();
-        if (schemaVersion != "0")
+        var schemaVersion = json.RootElement.GetProperty("version").GetInt32();
+        if (schemaVersion != 1)
             throw new NotImplementedException();
         calibration = ThunderscopeCalibrationSettings.FromJson(utf8);
         return true;
@@ -36,7 +36,7 @@ public static class ThunderscopeNonVolatileMemory
 
     public static void WriteUserCalibration(Driver.Libtslitex.Thunderscope thunderscope, ThunderscopeCalibrationSettings calibration)
     {
-        var json = calibration.ToJson();
+        var json = calibration.ToDeviceJson();
         var jsonBytes = Encoding.UTF8.GetBytes(json);
 
         Span<byte> data = new byte[8 + jsonBytes.Length];

@@ -2,7 +2,7 @@
 
 namespace TS.NET.Driver.Libtslitex
 {
-    public record ThunderscopeLiteXDevice(uint DeviceID, uint HardwareRev, uint GatewareRev, uint LitexRev, string DevicePath, string Identity, string SerialNumber, string BuildConfig, string BuildDate, string MfgSignature);
+    public record ThunderscopeLiteXDevice(uint DeviceID, uint HardwareRev, uint GatewareRev, uint LitexRev, string DevicePath, string Identity, string Serial, string BuildConfiguration, string BuildDate, string ManufacturingSignature);
 
     public class Thunderscope : IThunderscope
     {
@@ -26,7 +26,7 @@ namespace TS.NET.Driver.Libtslitex
 
         private bool beta = false;
 
-        public IReadOnlyList<ThunderscopeLiteXDevice> ListDevices()
+        public static IReadOnlyList<ThunderscopeLiteXDevice> ListDevices()
         {
             var devices = new List<ThunderscopeLiteXDevice>();
             uint i = 0;

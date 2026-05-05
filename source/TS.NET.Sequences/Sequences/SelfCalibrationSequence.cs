@@ -213,6 +213,12 @@ public class SelfCalibrationSequence : Sequence
             new TrimOffsetDacZeroStep("Channel 4 - Trim offset DAC zero - LG L9", 3, PgaPreampGain.Low, 9, Variables),
             new TrimOffsetDacZeroStep("Channel 4 - Trim offset DAC zero - LG L10", 3, PgaPreampGain.Low, 10, Variables),
 
+            new Step("Update calibration"){ Action = (CancellationToken cancellationToken) => {
+                Variables.Calibration.Serial = Variables.HwidSerial;
+                Variables.CalibrationTimestamp = DateTimeOffset.Now;
+                Variables.Calibration.Timestamp = Variables.CalibrationTimestamp.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                return Sequencer.Status.Done;
+            }},
             new SaveUserCalToFileStep("Save calibration to file", Variables) { AllowSkip = true },
             new SaveUserCalToDeviceStep("Save calibration to device", Variables) { AllowSkip = true },
 

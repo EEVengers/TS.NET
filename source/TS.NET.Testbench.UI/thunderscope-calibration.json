@@ -1,1107 +1,1107 @@
 {
-  "SchemaVersion": "0",
-  "SerialNumber": "",
-  "CalibrationTimestamp": "",
-  "Channel1": {
-    "AttenuatorScale": 0.019786,
-    "Paths": [
+  "version": 1,
+  "serial": "",
+  "calibrationTimestamp": "",
+  "channel1": {
+    "attenuatorScale": 0.019806,
+    "paths": [
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 0,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.01171,
-        "TrimOffsetDacZero": 2139,
-        "BufferInputVpp": 0.0099
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 0,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.012119,
+        "trimOffsetDacZero": 2146,
+        "bufferInputVpp": 0.0098
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 1,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.009397,
-        "TrimOffsetDacZero": 2139,
-        "BufferInputVpp": 0.0124
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 1,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.009634,
+        "trimOffsetDacZero": 2146,
+        "bufferInputVpp": 0.0123
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 2,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.007503,
-        "TrimOffsetDacZero": 2139,
-        "BufferInputVpp": 0.0157
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 2,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.007665,
+        "trimOffsetDacZero": 2146,
+        "bufferInputVpp": 0.0155
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 3,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.00596,
-        "TrimOffsetDacZero": 2140,
-        "BufferInputVpp": 0.0197
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 3,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.006075,
+        "trimOffsetDacZero": 2147,
+        "bufferInputVpp": 0.0195
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 4,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.004768,
-        "TrimOffsetDacZero": 2140,
-        "BufferInputVpp": 0.0248
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 4,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.004835,
+        "trimOffsetDacZero": 2146,
+        "bufferInputVpp": 0.0244
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 5,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.003797,
-        "TrimOffsetDacZero": 2140,
-        "BufferInputVpp": 0.031
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 5,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.00386,
+        "trimOffsetDacZero": 2147,
+        "bufferInputVpp": 0.0308
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 6,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.003031,
-        "TrimOffsetDacZero": 2140,
-        "BufferInputVpp": 0.0392
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 6,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.003079,
+        "trimOffsetDacZero": 2147,
+        "bufferInputVpp": 0.0388
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 7,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.002407,
-        "TrimOffsetDacZero": 2140,
-        "BufferInputVpp": 0.0493
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 7,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.002449,
+        "trimOffsetDacZero": 2146,
+        "bufferInputVpp": 0.0489
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 8,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.001914,
-        "TrimOffsetDacZero": 2140,
-        "BufferInputVpp": 0.062
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 8,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.001946,
+        "trimOffsetDacZero": 2147,
+        "bufferInputVpp": 0.0614
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 9,
-        "TrimScaleDac": 9,
-        "TrimOffsetDacScale": 0.001953,
-        "TrimOffsetDacZero": 2114,
-        "BufferInputVpp": 0.0781
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 9,
+        "trimScaleDac": 9,
+        "trimOffsetDacScale": 0.00198,
+        "trimOffsetDacZero": 2119,
+        "bufferInputVpp": 0.0772
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 10,
-        "TrimScaleDac": 7,
-        "TrimOffsetDacScale": 0.001926,
-        "TrimOffsetDacZero": 2096,
-        "BufferInputVpp": 0.0981
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 10,
+        "trimScaleDac": 7,
+        "trimOffsetDacScale": 0.001953,
+        "trimOffsetDacZero": 2099,
+        "bufferInputVpp": 0.0973
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 0,
-        "TrimScaleDac": 7,
-        "TrimOffsetDacScale": 0.001922,
-        "TrimOffsetDacZero": 2082,
-        "BufferInputVpp": 0.0985
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 0,
+        "trimScaleDac": 7,
+        "trimOffsetDacScale": 0.001949,
+        "trimOffsetDacZero": 2085,
+        "bufferInputVpp": 0.0976
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 1,
-        "TrimScaleDac": 5,
-        "TrimOffsetDacScale": 0.001994,
-        "TrimOffsetDacZero": 2067,
-        "BufferInputVpp": 0.1239
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 1,
+        "trimScaleDac": 5,
+        "trimOffsetDacScale": 0.002023,
+        "trimOffsetDacZero": 2070,
+        "bufferInputVpp": 0.1227
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 2,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.00187,
-        "TrimOffsetDacZero": 2059,
-        "BufferInputVpp": 0.1557
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 2,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.001898,
+        "trimOffsetDacZero": 2062,
+        "bufferInputVpp": 0.1543
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 3,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.00149,
-        "TrimOffsetDacZero": 2060,
-        "BufferInputVpp": 0.1958
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 3,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.001506,
+        "trimOffsetDacZero": 2061,
+        "bufferInputVpp": 0.1939
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 4,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.001182,
-        "TrimOffsetDacZero": 2059,
-        "BufferInputVpp": 0.2455
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 4,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.001196,
+        "trimOffsetDacZero": 2061,
+        "bufferInputVpp": 0.2431
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 5,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000939,
-        "TrimOffsetDacZero": 2055,
-        "BufferInputVpp": 0.3097
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 5,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000952,
+        "trimOffsetDacZero": 2060,
+        "bufferInputVpp": 0.3062
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 6,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000747,
-        "TrimOffsetDacZero": 2053,
-        "BufferInputVpp": 0.3893
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 6,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000756,
+        "trimOffsetDacZero": 2055,
+        "bufferInputVpp": 0.3855
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 7,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000594,
-        "TrimOffsetDacZero": 2051,
-        "BufferInputVpp": 0.4894
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 7,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.0006,
+        "trimOffsetDacZero": 2052,
+        "bufferInputVpp": 0.4852
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 8,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000471,
-        "TrimOffsetDacZero": 2048,
-        "BufferInputVpp": 0.6162
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 8,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000478,
+        "trimOffsetDacZero": 2049,
+        "bufferInputVpp": 0.6098
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 9,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000375,
-        "TrimOffsetDacZero": 2047,
-        "BufferInputVpp": 0.7758
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 9,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000381,
+        "trimOffsetDacZero": 2047,
+        "bufferInputVpp": 0.768
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 10,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000299,
-        "TrimOffsetDacZero": 2047,
-        "BufferInputVpp": 0.9752
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 10,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000303,
+        "trimOffsetDacZero": 2047,
+        "bufferInputVpp": 0.9662
       }
     ],
-    "PgaLoadScales": [
+    "pgaLoadScales": [
       {
-        "SampleRate": 1000000000,
-        "ChannelCount": 1,
-        "Scale": 1
+        "sampleRate": 1000000000,
+        "channelCount": 1,
+        "scale": 1
       },
       {
-        "SampleRate": 660000000,
-        "ChannelCount": 1,
-        "Scale": 1.05
+        "sampleRate": 660000000,
+        "channelCount": 1,
+        "scale": 1.036
       },
       {
-        "SampleRate": 500000000,
-        "ChannelCount": 1,
-        "Scale": 1.062
+        "sampleRate": 500000000,
+        "channelCount": 1,
+        "scale": 1.059
       },
       {
-        "SampleRate": 330000000,
-        "ChannelCount": 1,
-        "Scale": 1.065
+        "sampleRate": 330000000,
+        "channelCount": 1,
+        "scale": 1.052
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 1,
-        "Scale": 1.106
+        "sampleRate": 250000000,
+        "channelCount": 1,
+        "scale": 1.094
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 1,
-        "Scale": 1.129
+        "sampleRate": 165000000,
+        "channelCount": 1,
+        "scale": 1.119
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 1,
-        "Scale": 1.132
+        "sampleRate": 100000000,
+        "channelCount": 1,
+        "scale": 1.121
       },
       {
-        "SampleRate": 500000000,
-        "ChannelCount": 2,
-        "Scale": 1.092
+        "sampleRate": 500000000,
+        "channelCount": 2,
+        "scale": 1.096
       },
       {
-        "SampleRate": 330000000,
-        "ChannelCount": 2,
-        "Scale": 1.068
+        "sampleRate": 330000000,
+        "channelCount": 2,
+        "scale": 1.055
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 2,
-        "Scale": 1.116
+        "sampleRate": 250000000,
+        "channelCount": 2,
+        "scale": 1.104
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 2,
-        "Scale": 1.13
+        "sampleRate": 165000000,
+        "channelCount": 2,
+        "scale": 1.119
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 2,
-        "Scale": 1.13
+        "sampleRate": 100000000,
+        "channelCount": 2,
+        "scale": 1.119
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 3,
-        "Scale": 1.139
+        "sampleRate": 250000000,
+        "channelCount": 3,
+        "scale": 1.129
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 3,
-        "Scale": 1.141
+        "sampleRate": 165000000,
+        "channelCount": 3,
+        "scale": 1.131
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 3,
-        "Scale": 1.135
+        "sampleRate": 100000000,
+        "channelCount": 3,
+        "scale": 1.125
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 4,
-        "Scale": 1.139
+        "sampleRate": 250000000,
+        "channelCount": 4,
+        "scale": 1.129
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 4,
-        "Scale": 1.141
+        "sampleRate": 165000000,
+        "channelCount": 4,
+        "scale": 1.131
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 4,
-        "Scale": 1.135
+        "sampleRate": 100000000,
+        "channelCount": 4,
+        "scale": 1.125
       }
     ]
   },
-  "Channel2": {
-    "AttenuatorScale": 0.019813,
-    "Paths": [
+  "channel2": {
+    "attenuatorScale": 0.01973,
+    "paths": [
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 0,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.012007,
-        "TrimOffsetDacZero": 2183,
-        "BufferInputVpp": 0.0101
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 0,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.01206,
+        "trimOffsetDacZero": 2189,
+        "bufferInputVpp": 0.01
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 1,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.009558,
-        "TrimOffsetDacZero": 2183,
-        "BufferInputVpp": 0.0128
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 1,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.009624,
+        "trimOffsetDacZero": 2190,
+        "bufferInputVpp": 0.0126
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 2,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.007595,
-        "TrimOffsetDacZero": 2183,
-        "BufferInputVpp": 0.0159
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 2,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.007678,
+        "trimOffsetDacZero": 2189,
+        "bufferInputVpp": 0.0158
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 3,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.00605,
-        "TrimOffsetDacZero": 2183,
-        "BufferInputVpp": 0.02
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 3,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.006116,
+        "trimOffsetDacZero": 2189,
+        "bufferInputVpp": 0.0198
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 4,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.004815,
-        "TrimOffsetDacZero": 2183,
-        "BufferInputVpp": 0.0252
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 4,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.004858,
+        "trimOffsetDacZero": 2190,
+        "bufferInputVpp": 0.0251
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 5,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.003817,
-        "TrimOffsetDacZero": 2183,
-        "BufferInputVpp": 0.0318
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 5,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.003857,
+        "trimOffsetDacZero": 2189,
+        "bufferInputVpp": 0.0315
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 6,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.003046,
-        "TrimOffsetDacZero": 2183,
-        "BufferInputVpp": 0.04
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 6,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.00307,
+        "trimOffsetDacZero": 2189,
+        "bufferInputVpp": 0.0396
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 7,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.002427,
-        "TrimOffsetDacZero": 2183,
-        "BufferInputVpp": 0.0502
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 7,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.002449,
+        "trimOffsetDacZero": 2190,
+        "bufferInputVpp": 0.0499
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 8,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.00193,
-        "TrimOffsetDacZero": 2184,
-        "BufferInputVpp": 0.0631
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 8,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.001946,
+        "trimOffsetDacZero": 2190,
+        "bufferInputVpp": 0.0627
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 9,
-        "TrimScaleDac": 9,
-        "TrimOffsetDacScale": 0.001966,
-        "TrimOffsetDacZero": 2150,
-        "BufferInputVpp": 0.0794
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 9,
+        "trimScaleDac": 9,
+        "trimOffsetDacScale": 0.001981,
+        "trimOffsetDacZero": 2154,
+        "bufferInputVpp": 0.0789
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 10,
-        "TrimScaleDac": 7,
-        "TrimOffsetDacScale": 0.001945,
-        "TrimOffsetDacZero": 2126,
-        "BufferInputVpp": 0.1
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 10,
+        "trimScaleDac": 7,
+        "trimOffsetDacScale": 0.001962,
+        "trimOffsetDacZero": 2128,
+        "bufferInputVpp": 0.0994
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 0,
-        "TrimScaleDac": 7,
-        "TrimOffsetDacScale": 0.001941,
-        "TrimOffsetDacZero": 2125,
-        "BufferInputVpp": 0.1008
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 0,
+        "trimScaleDac": 7,
+        "trimOffsetDacScale": 0.001954,
+        "trimOffsetDacZero": 2127,
+        "bufferInputVpp": 0.1
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 1,
-        "TrimScaleDac": 5,
-        "TrimOffsetDacScale": 0.002014,
-        "TrimOffsetDacZero": 2103,
-        "BufferInputVpp": 0.1265
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 1,
+        "trimScaleDac": 5,
+        "trimOffsetDacScale": 0.002031,
+        "trimOffsetDacZero": 2105,
+        "bufferInputVpp": 0.126
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 2,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.001894,
-        "TrimOffsetDacZero": 2093,
-        "BufferInputVpp": 0.159
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 2,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.001907,
+        "trimOffsetDacZero": 2095,
+        "bufferInputVpp": 0.1581
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 3,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.001501,
-        "TrimOffsetDacZero": 2095,
-        "BufferInputVpp": 0.1998
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 3,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.001513,
+        "trimOffsetDacZero": 2095,
+        "bufferInputVpp": 0.1987
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 4,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.001192,
-        "TrimOffsetDacZero": 2095,
-        "BufferInputVpp": 0.2514
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 4,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.001202,
+        "trimOffsetDacZero": 2099,
+        "bufferInputVpp": 0.2501
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 5,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000948,
-        "TrimOffsetDacZero": 2097,
-        "BufferInputVpp": 0.3164
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 5,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000956,
+        "trimOffsetDacZero": 2099,
+        "bufferInputVpp": 0.3142
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 6,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000753,
-        "TrimOffsetDacZero": 2103,
-        "BufferInputVpp": 0.3983
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 6,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000757,
+        "trimOffsetDacZero": 2105,
+        "bufferInputVpp": 0.3955
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 7,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000598,
-        "TrimOffsetDacZero": 2107,
-        "BufferInputVpp": 0.5006
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 7,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000602,
+        "trimOffsetDacZero": 2109,
+        "bufferInputVpp": 0.4964
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 8,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000476,
-        "TrimOffsetDacZero": 2111,
-        "BufferInputVpp": 0.6292
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 8,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000479,
+        "trimOffsetDacZero": 2111,
+        "bufferInputVpp": 0.6245
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 9,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000379,
-        "TrimOffsetDacZero": 2111,
-        "BufferInputVpp": 0.7911
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 9,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000381,
+        "trimOffsetDacZero": 2113,
+        "bufferInputVpp": 0.7866
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 10,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000302,
-        "TrimOffsetDacZero": 2117,
-        "BufferInputVpp": 0.9951
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 10,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000304,
+        "trimOffsetDacZero": 2119,
+        "bufferInputVpp": 0.9899
       }
     ],
-    "PgaLoadScales": [
+    "pgaLoadScales": [
       {
-        "SampleRate": 1000000000,
-        "ChannelCount": 1,
-        "Scale": 1
+        "sampleRate": 1000000000,
+        "channelCount": 1,
+        "scale": 1
       },
       {
-        "SampleRate": 660000000,
-        "ChannelCount": 1,
-        "Scale": 1.044
+        "sampleRate": 660000000,
+        "channelCount": 1,
+        "scale": 1.036
       },
       {
-        "SampleRate": 500000000,
-        "ChannelCount": 1,
-        "Scale": 1.055
+        "sampleRate": 500000000,
+        "channelCount": 1,
+        "scale": 1.055
       },
       {
-        "SampleRate": 330000000,
-        "ChannelCount": 1,
-        "Scale": 1.057
+        "sampleRate": 330000000,
+        "channelCount": 1,
+        "scale": 1.05
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 1,
-        "Scale": 1.095
+        "sampleRate": 250000000,
+        "channelCount": 1,
+        "scale": 1.089
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 1,
-        "Scale": 1.116
+        "sampleRate": 165000000,
+        "channelCount": 1,
+        "scale": 1.11
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 1,
-        "Scale": 1.118
+        "sampleRate": 100000000,
+        "channelCount": 1,
+        "scale": 1.112
       },
       {
-        "SampleRate": 500000000,
-        "ChannelCount": 2,
-        "Scale": 1.082
+        "sampleRate": 500000000,
+        "channelCount": 2,
+        "scale": 1.086
       },
       {
-        "SampleRate": 330000000,
-        "ChannelCount": 2,
-        "Scale": 1.062
+        "sampleRate": 330000000,
+        "channelCount": 2,
+        "scale": 1.054
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 2,
-        "Scale": 1.104
+        "sampleRate": 250000000,
+        "channelCount": 2,
+        "scale": 1.099
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 2,
-        "Scale": 1.116
+        "sampleRate": 165000000,
+        "channelCount": 2,
+        "scale": 1.11
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 2,
-        "Scale": 1.116
+        "sampleRate": 100000000,
+        "channelCount": 2,
+        "scale": 1.109
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 3,
-        "Scale": 1.13
+        "sampleRate": 250000000,
+        "channelCount": 3,
+        "scale": 1.125
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 3,
-        "Scale": 1.128
+        "sampleRate": 165000000,
+        "channelCount": 3,
+        "scale": 1.123
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 3,
-        "Scale": 1.121
+        "sampleRate": 100000000,
+        "channelCount": 3,
+        "scale": 1.117
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 4,
-        "Scale": 1.12
+        "sampleRate": 250000000,
+        "channelCount": 4,
+        "scale": 1.114
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 4,
-        "Scale": 1.119
+        "sampleRate": 165000000,
+        "channelCount": 4,
+        "scale": 1.112
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 4,
-        "Scale": 1.115
+        "sampleRate": 100000000,
+        "channelCount": 4,
+        "scale": 1.106
       }
     ]
   },
-  "Channel3": {
-    "AttenuatorScale": 0.023976,
-    "Paths": [
+  "channel3": {
+    "attenuatorScale": 0.023861,
+    "paths": [
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 0,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.012217,
-        "TrimOffsetDacZero": 2247,
-        "BufferInputVpp": 0.0098
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 0,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.012339,
+        "trimOffsetDacZero": 2250,
+        "bufferInputVpp": 0.0097
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 1,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.009715,
-        "TrimOffsetDacZero": 2247,
-        "BufferInputVpp": 0.0123
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 1,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.009803,
+        "trimOffsetDacZero": 2249,
+        "bufferInputVpp": 0.0122
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 2,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.007766,
-        "TrimOffsetDacZero": 2247,
-        "BufferInputVpp": 0.0154
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 2,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.007803,
+        "trimOffsetDacZero": 2250,
+        "bufferInputVpp": 0.0154
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 3,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.006152,
-        "TrimOffsetDacZero": 2247,
-        "BufferInputVpp": 0.0194
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 3,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.006183,
+        "trimOffsetDacZero": 2250,
+        "bufferInputVpp": 0.0193
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 4,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.004877,
-        "TrimOffsetDacZero": 2247,
-        "BufferInputVpp": 0.0245
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 4,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.004904,
+        "trimOffsetDacZero": 2249,
+        "bufferInputVpp": 0.0243
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 5,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.003866,
-        "TrimOffsetDacZero": 2247,
-        "BufferInputVpp": 0.0307
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 5,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.00388,
+        "trimOffsetDacZero": 2249,
+        "bufferInputVpp": 0.0306
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 6,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.003078,
-        "TrimOffsetDacZero": 2247,
-        "BufferInputVpp": 0.0386
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 6,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.003097,
+        "trimOffsetDacZero": 2249,
+        "bufferInputVpp": 0.0385
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 7,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.00245,
-        "TrimOffsetDacZero": 2246,
-        "BufferInputVpp": 0.0486
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 7,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.002462,
+        "trimOffsetDacZero": 2248,
+        "bufferInputVpp": 0.0484
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 8,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.001945,
-        "TrimOffsetDacZero": 2246,
-        "BufferInputVpp": 0.0611
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 8,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.001956,
+        "trimOffsetDacZero": 2248,
+        "bufferInputVpp": 0.0609
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 9,
-        "TrimScaleDac": 9,
-        "TrimOffsetDacScale": 0.001984,
-        "TrimOffsetDacZero": 2199,
-        "BufferInputVpp": 0.0769
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 9,
+        "trimScaleDac": 9,
+        "trimOffsetDacScale": 0.001996,
+        "trimOffsetDacZero": 2200,
+        "bufferInputVpp": 0.0767
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 10,
-        "TrimScaleDac": 7,
-        "TrimOffsetDacScale": 0.001944,
-        "TrimOffsetDacZero": 2167,
-        "BufferInputVpp": 0.0968
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 10,
+        "trimScaleDac": 7,
+        "trimOffsetDacScale": 0.001955,
+        "trimOffsetDacZero": 2168,
+        "bufferInputVpp": 0.0965
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 0,
-        "TrimScaleDac": 7,
-        "TrimOffsetDacScale": 0.001952,
-        "TrimOffsetDacZero": 2153,
-        "BufferInputVpp": 0.0967
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 0,
+        "trimScaleDac": 7,
+        "trimOffsetDacScale": 0.001961,
+        "trimOffsetDacZero": 2154,
+        "bufferInputVpp": 0.0963
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 1,
-        "TrimScaleDac": 5,
-        "TrimOffsetDacScale": 0.00202,
-        "TrimOffsetDacZero": 2125,
-        "BufferInputVpp": 0.1216
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 1,
+        "trimScaleDac": 5,
+        "trimOffsetDacScale": 0.002029,
+        "trimOffsetDacZero": 2126,
+        "bufferInputVpp": 0.1213
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 2,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.001899,
-        "TrimOffsetDacZero": 2111,
-        "BufferInputVpp": 0.1529
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 2,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.001907,
+        "trimOffsetDacZero": 2111,
+        "bufferInputVpp": 0.1525
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 3,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.00151,
-        "TrimOffsetDacZero": 2109,
-        "BufferInputVpp": 0.1921
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 3,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.001517,
+        "trimOffsetDacZero": 2110,
+        "bufferInputVpp": 0.1918
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 4,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.001201,
-        "TrimOffsetDacZero": 2107,
-        "BufferInputVpp": 0.2416
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 4,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.001206,
+        "trimOffsetDacZero": 2108,
+        "bufferInputVpp": 0.2407
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 5,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000956,
-        "TrimOffsetDacZero": 2102,
-        "BufferInputVpp": 0.3044
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 5,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000959,
+        "trimOffsetDacZero": 2103,
+        "bufferInputVpp": 0.3037
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 6,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000761,
-        "TrimOffsetDacZero": 2098,
-        "BufferInputVpp": 0.3828
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 6,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000762,
+        "trimOffsetDacZero": 2098,
+        "bufferInputVpp": 0.381
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 7,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000602,
-        "TrimOffsetDacZero": 2093,
-        "BufferInputVpp": 0.4814
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 7,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000606,
+        "trimOffsetDacZero": 2099,
+        "bufferInputVpp": 0.4791
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 8,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.00048,
-        "TrimOffsetDacZero": 2093,
-        "BufferInputVpp": 0.6065
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 8,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000482,
+        "trimOffsetDacZero": 2094,
+        "bufferInputVpp": 0.6021
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 9,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000382,
-        "TrimOffsetDacZero": 2087,
-        "BufferInputVpp": 0.7608
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 9,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000384,
+        "trimOffsetDacZero": 2088,
+        "bufferInputVpp": 0.7602
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 10,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000304,
-        "TrimOffsetDacZero": 2068,
-        "BufferInputVpp": 0.9575
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 10,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000306,
+        "trimOffsetDacZero": 2068,
+        "bufferInputVpp": 0.9559
       }
     ],
-    "PgaLoadScales": [
+    "pgaLoadScales": [
       {
-        "SampleRate": 1000000000,
-        "ChannelCount": 1,
-        "Scale": 1
+        "sampleRate": 1000000000,
+        "channelCount": 1,
+        "scale": 1
       },
       {
-        "SampleRate": 660000000,
-        "ChannelCount": 1,
-        "Scale": 1.039
+        "sampleRate": 660000000,
+        "channelCount": 1,
+        "scale": 1.036
       },
       {
-        "SampleRate": 500000000,
-        "ChannelCount": 1,
-        "Scale": 1.054
+        "sampleRate": 500000000,
+        "channelCount": 1,
+        "scale": 1.057
       },
       {
-        "SampleRate": 330000000,
-        "ChannelCount": 1,
-        "Scale": 1.053
+        "sampleRate": 330000000,
+        "channelCount": 1,
+        "scale": 1.051
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 1,
-        "Scale": 1.092
+        "sampleRate": 250000000,
+        "channelCount": 1,
+        "scale": 1.09
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 1,
-        "Scale": 1.113
+        "sampleRate": 165000000,
+        "channelCount": 1,
+        "scale": 1.112
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 1,
-        "Scale": 1.115
+        "sampleRate": 100000000,
+        "channelCount": 1,
+        "scale": 1.114
       },
       {
-        "SampleRate": 500000000,
-        "ChannelCount": 2,
-        "Scale": 1.087
+        "sampleRate": 500000000,
+        "channelCount": 2,
+        "scale": 1.089
       },
       {
-        "SampleRate": 330000000,
-        "ChannelCount": 2,
-        "Scale": 1.056
+        "sampleRate": 330000000,
+        "channelCount": 2,
+        "scale": 1.053
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 2,
-        "Scale": 1.102
+        "sampleRate": 250000000,
+        "channelCount": 2,
+        "scale": 1.1
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 2,
-        "Scale": 1.114
+        "sampleRate": 165000000,
+        "channelCount": 2,
+        "scale": 1.112
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 2,
-        "Scale": 1.114
+        "sampleRate": 100000000,
+        "channelCount": 2,
+        "scale": 1.112
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 3,
-        "Scale": 1.117
+        "sampleRate": 250000000,
+        "channelCount": 3,
+        "scale": 1.114
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 3,
-        "Scale": 1.115
+        "sampleRate": 165000000,
+        "channelCount": 3,
+        "scale": 1.112
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 3,
-        "Scale": 1.11
+        "sampleRate": 100000000,
+        "channelCount": 3,
+        "scale": 1.107
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 4,
-        "Scale": 1.124
+        "sampleRate": 250000000,
+        "channelCount": 4,
+        "scale": 1.123
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 4,
-        "Scale": 1.124
+        "sampleRate": 165000000,
+        "channelCount": 4,
+        "scale": 1.122
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 4,
-        "Scale": 1.122
+        "sampleRate": 100000000,
+        "channelCount": 4,
+        "scale": 1.12
       }
     ]
   },
-  "Channel4": {
-    "AttenuatorScale": 0.019797,
-    "Paths": [
+  "channel4": {
+    "attenuatorScale": 0.019813,
+    "paths": [
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 0,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.012541,
-        "TrimOffsetDacZero": 2113,
-        "BufferInputVpp": 0.0094
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 0,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.012581,
+        "trimOffsetDacZero": 2116,
+        "bufferInputVpp": 0.0094
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 1,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.009965,
-        "TrimOffsetDacZero": 2113,
-        "BufferInputVpp": 0.0119
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 1,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.010019,
+        "trimOffsetDacZero": 2116,
+        "bufferInputVpp": 0.0118
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 2,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.007953,
-        "TrimOffsetDacZero": 2113,
-        "BufferInputVpp": 0.0149
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 2,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.007962,
+        "trimOffsetDacZero": 2116,
+        "bufferInputVpp": 0.0149
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 3,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.006346,
-        "TrimOffsetDacZero": 2113,
-        "BufferInputVpp": 0.0187
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 3,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.006344,
+        "trimOffsetDacZero": 2116,
+        "bufferInputVpp": 0.0187
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 4,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.005047,
-        "TrimOffsetDacZero": 2114,
-        "BufferInputVpp": 0.0235
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 4,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.005056,
+        "trimOffsetDacZero": 2116,
+        "bufferInputVpp": 0.0235
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 5,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.00401,
-        "TrimOffsetDacZero": 2114,
-        "BufferInputVpp": 0.0298
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 5,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.004017,
+        "trimOffsetDacZero": 2116,
+        "bufferInputVpp": 0.0297
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 6,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.003186,
-        "TrimOffsetDacZero": 2113,
-        "BufferInputVpp": 0.0373
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 6,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.003193,
+        "trimOffsetDacZero": 2116,
+        "bufferInputVpp": 0.0372
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 7,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.002525,
-        "TrimOffsetDacZero": 2114,
-        "BufferInputVpp": 0.047
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 7,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.002532,
+        "trimOffsetDacZero": 2116,
+        "bufferInputVpp": 0.0468
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 8,
-        "TrimScaleDac": 12,
-        "TrimOffsetDacScale": 0.002008,
-        "TrimOffsetDacZero": 2114,
-        "BufferInputVpp": 0.0591
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 8,
+        "trimScaleDac": 12,
+        "trimOffsetDacScale": 0.002015,
+        "trimOffsetDacZero": 2116,
+        "bufferInputVpp": 0.059
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 9,
-        "TrimScaleDac": 9,
-        "TrimOffsetDacScale": 0.002048,
-        "TrimOffsetDacZero": 2097,
-        "BufferInputVpp": 0.0743
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 9,
+        "trimScaleDac": 9,
+        "trimOffsetDacScale": 0.002054,
+        "trimOffsetDacZero": 2098,
+        "bufferInputVpp": 0.0741
       },
       {
-        "PgaPreampGain": "High",
-        "PgaLadderAttenuator": 10,
-        "TrimScaleDac": 7,
-        "TrimOffsetDacScale": 0.002009,
-        "TrimOffsetDacZero": 2085,
-        "BufferInputVpp": 0.0936
+        "pgaPreampGain": "high",
+        "pgaLadderAttenuator": 10,
+        "trimScaleDac": 7,
+        "trimOffsetDacScale": 0.002013,
+        "trimOffsetDacZero": 2086,
+        "bufferInputVpp": 0.0934
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 0,
-        "TrimScaleDac": 7,
-        "TrimOffsetDacScale": 0.002004,
-        "TrimOffsetDacZero": 2068,
-        "BufferInputVpp": 0.094
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 0,
+        "trimScaleDac": 7,
+        "trimOffsetDacScale": 0.00201,
+        "trimOffsetDacZero": 2069,
+        "bufferInputVpp": 0.0937
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 1,
-        "TrimScaleDac": 5,
-        "TrimOffsetDacScale": 0.002079,
-        "TrimOffsetDacZero": 2060,
-        "BufferInputVpp": 0.118
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 1,
+        "trimScaleDac": 5,
+        "trimOffsetDacScale": 0.002083,
+        "trimOffsetDacZero": 2061,
+        "bufferInputVpp": 0.1177
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 2,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.001947,
-        "TrimOffsetDacZero": 2057,
-        "BufferInputVpp": 0.1485
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 2,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.001953,
+        "trimOffsetDacZero": 2057,
+        "bufferInputVpp": 0.148
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 3,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.001549,
-        "TrimOffsetDacZero": 2056,
-        "BufferInputVpp": 0.1867
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 3,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.001552,
+        "trimOffsetDacZero": 2057,
+        "bufferInputVpp": 0.1861
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 4,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.001233,
-        "TrimOffsetDacZero": 2054,
-        "BufferInputVpp": 0.2345
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 4,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.001236,
+        "trimOffsetDacZero": 2055,
+        "bufferInputVpp": 0.2338
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 5,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000981,
-        "TrimOffsetDacZero": 2056,
-        "BufferInputVpp": 0.2951
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 5,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000982,
+        "trimOffsetDacZero": 2057,
+        "bufferInputVpp": 0.295
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 6,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000781,
-        "TrimOffsetDacZero": 2055,
-        "BufferInputVpp": 0.371
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 6,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000784,
+        "trimOffsetDacZero": 2056,
+        "bufferInputVpp": 0.3707
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 7,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000619,
-        "TrimOffsetDacZero": 2050,
-        "BufferInputVpp": 0.4664
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 7,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.00062,
+        "trimOffsetDacZero": 2051,
+        "bufferInputVpp": 0.4655
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 8,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000492,
-        "TrimOffsetDacZero": 2048,
-        "BufferInputVpp": 0.5868
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 8,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000493,
+        "trimOffsetDacZero": 2049,
+        "bufferInputVpp": 0.5861
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 9,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000392,
-        "TrimOffsetDacZero": 2047,
-        "BufferInputVpp": 0.7387
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 9,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000393,
+        "trimOffsetDacZero": 2047,
+        "bufferInputVpp": 0.7374
       },
       {
-        "PgaPreampGain": "Low",
-        "PgaLadderAttenuator": 10,
-        "TrimScaleDac": 4,
-        "TrimOffsetDacScale": 0.000312,
-        "TrimOffsetDacZero": 2047,
-        "BufferInputVpp": 0.9284
+        "pgaPreampGain": "low",
+        "pgaLadderAttenuator": 10,
+        "trimScaleDac": 4,
+        "trimOffsetDacScale": 0.000312,
+        "trimOffsetDacZero": 2047,
+        "bufferInputVpp": 0.9277
       }
     ],
-    "PgaLoadScales": [
+    "pgaLoadScales": [
       {
-        "SampleRate": 1000000000,
-        "ChannelCount": 1,
-        "Scale": 1
+        "sampleRate": 1000000000,
+        "channelCount": 1,
+        "scale": 1
       },
       {
-        "SampleRate": 660000000,
-        "ChannelCount": 1,
-        "Scale": 1.017
+        "sampleRate": 660000000,
+        "channelCount": 1,
+        "scale": 1.015
       },
       {
-        "SampleRate": 500000000,
-        "ChannelCount": 1,
-        "Scale": 1.052
+        "sampleRate": 500000000,
+        "channelCount": 1,
+        "scale": 1.054
       },
       {
-        "SampleRate": 330000000,
-        "ChannelCount": 1,
-        "Scale": 1.01
+        "sampleRate": 330000000,
+        "channelCount": 1,
+        "scale": 1.009
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 1,
-        "Scale": 1.071
+        "sampleRate": 250000000,
+        "channelCount": 1,
+        "scale": 1.069
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 1,
-        "Scale": 1.09
+        "sampleRate": 165000000,
+        "channelCount": 1,
+        "scale": 1.088
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 1,
-        "Scale": 1.079
+        "sampleRate": 100000000,
+        "channelCount": 1,
+        "scale": 1.079
       },
       {
-        "SampleRate": 500000000,
-        "ChannelCount": 2,
-        "Scale": 1.118
+        "sampleRate": 500000000,
+        "channelCount": 2,
+        "scale": 1.122
       },
       {
-        "SampleRate": 330000000,
-        "ChannelCount": 2,
-        "Scale": 0.999
+        "sampleRate": 330000000,
+        "channelCount": 2,
+        "scale": 0.998
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 2,
-        "Scale": 1.109
+        "sampleRate": 250000000,
+        "channelCount": 2,
+        "scale": 1.107
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 2,
-        "Scale": 1.086
+        "sampleRate": 165000000,
+        "channelCount": 2,
+        "scale": 1.084
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 2,
-        "Scale": 1.084
+        "sampleRate": 100000000,
+        "channelCount": 2,
+        "scale": 1.082
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 3,
-        "Scale": 1.155
+        "sampleRate": 250000000,
+        "channelCount": 3,
+        "scale": 1.153
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 3,
-        "Scale": 1.075
+        "sampleRate": 165000000,
+        "channelCount": 3,
+        "scale": 1.075
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 3,
-        "Scale": 1.083
+        "sampleRate": 100000000,
+        "channelCount": 3,
+        "scale": 1.082
       },
       {
-        "SampleRate": 250000000,
-        "ChannelCount": 4,
-        "Scale": 1.155
+        "sampleRate": 250000000,
+        "channelCount": 4,
+        "scale": 1.154
       },
       {
-        "SampleRate": 165000000,
-        "ChannelCount": 4,
-        "Scale": 1.08
+        "sampleRate": 165000000,
+        "channelCount": 4,
+        "scale": 1.08
       },
       {
-        "SampleRate": 100000000,
-        "ChannelCount": 4,
-        "Scale": 1.087
+        "sampleRate": 100000000,
+        "channelCount": 4,
+        "scale": 1.086
       }
     ]
   },
-  "Adc": {
-    "FineGainBranch1": 0,
-    "FineGainBranch2": 0,
-    "FineGainBranch3": 0,
-    "FineGainBranch4": 0,
-    "FineGainBranch5": 0,
-    "FineGainBranch6": 0,
-    "FineGainBranch7": 0,
-    "FineGainBranch8": 0
+  "adc": {
+    "fineGainBranch1": 0,
+    "fineGainBranch2": 0,
+    "fineGainBranch3": 0,
+    "fineGainBranch4": 0,
+    "fineGainBranch5": 0,
+    "fineGainBranch6": 0,
+    "fineGainBranch7": 0,
+    "fineGainBranch8": 0
   }
 }
