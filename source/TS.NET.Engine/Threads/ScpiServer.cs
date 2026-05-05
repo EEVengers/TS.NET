@@ -1,7 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using static System.FormattableString;
 
 namespace TS.NET.Engine;
 
@@ -307,21 +309,21 @@ internal class ScpiServer : IThread
                         {
                             case var _ when command.StartsWith("RATE") && argument != null:
                                 {
-                                    ulong rate = Convert.ToUInt64(argument);
+                                    ulong rate = Convert.ToUInt64(argument, CultureInfo.InvariantCulture);
                                     processingControl.Request.Writer.Write(new HardwareSetRate(rate));
                                     logger.LogDebug($"{nameof(HardwareSetRate)} sent with argument: {rate}");
                                     return null;
                                 }
                             case var _ when command.StartsWith("DEPTH") && argument != null:
                                 {
-                                    var depth = Convert.ToUInt32(argument);
+                                    var depth = Convert.ToUInt32(argument, CultureInfo.InvariantCulture);
                                     processingControl.Request.Writer.Write(new ProcessingSetDepth((int)depth));
                                     logger.LogDebug($"{nameof(ProcessingSetDepth)} sent with argument: {depth}");
                                     return null;
                                 }
                             case var _ when command.StartsWith("RES") && argument != null:
                                 {
-                                    var resolution = Convert.ToUInt32(argument) switch { 8 => AdcResolution.EightBit, 12 => AdcResolution.TwelveBit, _ => AdcResolution.EightBit };
+                                    var resolution = Convert.ToUInt32(argument, CultureInfo.InvariantCulture) switch { 8 => AdcResolution.EightBit, 12 => AdcResolution.TwelveBit, _ => AdcResolution.EightBit };
                                     processingControl.Request.Writer.Write(new HardwareSetResolution(resolution));
                                     logger.LogDebug($"{nameof(HardwareSetResolution)} sent with argument: {resolution}");
                                     return null;
@@ -352,7 +354,7 @@ internal class ScpiServer : IThread
                                     var triggerChannel = TriggerChannel.None;
                                     if (argument != "NONE")
                                     {
-                                        var source = Convert.ToUInt32(argument.ToArray()[^1]) - '0';
+                                        var source = Convert.ToUInt32(argument.ToArray()[^1], CultureInfo.InvariantCulture) - '0';
                                         if (source < 1 || source > 4)
                                             source = 1;
                                         triggerChannel = (TriggerChannel)source;
@@ -393,7 +395,7 @@ internal class ScpiServer : IThread
                                 {
                                     // TRIGger:DELay <arg>
                                     // TRIG:DEL <arg>
-                                    var delay = Convert.ToInt64(argument);
+                                    var delay = Convert.ToInt64(argument, CultureInfo.InvariantCulture);
                                     logger.LogDebug($"Set trigger delay to {delay}fs");
                                     if (delay < 0)
                                         delay = 0;      // To do: allow negative delays
@@ -404,7 +406,7 @@ internal class ScpiServer : IThread
                                 {
                                     // TRIGger:HOLDoff <arg>
                                     // TRIG:HOLD <arg>
-                                    var holdoff = Convert.ToUInt64(argument);
+                                    var holdoff = Convert.ToUInt64(argument, CultureInfo.InvariantCulture);
                                     logger.LogDebug($"Set trigger holdoff to {holdoff}fs");
                                     processingControl.Request.Writer.Write(new ProcessingSetTriggerHoldoff(holdoff));
                                     return null;
@@ -429,7 +431,7 @@ internal class ScpiServer : IThread
                                 {
                                     // TRIGger:EDGE:LEVel <arg>
                                     // TRIG:EDGE:LEV <arg>
-                                    float level = Convert.ToSingle(argument);
+                                    float level = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
                                     logger.LogDebug($"Set trigger level to {level}V");
                                     processingControl.Request.Writer.Write(new ProcessingSetEdgeTriggerLevel(level));
                                     return null;
@@ -506,14 +508,14 @@ internal class ScpiServer : IThread
                                 {
                                     // CHANnel1:OFFSet <arg>
                                     // CHAN1:OFFS <arg>
-                                    float offset = Convert.ToSingle(argument);
+                                    float offset = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
                                     offset = Math.Clamp(offset, -50, 50);     // Change to final values later
                                     processingControl.Request.Writer.Write(new HardwareSetVoltOffset(channelIndex, offset));
                                     return null;
                                 }
                             case var _ when command.StartsWith("RANG") && argument != null:
                                 {
-                                    float range = Convert.ToSingle(argument);
+                                    float range = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
                                     range = Math.Clamp(range, -50, 50);       // Change to final values later
                                     processingControl.Request.Writer.Write(new HardwareSetVoltFullScale(channelIndex, range));
                                     return null;
@@ -548,7 +550,7 @@ internal class ScpiServer : IThread
                                 }
                             case var _ when command.StartsWith("FREQ") && argument != null:
                                 {
-                                    uint frequencyHz = Convert.ToUInt32(argument);
+                                    uint frequencyHz = Convert.ToUInt32(argument, CultureInfo.InvariantCulture);
                                     logger.LogDebug($"Set reference clock frequency to {frequencyHz}");
                                     processingControl.Request.Writer.Write(new HardwareSetRefClockFrequency(frequencyHz));
                                     return null;
@@ -658,14 +660,14 @@ internal class ScpiServer : IThread
                                     var adcCal = new ThunderscopeAdcCalibration();
                                     try
                                     {
-                                        adcCal.FineGainBranch1 = (byte)(Convert.ToSByte(args[0]) & 0x7F);
-                                        adcCal.FineGainBranch2 = (byte)(Convert.ToSByte(args[1]) & 0x7F);
-                                        adcCal.FineGainBranch3 = (byte)(Convert.ToSByte(args[2]) & 0x7F);
-                                        adcCal.FineGainBranch4 = (byte)(Convert.ToSByte(args[3]) & 0x7F);
-                                        adcCal.FineGainBranch5 = (byte)(Convert.ToSByte(args[4]) & 0x7F);
-                                        adcCal.FineGainBranch6 = (byte)(Convert.ToSByte(args[5]) & 0x7F);
-                                        adcCal.FineGainBranch7 = (byte)(Convert.ToSByte(args[6]) & 0x7F);
-                                        adcCal.FineGainBranch8 = (byte)(Convert.ToSByte(args[7]) & 0x7F);
+                                        adcCal.FineGainBranch1 = (byte)(Convert.ToSByte(args[0], CultureInfo.InvariantCulture) & 0x7F);
+                                        adcCal.FineGainBranch2 = (byte)(Convert.ToSByte(args[1], CultureInfo.InvariantCulture) & 0x7F);
+                                        adcCal.FineGainBranch3 = (byte)(Convert.ToSByte(args[2], CultureInfo.InvariantCulture) & 0x7F);
+                                        adcCal.FineGainBranch4 = (byte)(Convert.ToSByte(args[3], CultureInfo.InvariantCulture) & 0x7F);
+                                        adcCal.FineGainBranch5 = (byte)(Convert.ToSByte(args[4], CultureInfo.InvariantCulture) & 0x7F);
+                                        adcCal.FineGainBranch6 = (byte)(Convert.ToSByte(args[5], CultureInfo.InvariantCulture) & 0x7F);
+                                        adcCal.FineGainBranch7 = (byte)(Convert.ToSByte(args[6], CultureInfo.InvariantCulture) & 0x7F);
+                                        adcCal.FineGainBranch8 = (byte)(Convert.ToSByte(args[7], CultureInfo.InvariantCulture) & 0x7F);
                                         processingControl.Request.Writer.Write(new HardwareSetAdcCalibration(adcCal));
                                     }
                                     catch
@@ -728,7 +730,7 @@ internal class ScpiServer : IThread
                     case "SEQNUM?":
                         {
                             // The last sequence number sent on the data server socket
-                            return $"{sequence}\n";
+                            return Invariant($"{sequence}\n");
                         }
                     case "TEMP?":
                         {
@@ -739,7 +741,7 @@ internal class ScpiServer : IThread
                                 switch (response)
                                 {
                                     case HardwareGetTemperatureResponse hardwareGetTemperatureResponse:
-                                        return $"{hardwareGetTemperatureResponse.Temperature:F3}\n";
+                                        return Invariant($"{hardwareGetTemperatureResponse.Temperature:F3}\n");
                                     default:
                                         logger.LogError($"TEMP? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                         break;
@@ -852,7 +854,7 @@ internal class ScpiServer : IThread
                                 switch (response)
                                 {
                                     case ProcessingGetTriggerDelayResponse triggerDelayResponse:
-                                        return $"{triggerDelayResponse.Femtoseconds}\n";
+                                        return Invariant($"{triggerDelayResponse.Femtoseconds}\n");
                                     default:
                                         logger.LogError($"TRIG:DEL? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                         break;
@@ -872,7 +874,7 @@ internal class ScpiServer : IThread
                                 switch (response)
                                 {
                                     case ProcessingGetTriggerHoldoffResponse triggerHoldoffResponse:
-                                        return $"{triggerHoldoffResponse.Femtoseconds}\n";
+                                        return Invariant($"{triggerHoldoffResponse.Femtoseconds}\n");
                                     default:
                                         logger.LogError($"TRIG:HOLD? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                         break;
@@ -912,7 +914,7 @@ internal class ScpiServer : IThread
                                 switch (response)
                                 {
                                     case ProcessingGetEdgeTriggerLevelResponse triggerLevelResponse:
-                                        return $"{triggerLevelResponse.LevelVolts:0.######}\n";
+                                        return Invariant($"{triggerLevelResponse.LevelVolts:0.######}\n");
                                     default:
                                         logger.LogError($"TRIG:EDGE:LEV? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                         break;
@@ -1066,7 +1068,7 @@ internal class ScpiServer : IThread
                             if (processingControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
                             {
                                 if (response is HardwareGetVoltOffsetResponse hardwareGetVoltOffsetResponse)
-                                    return $"{hardwareGetVoltOffsetResponse.RequestedVoltOffset:0.######}\n";
+                                    return Invariant($"{hardwareGetVoltOffsetResponse.RequestedVoltOffset:0.######}\n");
                                 logger.LogError($"{subject}:OFFS? - Invalid response from {nameof(processingControl.Response.Reader)}");
                             }
                             else
@@ -1082,7 +1084,7 @@ internal class ScpiServer : IThread
                             {
                                 if (response is HardwareGetVoltFullScaleResponse hardwareGetVoltFullScaleResponse)
                                 {
-                                    return $"{hardwareGetVoltFullScaleResponse.RequestedVoltFullScale:0.######}\n";
+                                    return Invariant($"{hardwareGetVoltFullScaleResponse.RequestedVoltFullScale:0.######}\n");
                                 }
                                 else
                                 {
@@ -1128,7 +1130,7 @@ internal class ScpiServer : IThread
                             if (processingControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
                             {
                                 if (response is HardwareGetVoltOffsetResponse hardwareGetVoltOffsetResponse)
-                                    return $"{hardwareGetVoltOffsetResponse.ActualVoltOffset:0.######}\n";
+                                    return Invariant($"{hardwareGetVoltOffsetResponse.ActualVoltOffset:0.######}\n");
                                 logger.LogError($"{subject}:OFFS:ACT? - Invalid response from {nameof(processingControl.Response.Reader)}");
                             }
                             else
@@ -1144,7 +1146,7 @@ internal class ScpiServer : IThread
                             {
                                 if (response is HardwareGetVoltFullScaleResponse hardwareGetVoltFullScaleResponse)
                                 {
-                                    return $"{hardwareGetVoltFullScaleResponse.ActualVoltFullScale:0.######}\n";
+                                    return Invariant($"{hardwareGetVoltFullScaleResponse.ActualVoltFullScale:0.######}\n");
                                 }
                                 else
                                 {
@@ -1173,7 +1175,7 @@ internal class ScpiServer : IThread
                 switch (response)
                 {
                     case ProcessingGetRatesResponse processingGetRatesResponse:
-                        return $"{string.Join(",", processingGetRatesResponse.SampleRatesHz)}\n";
+                        return Invariant($"{string.Join(",", processingGetRatesResponse.SampleRatesHz)}\n");
                     default:
                         logger.LogError($"RATES? - Invalid response from {nameof(processingControl.Response.Reader)}");
                         break;
@@ -1192,7 +1194,7 @@ internal class ScpiServer : IThread
                 switch (response)
                 {
                     case HardwareGetRateResponse hardwareGetRateResponse:
-                        return $"{hardwareGetRateResponse.SampleRateHz}\n";
+                        return Invariant($"{hardwareGetRateResponse.SampleRateHz}\n");
                     default:
                         logger.LogError($"RATE? - Invalid response from {nameof(processingControl.Response.Reader)}");
                         break;
@@ -1219,7 +1221,7 @@ internal class ScpiServer : IThread
                     break;
             }
             // Perhaps take into account the sample rate to get 1ms/2ms/5ms/10ms/etc windows instead?
-            return $"{string.Join(",", depths)}\n";
+            return Invariant($"{string.Join(",", depths)}\n");
         }
 
         string GetDepth()
@@ -1230,7 +1232,7 @@ internal class ScpiServer : IThread
                 switch (response)
                 {
                     case ProcessingGetDepthResponse processingGetDepthResponse:
-                        return $"{processingGetDepthResponse.Depth}\n";
+                        return Invariant($"{processingGetDepthResponse.Depth}\n");
                     default:
                         logger.LogError($"DEPTH? - Invalid response from {nameof(processingControl.Response.Reader)}");
                         break;
