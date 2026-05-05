@@ -984,6 +984,13 @@ public class ProcessingThread : IThread
             // Locally scoped methods for deduplication
             void Capture<T>(bool triggered, int triggerChannelCaptureIndex, ulong captureEndIndex) where T : unmanaged
             {
+                // Capture buffer should only have insufficient length when running in AUTO. NORMAL/SINGLE will throw an exception later in this method.
+                if (processingConfig.Mode == Mode.Auto && acquisitionBuffer.SamplesInBufferPerChannel < processingConfig.ChannelDataLength)
+                {
+                    logger.LogDebug("Capture skipped due to insufficient samples in buffer during AUTO");
+                    return;
+                }
+
                 if (captureBufferManager.TryStartWrite(out var buffer))
                 {
                     int channelCount = currentHardwareConfig.Acquisition.EnabledChannelsCount();
