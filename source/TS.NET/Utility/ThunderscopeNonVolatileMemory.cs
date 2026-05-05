@@ -27,9 +27,9 @@ public static class ThunderscopeNonVolatileMemory
 
         var utf8 = Encoding.UTF8.GetString(payloadBytes);
         var json = JsonDocument.Parse(utf8);
-        var schemaVersion = json.RootElement.GetProperty("version").GetInt32();
-        if (schemaVersion != 1)
-            throw new NotImplementedException();
+        //var schemaVersion = json.RootElement.GetProperty("version").GetInt32();
+        //if (schemaVersion != 1)
+        //    throw new NotImplementedException();
         calibration = ThunderscopeCalibrationSettings.FromJson(utf8);
         return true;
     }
