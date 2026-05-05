@@ -51,8 +51,8 @@ Commands/queries are logically grouped into subsystems, with the exception of th
 | Query | Response | Type  | Description |
 |---|---|---|---|
 | `*IDN?` | `EEVengers,ThunderScope,TS0001,0.1.0` | string | Standard identification string. |
-| `STATE?` | `RUN` or `STOP` | string | Current run state. |
-| `MODE?` | `SINGLE`, `NORMAL`, `AUTO`, `STREAM` | string | Current acquisition mode. |
+| `STATE?` | `RUN`, `STOP` | enum | Current run state. |
+| `MODE?` | `SINGLE`, `NORMAL`, `AUTO`, `STREAM` | enum | Current acquisition mode. |
 | `SEQNUM?` | `12345` | u32 | The last sequence number sent on the data server socket. |
 | `TEMP?` | `25.000` | f32 | FPGA temperature (formatted `#.###`). |
 
@@ -128,13 +128,13 @@ Subject matches `CHAN`/`CHANnel` abbreviations via `subject.StartsWith("CHAN")` 
 
 | Query | Response | Type | Description |
 |---|---|---|---|
-| `CHAN<n>:STATE?` | `ON` or `OFF` | enum | Get whether channel `<n>` is enabled. |
+| `CHAN<n>:STATE?` | `ON`, `OFF` | enum | Get whether channel `<n>` is enabled. |
 | `CHAN<n>:BAND?` | `FULL`, `750M`, `650M`, `350M`, `200M`, `100M`, `20M` | enum | Get channel bandwidth (maps from enum). |
-| `CHAN<n>:COUP?` | `DC` or `AC` | enum | Get channel coupling. |
-| `CHAN<n>:TERM?` | `1M` or `50` | enum | Get requested channel termination. |
+| `CHAN<n>:COUP?` | `DC`, `AC` | enum | Get channel coupling. |
+| `CHAN<n>:TERM?` | `1M`, `50` | enum | Get requested channel termination. |
 | `CHAN<n>:OFFS?` | `<volts>` | f32 | Get requested voltage offset (formatted `#.######`). |
 | `CHAN<n>:RANG?` | `<volts>` | f32 | Get requested full-scale range (formatted `#.######`). |
-| `CHAN<n>:TERM:ACT?` | `1M` or `50` | enum | Get actual channel termination (driver may coerce termination). |
+| `CHAN<n>:TERM:ACT?` | `1M`, `50` | enum | Get actual channel termination (driver may coerce termination). |
 | `CHAN<n>:OFFS:ACT?` | `<volts>` | f32 | Get actual voltage offset (formatted `#.######`). |
 | `CHAN<n>:RANG:ACT?` | `<volts>` | f32 | Get actual full-scale range (formatted `#.######`). |
 
@@ -147,7 +147,7 @@ Subject matches `REFCL` via `subject.StartsWith("REFCL")`.
 | Command | Type | Description |
 |---|---:|---|
 | `REFCL:MODE <IN\|OUT\|OFF>` | enum | Set mode of REFCLK IN/OUT BNC. |
-| `REFCL:FREQ` | u32 | Set the input clock frequency if in IN mode, or output frequency if in OUT mode. |
+| `REFCL:FREQ <frequency>` | u32 | Set the input clock frequency if in IN mode, or output frequency if in OUT mode. |
 
 ## Processing subsystem (`PRO...`)
 
