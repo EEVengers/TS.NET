@@ -103,7 +103,7 @@ Subject matches `TRIG`/`TRIGger` abbreviations via `subject.StartsWith("TRIG")`.
 | `TRIG:DEL?` | `<femtoseconds>` | i64 | Get trigger delay. |
 | `TRIG:HOLD?` | `<femtoseconds>` | u64 | Get trigger holdoff. |
 | `TRIG:INTER?` | `true`, `false` | bool | Get trigger interpolation enabled. |
-| `TRIG:EDGE:LEV?` | `<volts>` | f32 | Get edge trigger level (formatted `#.######`). |
+| `TRIG:EDGE:LEV?` | `<volts>` | f32 | Get edge trigger level (formatted `0.######`). |
 | `TRIG:EDGE:DIR?` | `RISING`, `FALLING`, `ANY` | enum | Get edge trigger direction as uppercase enum name. |
 
 ## Channel subsystem (`CHAN<n>...`)
@@ -132,11 +132,11 @@ Subject matches `CHAN`/`CHANnel` abbreviations via `subject.StartsWith("CHAN")` 
 | `CHAN<n>:BAND?` | `FULL`, `750M`, `650M`, `350M`, `200M`, `100M`, `20M` | enum | Get channel bandwidth (maps from enum). |
 | `CHAN<n>:COUP?` | `DC`, `AC` | enum | Get channel coupling. |
 | `CHAN<n>:TERM?` | `1M`, `50` | enum | Get requested channel termination. |
-| `CHAN<n>:OFFS?` | `<volts>` | f32 | Get requested voltage offset (formatted `#.######`). |
-| `CHAN<n>:RANG?` | `<volts>` | f32 | Get requested full-scale range (formatted `#.######`). |
+| `CHAN<n>:OFFS?` | `<volts>` | f32 | Get requested voltage offset (formatted `0.######`). |
+| `CHAN<n>:RANG?` | `<volts>` | f32 | Get requested full-scale range (formatted `0.######`). |
 | `CHAN<n>:TERM:ACT?` | `1M`, `50` | enum | Get actual channel termination (driver may coerce termination). |
-| `CHAN<n>:OFFS:ACT?` | `<volts>` | f32 | Get actual voltage offset (formatted `#.######`). |
-| `CHAN<n>:RANG:ACT?` | `<volts>` | f32 | Get actual full-scale range (formatted `#.######`). |
+| `CHAN<n>:OFFS:ACT?` | `<volts>` | f32 | Get actual voltage offset (formatted `0.######`). |
+| `CHAN<n>:RANG:ACT?` | `<volts>` | f32 | Get actual full-scale range (formatted `0.######`). |
 
 ## Reference clock subsystem (`REFCL...`)
 
