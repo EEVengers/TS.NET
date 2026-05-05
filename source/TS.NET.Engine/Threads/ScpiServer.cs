@@ -730,6 +730,24 @@ internal class ScpiServer : IThread
                             // The last sequence number sent on the data server socket
                             return $"{sequence}\n";
                         }
+                    case "TEMP?":
+                        {
+                            while (processingControl.Response.Reader.TryRead(out var _, 10)) { }
+                            processingControl.Request.Writer.Write(new HardwareGetTemperatureRequest());
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
+                            {
+                                switch (response)
+                                {
+                                    case HardwareGetTemperatureResponse hardwareGetTemperatureResponse:
+                                        return $"{hardwareGetTemperatureResponse.Temperature:F3}\n";
+                                    default:
+                                        logger.LogError($"TEMP? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                                        break;
+                                }
+                            }
+                            logger.LogError($"TEMP? - No response from {nameof(processingControl.Response.Reader)}");
+                            return "Error: No/bad response from channel.\n";
+                        }
                 }
             }
             else if (subject?.StartsWith("ACQ") == true)

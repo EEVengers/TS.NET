@@ -322,8 +322,10 @@ public class ProcessingThread : IThread
 
                         case HardwareSetChannelManualControl hardwareSetChannelManualControl:
                             {
-                                var ts = (Driver.Libtslitex.Thunderscope)thunderscope;
-                                ts.SetChannelManualControl(hardwareSetChannelManualControl.ChannelIndex, hardwareSetChannelManualControl.Channel);
+                                if (thunderscope is Driver.Libtslitex.Thunderscope liteXThunderscope)
+                                {
+                                    liteXThunderscope.SetChannelManualControl(hardwareSetChannelManualControl.ChannelIndex, hardwareSetChannelManualControl.Channel);
+                                }
                                 logger.LogDebug($"{nameof(HardwareSetChannelManualControl)} (channel: {hardwareSetChannelManualControl.ChannelIndex})");
                                 break;
                             }
@@ -385,6 +387,18 @@ public class ProcessingThread : IThread
                                             break;
                                         }
                                 }
+                                break;
+                            }
+                        case HardwareGetTemperatureRequest hardwareGetTemperatureRequest:
+                            {
+                                double temp = 25.0;
+                                if (thunderscope is Driver.Libtslitex.Thunderscope liteXThunderscope)
+                                {
+                                    var status = liteXThunderscope.GetStatus();
+                                    temp = status.FpgaTemp;
+                                }
+                                processingControl.Response.Writer.Write(new HardwareGetTemperatureResponse(temp));
+                                logger.LogDebug($"{nameof(HardwareGetTemperatureRequest)}");
                                 break;
                             }
 

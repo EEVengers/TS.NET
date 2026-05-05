@@ -26,9 +26,6 @@ public record HardwareSetRate(ulong Rate) : ProcessingRequestDto, INotificationD
 public record HardwareSetResolution(AdcResolution Resolution) : ProcessingRequestDto, INotificationDto;
 public record HardwareSetChannelEnabled(int ChannelIndex, bool Enabled) : ProcessingRequestDto, INotificationDto;
 
-public record HardwareSetRefClockMode(ThunderscopeRefClockMode Mode) : ProcessingRequestDto, INotificationDto;
-public record HardwareSetRefClockFrequency(uint FrequencyHz) : ProcessingRequestDto, INotificationDto;
-
 public abstract record HardwareSetChannelFrontendRequest(int ChannelIndex) : ProcessingRequestDto;
 public record HardwareSetVoltOffset(int ChannelIndex, float VoltOffset) : HardwareSetChannelFrontendRequest(ChannelIndex);
 public record HardwareSetVoltFullScale(int ChannelIndex, float VoltFullScale) : HardwareSetChannelFrontendRequest(ChannelIndex);
@@ -66,3 +63,6 @@ public record HardwareGetTerminationRequest(int ChannelIndex) : HardwareGetChann
 public record ProcessingGetRatesRequest() : ProcessingRequestDto;       // A collection of possible logical rates depending on hardware configuration, not an exhaustive list of all rates
 public record HardwareSetChannelManualControl(int ChannelIndex, ThunderscopeChannelFrontendManualControl Channel) : ProcessingRequestDto;
 public record HardwareSetAdcCalibration(ThunderscopeAdcCalibration AdcCalibration) : ProcessingRequestDto;
+public record HardwareSetRefClockMode(ThunderscopeRefClockMode Mode) : ProcessingRequestDto, INotificationDto;
+public record HardwareSetRefClockFrequency(uint FrequencyHz) : ProcessingRequestDto, INotificationDto;
+public record HardwareGetTemperatureRequest() : ProcessingRequestDto;

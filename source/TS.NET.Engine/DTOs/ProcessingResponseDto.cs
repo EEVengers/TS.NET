@@ -29,3 +29,5 @@ public record HardwareGetVoltFullScaleResponse(double RequestedVoltFullScale, do
 public record HardwareGetBandwidthResponse(ThunderscopeBandwidth Bandwidth) : ProcessingResponseDto;
 public record HardwareGetCouplingResponse(ThunderscopeCoupling Coupling) : ProcessingResponseDto;
 public record HardwareGetTerminationResponse(ThunderscopeTermination RequestedTermination, ThunderscopeTermination ActualTermination) : ProcessingResponseDto;
+
+public record HardwareGetTemperatureResponse(float Temperature) : ProcessingResponseDto;

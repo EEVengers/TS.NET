@@ -36,24 +36,25 @@ Commands/queries are logically grouped into subsystems, with the exception of th
 
 ### Commands
 
-| Command | Args | Description |
-|---|---:|---|
-| `RUN` | - | Start acquisition/processing. |
-| `STOP` | - | Stop acquisition/processing. |
-| `FORCE` | - | Force a trigger. |
-| `SINGLE` | - | Set mode to `Single`. |
-| `NORMAL` | - | Set mode to `Normal`. |
-| `AUTO` | - | Set mode to `Auto`. |
-| `STREAM` | - | Set mode to `Stream`. |
+| Command | Description |
+|---|---|
+| `RUN` | Start acquisition/processing. |
+| `STOP` | Stop acquisition/processing. |
+| `FORCE` | Force a trigger. |
+| `SINGLE` | Set mode to `Single`. |
+| `NORMAL` | Set mode to `Normal`. |
+| `AUTO` | Set mode to `Auto`. |
+| `STREAM` | Set mode to `Stream`. |
 
 ### Queries
 
-| Command | Args | Example response | Description |
-|---|---:|---|---|
-| `*IDN?` | - | `EEVengers,ThunderScope,TS0001,0.1.0` | Standard identification string. |
-| `STATE?` | - | `RUN` or `STOP` | Current run state. |
-| `MODE?` | - | `SINGLE`, `NORMAL`, `AUTO`, `STREAM` | Current acquisition mode. |
-| `SEQNUM?` | - | `12345` | The last sequence number sent on the data server socket. |
+| Query | Response | Type  | Description |
+|---|---|---|---|
+| `*IDN?` | `EEVengers,ThunderScope,TS0001,0.1.0` | string | Standard identification string. |
+| `STATE?` | `RUN` or `STOP` | string | Current run state. |
+| `MODE?` | `SINGLE`, `NORMAL`, `AUTO`, `STREAM` | string | Current acquisition mode. |
+| `SEQNUM?` | `12345` | u32 | The last sequence number sent on the data server socket. |
+| `TEMP?` | `25.000` | f32 | FPGA temperature (formatted `#.###`). |
 
 ## Acquisition subsystem (`ACQ...`)
 
@@ -61,21 +62,21 @@ Subject matches `ACQ`/`ACQuisition` abbreviations via `subject.StartsWith("ACQ")
 
 ### Commands
 
-| Command | Args | Description |
+| Command | Type | Description |
 |---|---:|---|
-| `ACQ:RATE <rateHz>` | `ulong` | Set sample rate (Hz). |
-| `ACQ:DEPTH <samples>` | `uint` | Set capture depth/length. |
-| `ACQ:RES <bits>` | `uint` | Set ADC resolution. Supported: `8` or `12`. Unsupported values default to 8-bit. |
+| `ACQ:RATE <rateHz>` | u64 | Set sample rate (Hz). |
+| `ACQ:DEPTH <samples>` | u32 | Set capture depth/length. |
+| `ACQ:RES <8\|12>` | enum | Set ADC resolution. Unsupported values default to 8-bit. |
 
 ### Queries
 
-| Command | Args | Response | Description |
-|---|---:|---|---|
-| `ACQ:RATE?` | none | `<rateHz>` | Get current sample rate. |
-| `ACQ:DEPTH?` | none | `<samples>` | Get current depth. |
-| `ACQ:RES?` | none | `8` or `12` | Get ADC resolution bits. |
-| `ACQ:RATES?` | none | `<r1>,<r2>,...` | List supported sample rates. |
-| `ACQ:DEPTHS?` | none | `<d1>,<d2>,...` | List supported depths. |
+| Query | Response | Type | Description |
+|---|---|---|---|
+| `ACQ:RATE?` | `1000000000` | u64 | Get current sample rate. |
+| `ACQ:DEPTH?` | `1000000` | u32 | Get current depth. |
+| `ACQ:RES?` | `8`, `12` | enum | Get ADC resolution bits. |
+| `ACQ:RATES?` | `<r1>,<r2>,...` | [u64] | List supported sample rates. |
+| `ACQ:DEPTHS?` | `<d1>,<d2>,...` | [u32] | List supported depths. |
 
 ## Trigger subsystem (`TRIG...`)
 
@@ -83,27 +84,27 @@ Subject matches `TRIG`/`TRIGger` abbreviations via `subject.StartsWith("TRIG")`.
 
 ### Commands
 
-| Command | Args | Description |
+| Command | Type | Description |
 |---|---:|---|
-| `TRIG:SOU <CHAN1..CHAN4\|NONE>` | `string` | Set trigger source channel or `NONE`. |
-| `TRIG:TYPE <EDGE\|BURST>` | `string` | Set trigger type. |
-| `TRIG:DEL <femtoseconds>` | `long` | Set trigger delay in femtoseconds. Negative values clamp to 0 (to be reviewed). |
-| `TRIG:HOLD <femtoseconds>` | `ulong` | Set trigger holdoff in femtoseconds. |
-| `TRIG:INTER <true\|false>` | `bool` | Enable/disable trigger interpolation. `<1\|0>` is supported. |
-| `TRIG:EDGE:LEV <volts>` | `float` | Set edge trigger level in volts. |
-| `TRIG:EDGE:DIR <RISING\|FALLING\|ANY>` | `string` | Set edge direction. |
+| `TRIG:SOU <CHAN1\|CHAN2\|CHAN3\|CHAN4\|NONE>` | enum | Set trigger source channel or `NONE`. |
+| `TRIG:TYPE <EDGE\|BURST>` | enum | Set trigger type. |
+| `TRIG:DEL <femtoseconds>` | i64 | Set trigger delay in femtoseconds. Negative values clamp to 0 (to be reviewed). |
+| `TRIG:HOLD <femtoseconds>` | u64 | Set trigger holdoff in femtoseconds. |
+| `TRIG:INTER <true\|false>` | bool | Enable/disable trigger interpolation. `<1\|0>` is supported. |
+| `TRIG:EDGE:LEV <volts>` | f32 | Set edge trigger level in volts. |
+| `TRIG:EDGE:DIR <RISING\|FALLING\|ANY>` | enum | Set edge direction. |
 
 ### Queries
 
-| Command | Args | Response | Description |
-|---|---:|---|---|
-| `TRIG:SOU?` | none | `CHAN<1..4>` or `NONE` | Get trigger source. (Formatting is `CHAN{(uint)channel}`). |
-| `TRIG:TYPE?` | none | `<EDGE\|BURST>` | Get trigger type as uppercase enum name. |
-| `TRIG:DEL?` | none | `<femtoseconds>` | Get trigger delay. |
-| `TRIG:HOLD?` | none | `<femtoseconds>` | Get trigger holdoff. |
-| `TRIG:INTER?` | none | `true` or `false` | Get trigger interpolation enabled. |
-| `TRIG:EDGE:LEV?` | none | `<volts>` | Get edge trigger level (formatted `0.######`). |
-| `TRIG:EDGE:DIR?` | none | `RISING`, `FALLING`, `ANY` | Get edge trigger direction as uppercase enum name. |
+| Query | Response | Type | Description |
+|---|---|---|---|
+| `TRIG:SOU?` | `CHAN1`, `CHAN2`, `CHAN3`, `CHAN4`, `NONE` | enum | Get trigger source. (Formatting is `CHAN{(uint)channel}`). |
+| `TRIG:TYPE?` | `EDGE, BURST` | enum | Get trigger type as uppercase enum name. |
+| `TRIG:DEL?` | `<femtoseconds>` | i64 | Get trigger delay. |
+| `TRIG:HOLD?` | `<femtoseconds>` | u64 | Get trigger holdoff. |
+| `TRIG:INTER?` | `true`, `false` | bool | Get trigger interpolation enabled. |
+| `TRIG:EDGE:LEV?` | `<volts>` | f32 | Get edge trigger level (formatted `#.######`). |
+| `TRIG:EDGE:DIR?` | `RISING`, `FALLING`, `ANY` | enum | Get edge trigger direction as uppercase enum name. |
 
 ## Channel subsystem (`CHAN<n>...`)
 
@@ -113,29 +114,29 @@ Subject matches `CHAN`/`CHANnel` abbreviations via `subject.StartsWith("CHAN")` 
 
 ### Commands
 
-| Command | Args | Description |
+| Command | Type | Description |
 |---|---:|---|
-| `CHAN<n>:ON` | none | Enable channel `<n>`. |
-| `CHAN<n>:OFF` | none | Disable channel `<n>`. |
-| `CHAN<n>:BAND <FULL\|750M\|650M\|350M\|200M\|100M\|20M>` | `string` | Set channel bandwidth limit/filter. |
-| `CHAN<n>:COUP <DC\|AC>` | `string` | Set channel coupling. |
-| `CHAN<n>:TERM <1M\|50>` | `string` | Set channel termination. |
-| `CHAN<n>:OFFS <volts>` | `float` | Set channel voltage offset. Clamped to `[-50, 50]`. |
-| `CHAN<n>:RANG <volts>` | `float` | Set channel full-scale range. Clamped to `[-50, 50]`. |
+| `CHAN<n>:ON` | - | Enable channel `<n>`. |
+| `CHAN<n>:OFF` | - | Disable channel `<n>`. |
+| `CHAN<n>:BAND <FULL\|750M\|650M\|350M\|200M\|100M\|20M>` | enum | Set channel bandwidth limit/filter. |
+| `CHAN<n>:COUP <DC\|AC>` | enum | Set channel coupling. |
+| `CHAN<n>:TERM <1M\|50>` | enum | Set channel termination. |
+| `CHAN<n>:OFFS <volts>` | f32 | Set channel voltage offset. Clamped to `[-50, 50]`. |
+| `CHAN<n>:RANG <volts>` | f32 | Set channel full-scale range. Clamped to `[-50, 50]`. |
 
 ### Queries
 
-| Command | Args | Response | Description |
-|---|---:|---|---|
-| `CHAN<n>:STATE?` | none | `ON` or `OFF` | Get whether channel `<n>` is enabled. |
-| `CHAN<n>:BAND?` | none | `FULL`, `750M`, `650M`, `350M`, `200M`, `100M`, `20M` | Get channel bandwidth (maps from enum). |
-| `CHAN<n>:COUP?` | none | `DC` or `AC` | Get channel coupling. |
-| `CHAN<n>:TERM?` | none | `1M` or `50` | Get requested channel termination. |
-| `CHAN<n>:OFFS?` | none | `<volts>` | Get requested voltage offset (formatted `0.######`). |
-| `CHAN<n>:RANG?` | none | `<volts>` | Get requested full-scale range (formatted `0.######`). |
-| `CHAN<n>:TERM:ACT?` | none | `1M` or `50` | Get actual channel termination (driver may coerce termination). |
-| `CHAN<n>:OFFS:ACT?` | none | `<volts>` | Get actual voltage offset (formatted `0.######`). |
-| `CHAN<n>:RANG:ACT?` | none | `<volts>` | Get actual full-scale range (formatted `0.######`). |
+| Query | Response | Type | Description |
+|---|---|---|---|
+| `CHAN<n>:STATE?` | `ON` or `OFF` | enum | Get whether channel `<n>` is enabled. |
+| `CHAN<n>:BAND?` | `FULL`, `750M`, `650M`, `350M`, `200M`, `100M`, `20M` | enum | Get channel bandwidth (maps from enum). |
+| `CHAN<n>:COUP?` | `DC` or `AC` | enum | Get channel coupling. |
+| `CHAN<n>:TERM?` | `1M` or `50` | enum | Get requested channel termination. |
+| `CHAN<n>:OFFS?` | `<volts>` | f32 | Get requested voltage offset (formatted `#.######`). |
+| `CHAN<n>:RANG?` | `<volts>` | f32 | Get requested full-scale range (formatted `#.######`). |
+| `CHAN<n>:TERM:ACT?` | `1M` or `50` | enum | Get actual channel termination (driver may coerce termination). |
+| `CHAN<n>:OFFS:ACT?` | `<volts>` | f32 | Get actual voltage offset (formatted `#.######`). |
+| `CHAN<n>:RANG:ACT?` | `<volts>` | f32 | Get actual full-scale range (formatted `#.######`). |
 
 ## Reference clock subsystem (`REFCL...`)
 
@@ -143,10 +144,10 @@ Subject matches `REFCL` via `subject.StartsWith("REFCL")`.
 
 ### Commands
 
-| Command | Args | Description |
+| Command | Type | Description |
 |---|---:|---|
-| `REFCL:MODE` | `IN`, `OUT`, `OFF` | Set mode of REFCLK IN/OUT BNC. |
-| `REFCL:FREQ` | `uint` | Set the input clock frequency if in IN mode, or output frequency if in OUT mode. |
+| `REFCL:MODE <IN\|OUT\|OFF>` | enum | Set mode of REFCLK IN/OUT BNC. |
+| `REFCL:FREQ` | u32 | Set the input clock frequency if in IN mode, or output frequency if in OUT mode. |
 
 ## Processing subsystem (`PRO...`)
 
@@ -154,7 +155,7 @@ Subject matches `PRO` via `subject.StartsWith("PRO")`.
 
 ### Commands
 
-| Command | Args | Description |
+| Command | Type | Description |
 |---|---:|---|
 | `tbd` | `tbd` | tbd |
 
@@ -164,7 +165,7 @@ Subject matches `CAL` via `subject.StartsWith("CAL")`.
 
 ### Commands
 
-| Command | Args | Description |
+| Command | Type | Description |
 |---|---:|---|
 | `CAL:FRONTEND <channel> <coupling> <termination> <attenuator> <dac> <dpot> <pgaLadderAttenuation> <pgaHighGain> <pgaFilter>` | 9 tokens | Manually configure frontend parameters for a channel. Example from code: `CAL:FRONTEND CHAN1 DC 1M 0 2147 4 0 1 FULL`. |
 | `CAL:ADC <v1> <v2> <v3> <v4> <v5> <v6> <v7> <v8>` | 8 tokens | Set ADC calibration fine gain branch values. Each value is parsed as signed byte, masked with `0x7F`, and stored as `byte`. |
