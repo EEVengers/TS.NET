@@ -294,8 +294,19 @@ public class ProcessingThread : IThread
                                         logger.LogWarning($"Unknown {nameof(HardwareSetChannelFrontendRequest)}: {request}");
                                         break;
                                 }
+                                var reset = runMode;
+                                if (reset)
+                                {
+                                    Stop();
+                                }
                                 thunderscope.SetChannelFrontend(channelIndex, channelFrontend);
                                 currentHardwareConfig = thunderscope.GetConfiguration();
+                                if (reset)
+                                {
+                                    ResetBuffers();
+                                    ResetTrigger();     // thunderscope.GetConfiguration() should be called before this line to get the correct trigger level
+                                    Start();
+                                }
                                 switch (request)
                                 {
                                     case HardwareSetVoltOffset hardwareSetOffsetRequest:
@@ -306,7 +317,6 @@ public class ProcessingThread : IThread
                                         break;
 
                                 }
-                                ResetTrigger(); // Todo: could check if channel is the trigger channel
                                 break;
                             }
 
@@ -404,6 +414,8 @@ public class ProcessingThread : IThread
 
                         case ProcessingSetMode processingSetMode:
                             singleTriggerLatch = false;
+                            ResetBuffers();
+                            ResetTrigger();
                             switch (processingSetMode.Mode)
                             {
                                 case Mode.Normal:                // NORMAL/STREAM/AUTO use RUN/STOP on user demand
@@ -423,8 +435,6 @@ public class ProcessingThread : IThread
                                     processingConfig.Mode = processingSetMode.Mode;
                                     break;
                             }
-                            ResetBuffers();
-                            ResetTrigger();
                             uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                             logger.LogDebug($"{nameof(ProcessingSetMode)} (mode: {processingConfig.Mode})");
                             break;
@@ -1255,6 +1265,7 @@ public class ProcessingThread : IThread
 
             void Start()
             {
+                // This is generally called *after* ResetBuffers() & ResetTrigger()
                 runMode = true;
                 thunderscope.Start();
             }
