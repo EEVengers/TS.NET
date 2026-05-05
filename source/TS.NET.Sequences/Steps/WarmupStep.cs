@@ -62,7 +62,7 @@ public class WarmupStep : Step
                     }
                 ]
             });
-            Result!.Summary = $"FPGA: {fpgaTemps.Last():F2} °C";
+            Result!.Summary = $"FPGA: {fpgaTemps.Last():F1} °C";
             Logger.Instance.Log(LogLevel.Information, Index, Status.Done, "Warmup complete");
             return Status.Done;
         };

@@ -741,7 +741,7 @@ internal class ScpiServer : IThread
                                 switch (response)
                                 {
                                     case HardwareGetTemperatureResponse hardwareGetTemperatureResponse:
-                                        return Invariant($"{hardwareGetTemperatureResponse.Temperature:F3}\n");
+                                        return Invariant($"{hardwareGetTemperatureResponse.Temperature:F1}\n");
                                     default:
                                         logger.LogError($"TEMP? - Invalid response from {nameof(processingControl.Response.Reader)}");
                                         break;
