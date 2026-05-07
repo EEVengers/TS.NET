@@ -26,9 +26,15 @@ External device generating trigger pulses (3.3V, square, 50Ω at source). [not y
 
 ## External trigger input and reference clock input
 
-External device generating trigger pulses (3.3V, square, 50Ω at source) & 10 MHz reference clock (3.3V, square, 50Ω at source). [not yet supported]
+External device generating trigger pulses (3.3V, square, 50Ω at source) & 10 MHz reference clock input (3.3V, square, 50Ω at source). [not yet supported]
 
-![External trigger input and reference clock input](images/external-trigger-source-and-reference-clock-setup.png)
+![External trigger input and reference clock input](images/external-trigger-source-and-reference-clock-input-setup.png)
+
+## External trigger input and reference clock output
+
+External device generating trigger pulses (3.3V, square, 50Ω at source) & 10 MHz reference clock output (3.3V, square, 50Ω at source). [not yet supported]
+
+![External trigger input and reference clock output](images/external-trigger-source-and-reference-clock-output-setup.png)
 
 ## Two unit sync
 
