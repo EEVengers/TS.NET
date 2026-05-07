@@ -44,22 +44,22 @@ namespace TS.NET
         public int Version { get; set; } = 1;
 
         [MaxLength(256)]
-        [JsonPropertyName("Serial Number")]
+        [JsonPropertyName("serial")]
         public string SerialNumber { get; set; } = string.Empty;
 
-        [JsonPropertyName("Board Revision")]
+        [JsonPropertyName("boardRevision")]
         public double BoardRevision { get; set; }
 
         [MaxLength(256)]
-        [JsonPropertyName("Build Config")]
+        [JsonPropertyName("buildConfiguration")]
         public string BuildConfig { get; set; } = string.Empty;
 
         [MaxLength(256)]
-        [JsonPropertyName("Build Date")]
+        [JsonPropertyName("buildDate")]
         public string BuildDate { get; set; } = string.Empty;
 
         [MaxLength(256)]
-        [JsonPropertyName("Mfg Signature")]
+        [JsonPropertyName("manufacturingSignature")]
         public string ManufacturingSignature { get; set; } = string.Empty;
     }
 }
