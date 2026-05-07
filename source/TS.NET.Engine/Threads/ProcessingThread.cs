@@ -469,7 +469,22 @@ public class ProcessingThread : IThread
                         case ProcessingSetTriggerSource processingSetTriggerSourceDto:
                             if (processingConfig.TriggerChannel != processingSetTriggerSourceDto.Channel)
                             {
+                                // If coming out of external trigger mode, disable external trigger input
+                                if(processingConfig.TriggerChannel == TriggerChannel.External)
+                                {
+                                    currentHardwareConfig.ExtSyncMode = ThunderscopeExtSyncMode.Disabled;
+                                    thunderscope.SetExtSyncMode(currentHardwareConfig.ExtSyncMode);
+                                }
+
                                 processingConfig.TriggerChannel = processingSetTriggerSourceDto.Channel;
+
+                                // If going into external trigger mode, enable external trigger input
+                                if(processingConfig.TriggerChannel == TriggerChannel.External)
+                                {
+                                    currentHardwareConfig.ExtSyncMode = ThunderscopeExtSyncMode.Input;
+                                    thunderscope.SetExtSyncMode(currentHardwareConfig.ExtSyncMode);
+                                }
+
                                 ResetTrigger();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerSource)} (channel: {processingConfig.TriggerChannel})");
@@ -797,11 +812,11 @@ public class ProcessingThread : IThread
                                             }
                                         }
                                     }
-                                    if (processingConfig.TriggerType == TriggerType.Event)
+                                    if (processingConfig.TriggerChannel == TriggerChannel.External)
                                     {
                                         while (thunderscope.TryGetEvent(out var thunderscopeEvent, out var eventSampleIndex))
                                         {
-                                            logger.LogDebug($"Event. eventSampleIndex: {eventSampleIndex}, sampleStartIndex: {sampleStartIndex}");
+                                            //logger.LogDebug($"Event. eventSampleIndex: {eventSampleIndex}, sampleStartIndex: {sampleStartIndex}");
                                             eventTrigger?.EnqueueEvent(eventSampleIndex);
                                         }
 
@@ -811,7 +826,7 @@ public class ProcessingThread : IThread
                                         {
                                             for (int i = 0; i < eventTriggerResults.CaptureEndCount; i++)
                                             {
-                                                logger.LogDebug($"Capture {eventTriggerResults.CaptureEndIndices[i]}");
+                                                //logger.LogDebug($"Capture {eventTriggerResults.CaptureEndIndices[i]}");
                                                 switch (processingConfig.ChannelDataType)
                                                 {
                                                     case ThunderscopeDataType.I8:
@@ -1218,17 +1233,13 @@ public class ProcessingThread : IThread
                 long windowTriggerPosition = (long)(processingConfig.TriggerDelayFs / femtosecondsPerSample);
                 long additionalHoldoff = (long)(processingConfig.TriggerHoldoffFs / femtosecondsPerSample);
 
-                if (processingConfig.TriggerType == TriggerType.Event)
+                if (processingConfig.TriggerChannel == TriggerChannel.External)
                 {
                     eventTrigger = new EventTrigger();
                     eventTrigger.SetHorizontal(processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);
-                    // Temporary - force external sync input for event trigger.
-                    currentHardwareConfig.ExtSyncMode = ThunderscopeExtSyncMode.Input;
-                    thunderscope.SetExtSyncMode(currentHardwareConfig.ExtSyncMode);
                     return;
                 }
 
-                // Reset triggers
                 if (processingConfig.TriggerChannel == TriggerChannel.None)
                 {
                     logger.LogWarning($"Trigger channel set to None");

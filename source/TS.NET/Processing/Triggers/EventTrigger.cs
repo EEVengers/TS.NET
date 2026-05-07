@@ -65,9 +65,9 @@ public class EventTrigger : IEventTrigger
                         // This does limit the scope of triggers to current & future chunks,
                         // when in reality there's a whole acquisition buffer available.
                         // Maybe re-evaluate in future.
-                        while (eventQueue.TryPeek(out var potentiallyStaleEvent) && potentiallyStaleEvent < chunkStart)
+                        while (eventQueue.TryPeek(out var potentiallyStaleEvent) && (potentiallyStaleEvent < chunkStart || potentiallyStaleEvent < (sampleStartIndex + (ulong)i)))
                         {
-                            Console.WriteLine($"Dropping {potentiallyStaleEvent} < {chunkStart}");
+                            //Console.WriteLine($"Dropping event {potentiallyStaleEvent}");
                             eventQueue.Dequeue();
                         }
 
@@ -81,6 +81,7 @@ public class EventTrigger : IEventTrigger
                         if (eventQueue.TryPeek(out var eventIndex) && eventIndex >= chunkStart && eventIndex < chunkEnd)
                         {
                             eventQueue.Dequeue();
+                            //Console.WriteLine($"Using event {eventIndex}");
                             triggerState = TriggerState.InCapture;
                             captureRemaining = captureSamples;
 

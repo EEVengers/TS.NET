@@ -12,7 +12,8 @@ public enum TriggerChannel : byte
     Channel1 = 1,
     Channel2 = 2,
     Channel3 = 3,
-    Channel4 = 4
+    Channel4 = 4,
+    External = 129
 }
 
 public enum Mode : byte
@@ -36,9 +37,7 @@ public enum TriggerType : byte
     Interval = 5,
     Burst = 6,
     Dropout = 7,
-    SlewRate = 8,
-    // FPGA provided event
-    Event = 9
+    SlewRate = 8
 }
 
 // 9 bit =     4x sum, 1x >>

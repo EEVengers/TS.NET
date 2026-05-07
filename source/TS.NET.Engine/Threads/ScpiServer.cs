@@ -346,18 +346,24 @@ internal class ScpiServer : IThread
                                 {
                                     // TRIGger:SOUrce <arg>
                                     // TRIG:SOU <arg>
-                                    if (!char.IsDigit(argument[^1]) && argument != "NONE")
-                                    {
-                                        logger.LogWarning($"Trigger source parameter not valid");
-                                        return null;
-                                    }
+                                    var source = argument.ToUpperInvariant();
                                     var triggerChannel = TriggerChannel.None;
-                                    if (argument != "NONE")
+                                    switch (source)
                                     {
-                                        var source = Convert.ToUInt32(argument.ToArray()[^1], CultureInfo.InvariantCulture) - '0';
-                                        if (source < 1 || source > 4)
-                                            source = 1;
-                                        triggerChannel = (TriggerChannel)source;
+                                        // starts with "CHAN" and ends with a digit 1-4, or "SYNC" or "NONE"
+                                        case var _ when source.StartsWith("CHAN") && char.IsDigit(source[^1]) && source[^1] >= '1' && source[^1] <= '4':
+                                            var channel = Convert.ToUInt32(argument.ToArray()[^1], CultureInfo.InvariantCulture) - '0';
+                                            triggerChannel = (TriggerChannel)channel;
+                                            break;
+                                        case "EXT":
+                                            triggerChannel = TriggerChannel.External;
+                                            break;
+                                        case "NONE":
+                                            triggerChannel = TriggerChannel.None;
+                                            break;
+                                        default:
+                                            logger.LogWarning($"Trigger source parameter not valid");
+                                            return null;
                                     }
                                     logger.LogDebug($"Set trigger source to {triggerChannel}");
                                     processingControl.Request.Writer.Write(new ProcessingSetTriggerSource(triggerChannel));
@@ -377,7 +383,6 @@ internal class ScpiServer : IThread
                                         "BURST" => TriggerType.Burst,
                                         "DROPOUT" => TriggerType.Dropout,
                                         "SLEWRATE" => TriggerType.SlewRate,
-                                        "TEMP-EVENT" => TriggerType.Event,      // Temporary name, find a better name or SCPI subsystem
                                         _ => null
                                     };
 
@@ -423,7 +428,7 @@ internal class ScpiServer : IThread
                                         "0" => false,
                                         _ => true       // Default to true
                                     };
-                                    logger.LogDebug($"Set trigger interpolation to {enabled}V");
+                                    logger.LogDebug($"Set trigger interpolation to {enabled}");
                                     processingControl.Request.Writer.Write(new ProcessingSetTriggerInterpolation(enabled));
                                     return null;
                                 }
