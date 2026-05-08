@@ -66,8 +66,12 @@
                                 <td class="p-2 bg-gray-200"></td>
                                 <td colspan="4" class="px-2 pb-2">
                                     <div class="text-xs">
-                                        @foreach (var meta in step.Result!.Metadata!)
+                                        @{
+                                            var metadata = step.Result!.Metadata!;
+                                        }
+                                        @for (int metaIndex = 0; metaIndex < metadata.Count; metaIndex++)
                                         {
+                                            var meta = metadata[metaIndex];
                                             @if (!meta.ShowInReport)
                                             {
                                                 continue;
@@ -119,12 +123,20 @@
                                                     break;
                                                 case ResultMetadataXYChart chart:
                                                     {
-                                                        var legendLocation = chart.LegendLocation == ResultMetadataXYChartLegendLocation.BottomLeft ? "bottom-left" : "top-right";
+                                                        var legendLocation = chart.LegendLocation switch
+                                                        {
+                                                            ResultMetadataXYChartLegendLocation.TopLeft => "top-left",
+                                                            ResultMetadataXYChartLegendLocation.TopRight => "top-right",
+                                                            ResultMetadataXYChartLegendLocation.BottomLeft => "bottom-left",
+                                                            ResultMetadataXYChartLegendLocation.BottomRight => "bottom-right",
+                                                            _ => "top-right"
+                                                        };
+                                                        var chartId = $"chart-{step.Index}-{metaIndex}";
                                                         <div class="mt-2">
-                                                            <svg id="chart-@(step.Index)" width="700" height="400"></svg>
+                                                            <svg id="@chartId" width="700" height="400"></svg>
                                                             <script>
                                                                 window.addEventListener("load", function() {
-                                                                    new ResultMetadataXYChart("chart-@(step.Index)", {
+                                                                    new ResultMetadataXYChart("@chartId", {
                                                                         width: 700,
                                                                         height: 400,
                                                                         margin: { top: 40, right: 20, bottom: 60, left: 80},

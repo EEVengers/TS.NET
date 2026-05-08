@@ -344,16 +344,33 @@ class ResultMetadataXYChart {
         const height = this.options.height - margin.top - margin.bottom;
         const legendHeight = this.chartData.series.length * legendEntryHeight;
 
-        // Calculate position based on legendLocation
-        let xPos, yPos;
-        if (this.options.legendLocation === 'bottom-left') {
-            xPos = margin.left + legendMargin;
-            yPos = margin.top + height - legendHeight - legendMargin;
-        } else {
-            // Default: top-right
-            xPos = margin.left + width - legendWidth - legendMargin;
-            yPos = margin.top + legendMargin;
-        }
+        const getLegendPosition = (legendWidthValue) => {
+            switch (this.options.legendLocation) {
+                case 'top-left':
+                    return {
+                        xPos: margin.left + legendMargin,
+                        yPos: margin.top + legendMargin
+                    };
+                case 'bottom-left':
+                    return {
+                        xPos: margin.left + legendMargin,
+                        yPos: margin.top + height - legendHeight - legendMargin
+                    };
+                case 'bottom-right':
+                    return {
+                        xPos: margin.left + width - legendWidthValue - legendMargin,
+                        yPos: margin.top + height - legendHeight - legendMargin
+                    };
+                case 'top-right':
+                default:
+                    return {
+                        xPos: margin.left + width - legendWidthValue - legendMargin,
+                        yPos: margin.top + legendMargin
+                    };
+            }
+        };
+
+        let { xPos, yPos } = getLegendPosition(legendWidth);
 
         const legend = this.svg.append('g')
             .attr('class', 'legend')
@@ -393,14 +410,7 @@ class ResultMetadataXYChart {
 
         legendWidth = 6 + legendLineLength + 6 + maxTextLength + 6;
 
-        // Recalculate position with actual width
-        if (this.options.legendLocation === 'bottom-left') {
-            xPos = margin.left + legendMargin;
-            yPos = margin.top + height - legendHeight - legendMargin;
-        } else {
-            xPos = margin.left + width - legendWidth - legendMargin;
-            yPos = margin.top + legendMargin;
-        }
+        ({ xPos, yPos } = getLegendPosition(legendWidth));
 
         legendBox.attr('width', legendWidth);
         legend.attr('transform', `translate(${xPos}, ${yPos})`);

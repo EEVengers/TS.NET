@@ -75,7 +75,9 @@ namespace TS.NET.Sequencer
 
     public enum ResultMetadataXYChartLegendLocation
     {
+        TopLeft,
         TopRight,
-        BottomLeft
+        BottomLeft,
+        BottomRight
     }
 }

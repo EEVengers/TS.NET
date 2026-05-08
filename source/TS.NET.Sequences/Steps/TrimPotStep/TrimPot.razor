@@ -25,7 +25,14 @@
         <div class="flex-auto flex flex-row gap-3 text-neutral-50">
             <div class="flex-auto text-sm">
                 @{
-                var legendLocation = Chart.LegendLocation == ResultMetadataXYChartLegendLocation.BottomLeft ? "bottom-left" : "top-right";
+                var legendLocation = Chart.LegendLocation switch
+                {
+                    ResultMetadataXYChartLegendLocation.TopLeft => "top-left",
+                    ResultMetadataXYChartLegendLocation.TopRight => "top-right",
+                    ResultMetadataXYChartLegendLocation.BottomLeft => "bottom-left",
+                    ResultMetadataXYChartLegendLocation.BottomRight => "bottom-right",
+                    _ => "top-right"
+                };
                 <div class="mt-2">
                     <svg id="chart-1" width="700" height="400" style="color: black;"></svg>
                 </div>
