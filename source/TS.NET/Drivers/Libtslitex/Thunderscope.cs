@@ -763,13 +763,13 @@ namespace TS.NET.Driver.Libtslitex
             cachedRefClockFrequencyHz = refClockFrequencyHz;
         }
 
-        public int UserDataRead(Span<byte> buffer, int offset)
+        public int UserDataRead(Span<byte> buffer, uint offset)
         {
             unsafe
             {
                 fixed (byte* bufferP = buffer)
                 {
-                    var retVal = Interop.UserDataRead(tsHandle, bufferP, (uint)offset, (uint)buffer.Length);
+                    var retVal = Interop.UserDataRead(tsHandle, bufferP, offset, (uint)buffer.Length);
                     if (retVal < 0)
                         throw new ThunderscopeException($"Failed to read user data ({GetLibraryReturnString(retVal)})");
                     return retVal;
@@ -777,13 +777,13 @@ namespace TS.NET.Driver.Libtslitex
             }
         }
 
-        public int UserDataWrite(Span<byte> buffer, int offset)
+        public int UserDataWrite(Span<byte> buffer, uint offset)
         {
             unsafe
             {
                 fixed (byte* bufferP = buffer)
                 {
-                    var retVal = Interop.UserDataWrite(tsHandle, bufferP, (uint)offset, (uint)buffer.Length);
+                    var retVal = Interop.UserDataWrite(tsHandle, bufferP, offset, (uint)buffer.Length);
                     if (retVal < 0)
                         throw new ThunderscopeException($"Failed to write user data ({GetLibraryReturnString(retVal)})");
                     return retVal;
