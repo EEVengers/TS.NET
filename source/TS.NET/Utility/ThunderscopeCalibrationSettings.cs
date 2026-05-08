@@ -1,27 +1,7 @@
-﻿using System;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json;
 
 namespace TS.NET
 {
-    public class CamelCaseJsonStringEnumConverter<TEnum>() : JsonStringEnumConverter<TEnum>(JsonNamingPolicy.CamelCase) where TEnum : struct, Enum;
-
-    [JsonSourceGenerationOptions(
-        WriteIndented = true,
-        PropertyNameCaseInsensitive = true, 
-        PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, 
-        Converters = [typeof(CamelCaseJsonStringEnumConverter<PgaPreampGain>)])]
-    [JsonSerializable(typeof(ThunderscopeCalibrationSettings))]
-    internal partial class SourceGenerationContext : JsonSerializerContext { }
-
-    [JsonSourceGenerationOptions(
-        WriteIndented = false,
-        PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-        Converters = [typeof(CamelCaseJsonStringEnumConverter<PgaPreampGain>)])]
-    [JsonSerializable(typeof(ThunderscopeCalibrationSettings))]
-    internal partial class SourceGenerationMinifiedContext : JsonSerializerContext { }
-
     public class ThunderscopeCalibrationSettings
     {
         public int Version { get; set; } = 1;
@@ -43,28 +23,32 @@ namespace TS.NET
             if (!File.Exists(file))
                 throw new FileNotFoundException(file);
 
-            return JsonSerializer.Deserialize(File.ReadAllText(file), SourceGenerationContext.Default.ThunderscopeCalibrationSettings) ?? throw new ArgumentNullException();
+            return FromFileJson(File.ReadAllText(file)) ?? throw new ArgumentNullException();
         }
 
         public void ToJsonFile(string path)
         {
-            var json = JsonSerializer.Serialize(this, SourceGenerationContext.Default.ThunderscopeCalibrationSettings);
-            File.WriteAllText(path, json);
+            File.WriteAllText(path, ToFileJson());
         }
 
-        public string ToJson()
+        public string ToFileJson()
         {
-            return JsonSerializer.Serialize(this, SourceGenerationContext.Default.ThunderscopeCalibrationSettings);
+            return JsonSerializer.Serialize(this, FileJsonSerializerContext.Default.ThunderscopeCalibrationSettings);
         }
 
         public string ToDeviceJson()
         {
-            return JsonSerializer.Serialize(this, SourceGenerationMinifiedContext.Default.ThunderscopeCalibrationSettings);
+            return JsonSerializer.Serialize(this, DeviceJsonSerializerContext.Default.ThunderscopeCalibrationSettings);
         }
 
-        public static ThunderscopeCalibrationSettings FromJson(string json)
+        public static ThunderscopeCalibrationSettings FromFileJson(string json)
         {
-            return JsonSerializer.Deserialize(json, SourceGenerationContext.Default.ThunderscopeCalibrationSettings) ?? throw new ArgumentNullException();
+            return JsonSerializer.Deserialize(json, FileJsonSerializerContext.Default.ThunderscopeCalibrationSettings) ?? throw new ArgumentNullException();
+        }
+
+        public static ThunderscopeCalibrationSettings FromDeviceJson(string json)
+        {
+            return JsonSerializer.Deserialize(json, DeviceJsonSerializerContext.Default.ThunderscopeCalibrationSettings) ?? throw new ArgumentNullException();
         }
     }
 
