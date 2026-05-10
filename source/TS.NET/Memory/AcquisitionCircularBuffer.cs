@@ -45,6 +45,18 @@
             memory4.Clear();
         }
 
+        private int GetValidatedEndOffset(ulong captureEndIndex)
+        {
+            if (captureEndIndex > streamEndIndex)
+                throw new ArgumentOutOfRangeException(nameof(captureEndIndex), "Capture end index cannot be greater than stream end index");
+
+            var endOffset = streamEndIndex - captureEndIndex;
+            if (endOffset > (ulong)capacity)
+                throw new ArgumentOutOfRangeException(nameof(captureEndIndex), "Capture end index is older than data currently retained in buffer");
+
+            return (int)endOffset;
+        }
+
         public void Write1Channel<T>(ReadOnlySpan<T> channel1, ulong sampleStartIndex) where T : unmanaged
         {
             var length = channel1.Length;
@@ -145,7 +157,7 @@
             if (length > samplesInBufferPerChannel)
                 throw new Exception($"{nameof(AcquisitionCircularBuffer)} does not contain {length} samples");
 
-            int endOffset = (int)(streamEndIndex - captureEndIndex);
+            int endOffset = GetValidatedEndOffset(captureEndIndex);
 
             int offsetTail = 0;
             if (endOffset <= tail)
@@ -176,7 +188,7 @@
             if (length > samplesInBufferPerChannel)
                 throw new Exception($"{nameof(AcquisitionCircularBuffer)} does not contain {length} samples");
 
-            int endOffset = (int)(streamEndIndex - captureEndIndex);
+            int endOffset = GetValidatedEndOffset(captureEndIndex);
 
             int offsetTail = 0;
             if (endOffset <= tail)
@@ -213,7 +225,7 @@
             if (length > samplesInBufferPerChannel)
                 throw new Exception($"{nameof(AcquisitionCircularBuffer)} does not contain {length} samples");
 
-            int endOffset = (int)(streamEndIndex - captureEndIndex);
+            int endOffset = GetValidatedEndOffset(captureEndIndex);
 
             int offsetTail = 0;
             if (endOffset <= tail)
@@ -253,7 +265,7 @@
             if (length > samplesInBufferPerChannel)
                 throw new Exception($"{nameof(AcquisitionCircularBuffer)} does not contain {length} samples");
 
-            int endOffset = (int)(streamEndIndex - captureEndIndex);
+            int endOffset = GetValidatedEndOffset(captureEndIndex);
 
             int offsetTail = 0;
             if (endOffset <= tail)

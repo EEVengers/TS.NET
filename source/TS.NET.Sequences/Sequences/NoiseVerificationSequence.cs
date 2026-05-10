@@ -26,12 +26,12 @@ public class NoiseVerificationSequence : Sequence
                 Icon = DialogIcon.Question
             },
             new InitialiseDeviceStep("Initialise device", Variables),
-            new LoadUserCalFromDeviceStep("Load calibration from device", Variables),
+            new LoadCalibrationFromUserCalStep("Load calibration from device", Variables),
             new Step("Load ADC branch gains"){ Action = (CancellationToken cancellationToken) => {
-                Instruments.Instance.SetThunderscopeAdcCalibration(Variables.Calibration.Adc.ToDriver());
+                Instruments.Instance.SetThunderscopeBranchGains([0, 0, 0, 0, 0, 0, 0, 0]);
                 return Sequencer.Status.Done;
             }},
-            new WarmupStep("Warmup device", Variables) { Skip = false, AllowSkip = true },
+            new WarmupStep("Warmup device", Variables, 40 * 60) { Skip = false, AllowSkip = true },
 
             new AcRmsStep("Channel 1 - AC RMS - 50R, 8-bit, 1 GSPS, BW 20M, PGA HG L0", 0, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.Bw20M, 1_000_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009, Averages = 100 },
             new AcRmsStep("Channel 2 - AC RMS - 50R, 8-bit, 1 GSPS, BW 20M, PGA HG L0", 1, 0, ThunderscopeTermination.FiftyOhm, ThunderscopeBandwidth.Bw20M, 1_000_000_000, Variables){ MinLimit = 0.00003, MaxLimit = 0.00009, Averages = 100 },

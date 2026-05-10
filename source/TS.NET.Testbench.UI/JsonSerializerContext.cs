@@ -11,7 +11,7 @@ internal partial class DefaultCaseContext : JsonSerializerContext { }
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, UseStringEnumConverter = true, NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals)]
 [JsonSerializable(typeof(StepDto))]
 [JsonSerializable(typeof(StepResultDto))]
-[JsonSerializable(typeof(ChannelPathConfig))]
+[JsonSerializable(typeof(ChannelPathData))]
 [JsonSerializable(typeof(LogDto))]
 //[JsonSerializable(typeof(VariablesDto))]
 [JsonSerializable(typeof(SequencesDto))]

@@ -62,7 +62,7 @@ public record HardwareGetTerminationRequest(int ChannelIndex) : HardwareGetChann
 // Misc
 public record ProcessingGetRatesRequest() : ProcessingRequestDto;       // A collection of possible logical rates depending on hardware configuration, not an exhaustive list of all rates
 public record HardwareSetChannelManualControl(int ChannelIndex, ThunderscopeChannelFrontendManualControl Channel) : ProcessingRequestDto;
-public record HardwareSetAdcCalibration(ThunderscopeAdcCalibration AdcCalibration) : ProcessingRequestDto;
+public record HardwareSetAdcBranchGainsManualControl(byte[] Gains) : ProcessingRequestDto;
 public record HardwareSetRefClockMode(ThunderscopeRefClockMode Mode) : ProcessingRequestDto, INotificationDto;
 public record HardwareSetRefClockFrequency(uint FrequencyHz) : ProcessingRequestDto, INotificationDto;
 public record HardwareGetTemperatureRequest() : ProcessingRequestDto;

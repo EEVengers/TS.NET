@@ -1,5 +1,5 @@
 using CommunityToolkit.HighPerformance.Buffers;
-using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -22,7 +22,7 @@ public class Instruments
     private AdcResolution cachedResolution = AdcResolution.EightBit;
     private int[] cachedChannelIndices = [];
 
-    public void Initialise()
+    public string Initialise()
     {
         // ThunderScope
         //thunderScope = new ThunderscopeScpiConnection();
@@ -58,6 +58,14 @@ public class Instruments
 
         //thunderScope.WriteLine("RUN");
 
+        // Load serial from first thunderscope found
+        var hwidSerial = "";
+        var devices = Driver.Libtslitex.Thunderscope.ListDevices();
+        if (devices.Count > 0)
+        {
+            hwidSerial = devices[0].Serial;
+        }
+
         var loggerFactory = new Microsoft.Extensions.Logging.LoggerFactory();
         var hardwareConfig = new ThunderscopeHardwareConfig
         {
@@ -67,7 +75,10 @@ public class Instruments
                 EnabledChannels = 0x01,
                 SampleRateHz = 1_000_000_000,
                 Resolution = AdcResolution.EightBit
-            }
+            },
+            //RefClockMode = ThunderscopeRefClockMode.Input,
+            RefClockMode = ThunderscopeRefClockMode.Disabled,
+            RefClockFrequencyHz = 10_000_000
         };
         cachedSampleRateHz = 1_000_000_000;
         cachedResolution = AdcResolution.EightBit;
@@ -77,14 +88,9 @@ public class Instruments
         hardwareConfig.Frontend[1] = ThunderscopeChannelFrontend.Default();
         hardwareConfig.Frontend[2] = ThunderscopeChannelFrontend.Default();
         hardwareConfig.Frontend[3] = ThunderscopeChannelFrontend.Default();
-        hardwareConfig.Calibration[0] = ThunderscopeChannelCalibrationSettings.Default().ToDriver();
-        hardwareConfig.Calibration[1] = ThunderscopeChannelCalibrationSettings.Default().ToDriver();
-        hardwareConfig.Calibration[2] = ThunderscopeChannelCalibrationSettings.Default().ToDriver();
-        hardwareConfig.Calibration[3] = ThunderscopeChannelCalibrationSettings.Default().ToDriver();
-        hardwareConfig.AdcCalibration = ThunderscopeAdcCalibrationSettings.Default().ToDriver();
         thunderScope = new Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
         thunderScope.Open(0);
-        thunderScope.Configure(hardwareConfig, "");
+        thunderScope.Configure(hardwareConfig, Calibration.Default(), "");
         // Need to set manual control on all channels so that SetRate doesn't run normal logic
         var manualControl = new ThunderscopeChannelFrontendManualControl() { Coupling = ThunderscopeCoupling.DC, Termination = ThunderscopeTermination.OneMegaohm, Attenuator = 0, DAC = 2000, DPOT = 50, PgaLadderAttenuation = 0, PgaFilter = ThunderscopeBandwidth.Bw20M, PgaHighGain = 0 };
         thunderScope.SetChannelManualControl(0, manualControl);
@@ -95,6 +101,12 @@ public class Instruments
         thunderScope.Start();
         dataMemory = new ThunderscopeMemory(512 * 1024 * 1024);
         shuffleMemory = new ThunderscopeMemory(512 * 1024 * 1024);
+
+        Thread.Sleep(100);
+        var status = thunderScope.GetStatus();
+        Debug.WriteLine($"RefInClk: {status.RefClockInValid}");
+
+        return hwidSerial;
     }
 
     public void Close()
@@ -103,7 +115,7 @@ public class Instruments
         thunderScopeData?.Close();
     }
 
-    public bool TryReadUserCalibration(out ThunderscopeCalibrationSettings? calibration)
+    public bool TryReadUserCalibration(out Calibration? calibration)
     {
         if (thunderScope == null)
         {
@@ -123,7 +135,7 @@ public class Instruments
         }
     }
 
-    public void WriteUserCalibration(ThunderscopeCalibrationSettings calibration)
+    public void WriteUserCalibration(Calibration calibration)
     {
         if (thunderScope == null)
             throw new TestbenchException("Device must be opened");
@@ -134,10 +146,10 @@ public class Instruments
     {
         if (!enabledChannelIndices.SequenceEqual(cachedChannelIndices))
         {
-            thunderScope?.SetChannelEnable(0, enabledChannelIndices.Contains(0));
-            thunderScope?.SetChannelEnable(1, enabledChannelIndices.Contains(1));
-            thunderScope?.SetChannelEnable(2, enabledChannelIndices.Contains(2));
-            thunderScope?.SetChannelEnable(3, enabledChannelIndices.Contains(3));
+            thunderScope?.SetChannelEnable(0, enabledChannelIndices.Contains(0), updateFrontends: false);
+            thunderScope?.SetChannelEnable(1, enabledChannelIndices.Contains(1), updateFrontends: false);
+            thunderScope?.SetChannelEnable(2, enabledChannelIndices.Contains(2), updateFrontends: false);
+            thunderScope?.SetChannelEnable(3, enabledChannelIndices.Contains(3), updateFrontends: false);
             cachedSampleRateHz = 0;
             cachedChannelIndices = enabledChannelIndices;
         }
@@ -211,29 +223,19 @@ public class Instruments
         Thread.Sleep(frontEndSettlingTimeMs);
     }
 
-    public void SetThunderscopeAdcCalibration(byte[] branchFineGains)
+    public void SetThunderscopeBranchGains(byte[] branchGains)
     {
-        thunderScope?.SetAdcCalibration(new ThunderscopeAdcCalibration()
-        {
-            FineGainBranch1 = branchFineGains[0],
-            FineGainBranch2 = branchFineGains[1],
-            FineGainBranch3 = branchFineGains[2],
-            FineGainBranch4 = branchFineGains[3],
-            FineGainBranch5 = branchFineGains[4],
-            FineGainBranch6 = branchFineGains[5],
-            FineGainBranch7 = branchFineGains[6],
-            FineGainBranch8 = branchFineGains[7]
-        });
-    }
-
-    public void SetThunderscopeAdcCalibration(ThunderscopeAdcCalibration adcCalibration)
-    {
-        thunderScope?.SetAdcCalibration(adcCalibration);
+        thunderScope?.SetAdcBranchGainManualControl(branchGains);
     }
 
     public double GetThunderscopeFpgaTemp()
     {
         return thunderScope!.GetStatus().FpgaTemp;
+    }
+
+    public bool GetThunderscopeRefClockInValid()
+    {
+        return thunderScope!.GetStatus().RefClockInValid;
     }
 
     public double GetThunderscopeAverage(int channelIndex, int sampleCount)
@@ -266,12 +268,9 @@ public class Instruments
 
     public void GetThunderscopeFineBranches(out double[] mean, out double[] stdev)
     {
-        thunderScope!.Stop();
-        thunderScope!.Start();
-        var subsetDataMemory = dataMemory!.Subset(32 * 1024 * 1024);
-        thunderScope!.Read(subsetDataMemory);
+        var interleavedData = GetDataI8InterleavedExactLength(32 * 1024 * 1024);
 
-        var sampleBuffer = subsetDataMemory.DataSpanI8;
+        var sampleBuffer = interleavedData;
         int sampleLen = sampleBuffer.Length;
 
         // If multiple channels are enabled, branch parsing won't be valid
@@ -279,36 +278,37 @@ public class Instruments
         if (config.Acquisition.EnabledChannelsCount() != 1)
             throw new TestbenchException("Fine branch analysis requires exactly one enabled channel.");
 
-        int sampleCount = sampleLen / 8;
+        var channelBranchIndices = GetBranchLayout(config.Acquisition.AdcChannelMode);
 
-        // Branch order from HMCAD1520 datasheet, Table 27
-        var branch0 = new sbyte[sampleCount]; // D1A
-        var branch1 = new sbyte[sampleCount]; // D2A
-        var branch2 = new sbyte[sampleCount]; // D3B
-        var branch3 = new sbyte[sampleCount]; // D4B
-        var branch4 = new sbyte[sampleCount]; // D2B
-        var branch5 = new sbyte[sampleCount]; // D1B
-        var branch6 = new sbyte[sampleCount]; // D4A
-        var branch7 = new sbyte[sampleCount]; // D3A
+        int branchSampleCount = sampleLen / 8;
+
+        var branches = new sbyte[8][];
+        for (int i = 0; i < 8; i++)
+        {
+            branches[i] = new sbyte[branchSampleCount];
+        }
 
         long sumAll = 0;
         sbyte minAll = 127;
         sbyte maxAll = -128;
 
         int idx = 0;
-        for (int group = 0; group < sampleCount; group++)
+        for (int sample = 0; sample < branchSampleCount; sample++)
         {
-            sbyte v0 = sampleBuffer[idx++]; branch0[group] = v0; sumAll += v0; if (v0 > maxAll) maxAll = v0; if (v0 < minAll) minAll = v0; // D1A
-            sbyte v1 = sampleBuffer[idx++]; branch5[group] = v1; sumAll += v1; if (v1 > maxAll) maxAll = v1; if (v1 < minAll) minAll = v1; // D1B
-            sbyte v2 = sampleBuffer[idx++]; branch1[group] = v2; sumAll += v2; if (v2 > maxAll) maxAll = v2; if (v2 < minAll) minAll = v2; // D2A
-            sbyte v3 = sampleBuffer[idx++]; branch4[group] = v3; sumAll += v3; if (v3 > maxAll) maxAll = v3; if (v3 < minAll) minAll = v3; // D2B
-            sbyte v4 = sampleBuffer[idx++]; branch7[group] = v4; sumAll += v4; if (v4 > maxAll) maxAll = v4; if (v4 < minAll) minAll = v4; // D3A
-            sbyte v5 = sampleBuffer[idx++]; branch2[group] = v5; sumAll += v5; if (v5 > maxAll) maxAll = v5; if (v5 < minAll) minAll = v5; // D3B
-            sbyte v6 = sampleBuffer[idx++]; branch6[group] = v6; sumAll += v6; if (v6 > maxAll) maxAll = v6; if (v6 < minAll) minAll = v6; // D4A
-            sbyte v7 = sampleBuffer[idx++]; branch3[group] = v7; sumAll += v7; if (v7 > maxAll) maxAll = v7; if (v7 < minAll) minAll = v7; // D4B
+            for (int branch = 0; branch < 8; branch++)
+            {
+                var value = sampleBuffer[idx++];
+                branches[branch][sample] = value;
+
+                sumAll += value;
+                if (value > maxAll)
+                    maxAll = value;
+                if (value < minAll)
+                    minAll = value;
+            }
         }
 
-        double meanAll = (double)sumAll / (double)(sampleCount * 8);
+        double meanAll = (double)sumAll / (double)(branchSampleCount * 8);
 
         static double CalcMean(sbyte[] data)
         {
@@ -331,14 +331,11 @@ public class Instruments
 
         var branchMeans = new double[8];
         var branchStdDevs = new double[8];
-        branchMeans[0] = CalcMean(branch0); branchStdDevs[0] = CalcSampleStdDev(branch0, branchMeans[0]);
-        branchMeans[1] = CalcMean(branch1); branchStdDevs[1] = CalcSampleStdDev(branch1, branchMeans[1]);
-        branchMeans[2] = CalcMean(branch2); branchStdDevs[2] = CalcSampleStdDev(branch2, branchMeans[2]);
-        branchMeans[3] = CalcMean(branch3); branchStdDevs[3] = CalcSampleStdDev(branch3, branchMeans[3]);
-        branchMeans[4] = CalcMean(branch4); branchStdDevs[4] = CalcSampleStdDev(branch4, branchMeans[4]);
-        branchMeans[5] = CalcMean(branch5); branchStdDevs[5] = CalcSampleStdDev(branch5, branchMeans[5]);
-        branchMeans[6] = CalcMean(branch6); branchStdDevs[6] = CalcSampleStdDev(branch6, branchMeans[6]);
-        branchMeans[7] = CalcMean(branch7); branchStdDevs[7] = CalcSampleStdDev(branch7, branchMeans[7]);
+        for (int i = 0; i < 8; i++)
+        {
+            branchMeans[i] = CalcMean(branches[i]);
+            branchStdDevs[i] = CalcSampleStdDev(branches[i], branchMeans[i]);
+        }
 
         //DebugLog.Instance.Log($"ADC sample mean: {meanAll:F1}, min: {minAll}, max: {maxAll}");
         //for (int i = 0; i < 8; i++)
@@ -348,90 +345,75 @@ public class Instruments
         stdev = branchStdDevs;
     }
 
-    public void GetThunderscopeFineBranchesSine(double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution, out double[] amplitudes, out double[] phases, out double[] offsets)
+    public void GetThunderscopeFineBranchesSine(double frequency, double sampleRateHz, out double[] amplitudes, out double[] phases, out double[] offsets)
     {
         // Note: phases are not reliable, too much phase noise in the test system.
         // Approximate magnitudes of errors are:
         //    amplitude: 4 LSB
         //    offset: 0.2 LSB
 
-        // If multiple channels are enabled, branch parsing won't be valid
         var config = thunderScope!.GetConfiguration();
-        if (config.Acquisition.EnabledChannelsCount() != 1)
-            throw new TestbenchException("Fine branch analysis requires exactly one enabled channel.");
+        // Calculate how many samples are needed per channel to get 20 cycles of the sig-gen waveform in each branch buffer
+        var branchCountPerChannel = 8 / (int)config.Acquisition.AdcChannelMode;
+        var samplesPerCycle = sampleRateHz / frequency;
 
-        // Aim to get 20 cycles of the sig-gen waveform in each of the 8 branch buffers
-        var cycleCount = 20.0 * 8.0;
-        var totalSampleCount = (int)Math.Round((sampleRateHz / frequency) * cycleCount);
-
-        thunderScope!.Stop();
-        thunderScope!.Start();
-        var subsetDataMemory = dataMemory!.Subset(32 * 1024 * 1024);
-        thunderScope!.Read(subsetDataMemory);
-
-        var sampleBuffer = subsetDataMemory.DataSpanI8.Slice(subsetDataMemory.DataSpanI8.Length - totalSampleCount, totalSampleCount);
-        int sampleCount = sampleBuffer.Length / 8;
-
-        // Branch order from HMCAD1520 datasheet, Table 27
-        //                               LVDS output [branch]
-        var branch1 = new sbyte[sampleCount]; // D1A [1]
-        var branch2 = new sbyte[sampleCount]; // D2A [2]
-        var branch3 = new sbyte[sampleCount]; // D3B [3]
-        var branch4 = new sbyte[sampleCount]; // D4B [4]
-        var branch5 = new sbyte[sampleCount]; // D2B [5]
-        var branch6 = new sbyte[sampleCount]; // D1B [6]
-        var branch7 = new sbyte[sampleCount]; // D4A [7]
-        var branch8 = new sbyte[sampleCount]; // D3A [8]
-
-        int idx = 0;
-        for (int group = 0; group < sampleCount; group++)
+        var interleavedSampleCount = (int)(samplesPerCycle * 20.0 * (int)config.Acquisition.AdcChannelMode);
+        var samplesPerBranch = interleavedSampleCount / 8;
+        Debug.WriteLine(samplesPerBranch);
+        var branches = new sbyte[8][];
+        for (int i = 0; i < 8; i++)
         {
-            branch1[group] = sampleBuffer[idx++]; // D1A
-            branch6[group] = sampleBuffer[idx++]; // D1B
-            branch2[group] = sampleBuffer[idx++]; // D2A
-            branch5[group] = sampleBuffer[idx++]; // D2B
-            branch8[group] = sampleBuffer[idx++]; // D3A
-            branch3[group] = sampleBuffer[idx++]; // D3B
-            branch7[group] = sampleBuffer[idx++]; // D4A
-            branch4[group] = sampleBuffer[idx++]; // D4B
+            branches[i] = new sbyte[samplesPerBranch];
         }
-        // Do LSQ on sine waves
+
+        var interleavedData = GetDataI8InterleavedExactLength(interleavedSampleCount);
+        var channelBranchIndices = GetBranchLayout(config.Acquisition.AdcChannelMode);
+        int idx = 0;
+        for (int branchSample = 0; branchSample < samplesPerBranch; branchSample++)
+        {
+            branches[channelBranchIndices[0]][branchSample] = interleavedData[idx++];
+            branches[channelBranchIndices[1]][branchSample] = interleavedData[idx++];
+            branches[channelBranchIndices[2]][branchSample] = interleavedData[idx++];
+            branches[channelBranchIndices[3]][branchSample] = interleavedData[idx++];
+            branches[channelBranchIndices[4]][branchSample] = interleavedData[idx++];
+            branches[channelBranchIndices[5]][branchSample] = interleavedData[idx++];
+            branches[channelBranchIndices[6]][branchSample] = interleavedData[idx++];
+            branches[channelBranchIndices[7]][branchSample] = interleavedData[idx++];
+        }
+
         amplitudes = new double[8];
         phases = new double[8];
         offsets = new double[8];
-        for (int branch = 0; branch < 8; branch++)
+        for (int i = 0; i < 8; i++)
         {
-            using SpanOwner<double> f64Buffer = SpanOwner<double>.Allocate(sampleCount);  // Returned to pool when it goes out of scope
-            var i8Span = branch switch
-            {
-                0 => branch1,
-                1 => branch2,
-                2 => branch3,
-                3 => branch4,
-                4 => branch5,
-                5 => branch6,
-                6 => branch7,
-                7 => branch8,
-                _ => throw new NotImplementedException()
-            };
+            var branchData = branches[i];
+            using SpanOwner<double> f64Buffer = SpanOwner<double>.Allocate(samplesPerBranch);  // Returned to pool when it goes out of scope
             var f64Span = f64Buffer.Span;
 
-            var vPerBit = resolution switch
+            for (int sample = 0; sample < samplesPerBranch; sample++)
             {
-                AdcResolution.EightBit => (double)(inputVpp / 256.0),
-                AdcResolution.TwelveBit => (double)(inputVpp / 4096.0),
-                _ => throw new NotImplementedException()
-            };
-
-            for (int i = 0; i < f64Span.Length; i++)
-            {
-                f64Span[i] = i8Span[i] * vPerBit;
+                f64Span[sample] = branchData[sample];
             }
-            var (amplitude, phaseDeg, dcOffset) = SineLeastSquaresFit.FitSineWave(sampleRateHz / 8, f64Span, frequency);
-            var lsqVpp = amplitude * 2.0;
-            amplitudes[branch] = lsqVpp;
-            phases[branch] = phaseDeg;
-            offsets[branch] = dcOffset;
+
+            var (amplitude, phaseDeg, dcOffset) = SineLeastSquaresFit.FitSineWave(sampleRateHz / branchCountPerChannel, f64Span, frequency);
+            amplitudes[i] = Math.Round(amplitude * 2.0, 3);
+            phases[i] = Math.Round(phaseDeg, 3);
+            offsets[i] = Math.Round(dcOffset, 3);
+        }
+    }
+
+    private int[] GetBranchLayout(AdcChannelMode mode)
+    {
+        switch (mode)
+        {
+            case AdcChannelMode.Single:
+                return [0, 5, 1, 4, 7, 2, 6, 3];
+            case AdcChannelMode.Dual:
+                return [0, 4, 2, 6, 1, 5, 3, 7];
+            case AdcChannelMode.Quad:
+                return [0, 2, 4, 6, 1, 3, 5, 7];
+            default:
+                throw new NotImplementedException();
         }
     }
 
@@ -466,11 +448,25 @@ public class Instruments
 
     public double GetThunderscopeVppAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)
     {
+        var adcPP = GetThunderscopeAdcPeakPeakAtFrequencyLsq(channelIndex, frequency, sampleRateHz);
+
+        var vPerBit = resolution switch
+        {
+            AdcResolution.EightBit => inputVpp / 256.0,
+            AdcResolution.TwelveBit => inputVpp / 4096.0,
+            _ => throw new NotImplementedException()
+        };
+
+        return adcPP * vPerBit;
+    }
+
+    public double GetThunderscopeAdcPeakPeakAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz)
+    {
         var config = thunderScope!.GetConfiguration();
         if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
             throw new TestbenchException("Requested channel index is not an enabled channel");
 
-        var cycleCount = 10.0;
+        var cycleCount = 5.0;
         var sampleCount = (int)Math.Round((sampleRateHz / frequency) * cycleCount);
 
         using SpanOwner<sbyte> i8Buffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
@@ -479,16 +475,9 @@ public class Instruments
         var i8Span = i8Buffer.Span;
         var f64Span = f64Buffer.Span;
 
-        var vPerBit = resolution switch
-        {
-            AdcResolution.EightBit => (double)(inputVpp / 256.0),
-            AdcResolution.TwelveBit => (double)(inputVpp / 4096.0),
-            _ => throw new NotImplementedException()
-        };
-
         for (int i = 0; i < f64Span.Length; i++)
         {
-            f64Span[i] = i8Span[i] * vPerBit;
+            f64Span[i] = i8Span[i];
         }
 
         // Goertzel & LSQ give approximately same results for amplitude, Goertzel is slightly faster, LSQ needs optimisation.
@@ -507,75 +496,93 @@ public class Instruments
         return lsqVpp;
     }
 
-    public void GetChannelDataI8(int channelIndex, int sampleCount, Span<sbyte> outputBuffer)
+    private ReadOnlySpan<sbyte> GetDataI8Interleaved(int minTotalLength)
     {
         var config = thunderScope!.GetConfiguration();
-        if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
-            throw new TestbenchException("Requested channel index is not an enabled channel");
+        var channelCount = config.Acquisition.EnabledChannelsCount();
+        if (channelCount == 0)
+            throw new TestbenchException("No enabled channels");
         if (config.Acquisition.Resolution != AdcResolution.EightBit)
             throw new TestbenchException("Acquisition not set up up for 8 bit");
-        if (outputBuffer.Length != sampleCount)
-            throw new TestbenchException("Output buffer has incorrect length");
+        if (minTotalLength % channelCount != 0)
+            throw new TestbenchException("Total length must be a multiple of the number of enabled channels");
 
-        var channelCount = config.Acquisition.EnabledChannelsCount();
-        var interleavedSampleCount = channelCount switch
-        {
-            1 => sampleCount,
-            2 => sampleCount * 2,
-            3 => sampleCount * 4,
-            4 => sampleCount * 4,
-            _ => throw new NotImplementedException()
-        };
         var minimumAcquisitionLength = 1024 * 1024;
-        var acquisitionLength = ((interleavedSampleCount / minimumAcquisitionLength) + 1) * minimumAcquisitionLength;
+        var acquisitionLength = ((minTotalLength / minimumAcquisitionLength) + 1) * minimumAcquisitionLength;
         if (acquisitionLength < minimumAcquisitionLength)
             acquisitionLength = minimumAcquisitionLength;
 
         thunderScope!.Stop();
         thunderScope!.Start();
         var subsetDataMemory = dataMemory!.Subset(acquisitionLength);
-        var subsetShuffleMemory = shuffleMemory!.Subset(acquisitionLength);
         thunderScope!.Read(subsetDataMemory);
+        return subsetDataMemory.DataSpanI8;
+    }
 
-        Span<sbyte> channel;
+    private ReadOnlySpan<sbyte> GetDataI8InterleavedExactLength(int totalLength)
+    {
+        var buffer = GetDataI8Interleaved(totalLength);
+        // Buffer can be larger than requested length so use the end of the buffer
+        return buffer.Slice(buffer.Length - totalLength, totalLength);
+    }
+
+    public void GetChannelDataI8(int channelIndex, int perChannelSampleCount, Span<sbyte> outputBuffer)
+    {
+        var config = thunderScope!.GetConfiguration();
+        if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
+            throw new TestbenchException("Requested channel index is not an enabled channel");
+
+        var channelCount = config.Acquisition.EnabledChannelsCount();
+        var interleavedSampleCount = channelCount switch
+        {
+            1 => perChannelSampleCount,
+            2 => perChannelSampleCount * 2,
+            3 => perChannelSampleCount * 4,
+            4 => perChannelSampleCount * 4,
+            _ => throw new NotImplementedException()
+        };
+
+        var interleavedBuffer = GetDataI8Interleaved(interleavedSampleCount);
+        var subsetShuffleMemory = shuffleMemory!.Subset(interleavedBuffer.Length);
+
+        ReadOnlySpan<sbyte> channel;
         switch (config.Acquisition.EnabledChannelsCount())
         {
             case 1:
                 {
-                    channel = subsetDataMemory.DataSpanI8;
+                    channel = interleavedBuffer;
                     break;
                 }
             case 2:
                 {
-                    ShuffleI8.TwoChannels(subsetDataMemory.DataSpanI8, subsetShuffleMemory.DataSpanI8);
+                    ShuffleI8.TwoChannels(interleavedBuffer, subsetShuffleMemory.DataSpanI8);
                     var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
-                    var length = subsetDataMemory.DataSpanI8.Length / 2;
+                    var length = interleavedBuffer.Length / 2;
                     channel = subsetShuffleMemory.DataSpanI8.Slice(index * length, length);
                     break;
                 }
             case 3:
             case 4:
                 {
-                    ShuffleI8.FourChannels(subsetDataMemory.DataSpanI8, subsetShuffleMemory.DataSpanI8);
+                    ShuffleI8.FourChannels(interleavedBuffer, subsetShuffleMemory.DataSpanI8);
                     var index = config.Acquisition.GetCaptureBufferIndexForTriggerChannel((TriggerChannel)(channelIndex + 1));
-                    var length = subsetDataMemory.DataSpanI8.Length / 4;
+                    var length = interleavedBuffer.Length / 4;
                     channel = subsetShuffleMemory.DataSpanI8.Slice(index * length, length);
                     break;
                 }
             default:
                 throw new NotImplementedException();
         }
-
-        // Acquisition buffer is likely larger than requested sampleCount so use the end of the acquisition buffer and copy to output buffer
-        channel = channel.Slice(channel.Length - sampleCount, sampleCount);
+        // Acquisition/shuffle buffer is likely larger than requested sampleCount so use the end of the acquisition buffer and copy to output buffer
+        channel = channel.Slice(channel.Length - perChannelSampleCount, perChannelSampleCount);
         channel.CopyTo(outputBuffer);
     }
 
-    public void EraseFactoryDataAndAppendHwid(ulong dna, FactoryHwidJson hwid)
+    public void EraseFactoryDataAndAppendHwid(ulong dna, Hwid hwid)
     {
         thunderScope?.FactoryDataErase(dna);
         uint tag = TagStr(Encoding.ASCII.GetBytes("HWID"));
-        var hwidJsonBytes = Encoding.ASCII.GetBytes(JsonSerializer.Serialize(hwid, DeviceJsonSerializerContext.Default.FactoryHwidJson));
+        var hwidJsonBytes = Encoding.ASCII.GetBytes(JsonSerializer.Serialize(hwid, DeviceJsonSerializerContext.Default.Hwid));
         thunderScope?.FactoryDataAppend(tag, hwidJsonBytes);
     }
 

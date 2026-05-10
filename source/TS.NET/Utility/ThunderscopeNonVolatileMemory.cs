@@ -1,12 +1,11 @@
 ﻿using System.Buffers.Binary;
 using System.Text;
-using System.Text.Json;
 
 namespace TS.NET;
 
 public static class ThunderscopeNonVolatileMemory
 {
-    public static bool TryReadUserCalibration(Driver.Libtslitex.Thunderscope thunderscope, out ThunderscopeCalibrationSettings? calibration)
+    public static bool TryReadUserCalibration(Driver.Libtslitex.Thunderscope thunderscope, out Calibration? calibration)
     {
         calibration = null;
         // Read 4 + 4 bytes
@@ -40,11 +39,11 @@ public static class ThunderscopeNonVolatileMemory
         //var version = json.RootElement.GetProperty("version").GetInt32();
         //if (version != 1)
         //    throw new NotImplementedException();
-        calibration = ThunderscopeCalibrationSettings.FromDeviceJson(jsonString);
+        calibration = Calibration.FromDeviceJson(jsonString);
         return true;
     }
 
-    public static void WriteUserCalibration(Driver.Libtslitex.Thunderscope thunderscope, ThunderscopeCalibrationSettings calibration)
+    public static void WriteUserCalibration(Driver.Libtslitex.Thunderscope thunderscope, Calibration calibration)
     {
         var json = calibration.ToDeviceJson();
         var jsonBytes = Encoding.ASCII.GetBytes(json);

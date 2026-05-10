@@ -8,8 +8,6 @@ namespace TS.NET
         // If the contents of this struct changes, consider incrementing the BuildVersion on ThunderscopeBridgeHeader
         public ThunderscopeAcquisitionConfig Acquisition;
         public ThunderscopeChannelFrontendArray Frontend;
-        public ThunderscopeChannelCalibrationArray Calibration;
-        public ThunderscopeAdcCalibration AdcCalibration;
         public ThunderscopeExtSyncMode ExtSyncMode;
         public ThunderscopeRefClockMode RefClockMode;
         public uint RefClockFrequencyHz;
@@ -28,12 +26,6 @@ namespace TS.NET
     public struct ThunderscopeChannelFrontendArray
     {
         ThunderscopeChannelFrontend Frontend;
-    }
-
-    [System.Runtime.CompilerServices.InlineArray(4)]
-    public struct ThunderscopeChannelCalibrationArray
-    {
-        ThunderscopeChannelCalibration Calibration;
     }
 
     public enum AdcChannelMode : byte

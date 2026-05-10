@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace TS.NET.Engine;
 
@@ -59,7 +59,7 @@ public class ThunderscopeSettings
 
 [JsonSourceGenerationOptions(WriteIndented = true, UseStringEnumConverter = true)]
 [JsonSerializable(typeof(ThunderscopeSettings))]
-[JsonSerializable(typeof(ThunderscopeCalibrationSettings))]
+[JsonSerializable(typeof(Calibration))]
 internal partial class SourceGenerationContext : JsonSerializerContext { }
 
 [YamlStaticContext]

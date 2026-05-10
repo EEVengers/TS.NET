@@ -5,10 +5,9 @@ This document lists the SCPI commands currently implemented by `TS.NET.Engine/Th
 ## Transport / framing
 
 - SCPI over raw TCP/IP socket, only supports 1 client at a time.
-- Commands are parsed as UTF-8 text.
+- Commands are parsed as ASCII text.
 - Delimiter is `\n`. `\r\n` is supported. `\r` is not supported.
-- Query responses are UTF-8 and end with `\n`.
-- Whilst parsing/responses is UTF-8, at the moment only ASCII characters are used.
+- Query responses are ASCII and end with `\n`.
 
 ## Notes on parsing
 
@@ -30,7 +29,6 @@ Commands/queries are logically grouped into subsystems, with the exception of th
 | `CHAN` | Channel subsystem for input frontend configuration. |
 | `REFCL` | Reference clock subsystem for REFCLK IN/OUT BNC configuration. |
 | `PRO` | Processing subsystem for data processing configuration. |
-| `CAL` | Calibration subsystem for frontend/ADC calibration. |
 
 ## Global namespace
 
@@ -158,22 +156,3 @@ Subject matches `PRO` via `subject.StartsWith("PRO")`.
 | Command | Type | Description |
 |---|---:|---|
 | `tbd` | `tbd` | tbd |
-
-## Calibration subsystem (`CAL...`)
-
-Subject matches `CAL` via `subject.StartsWith("CAL")`.
-
-### Commands
-
-| Command | Type | Description |
-|---|---:|---|
-| `CAL:FRONTEND <channel> <coupling> <termination> <attenuator> <dac> <dpot> <pgaLadderAttenuation> <pgaHighGain> <pgaFilter>` | 9 tokens | Manually configure frontend parameters for a channel. Example from code: `CAL:FRONTEND CHAN1 DC 1M 0 2147 4 0 1 FULL`. |
-| `CAL:ADC <v1> <v2> <v3> <v4> <v5> <v6> <v7> <v8>` | 8 tokens | Set ADC calibration fine gain branch values. Each value is parsed as signed byte, masked with `0x7F`, and stored as `byte`. |
-
-## Error behavior
-
-To be reviewed. Currently:
-
-- Many invalid parameter cases log warnings and return no response.
-- Many query failures return: `Error: No/bad response from channel.`
-- Unknown commands log: `Unknown SCPI command: <message>` and return no response.

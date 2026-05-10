@@ -86,11 +86,6 @@
             //throw new NotImplementedException();
         }
 
-        public void SetChannelCalibration(int channelIndex, ThunderscopeChannelCalibration channelCalibration)
-        {
-            throw new NotImplementedException();
-        }
-
         public void SetChannelEnable(int channelIndex, bool enabled)
         {
             //throw new NotImplementedException();
@@ -136,11 +131,6 @@
         public bool Running()
         {
             return running;
-        }
-
-        public ThunderscopeChannelCalibration GetChannelCalibration(int channelIndex)
-        {
-            throw new NotImplementedException();
         }
 
         public void SetRate(ulong sampleRateHz)

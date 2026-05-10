@@ -53,7 +53,7 @@ class Program
         var yaml = serializer.Serialize(ThunderscopeSettings.Default()) ?? throw new ArgumentNullException();
         File.WriteAllText("thunderscope (defaults).yaml", yaml);
 
-        var json = JsonSerializer.Serialize(ThunderscopeCalibrationSettings.Default(), SourceGenerationContext.Default.ThunderscopeCalibrationSettings) ?? throw new ArgumentNullException();
+        var json = JsonSerializer.Serialize(Calibration.Default(), SourceGenerationContext.Default.Calibration) ?? throw new ArgumentNullException();
         File.WriteAllText("thunderscope-calibration (defaults).json", json);
 #endif
 

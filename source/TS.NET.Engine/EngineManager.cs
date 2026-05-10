@@ -127,21 +127,21 @@ public class EngineManager
                     var ts = new Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
                     ts.Open(deviceIndex);
 
-                    ThunderscopeCalibrationSettings thunderscopeCalibrationSettings = new();
+                    Calibration loadedCalibration = new();
                     if (File.Exists(calibrationFile))
                     {
                         logger?.LogInformation($"Calibration loaded from path: {calibrationFile}");
-                        thunderscopeCalibrationSettings = ThunderscopeCalibrationSettings.FromJsonFile(calibrationFile);
+                        loadedCalibration = Calibration.FromJsonFile(calibrationFile);
                     }
                     else if (ThunderscopeNonVolatileMemory.TryReadUserCalibration(ts, out var calibration))
                     {
                         logger?.LogInformation($"Calibration loaded from user calibration memory");
-                        thunderscopeCalibrationSettings = calibration!;
+                        loadedCalibration = calibration!;
                     }
                     else if (File.Exists("thunderscope-calibration.json"))
                     {
                         logger?.LogInformation($"Calibration loaded from thunderscope-calibration.json");
-                        thunderscopeCalibrationSettings = ThunderscopeCalibrationSettings.FromJsonFile("thunderscope-calibration.json");
+                        loadedCalibration = Calibration.FromJsonFile("thunderscope-calibration.json");
                     }
                     else
                     {
@@ -160,15 +160,11 @@ public class EngineManager
                     initialHardwareConfiguration.Frontend[1] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Frontend[2] = ThunderscopeChannelFrontend.Default();
                     initialHardwareConfiguration.Frontend[3] = ThunderscopeChannelFrontend.Default();
-                    initialHardwareConfiguration.Calibration[0] = thunderscopeCalibrationSettings.Channel1.ToDriver();
-                    initialHardwareConfiguration.Calibration[1] = thunderscopeCalibrationSettings.Channel2.ToDriver();
-                    initialHardwareConfiguration.Calibration[2] = thunderscopeCalibrationSettings.Channel3.ToDriver();
-                    initialHardwareConfiguration.Calibration[3] = thunderscopeCalibrationSettings.Channel4.ToDriver();
-                    initialHardwareConfiguration.AdcCalibration = thunderscopeCalibrationSettings.Adc.ToDriver();
                     initialHardwareConfiguration.ExtSyncMode = ThunderscopeExtSyncMode.Disabled;
                     initialHardwareConfiguration.RefClockMode = ThunderscopeRefClockMode.Disabled;
                     initialHardwareConfiguration.RefClockFrequencyHz = 10_000_000;
-                    ts.Configure(initialHardwareConfiguration, thunderscopeSettings.HardwareRevision);
+                    ts.Configure(initialHardwareConfiguration, loadedCalibration, thunderscopeSettings.HardwareRevision);
+                    ts.StartMonitoring();
                     thunderscope = ts;
                     break;
                 }

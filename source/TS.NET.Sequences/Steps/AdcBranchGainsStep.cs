@@ -9,17 +9,24 @@ public class AdcBranchGainsStep : Step
         // A previous step should set Instruments.Instance.EnableSdgDc(channelIndex) to enable sig gen output
         Action = (CancellationToken cancellationToken) =>
         {
+            if (!variables.TrimDacZeroCalibrated)
+            {
+                throw new TestbenchException($"Trim DAC zero must be calibrated before running {nameof(AdcBranchGainsStep)}");
+            }
+
             Instruments.Instance.SetThunderscopeChannel([channelIndex]);
             Instruments.Instance.SetThunderscopeResolution(AdcResolution.EightBit);
             Instruments.Instance.SetThunderscopeRate(rateHz);
-            Instruments.Instance.SetThunderscopeAdcCalibration([0, 0, 0, 0, 0, 0, 0, 0]);        // Reset to all zero
+            Instruments.Instance.SetThunderscopeBranchGains([0, 0, 0, 0, 0, 0, 0, 0]);        // Reset to all zero
 
             SigGens.Instance.SetSdgChannel([channelIndex]);
             SigGens.Instance.SetSdgNoise(channelIndex, 0.16, 0.0);
 
             // First set the maximum range
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pgaGain, pgaLadder, variables);
-            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables.FrontEndSettlingTimeMs);
+            var temperature = Instruments.Instance.GetThunderscopeFpgaTemp();
+            var trimDacZero = Frontend.GetTrimDacZero(temperature, pathCalibration.TrimDacZeroM, pathCalibration.TrimDacZeroC);
+            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, trimDacZero, pathCalibration.TrimDPot, pathCalibration.PgaPreampGain, pathCalibration.PgaLadder, variables.FrontEndSettlingTimeMs);
 
             var branchScalesBefore = GetBranchScales();
 
@@ -37,15 +44,8 @@ public class AdcBranchGainsStep : Step
                 branchFineGains[i] = (byte)(gainSetting & 0x7F);
             }
 
-            Instruments.Instance.SetThunderscopeAdcCalibration(branchFineGains);
-            variables.Calibration.Adc.FineGainBranch1 = branchFineGains[0];
-            variables.Calibration.Adc.FineGainBranch2 = branchFineGains[1];
-            variables.Calibration.Adc.FineGainBranch3 = branchFineGains[2];
-            variables.Calibration.Adc.FineGainBranch4 = branchFineGains[3];
-            variables.Calibration.Adc.FineGainBranch5 = branchFineGains[4];
-            variables.Calibration.Adc.FineGainBranch6 = branchFineGains[5];
-            variables.Calibration.Adc.FineGainBranch7 = branchFineGains[6];
-            variables.Calibration.Adc.FineGainBranch8 = branchFineGains[7];
+            Instruments.Instance.SetThunderscopeBranchGains(branchFineGains);
+            variables.Calibration.Adc.BranchGain.First(fg => fg.Channel.Length == 0 && fg.Channel[0] == channelIndex).RateGain.First(rfg => rfg.Rate == rateHz).Gain = gainSettings;
             variables.ParametersSet += 8;
 
             var branchScalesAfter = GetBranchScales();

@@ -2,9 +2,9 @@
 
 namespace TS.NET.Sequences;
 
-public class LoadUserCalFromDeviceStep : Step
+public class LoadCalibrationFromUserCalStep : Step
 {
-    public LoadUserCalFromDeviceStep(string name, CommonVariables variables) : base(name)
+    public LoadCalibrationFromUserCalStep(string name, CommonVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {
@@ -15,7 +15,7 @@ public class LoadUserCalFromDeviceStep : Step
                 return Status.Done;
             }        
 
-            Logger.Instance.Log(LogLevel.Error, Index, Status.Error, $"Calibration not found in device or file");
+            Logger.Instance.Log(LogLevel.Error, Index, Status.Error, $"Calibration not found in device");
             return Status.Error;
         };
     }

@@ -25,14 +25,16 @@ public class NsdStep : Step
             Instruments.Instance.SetThunderscopeRate(SampleRateHz);
 
             var pathCalibration = Utility.GetChannelPathCalibration(ChannelIndex, PgaPreampGain, PgaLadder, variables);
+            var temperature = Instruments.Instance.GetThunderscopeFpgaTemp();
+            var trimDacZero = Frontend.GetTrimDacZero(temperature, pathCalibration.TrimDacZeroM, pathCalibration.TrimDacZeroC);
             Instruments.Instance.SetThunderscopeFrontend(ChannelIndex, new ThunderscopeChannelFrontendManualControl
             {
                 Coupling = ThunderscopeCoupling.DC,
                 Termination = Termination,
                 Attenuator = 0,
-                DAC = pathCalibration.TrimOffsetDacZero,
-                DPOT = pathCalibration.TrimScaleDac,
-                PgaLadderAttenuation = pathCalibration.PgaLadderAttenuator,
+                DAC = trimDacZero,
+                DPOT = pathCalibration.TrimDPot,
+                PgaLadderAttenuation = pathCalibration.PgaLadder,
                 PgaFilter = Bandwidth,
                 PgaHighGain = (pathCalibration.PgaPreampGain == PgaPreampGain.High) ? (byte)1 : (byte)0
             }, variables.FrontEndSettlingTimeMs);

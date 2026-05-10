@@ -9,54 +9,50 @@ public class AttenuatorStep : Step
         // A previous step should set Instruments.Instance.EnableSdgDc(channelIndex) to enable sig gen output
         Action = (CancellationToken cancellationToken) =>
         {
+            if (!variables.TrimDacZeroCalibrated)
+            {
+                throw new TestbenchException($"Trim DAC zero must be calibrated before running {nameof(AttenuatorStep)}");
+            }
+
+            const uint sampleRateHz = 1_000_000_000;
             Instruments.Instance.SetThunderscopeChannel([channelIndex]);
             Instruments.Instance.SetThunderscopeResolution(AdcResolution.EightBit);
-            Instruments.Instance.SetThunderscopeRate(1_000_000_000);
+            Instruments.Instance.SetThunderscopeRate(sampleRateHz);
+            SigGens.Instance.SetSdgChannel([channelIndex]);
 
-            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, 18, variables);
+            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, PgaPreampGain.Low, pgaLadder: 7, variables);
+            var temperature = Instruments.Instance.GetThunderscopeFpgaTemp();
+            var trimDacZero = Frontend.GetTrimDacZero(temperature, pathCalibration.TrimDacZeroM, pathCalibration.TrimDacZeroC);
 
-            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, attenuator: true, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, ThunderscopeBandwidth.Bw20M, variables.FrontEndSettlingTimeMs);
-            SigGens.Instance.SetSdgParameterOffset(channelIndex, 10);
-            Thread.Sleep(100);
-            var max = Instruments.Instance.GetThunderscopeAverage(channelIndex, sampleCount: 10_000_000);
-            SigGens.Instance.SetSdgParameterOffset(channelIndex, -10);
-            Thread.Sleep(100);
-            var min = Instruments.Instance.GetThunderscopeAverage(channelIndex, sampleCount: 10_000_000);
+
+            const uint frequencyHz = 1000;
+            SigGens.Instance.SetSdgChannel([channelIndex]);
+            SigGens.Instance.SetSdgSine(channelIndex);
+            SigGens.Instance.SetSdgParameterFrequency(channelIndex, frequencyHz);
             SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
+            Thread.Sleep(10);
 
-            var voltage = ((max - min) / 256.0) * pathCalibration.BufferInputVpp;
-            var scale = voltage / 20.0;
+            
+            SigGens.Instance.SetSdgParameterAmplitude(channelIndex, 0.4);
+            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, attenuator: false, trimDacZero, pathCalibration.TrimDPot, pathCalibration.PgaPreampGain, pathCalibration.PgaLadder, ThunderscopeBandwidth.Bw20M, variables.FrontEndSettlingTimeMs);
+            var adcPpNoAttenuator = Instruments.Instance.GetThunderscopeAdcPeakPeakAtFrequencyLsq(channelIndex, frequencyHz, sampleRateHz);
+            SigGens.Instance.SetSdgParameterAmplitude(channelIndex, 20.0);
+            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, attenuator: true, trimDacZero, pathCalibration.TrimDPot, pathCalibration.PgaPreampGain, pathCalibration.PgaLadder, ThunderscopeBandwidth.Bw20M, variables.FrontEndSettlingTimeMs);
+            var adcPpAttenuator = Instruments.Instance.GetThunderscopeAdcPeakPeakAtFrequencyLsq(channelIndex, frequencyHz, sampleRateHz);
+            var scale = Math.Round(50.0 * (adcPpNoAttenuator / adcPpAttenuator), 3);
 
-            scale = Math.Round(scale, 6);
-
-            if (scale > 0.025 || scale < 0.015)
+            if (scale > 55 || scale < 45)
             {
-                Logger.Instance.Log(LogLevel.Information, Index, Status.Failed, $"Attenuator scale outside limits: {scale}");
+                Result!.Summary = $"Scale: {scale:F3}";
+                Logger.Instance.Log(LogLevel.Information, Index, Status.Failed, $"Attenuator scale outside limits: {scale:F3}");
                 return Status.Failed;
             }
 
-            switch (channelIndex)
-            {
-                case 0:
-                    variables.Calibration.Channel1.AttenuatorScale = scale;
-                    variables.ParametersSet++;
-                    break;
-                case 1:
-                    variables.Calibration.Channel2.AttenuatorScale = scale;
-                    variables.ParametersSet++;
-                    break;
-                case 2:
-                    variables.Calibration.Channel3.AttenuatorScale = scale;
-                    variables.ParametersSet++;
-                    break;
-                case 3:
-                    variables.Calibration.Channel4.AttenuatorScale = scale;
-                    variables.ParametersSet++;
-                    break;
-            }
+            variables.Calibration.Frontend[channelIndex].AttenuatorScale = scale;
+            variables.ParametersSet++;
 
-            Result!.Summary = $"Scale: {scale}";
-            Logger.Instance.Log(LogLevel.Information, Index, Status.Passed, $"Attenuator scale: {scale}");
+            Result!.Summary = $"Scale: {scale:F3}";
+            Logger.Instance.Log(LogLevel.Information, Index, Status.Passed, $"Attenuator scale: {scale:F3}");
             return Status.Passed;
         };
     }

@@ -23,13 +23,7 @@ public class BodePlotStep : Step
             Instruments.Instance.SetThunderscopeRate(SampleRateHz);
 
             var pathCalibration = Utility.GetChannelPathCalibration(ChannelIndex, PgaPreampGain, PgaLadder, variables);
-            double attenuatorScale = ChannelIndex switch {
-                0 => variables.Calibration.Channel1.AttenuatorScale,
-                1 => variables.Calibration.Channel2.AttenuatorScale,
-                2 => variables.Calibration.Channel3.AttenuatorScale,
-                3 => variables.Calibration.Channel4.AttenuatorScale,
-                _ => throw new NotImplementedException()
-            };
+            double attenuatorScale = variables.Calibration.Frontend[ChannelIndex].AttenuatorScale;
             double amplitudeVpp = pathCalibration.BufferInputVpp * 0.8 / (Attenuator ? attenuatorScale : 1.0);
             
             SigGens.Instance.SetSdgChannel([ChannelIndex]);
@@ -39,7 +33,9 @@ public class BodePlotStep : Step
             SigGens.Instance.SetSdgParameterAmplitude(ChannelIndex, amplitudeVpp);
             SigGens.Instance.SetSdgParameterOffset(ChannelIndex, 0);
 
-            Instruments.Instance.SetThunderscopeCalManual50R(ChannelIndex, Attenuator, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, ThunderscopeBandwidth.BwFull, variables.FrontEndSettlingTimeMs);
+            var temperature = Instruments.Instance.GetThunderscopeFpgaTemp();
+            var trimDacZero = Frontend.GetTrimDacZero(temperature, pathCalibration.TrimDacZeroM, pathCalibration.TrimDacZeroC);
+            Instruments.Instance.SetThunderscopeCalManual50R(ChannelIndex, Attenuator, trimDacZero, pathCalibration.TrimDPot, pathCalibration.PgaPreampGain, pathCalibration.PgaLadder, ThunderscopeBandwidth.BwFull, variables.FrontEndSettlingTimeMs);
 
             Logger.Instance.Log(LogLevel.Information, Index, Status.Running, $"Ch{ChannelIndex + 1}, {amplitudeVpp:F4} Vpp");
             //var zeroValue = Utility.GetAndCheckSigGenZero(channelIndex, pathConfig, variables, cancellationToken);

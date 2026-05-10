@@ -329,11 +329,11 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(HardwareSetChannelManualControl)} (channel: {hardwareSetChannelManualControl.ChannelIndex})");
                                 break;
                             }
-                        case HardwareSetAdcCalibration hardwareSetAdcCalibration:
+                        case HardwareSetAdcBranchGainsManualControl hardwareSetAdcBranchGainsManualControl:
                             {
                                 var ts = (Driver.Libtslitex.Thunderscope)thunderscope;
-                                ts.SetAdcCalibration(hardwareSetAdcCalibration.AdcCalibration);
-                                logger.LogDebug($"{nameof(HardwareSetAdcCalibration)}");
+                                ts.SetAdcBranchGainManualControl(hardwareSetAdcBranchGainsManualControl.Gains);
+                                logger.LogDebug($"{nameof(HardwareSetAdcBranchGainsManualControl)}");
                                 break;
                             }
 

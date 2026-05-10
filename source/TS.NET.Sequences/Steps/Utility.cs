@@ -2,63 +2,35 @@
 
 public static class Utility
 {
-    public static ThunderscopeChannelPathCalibration GetChannelPathCalibration(int channelIndex, int pathIndex, CommonVariables variables)
+    [Obsolete]
+    public static FrontendPathCalibration GetChannelPathCalibration(int channelIndex, int pathIndex, CommonVariables variables)
     {
-        var calibration = channelIndex switch
-        {
-            0 => variables.Calibration.Channel1,
-            1 => variables.Calibration.Channel2,
-            2 => variables.Calibration.Channel3,
-            3 => variables.Calibration.Channel4,
-            _ => throw new NotImplementedException()
-        };
-        return calibration.Paths[pathIndex];
+        return variables.Calibration.Frontend[channelIndex].Path[pathIndex];
     }
 
-    public static ThunderscopeChannelPathCalibration GetChannelPathCalibration(int channelIndex, PgaPreampGain pgaPreamp, int pgaLadder, CommonVariables variables)
+    public static FrontendPathCalibration GetChannelPathCalibration(int channelIndex, PgaPreampGain pgaPreamp, int pgaLadder, CommonVariables variables)
     {
-        var calibration = channelIndex switch
-        {
-            0 => variables.Calibration.Channel1,
-            1 => variables.Calibration.Channel2,
-            2 => variables.Calibration.Channel3,
-            3 => variables.Calibration.Channel4,
-            _ => throw new NotImplementedException()
-        };
-        return calibration.Paths.Where(p => p.PgaPreampGain == pgaPreamp && p.PgaLadderAttenuator == pgaLadder).First();
+        return variables.Calibration.Frontend[channelIndex].Path.Where(p => p.PgaPreampGain == pgaPreamp && p.PgaLadder == pgaLadder).First();
     }
 
-    public static ChannelPathConfig GetChannelPathConfig(int channelIndex, int pathIndex, CalibrationVariables variables)
+    public static ChannelPathData GetChannelPathData(int channelIndex, PgaPreampGain pgaPreamp, byte pgaLadder, CalibrationVariables variables)
     {
         var pathConfigs = channelIndex switch
         {
             0 => variables.Channel1PathConfigs,
-            1 => variables.Channel1PathConfigs,
-            2 => variables.Channel1PathConfigs,
-            3 => variables.Channel1PathConfigs,
+            1 => variables.Channel2PathConfigs,
+            2 => variables.Channel3PathConfigs,
+            3 => variables.Channel4PathConfigs,
             _ => throw new NotImplementedException()
         };
-        return pathConfigs[pathIndex];
-    }
-
-    public static ChannelPathConfig GetChannelPathConfig(int channelIndex, PgaPreampGain pgaPreamp, int pgaLadder, CalibrationVariables variables)
-    {
-        var pathConfigs = channelIndex switch
-        {
-            0 => variables.Channel1PathConfigs,
-            1 => variables.Channel1PathConfigs,
-            2 => variables.Channel1PathConfigs,
-            3 => variables.Channel1PathConfigs,
-            _ => throw new NotImplementedException()
-        };
-        return pathConfigs.Where(p => p.PgaPreampGain == pgaPreamp && p.PgaLadderAttenuator == pgaLadder).First();
+        return pathConfigs.Where(p => p.PgaPreampGain == pgaPreamp && p.PgaLadder == pgaLadder).First();
     }
 
     public static bool TryTrimDacBinarySearch(
         int channelIndex,
-        ThunderscopeChannelPathCalibration pathCalibration,
+        FrontendPathCalibration path,
         double targetMin, double targetMax,
-        int frontEndSettlingTimeMs,
+        int trimSettlingTimeMs,
         CancellationToken cancellationToken,
         out ushort dac, out double adc)
     {
@@ -68,7 +40,7 @@ public static class Utility
         {
             cancellationToken.ThrowIfCancellationRequested();
             int mid = low + (high - low) / 2;
-            Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, (ushort)mid, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, frontEndSettlingTimeMs);
+            Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, (ushort)mid, path.TrimDPot, path.PgaPreampGain, path.PgaLadder, trimSettlingTimeMs);
             var average = Instruments.Instance.GetThunderscopeAverage(channelIndex, sampleCount: 10_000_000);
             if (average >= targetMin && average <= targetMax)
             {
@@ -90,15 +62,16 @@ public static class Utility
         return false;
     }
 
-    public static double GetAndCheckSigGenZero(int channelIndex, ChannelPathConfig path, BenchCalibrationVariables variables, CancellationToken cancellationToken)
+    public static double GetAndCheckSigGenZero(int channelIndex, ChannelPathData path, BenchCalibrationVariables variables, CancellationToken cancellationToken)
     {
         double zeroValue = variables.SigGenZero;
         double average = 0;
         for (int i = 0; i < 500; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var high = path.TargetDPotResolution * 2;
-            var low = path.TargetDPotResolution * -2;
+            var high = path.Target8bAdcCountPerDacLsb * 2;
+            var low = path.Target8bAdcCountPerDacLsb * -2;
+            SigGens.Instance.SetSdgChannel([channelIndex]);
             SigGens.Instance.SetSdgParameterOffset(channelIndex, zeroValue);
             Thread.Sleep(100);
             average = Instruments.Instance.GetThunderscopeAverage(channelIndex, sampleCount: 10_000_000);
@@ -125,39 +98,71 @@ public static class Utility
         return zeroValue;
     }
 
-    public static double FindVpp(int channelIndex, ChannelPathConfig pathConfig, double zeroValue, CancellationToken cancellationToken)
+    //public static double FindVpp(int channelIndex, ChannelPathData pathConfig, double zeroValue, CancellationToken cancellationToken)
+    //{
+    //    for (double amplitude = pathConfig.SigGenAmplitudeStart; amplitude <= 5; amplitude += pathConfig.SigGenAmplitudeStep)
+    //    {
+    //        cancellationToken.ThrowIfCancellationRequested();
+    //        SigGens.Instance.SetSdgChannel([channelIndex]);
+
+    //        SigGens.Instance.SetSdgParameterOffset(channelIndex, zeroValue + amplitude);
+    //        Thread.Sleep(100);
+    //        var average = Instruments.Instance.GetThunderscopeAverage(channelIndex, sampleCount: 10_000_000);
+    //        var max = average;
+
+    //        cancellationToken.ThrowIfCancellationRequested();
+    //        SigGens.Instance.SetSdgParameterOffset(channelIndex, zeroValue - amplitude);
+    //        Thread.Sleep(100);
+    //        average = Instruments.Instance.GetThunderscopeAverage(channelIndex, sampleCount: 10_000_000);
+    //        var min = average;
+
+    //        var range = max - min;
+
+    //        if (range >= 240)
+    //        {
+    //            SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
+    //            throw new TestbenchException($"Could not converge, range: {range}");
+    //        }
+    //        if (range > 200 && range < 240)
+    //        {
+    //            var ratio = 256.0 / range;
+    //            var vpp = amplitude * ratio * 2;
+    //            SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
+    //            return vpp;
+    //        }
+    //    }
+
+    //    SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
+    //    throw new TestbenchException("Could not converge, amplitude: 10");
+    //}
+
+    public static double FindVpp(int channelIndex, ChannelPathData pathConfig, double zeroValue, double sampleRateHz, CancellationToken cancellationToken)
     {
+        const uint frequencyHz = 1000;
+
         for (double amplitude = pathConfig.SigGenAmplitudeStart; amplitude <= 5; amplitude += pathConfig.SigGenAmplitudeStep)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            SigGens.Instance.SetSdgParameterOffset(channelIndex, zeroValue + amplitude);
-            Thread.Sleep(100);
-            var average = Instruments.Instance.GetThunderscopeAverage(channelIndex, sampleCount: 10_000_000);
-            var max = average;
+            SigGens.Instance.SetSdgChannel([channelIndex]);
+            SigGens.Instance.SetSdgSine(channelIndex);
+            SigGens.Instance.SetSdgParameterAmplitude(channelIndex, amplitude);
+            SigGens.Instance.SetSdgParameterFrequency(channelIndex, frequencyHz);
+            SigGens.Instance.SetSdgParameterOffset(channelIndex, zeroValue);
+            Thread.Sleep(10);
 
-            cancellationToken.ThrowIfCancellationRequested();
-            SigGens.Instance.SetSdgParameterOffset(channelIndex, zeroValue - amplitude);
-            Thread.Sleep(100);
-            average = Instruments.Instance.GetThunderscopeAverage(channelIndex, sampleCount: 10_000_000);
-            var min = average;
+            var adcPP = Instruments.Instance.GetThunderscopeAdcPeakPeakAtFrequencyLsq(channelIndex, frequencyHz, sampleRateHz);
 
-            var range = max - min;
-
-            if (range >= 240)
+            if (adcPP > 243)
             {
-                SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
-                throw new TestbenchException($"Could not converge, range: {range}");
+                throw new TestbenchException($"Could not converge, ADC reading too large");
             }
-            if (range > 200 && range < 240)
+            if (adcPP >= 218 && adcPP <= 243)     // 218 to 243 = 85% to 95%
             {
-                var ratio = 256.0 / range;
-                var vpp = amplitude * ratio * 2;
-                SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
+                var ratio = 256.0 / adcPP;
+                var vpp = amplitude * ratio;
                 return vpp;
             }
         }
-
-        SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
-        throw new TestbenchException("Could not converge, amplitude: 10");
+        throw new TestbenchException("Could not converge, signal generator amplitude too large");
     }
 }

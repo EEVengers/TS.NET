@@ -4,26 +4,42 @@ namespace TS.NET.Sequences;
 
 public class AdcBranchGainPhaseOffsetStep : Step
 {
-    public AdcBranchGainPhaseOffsetStep(string name, int channelIndex, uint rateHz, PgaPreampGain pgaGain, int pgaLadder, BenchCalibrationVariables variables) : base(name)
+    public AdcBranchGainPhaseOffsetStep(string name, int[] channelIndices, uint rateHz, PgaPreampGain pgaGain, int pgaLadder, BenchCalibrationVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {
-            Instruments.Instance.SetThunderscopeChannel([channelIndex]);
+            if (!variables.TrimDacZeroCalibrated)
+            {
+                throw new TestbenchException($"Trim DAC zero must be calibrated before running {nameof(AdcBranchGainPhaseOffsetStep)}");
+            }
+            if (!variables.BufferInputVppCalibrated)
+            {
+                throw new TestbenchException($"Buffer input Vpp must be calibrated before running {nameof(AdcBranchGainPhaseOffsetStep)}");
+            }
+
+            Instruments.Instance.SetThunderscopeChannel(channelIndices);
             Instruments.Instance.SetThunderscopeResolution(AdcResolution.EightBit);
             Instruments.Instance.SetThunderscopeRate(rateHz);
-            Instruments.Instance.SetThunderscopeAdcCalibration([0, 0, 0, 0, 0, 0, 0, 0]);        // Reset to all zero
+            Instruments.Instance.SetThunderscopeBranchGains([0, 0, 0, 0, 0, 0, 0, 0]);        // Reset to all zero
 
-            // First set the maximum range
-            var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pgaGain, pgaLadder, variables);
-            Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, variables.FrontEndSettlingTimeMs);
+            //var frequencyHz = (uint)(rateHz / 1000.0);
+            uint frequencyHz = 1000;
+            SigGens.Instance.SetSdgChannel(channelIndices);
 
-            var frequencyHz = (uint)(rateHz / 1000.0);
-            SigGens.Instance.SetSdgChannel([channelIndex]);
-            SigGens.Instance.SetSdgSine(channelIndex);
-            SigGens.Instance.SetSdgParameterAmplitude(channelIndex, pathCalibration.BufferInputVpp * 0.9);
-            SigGens.Instance.SetSdgParameterFrequency(channelIndex, frequencyHz);
-            SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
-            
+            // Setup the frontend for each channel
+            foreach (var channelIndex in channelIndices)
+            {
+                var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pgaGain, pgaLadder, variables);
+                var temperature = Instruments.Instance.GetThunderscopeFpgaTemp();
+                var trimDacZero = Frontend.GetTrimDacZero(temperature, pathCalibration.TrimDacZeroM, pathCalibration.TrimDacZeroC);
+                Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, trimDacZero, pathCalibration.TrimDPot, pathCalibration.PgaPreampGain, pathCalibration.PgaLadder, variables.FrontEndSettlingTimeMs);
+
+                SigGens.Instance.SetSdgSine(channelIndex);
+                SigGens.Instance.SetSdgParameterAmplitude(channelIndex, pathCalibration.BufferInputVpp * 0.8);
+                SigGens.Instance.SetSdgParameterFrequency(channelIndex, frequencyHz);
+                SigGens.Instance.SetSdgParameterOffset(channelIndex, 0);
+            }
+
             GetBranchData(out var branchScalesBefore, out var normalisedPhasesBefore, out var normalisedOffsetsBefore);
 
             var branchFineGains = new byte[8];
@@ -40,15 +56,8 @@ public class AdcBranchGainPhaseOffsetStep : Step
                 branchFineGains[i] = (byte)(gainSetting & 0x7F);
             }
 
-            Instruments.Instance.SetThunderscopeAdcCalibration(branchFineGains);
-            variables.Calibration.Adc.FineGainBranch1 = branchFineGains[0];
-            variables.Calibration.Adc.FineGainBranch2 = branchFineGains[1];
-            variables.Calibration.Adc.FineGainBranch3 = branchFineGains[2];
-            variables.Calibration.Adc.FineGainBranch4 = branchFineGains[3];
-            variables.Calibration.Adc.FineGainBranch5 = branchFineGains[4];
-            variables.Calibration.Adc.FineGainBranch6 = branchFineGains[5];
-            variables.Calibration.Adc.FineGainBranch7 = branchFineGains[6];
-            variables.Calibration.Adc.FineGainBranch8 = branchFineGains[7];
+            Instruments.Instance.SetThunderscopeBranchGains(branchFineGains);
+            variables.Calibration.Adc.BranchGain.First(fg => fg.Channel.SequenceEqual(channelIndices)).RateGain.First(rfg => rfg.Rate == rateHz).Gain = gainSettings;
             variables.ParametersSet += 8;
 
             GetBranchData(out var branchScalesAfter, out var normalisedPhasesAfter, out var normalisedOffsetsAfter);
@@ -69,7 +78,7 @@ public class AdcBranchGainPhaseOffsetStep : Step
                     ["8", FormatDev(branchScalesBefore[7]), $"{normalisedPhasesBefore[7] / 360.0 / frequencyHz * 1e12:F1}ps", $"{normalisedOffsetsBefore[7] * 1e3:F1}mV"],
                 ]
             });*/
-            
+
             Result!.Metadata!.Add(new ResultMetadataTable()
             {
                 Name = "ADC branch gain deviation from midrange, before & after adjustment",
@@ -86,7 +95,7 @@ public class AdcBranchGainPhaseOffsetStep : Step
                     ["8", FormatDev(branchScalesBefore[7]), gainSettings[7].ToString(),  FormatDev(branchScalesAfter[7])]
                 ]
             });
-            
+
             /*Result!.Metadata!.Add(new ResultMetadataTable()
             {
                 Name = "ADC branch gain, time skew & DC offset deviation, after fine gain adjustment",
@@ -112,43 +121,58 @@ public class AdcBranchGainPhaseOffsetStep : Step
             {
                 return $"{deviation * 100.0:+0.000;-0.000}%";
             }
-            
-            void GetBranchData(out double[] normalisedAmplitudeScales, out double[] normalisedSkews, out double[] normalisedOffsets)
+
+            void GetBranchData(out double[] normalisedAmplitudeScales, out double[] normalisedPhases, out double[] normalisedOffsets)
             {
                 normalisedAmplitudeScales = new double[8];
-                normalisedSkews = new double[8];
+                normalisedPhases = new double[8];
                 normalisedOffsets = new double[8];
-                Instruments.Instance.GetThunderscopeFineBranchesSine(frequencyHz, rateHz, pathCalibration.BufferInputVpp, AdcResolution.EightBit, out var amplitudes, out var phases, out var offsets);
-                var minAmplitude = amplitudes.Min();
-                var maxAmplitude = amplitudes.Max();
-                var midrangeAmplitude = minAmplitude + ((maxAmplitude - minAmplitude) / 2.0);
-                //var minPhase = phases.Min();
-                //var maxPhase = phases.Max();
-                //var midrangePhase = minPhase + ((maxPhase - minPhase) / 2.0);
-                var minOffset = offsets.Min();
-                var maxOffset = offsets.Max();
-                var midrangeOffset = minOffset + ((maxOffset - minOffset) / 2.0);
+
+                Instruments.Instance.GetThunderscopeFineBranchesSine(frequencyHz, rateHz, out var amplitudes, out var phases, out var offsets);
+
+                int[][] branchGroups = channelIndices.Length switch
+                {
+                    1 => [[0, 1, 2, 3, 4, 5, 6, 7]],
+                    2 => [[0, 2, 1, 3], [4, 6, 5, 7]],
+                    3 => [[0, 1], [2, 3], [4, 5], [6, 7]],
+                    4 => [[0, 1], [2, 3], [4, 5], [6, 7]],
+                    _ => throw new NotImplementedException()
+                };
+
+                foreach (var group in branchGroups)
+                {
+                    var minAmplitude = double.MaxValue;
+                    var maxAmplitude = double.MinValue;
+                    var minOffset = double.MaxValue;
+                    var maxOffset = double.MinValue;
+
+                    foreach (var branchIndex in group)
+                    {
+                        var amplitude = amplitudes[branchIndex];
+                        var offset = offsets[branchIndex];
+
+                        if (amplitude < minAmplitude) minAmplitude = amplitude;
+                        if (amplitude > maxAmplitude) maxAmplitude = amplitude;
+                        if (offset < minOffset) minOffset = offset;
+                        if (offset > maxOffset) maxOffset = offset;
+                    }
+
+                    var midrangeAmplitude = minAmplitude + ((maxAmplitude - minAmplitude) / 2.0);
+                    var midrangeOffset = minOffset + ((maxOffset - minOffset) / 2.0);
+
+                    foreach (var branchIndex in group)
+                    {
+                        normalisedAmplitudeScales[branchIndex] = (amplitudes[branchIndex] / midrangeAmplitude) - 1.0;
+                        normalisedOffsets[branchIndex] = offsets[branchIndex] - midrangeOffset;
+                    }
+                }
+
                 for (int i = 0; i < 8; i++)
                 {
-                    var sampleOrder = i switch
-                    {
-                        0 => 0,
-                        1 => 2,
-                        2 => 5,
-                        3 => 7,
-                        4 => 3,
-                        5 => 1,
-                        6 => 6,
-                        7 => 4,
-                    };
-                    var samplesPerCycle = rateHz/frequencyHz;
-                    var degreesPerSample = 360.0/samplesPerCycle;
-                    var expectedPhaseOffset = sampleOrder * degreesPerSample;
-                    normalisedAmplitudeScales[i] = (amplitudes[i] / midrangeAmplitude) - 1.0;
-                    normalisedSkews[i] = (phases[i] - phases[0]) - expectedPhaseOffset;
-                    normalisedOffsets[i] = offsets[i] - midrangeOffset;
                     Logger.Instance.Log(LogLevel.Information, Index, $"Branch {i + 1}: {(normalisedAmplitudeScales[i] * 100.0):+0.000;-0.000}%");
                 }
+
+                Console.WriteLine();
             }
         };
     }

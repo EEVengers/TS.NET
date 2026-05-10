@@ -10,7 +10,6 @@ public class AdcBranchGainsAnalysisSequence : Sequence
     {
         Name = "ADC branch gains analysis";
         Variables = variables;
-        variables.WarmupTimeSec = 2400;
         AddSteps(modalUiContext);
         SetStepIndices();
     }
@@ -28,8 +27,8 @@ public class AdcBranchGainsAnalysisSequence : Sequence
             },
             new InitialiseDeviceStep("Initialise device", Variables),
             new InitialiseSigGensStep("Initialise signal generators", Variables),
-            new LoadUserCalFromDeviceFallbackToFileStep("Load calibration from device/file", Variables),
-            new WarmupStep("Warmup device", Variables) { Skip = false, AllowSkip = true },
+            new LoadCalibrationFromUserCalStep("Load calibration from device", Variables),
+            new WarmupStep("Warmup device", Variables, 40 * 60) { Skip = false, AllowSkip = true },
 
             new AdcBranchGainsStep("ADC branch gains - Channel 1 - 1 GSPS", 0, 1_000_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
             //new AdcBranchGainsStep("ADC branch gains - Channel 1 - 660 MSPS", 0, 660_000_000, Variables),

@@ -17,13 +17,15 @@ public class AcRmsStep : Step
             Instruments.Instance.SetThunderscopeRate(rateHz);
 
             var pathCalibration = Utility.GetChannelPathCalibration(channelIndex, pathIndex, variables);
+            var temperature = Instruments.Instance.GetThunderscopeFpgaTemp();
+            var trimDacZero = Frontend.GetTrimDacZero(temperature, pathCalibration.TrimDacZeroM, pathCalibration.TrimDacZeroC);
             switch (termination)
             {
                 case ThunderscopeTermination.FiftyOhm:
-                    Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, false, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, bandwidth, variables.FrontEndSettlingTimeMs);
+                    Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, false, trimDacZero, pathCalibration.TrimDPot, pathCalibration.PgaPreampGain, pathCalibration.PgaLadder, bandwidth, variables.FrontEndSettlingTimeMs);
                     break;
                 case ThunderscopeTermination.OneMegaohm:
-                    Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, false, pathCalibration.TrimOffsetDacZero, pathCalibration.TrimScaleDac, pathCalibration.PgaPreampGain, pathCalibration.PgaLadderAttenuator, bandwidth, variables.FrontEndSettlingTimeMs);
+                    Instruments.Instance.SetThunderscopeCalManual1M(channelIndex, false, trimDacZero, pathCalibration.TrimDPot, pathCalibration.PgaPreampGain, pathCalibration.PgaLadder, bandwidth, variables.FrontEndSettlingTimeMs);
                     break;
             }
 

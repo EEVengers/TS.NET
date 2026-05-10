@@ -5,7 +5,7 @@ namespace TS.NET.Sequences;
 
 public class BetaTesterHwidStep : ModalUiStep
 {
-    public FactoryHwidJson Hwid { get; private set; } = new();
+    public Hwid Hwid { get; private set; } = new();
 
     public BetaTesterHwidStep(string name, ModalUiContext modalUiContext, CommonVariables variables) : base(name, modalUiContext)
     {

@@ -27,16 +27,16 @@ public class BenchVerificationSequence : Sequence
             },
             new InitialiseDeviceStep("Initialise device", Variables),
             new InitialiseSigGensStep("Initialise signal generators", Variables),
-            new LoadUserCalFromDeviceStep("Load calibration from device", Variables),
+            new LoadCalibrationFromUserCalStep("Load calibration from device", Variables),
             new Step("Load ADC branch gains")
             { 
                 Action = (CancellationToken cancellationToken) =>
                 {
-                    Instruments.Instance.SetThunderscopeAdcCalibration(Variables.Calibration.Adc.ToDriver());
+                    Instruments.Instance.SetThunderscopeBranchGains([0,0,0,0,0,0,0,0]);
                     return Sequencer.Status.Done;
                 }
             },
-            new WarmupStep("Warmup device", Variables)
+            new WarmupStep("Warmup device", Variables, 40 * 60)
             { 
                 Skip = false, 
                 AllowSkip = true 

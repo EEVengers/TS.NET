@@ -30,23 +30,30 @@ namespace TS.NET.Driver.Shared
                 if ((IntPtr.Size == 4 && deviceInfo.ToInt32() == INVALID_HANDLE_VALUE) || (IntPtr.Size == 8 && deviceInfo.ToInt64() == INVALID_HANDLE_VALUE))
                     throw new Exception("SetupDiGetClassDevs - failed with INVALID_HANDLE_VALUE");
 
-                SP_DEVICE_INTERFACE_DATA deviceInterface = new();
-                deviceInterface.CbSize = Marshal.SizeOf(deviceInterface);      //32
-                for (uint i = 0; Interop.SetupDiEnumDeviceInterfaces(deviceInfo, NULL, ref classGuid, i, ref deviceInterface); ++i)        //Marshal.GetLastSystemError() == ERROR_NO_MORE_ITEMS
+                try
                 {
-                    uint detailLength = 0;
-                    if (!Interop.SetupDiGetDeviceInterfaceDetail(deviceInfo, ref deviceInterface, NULL, 0, ref detailLength, NULL) && Marshal.GetLastSystemError() != ERROR_INSUFFICIENT_BUFFER)
-                        throw new Exception("SetupDiGetDeviceInterfaceDetail - failed getting length with ERROR_INSUFFICIENT_BUFFER");
-                    if (detailLength > 255)
-                        throw new Exception("SetupDiGetDeviceInterfaceDetail - failed getting length by returning a length greater than 255 which won't fit into fixed length string field");
+                    SP_DEVICE_INTERFACE_DATA deviceInterface = new();
+                    deviceInterface.CbSize = Marshal.SizeOf(deviceInterface);      //32
+                    for (uint i = 0; Interop.SetupDiEnumDeviceInterfaces(deviceInfo, NULL, ref classGuid, i, ref deviceInterface); ++i)        //Marshal.GetLastSystemError() == ERROR_NO_MORE_ITEMS
+                    {
+                        uint detailLength = 0;
+                        if (!Interop.SetupDiGetDeviceInterfaceDetail(deviceInfo, ref deviceInterface, NULL, 0, ref detailLength, NULL) && Marshal.GetLastSystemError() != ERROR_INSUFFICIENT_BUFFER)
+                            throw new Exception("SetupDiGetDeviceInterfaceDetail - failed getting length with ERROR_INSUFFICIENT_BUFFER");
+                        if (detailLength > 255)
+                            throw new Exception("SetupDiGetDeviceInterfaceDetail - failed getting length by returning a length greater than 255 which won't fit into fixed length string field");
 
-                    SP_DEVICE_INTERFACE_DETAIL_DATA deviceInterfaceDetail = new();
-                    deviceInterfaceDetail.CbSize = IntPtr.Size == 8 ? 8 : 6;            // 6 bytes for x86, 8 bytes for x64
-                                                                                        // Could use Marshal.AllocHGlobal and Marshal.FreeHGlobal, inside Try/Finally, but might as well use the Marshalling syntax sugar
-                    if (!Interop.SetupDiGetDeviceInterfaceDetail(deviceInfo, ref deviceInterface, ref deviceInterfaceDetail, detailLength, NULL, NULL))
-                        throw new Exception("SetupDiGetDeviceInterfaceDetail - failed");
+                        SP_DEVICE_INTERFACE_DETAIL_DATA deviceInterfaceDetail = new();
+                        deviceInterfaceDetail.CbSize = IntPtr.Size == 8 ? 8 : 6;            // 6 bytes for x86, 8 bytes for x64
+                                                                                            // Could use Marshal.AllocHGlobal and Marshal.FreeHGlobal, inside Try/Finally, but might as well use the Marshalling syntax sugar
+                        if (!Interop.SetupDiGetDeviceInterfaceDetail(deviceInfo, ref deviceInterface, ref deviceInterfaceDetail, detailLength, NULL, NULL))
+                            throw new Exception("SetupDiGetDeviceInterfaceDetail - failed");
 
-                    devices.Add(new ThunderscopeDevice(DevicePath: deviceInterfaceDetail.DevicePath));
+                        devices.Add(new ThunderscopeDevice(DevicePath: deviceInterfaceDetail.DevicePath));
+                    }
+                }
+                finally
+                {
+                    _ = Interop.SetupDiDestroyDeviceInfoList(deviceInfo);
                 }
             }
             if (OperatingSystem.IsLinux())

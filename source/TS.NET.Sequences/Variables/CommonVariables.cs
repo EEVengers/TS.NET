@@ -2,8 +2,8 @@
 
 public class CommonVariables
 {
-    public int WarmupTimeSec { get; set; } = 40 * 60;
     public int FrontEndSettlingTimeMs { get; set; } = 300;
-    public ThunderscopeCalibrationSettings Calibration { get; set; } = new();
+    public int TrimSettlingTimeMs { get; set; } = 30;
+    public Calibration Calibration { get; set; } = new();
     public string HwidSerial { get; set; } = "";
 }

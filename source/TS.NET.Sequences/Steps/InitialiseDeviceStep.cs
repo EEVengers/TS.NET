@@ -8,8 +8,9 @@ public class InitialiseDeviceStep : Step
     {
         Action = (CancellationToken cancellationToken) =>
         {
-            Instruments.Instance.Initialise();
-            Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Device initialised");
+            variables.HwidSerial = Instruments.Instance.Initialise();
+            Result!.Summary = $"{variables.HwidSerial}";
+            Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Device initialised, serial: {variables.HwidSerial}");
             return Status.Done;
         };
     }

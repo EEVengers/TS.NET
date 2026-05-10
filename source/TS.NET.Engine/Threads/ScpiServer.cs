@@ -597,19 +597,18 @@ internal class ScpiServer : IThread
                         break;
                     }
 
-                case var _ when subject.StartsWith("CAL"):
+                case var _ when subject.StartsWith("DEBUG"):
                     {
-                        // :CALibration
-                        // :CAL
+                        // :DEBUG
                         switch (command)
                         {
                             // :FRONTEND
                             case var _ when command.StartsWith("FRONTEND") && argument != null:
                                 {
                                     // Channel Coupling Termination Attenuator DAC DPOT PgaLadderAttenuation PgaHighGain PgaFilter
-                                    // CAL:FRONTEND CHAN1 DC 1M 0 2147 4 0 1 FULL
+                                    // DEBUG:FRONTEND CHAN1 DC 1M 0 2147 4 0 1 FULL
                                     //    - highest gain configuration with attenuator off and maximum offset adjustment range. Adjust 2147 until midscale.
-                                    // CAL:FRONTEND CHAN1 DC 1M 1 2147 4 0 1 FULL
+                                    // DEBUG:FRONTEND CHAN1 DC 1M 1 2147 4 0 1 FULL
                                     // 4 = 1563.5 ohms
                                     try
                                     {
@@ -654,26 +653,27 @@ internal class ScpiServer : IThread
                                     }
                                     return null;
                                 }
-                            case var _ when command.StartsWith("ADC") && argument != null:
+                            case var _ when command.StartsWith("BRANCHGAINS") && argument != null:
                                 {
+                                    // DEBUG:BRANCHGAINS 0 0 0 0 0 0 0 0
                                     var args = argument.Split(' ');
                                     if (args.Length != 8)
                                     {
                                         logger.LogWarning("Parameter count should be 8 values");
                                         return null;
                                     }
-                                    var adcCal = new ThunderscopeAdcCalibration();
+                                    var adcCal = new byte[8];
                                     try
                                     {
-                                        adcCal.FineGainBranch1 = (byte)(Convert.ToSByte(args[0], CultureInfo.InvariantCulture) & 0x7F);
-                                        adcCal.FineGainBranch2 = (byte)(Convert.ToSByte(args[1], CultureInfo.InvariantCulture) & 0x7F);
-                                        adcCal.FineGainBranch3 = (byte)(Convert.ToSByte(args[2], CultureInfo.InvariantCulture) & 0x7F);
-                                        adcCal.FineGainBranch4 = (byte)(Convert.ToSByte(args[3], CultureInfo.InvariantCulture) & 0x7F);
-                                        adcCal.FineGainBranch5 = (byte)(Convert.ToSByte(args[4], CultureInfo.InvariantCulture) & 0x7F);
-                                        adcCal.FineGainBranch6 = (byte)(Convert.ToSByte(args[5], CultureInfo.InvariantCulture) & 0x7F);
-                                        adcCal.FineGainBranch7 = (byte)(Convert.ToSByte(args[6], CultureInfo.InvariantCulture) & 0x7F);
-                                        adcCal.FineGainBranch8 = (byte)(Convert.ToSByte(args[7], CultureInfo.InvariantCulture) & 0x7F);
-                                        processingControl.Request.Writer.Write(new HardwareSetAdcCalibration(adcCal));
+                                        adcCal[0] = (byte)(Convert.ToSByte(args[0], CultureInfo.InvariantCulture) & 0x7F);
+                                        adcCal[1] = (byte)(Convert.ToSByte(args[1], CultureInfo.InvariantCulture) & 0x7F);
+                                        adcCal[2] = (byte)(Convert.ToSByte(args[2], CultureInfo.InvariantCulture) & 0x7F);
+                                        adcCal[3] = (byte)(Convert.ToSByte(args[3], CultureInfo.InvariantCulture) & 0x7F);
+                                        adcCal[4] = (byte)(Convert.ToSByte(args[4], CultureInfo.InvariantCulture) & 0x7F);
+                                        adcCal[5] = (byte)(Convert.ToSByte(args[5], CultureInfo.InvariantCulture) & 0x7F);
+                                        adcCal[6] = (byte)(Convert.ToSByte(args[6], CultureInfo.InvariantCulture) & 0x7F);
+                                        adcCal[7] = (byte)(Convert.ToSByte(args[7], CultureInfo.InvariantCulture) & 0x7F);
+                                        processingControl.Request.Writer.Write(new HardwareSetAdcBranchGainsManualControl(adcCal));
                                     }
                                     catch
                                     {

@@ -84,5 +84,8 @@ namespace TS.NET.Driver.Shared.Windows
             uint deviceInterfaceDetailDataSize,
             IntPtr requiredSize,                    // NULL
             IntPtr deviceInfoData);                 // NULL
+
+        [DllImport("setupapi.dll", SetLastError = true)]
+        public static extern bool SetupDiDestroyDeviceInfoList(IntPtr deviceInfoSet);
     }
 }
