@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace TS.NET;
@@ -26,4 +27,9 @@ public class Hwid
     [MaxLength(256)]
     [JsonPropertyName("manufacturingSignature")]
     public string ManufacturingSignature { get; set; } = string.Empty;
+
+    public string ToDeviceJson()
+    {
+        return JsonSerializer.Serialize(this, DeviceJsonSerializerContext.Default.Hwid);
+    }
 }

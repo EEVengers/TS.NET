@@ -353,3 +353,5 @@ builds/
 build/
 .DS_Store
 tailwindcss-windows-x64.exe
+*.bit
+*.bin

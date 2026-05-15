@@ -312,7 +312,7 @@ public class SelfCalibrationSequence : Sequence
 #endregion
             new Step("Update calibration"){ Action = (CancellationToken cancellationToken) => {
                 Variables.Calibration.Serial = Variables.HwidSerial;
-                Variables.CalibrationTimestamp = DateTimeOffset.Now;
+                Variables.CalibrationTimestamp = DateTimeOffset.UtcNow;
                 Variables.Calibration.Timestamp = Variables.CalibrationTimestamp.ToString("yyyy-MM-ddTHH:mm:ssZ");
                 return Sequencer.Status.Done;
             }},

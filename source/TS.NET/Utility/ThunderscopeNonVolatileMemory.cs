@@ -48,7 +48,7 @@ public static class ThunderscopeNonVolatileMemory
         var json = calibration.ToDeviceJson();
         var jsonBytes = Encoding.ASCII.GetBytes(json);
 
-        Span<byte> data = new byte[8 + jsonBytes.Length + 4 + 4096];      // Tag + length + JSON + CRC32 + padding
+        Span<byte> data = new byte[4 + 4 + jsonBytes.Length + 4 + 4096];      // Tag + length + JSON + CRC32 + padding
         data.Fill(0xFF);
         Encoding.ASCII.GetBytes("UCAL").CopyTo(data.Slice(0, 4));
         BinaryPrimitives.WriteUInt32BigEndian(data.Slice(4, 4), (uint)jsonBytes.Length);
@@ -56,6 +56,21 @@ public static class ThunderscopeNonVolatileMemory
         var crc32 = Crc32(jsonBytes);
         crc32.CopyTo(data.Slice(8 + jsonBytes.Length, 4));
         thunderscope.UserDataWrite(data, 0);
+    }
+
+    public static Span<byte> BuildHwidTLV(Hwid hwid)
+    {
+        var json = hwid.ToDeviceJson();
+        var jsonBytes = Encoding.ASCII.GetBytes(json);
+
+        Span<byte> data = new byte[4 + 4 + jsonBytes.Length + 4];      // Tag + length + JSON + CRC32
+        data.Fill(0xFF);
+        Encoding.ASCII.GetBytes("HWID").CopyTo(data.Slice(0, 4));
+        BinaryPrimitives.WriteUInt32BigEndian(data.Slice(4, 4), (uint)jsonBytes.Length);
+        jsonBytes.CopyTo(data.Slice(8));
+        var crc32 = Crc32(jsonBytes);
+        crc32.CopyTo(data.Slice(8 + jsonBytes.Length, 4));
+        return data;
     }
 
     public static byte[] Crc32(ReadOnlySpan<byte> bytes)

@@ -582,8 +582,9 @@ public class Instruments
     {
         thunderScope?.FactoryDataErase(dna);
         uint tag = TagStr(Encoding.ASCII.GetBytes("HWID"));
-        var hwidJsonBytes = Encoding.ASCII.GetBytes(JsonSerializer.Serialize(hwid, DeviceJsonSerializerContext.Default.Hwid));
-        thunderScope?.FactoryDataAppend(tag, hwidJsonBytes);
+        var json = hwid.ToDeviceJson();
+        var jsonBytes = Encoding.ASCII.GetBytes(json);
+        thunderScope?.FactoryDataAppend(tag, jsonBytes);
     }
 
     private static uint TagStr(byte[] x)
@@ -594,6 +595,14 @@ public class Instruments
         if (x is null) throw new ArgumentNullException(nameof(x));
         if (x.Length < 4) throw new ArgumentException("Tag must be at least 4 bytes.", nameof(x));
         return (uint)((x[0] << 24) + (x[1] << 16) + (x[2] << 8) + x[3]);
+    }
+
+    public void AppendFactoryCalibration(Calibration calibration)
+    {
+        uint tag = TagStr(Encoding.ASCII.GetBytes("FCAL"));
+        var json = calibration.ToDeviceJson();
+        var jsonBytes = Encoding.ASCII.GetBytes(json);
+        thunderScope?.FactoryDataAppend(tag, jsonBytes);
     }
 
     //public (double amplitude, double phaseDeg, double offset) GetThunderscopeBodeAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)

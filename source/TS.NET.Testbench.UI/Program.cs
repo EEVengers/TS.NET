@@ -116,6 +116,17 @@ class Program
                                 var betaSequence = new BetaTesterHwidSequence(modalUiContext, betaVariables);
                                 sequence = betaSequence;
                                 break;
+                            case "factory-bring-up":
+                                var factoryBringUpVariables = new FactoryBringUpVariables
+                                {
+                                    SigGen1Host = variablesFile.SigGen1Ip,
+                                    SigGen2Host = variablesFile.SigGen2Ip,
+                                    FpgaFlashImagePath = "Bitfiles/thunderscope_full_dev_0.5.0.bin"
+                                };
+                                var factoryBringUpSequence = new FactoryBringUpSequence(modalUiContext, factoryBringUpVariables);
+                                variables = factoryBringUpVariables;
+                                sequence = factoryBringUpSequence;
+                                break;
                             default:
                                 throw new InvalidDataException();
                         }

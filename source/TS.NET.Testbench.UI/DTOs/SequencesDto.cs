@@ -43,6 +43,12 @@ public class SequencesDto : MessageDto
         var dto = CreateDefault();
         dto.Sequences.AddRange(new SequenceInfo
         {
+            Id = "factory-bring-up",
+            Name = "Factory bring-up",
+            Description = "Factory sequence. JTAG programming & HWID."
+        },
+        new SequenceInfo
+        {
             Id = "factory-trim",
             Name = "Factory trim",
             Description = "Factory sequence. Adjust manual trims on the PCB."

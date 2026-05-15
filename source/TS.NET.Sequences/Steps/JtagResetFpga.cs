@@ -1,0 +1,32 @@
+﻿using TS.NET.JTAG;
+using TS.NET.Sequencer;
+
+namespace TS.NET.Sequences;
+
+public class JtagResetFpga : Step
+{
+    public JtagResetFpga(string name, FactoryBringUpVariables variables) : base(name)
+    {
+        Action = (CancellationToken cancellationToken) =>
+        {
+            using var jtag = new Jtag(new SequencerLoggerAdapter(Index));
+            var devices = jtag.Scan();
+
+            if (devices.Count == 0)
+            {
+                Logger.Instance.Log(LogLevel.Error, Index, Status.Error, $"No FPGA found");
+                return Status.Error;
+            }
+
+            if (devices.Count > 1)
+            {
+                Logger.Instance.Log(LogLevel.Error, Index, Status.Error, $"More than one FPGA found");
+                return Status.Error;
+            }
+
+            jtag.Reset(0, cancellationToken);
+
+            return Status.Passed;
+        };
+    }
+}
