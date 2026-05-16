@@ -1,9 +1,10 @@
 # TS.NET
 
-[Thunderscope](https://github.com/EEVengers/ThunderScope)-compatible PC-host software written in C# using high-performing primitives & SIMD.
+[Thunderscope](https://github.com/EEVengers/ThunderScope)-compatible PC-host software.
 
-- Receives stream from TB3/PCIe thunderscope and performs oscilloscope triggering & processing operations.
-- Exposes SCPI socket & data socket for user interface.
+- Receives ADC sample stream from hardware and performs oscilloscope triggering & processing operations.
+- Uses calibration data to control channel frontends & provide scaling data to consumer.
+- Exposes SCPI socket & data socket for control & data retrieval.
 - High emphasis on cross-platform compatibility & ease of build from source.
 
 ## Build
