@@ -1,7 +1,8 @@
 using CommunityToolkit.HighPerformance.Buffers;
+using System;
 using System.Diagnostics;
+using System.Numerics.Tensors;
 using System.Text;
-using System.Text.Json;
 
 namespace TS.NET.Sequences;
 
@@ -179,11 +180,6 @@ public class Instruments
         Thread.Sleep(frontEndSettlingTimeMs);
     }
 
-    public void SetThunderscopeCalManual50R(int channelIndex, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, int frontEndSettlingTimeMs)
-    {
-        SetThunderscopeCalManual50R(channelIndex, false, dac, dpot, pgaPreampGain, pgaLadderAttenuation, ThunderscopeBandwidth.Bw20M, frontEndSettlingTimeMs);
-    }
-
     public void SetThunderscopeCalManual50R(int channelIndex, bool attenuator, ushort dac, byte dpot, PgaPreampGain pgaPreampGain, byte pgaLadderAttenuation, ThunderscopeBandwidth pgaFilter, int frontEndSettlingTimeMs)
     {
         var frontend = new ThunderscopeChannelFrontendManualControl
@@ -246,29 +242,21 @@ public class Instruments
 
         using SpanOwner<sbyte> i8Buffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
         GetChannelDataI8(channelIndex, sampleCount, i8Buffer.Span);
+        DataSaturationCheck(i8Buffer.Span, out _, out _);
 
         long sum = 0;
-        long count = 0;
-        int min = int.MaxValue;
-        int max = int.MinValue;
         foreach (var point in i8Buffer.Span)
         {
             sum += point;
-            // Temporary debug min/max
-            if (point > max)
-                max = point;
-            if (point < min)
-                min = point;
         }
-        count += i8Buffer.Span.Length;
-        var average = (double)sum / count;
+        var average = (double)sum / i8Buffer.Span.Length;
 
         return average;
     }
 
     public void GetThunderscopeFineBranches(out double[] mean, out double[] stdev)
     {
-        var interleavedData = GetDataI8InterleavedExactLength(32 * 1024 * 1024);
+        var interleavedData = GetDataI8InterleavedExactTotalLength(32 * 1024 * 1024);
 
         var sampleBuffer = interleavedData;
         int sampleLen = sampleBuffer.Length;
@@ -357,16 +345,17 @@ public class Instruments
         var branchCountPerChannel = 8 / (int)config.Acquisition.AdcChannelMode;
         var samplesPerCycle = sampleRateHz / frequency;
 
-        var interleavedSampleCount = (int)(samplesPerCycle * 20.0 * (int)config.Acquisition.AdcChannelMode);
+        var interleavedSampleCount = (int)(samplesPerCycle * 20.0 * branchCountPerChannel);
         var samplesPerBranch = interleavedSampleCount / 8;
-        Debug.WriteLine(samplesPerBranch);
+
         var branches = new sbyte[8][];
         for (int i = 0; i < 8; i++)
         {
             branches[i] = new sbyte[samplesPerBranch];
         }
 
-        var interleavedData = GetDataI8InterleavedExactLength(interleavedSampleCount);
+        var interleavedData = GetDataI8InterleavedExactTotalLength(interleavedSampleCount);
+
         var channelBranchIndices = GetBranchLayout(config.Acquisition.AdcChannelMode);
         int idx = 0;
         for (int branchSample = 0; branchSample < samplesPerBranch; branchSample++)
@@ -395,10 +384,10 @@ public class Instruments
                 f64Span[sample] = branchData[sample];
             }
 
-            var (amplitude, phaseDeg, dcOffset) = SineLeastSquaresFit.FitSineWave(sampleRateHz / branchCountPerChannel, f64Span, frequency);
-            amplitudes[i] = Math.Round(amplitude * 2.0, 3);
-            phases[i] = Math.Round(phaseDeg, 3);
-            offsets[i] = Math.Round(dcOffset, 3);
+            var sineWaveFit = LsqFit.SineThreeParameter(f64Span, sampleRateHz / branchCountPerChannel, frequency);
+            amplitudes[i] = Math.Round(sineWaveFit.Amplitude * 2.0, 3);
+            phases[i] = Math.Round(sineWaveFit.PhaseDeg, 3);
+            offsets[i] = Math.Round(sineWaveFit.Offset, 3);
         }
     }
 
@@ -428,6 +417,7 @@ public class Instruments
 
         using SpanOwner<sbyte> i8Buffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
         GetChannelDataI8(channelIndex, sampleCount, i8Buffer.Span);
+        DataSaturationCheck(i8Buffer.Span, out _, out _);
 
         double sum = 0;
         foreach (var point in i8Buffer.Span)
@@ -446,9 +436,9 @@ public class Instruments
         return Math.Sqrt(sumSquares / i8Buffer.Span.Length);
     }
 
-    public double GetThunderscopeVppAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)
+    public double GetThunderscopeVppAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution, out float rangePercent)
     {
-        var adcPP = GetThunderscopeAdcPeakPeakAtFrequencyLsq(channelIndex, frequency, sampleRateHz);
+        var adcPP = GetThunderscopeAdcPeakPeakAtFrequencyLsq(channelIndex, frequency, sampleRateHz, out int range);
 
         var vPerBit = resolution switch
         {
@@ -456,11 +446,11 @@ public class Instruments
             AdcResolution.TwelveBit => inputVpp / 4096.0,
             _ => throw new NotImplementedException()
         };
-
+        rangePercent = range / 256.0f * 100.0f;
         return adcPP * vPerBit;
     }
 
-    public double GetThunderscopeAdcPeakPeakAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz)
+    public double GetThunderscopeAdcPeakPeakAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, out int range)
     {
         var config = thunderScope!.GetConfiguration();
         if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
@@ -471,14 +461,14 @@ public class Instruments
 
         using SpanOwner<sbyte> i8Buffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
         GetChannelDataI8(channelIndex, sampleCount, i8Buffer.Span);
+        DataSaturationCheck(i8Buffer.Span, out sbyte min, out sbyte max);
         using SpanOwner<double> f64Buffer = SpanOwner<double>.Allocate(sampleCount);  // Returned to pool when it goes out of scope
         var i8Span = i8Buffer.Span;
         var f64Span = f64Buffer.Span;
 
-        for (int i = 0; i < f64Span.Length; i++)
-        {
-            f64Span[i] = i8Span[i];
-        }
+        range = max - min;
+
+        TensorPrimitives.ConvertChecked<sbyte, double>(i8Span, f64Span);
 
         // Goertzel & LSQ give approximately same results for amplitude, Goertzel is slightly faster, LSQ needs optimisation.
         // LSQ should be more numerically stable.
@@ -490,13 +480,18 @@ public class Instruments
         //var goertzelVpp = goertzelVp * 2.0;
         //double goertzelVrms = goertzelVp / Math.Sqrt(2.0);
 
-        var (amplitude, phaseDeg, dcOffset) = SineLeastSquaresFit.FitSineWave(sampleRateHz, f64Span, frequency);
-        var lsqVpp = amplitude * 2.0;
+        var stopwatch = Stopwatch.StartNew();
+        var sineWaveFit = LsqFit.SineThreeParameter(f64Span, sampleRateHz, frequency);
+        var lsqVpp = sineWaveFit.Amplitude * 2.0;
+        stopwatch.Stop();
+        var lsqTime = stopwatch.Elapsed.TotalMilliseconds;
+
+        Debug.WriteLine($"LSQ time: {lsqTime:F2}ms, over length {f64Span.Length}");
 
         return lsqVpp;
     }
 
-    private ReadOnlySpan<sbyte> GetDataI8Interleaved(int minTotalLength)
+    private ReadOnlySpan<sbyte> GetDataI8Interleaved(int minLengthPerChannel)
     {
         var config = thunderScope!.GetConfiguration();
         var channelCount = config.Acquisition.EnabledChannelsCount();
@@ -504,13 +499,11 @@ public class Instruments
             throw new TestbenchException("No enabled channels");
         if (config.Acquisition.Resolution != AdcResolution.EightBit)
             throw new TestbenchException("Acquisition not set up up for 8 bit");
-        if (minTotalLength % channelCount != 0)
-            throw new TestbenchException("Total length must be a multiple of the number of enabled channels");
 
-        var minimumAcquisitionLength = 1024 * 1024;
-        var acquisitionLength = ((minTotalLength / minimumAcquisitionLength) + 1) * minimumAcquisitionLength;
-        if (acquisitionLength < minimumAcquisitionLength)
-            acquisitionLength = minimumAcquisitionLength;
+        var blockSize = 1024 * 1024;      // Minimum of 1MiB of data per channel
+        var blocks = (minLengthPerChannel / blockSize) + 1;
+        var acquisitionLengthPerChannel = blocks * blockSize;
+        var acquisitionLength = acquisitionLengthPerChannel * channelCount;
 
         thunderScope!.Stop();
         thunderScope!.Start();
@@ -519,9 +512,9 @@ public class Instruments
         return subsetDataMemory.DataSpanI8;
     }
 
-    private ReadOnlySpan<sbyte> GetDataI8InterleavedExactLength(int totalLength)
+    private ReadOnlySpan<sbyte> GetDataI8InterleavedExactTotalLength(int totalLength)
     {
-        var buffer = GetDataI8Interleaved(totalLength);
+        var buffer = GetDataI8Interleaved(totalLength / thunderScope!.GetConfiguration().Acquisition.EnabledChannelsCount());
         // Buffer can be larger than requested length so use the end of the buffer
         return buffer.Slice(buffer.Length - totalLength, totalLength);
     }
@@ -533,16 +526,7 @@ public class Instruments
             throw new TestbenchException("Requested channel index is not an enabled channel");
 
         var channelCount = config.Acquisition.EnabledChannelsCount();
-        var interleavedSampleCount = channelCount switch
-        {
-            1 => perChannelSampleCount,
-            2 => perChannelSampleCount * 2,
-            3 => perChannelSampleCount * 4,
-            4 => perChannelSampleCount * 4,
-            _ => throw new NotImplementedException()
-        };
-
-        var interleavedBuffer = GetDataI8Interleaved(interleavedSampleCount);
+        var interleavedBuffer = GetDataI8Interleaved(perChannelSampleCount);
         var subsetShuffleMemory = shuffleMemory!.Subset(interleavedBuffer.Length);
 
         ReadOnlySpan<sbyte> channel;
@@ -603,6 +587,16 @@ public class Instruments
         var json = calibration.ToDeviceJson();
         var jsonBytes = Encoding.ASCII.GetBytes(json);
         thunderScope?.FactoryDataAppend(tag, jsonBytes);
+    }
+
+    public static void DataSaturationCheck(ReadOnlySpan<sbyte> data, out sbyte min, out sbyte max)
+    {
+        min = TensorPrimitives.MinNumber<sbyte>(data);
+        max = TensorPrimitives.MaxNumber<sbyte>(data);
+        if (min == sbyte.MinValue)
+            throw new TestbenchException($"Signal saturated the ADC ({sbyte.MinValue})");
+        if (max == sbyte.MaxValue)
+            throw new TestbenchException($"Signal saturated the ADC ({sbyte.MaxValue})");
     }
 
     //public (double amplitude, double phaseDeg, double offset) GetThunderscopeBodeAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)

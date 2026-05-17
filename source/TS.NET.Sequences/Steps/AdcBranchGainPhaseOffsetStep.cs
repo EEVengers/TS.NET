@@ -4,7 +4,7 @@ namespace TS.NET.Sequences;
 
 public class AdcBranchGainPhaseOffsetStep : Step
 {
-    public AdcBranchGainPhaseOffsetStep(string name, int[] channelIndices, uint rateHz, PgaPreampGain pgaGain, int pgaLadder, BenchCalibrationVariables variables) : base(name)
+    public AdcBranchGainPhaseOffsetStep(string name, int[] channelIndices, uint rateHz, PgaPreampGain pgaGain, int pgaLadder, FactoryVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {
@@ -42,7 +42,7 @@ public class AdcBranchGainPhaseOffsetStep : Step
 
             GetBranchData(out var branchScalesBefore, out var normalisedPhasesBefore, out var normalisedOffsetsBefore);
 
-            var branchFineGains = new byte[8];
+            var branchGains = new byte[8];
             var gainSettings = new int[8];
             for (int i = 0; i < 8; i++)
             {
@@ -53,10 +53,10 @@ public class AdcBranchGainPhaseOffsetStep : Step
                 if (gainSetting < -64)
                     gainSetting = -64;
                 gainSettings[i] = gainSetting;
-                branchFineGains[i] = (byte)(gainSetting & 0x7F);
+                branchGains[i] = (byte)(gainSetting & 0x7F);
             }
 
-            Instruments.Instance.SetThunderscopeBranchGains(branchFineGains);
+            Instruments.Instance.SetThunderscopeBranchGains(branchGains);
             variables.Calibration.Adc.BranchGain.First(fg => fg.Channel.SequenceEqual(channelIndices)).RateGain.First(rfg => rfg.Rate == rateHz).Gain = gainSettings;
             variables.ParametersSet += 8;
 

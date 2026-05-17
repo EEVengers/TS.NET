@@ -2,13 +2,13 @@
 
 namespace TS.NET.Sequences;
 
-public class BenchCalibrationSequence : Sequence
+public class DeveloperCalibrationSequence : Sequence
 {
-    public BenchCalibrationVariables Variables { get; private set; }
+    public FactoryVariables Variables { get; private set; }
 
-    public BenchCalibrationSequence(ModalUiContext modalUiContext, BenchCalibrationVariables variables)
+    public DeveloperCalibrationSequence(ModalUiContext modalUiContext, FactoryVariables variables)
     {
-        Name = "Bench calibration";
+        Name = "Developer calibration";
         Variables = variables;
         AddSteps(modalUiContext);
         SetStepIndices();
@@ -28,7 +28,10 @@ public class BenchCalibrationSequence : Sequence
             new InitialiseDeviceStep("Initialise device", Variables),
             new InitialiseSigGensStep("Initialise signal generators", Variables),
             new LoadCalibrationFromDefaultStep("Load calibration from default", Variables),
-            //new LoadCalibrationFromUserCalStep("Load calibration from user cal", Variables) { PostAction = cancellationToken => { Variables.TrimDacZeroCalibrated = true; Variables.TrimDacScaleCalibrated = true; Variables.BufferInputVppCalibrated = true; } },
+            //new LoadCalibrationFromUserCalStep("Load calibration from user cal", Variables),
+            //new LoadCalibrationFromFileStep("Load calibration from file", Variables) { PostAction = cancellationToken => { Variables.TrimDacZeroCalibrated = true; Variables.TrimDacScaleCalibrated = true; Variables.BufferInputVppCalibrated = true; } },
+            //new SaveFactoryCalToDeviceStep("Save factory calibration to device", Variables),
+            //new SaveUserCalToDeviceStep("Save user calibration to device", Variables),
             new TemperatureCheckStep("Temperature check", Variables),
 
             //new ReferenceClockInputValidStep("Reference clock input check", Variables) { Skip = false, AllowSkip = true },
@@ -575,7 +578,7 @@ public class BenchCalibrationSequence : Sequence
                 Variables.Calibration.Timestamp = Variables.CalibrationTimestamp.ToString("yyyy-MM-ddTHH:mm:ssZ");
                 return Sequencer.Status.Done;
             }},
-            new SaveUserCalToFileStep("Save calibration to file", Variables) { AllowSkip = true },
+            new SaveCalToFileStep("Save calibration to file", Variables) { AllowSkip = true },
             new SaveUserCalToDeviceStep("Save calibration to device", Variables) { AllowSkip = true },
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {

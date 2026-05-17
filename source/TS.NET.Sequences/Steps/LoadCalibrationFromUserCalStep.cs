@@ -11,6 +11,11 @@ public class LoadCalibrationFromUserCalStep : Step
             if(Instruments.Instance.TryReadUserCalibration(out var calibration))
             {
                 variables.Calibration = calibration!;
+                variables.TrimDacZeroCalibrated = true;
+                variables.TrimDacScaleCalibrated = true;
+                variables.BufferInputVppCalibrated = true;
+                variables.LoadScalesCalibrated = true;
+                variables.AdcBranchGainsCalibrated = true;
                 Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Calibration loaded from device");
                 return Status.Done;
             }        

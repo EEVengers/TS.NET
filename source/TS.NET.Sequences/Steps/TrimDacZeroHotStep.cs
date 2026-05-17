@@ -26,7 +26,7 @@ public class TrimDacZeroHotStep : Step
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, dac, dpot, pgaGain, pgaLadder, variables.TrimSettlingTimeMs);
+                Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, attenuator: false, dac, dpot, pgaGain, pgaLadder, ThunderscopeBandwidth.Bw20M, variables.TrimSettlingTimeMs);
                 var average = Instruments.Instance.GetThunderscopeAverage(channelIndex, sampleCount: 1_000_000);
 
                 if (average > high)

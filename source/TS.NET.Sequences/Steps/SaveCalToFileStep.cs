@@ -2,9 +2,9 @@
 
 namespace TS.NET.Sequences;
 
-public class SaveUserCalToFileStep : Step
+public class SaveCalToFileStep : Step
 {
-    public SaveUserCalToFileStep(string name, CalibrationVariables variables) : base(name)
+    public SaveCalToFileStep(string name, CalibrationVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {

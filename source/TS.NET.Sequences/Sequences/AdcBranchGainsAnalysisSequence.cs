@@ -4,9 +4,9 @@ namespace TS.NET.Sequences;
 
 public class AdcBranchGainsAnalysisSequence : Sequence
 {
-    public BenchCalibrationVariables Variables { get; private set; }
+    public FactoryVariables Variables { get; private set; }
 
-    public AdcBranchGainsAnalysisSequence(ModalUiContext modalUiContext, BenchCalibrationVariables variables)
+    public AdcBranchGainsAnalysisSequence(ModalUiContext modalUiContext, FactoryVariables variables)
     {
         Name = "ADC branch gains analysis";
         Variables = variables;

@@ -2,13 +2,13 @@
 
 namespace TS.NET.Sequences;
 
-public class BenchVerificationSequence : Sequence
+public class DeveloperVerificationSequence : Sequence
 {
-    public BenchVerificationVariables Variables { get; private set; }
+    public FactoryVariables Variables { get; private set; }
 
-    public BenchVerificationSequence(ModalUiContext modalUiContext, BenchVerificationVariables variables)
+    public DeveloperVerificationSequence(ModalUiContext modalUiContext, FactoryVariables variables)
     {
-        Name = "Bench verification";
+        Name = "Developer verification";
         Variables = variables;
         AddSteps(modalUiContext);
         SetStepIndices();
@@ -28,21 +28,14 @@ public class BenchVerificationSequence : Sequence
             new InitialiseDeviceStep("Initialise device", Variables),
             new InitialiseSigGensStep("Initialise signal generators", Variables),
             new LoadCalibrationFromUserCalStep("Load calibration from device", Variables),
-            new Step("Load ADC branch gains")
-            { 
-                Action = (CancellationToken cancellationToken) =>
-                {
-                    Instruments.Instance.SetThunderscopeBranchGains([0,0,0,0,0,0,0,0]);
-                    return Sequencer.Status.Done;
-                }
-            },
+
             new WarmupStep("Warmup device", Variables, 40 * 60)
             { 
                 Skip = false, 
                 AllowSkip = true 
             },
 
-            new BodePlotStep("Channel 1 - Crossover flatness", Variables)
+            new BodePlotStep("Channel 1 - Attenuator off", Variables)
             {
                 ChannelIndex = 0,
                 ChannelsEnabled = [0],
@@ -50,9 +43,9 @@ public class BenchVerificationSequence : Sequence
                 PgaLadder = 10,
                 Attenuator = false,
                 SampleRateHz = 1_000_000_000,
-                MaxFrequency = 10_000_000
+                MaxFrequency = 40_000_000
             },
-            new BodePlotStep("Channel 2 - Crossover flatness", Variables)
+            new BodePlotStep("Channel 2 - Attenuator off", Variables)
             {
                 ChannelIndex = 1,
                 ChannelsEnabled = [1],
@@ -60,9 +53,9 @@ public class BenchVerificationSequence : Sequence
                 PgaLadder = 10,
                 Attenuator = false,
                 SampleRateHz = 1_000_000_000,
-                MaxFrequency = 10_000_000
+                MaxFrequency = 40_000_000
             },
-            new BodePlotStep("Channel 3 - Crossover flatness", Variables)
+            new BodePlotStep("Channel 3 - Attenuator off", Variables)
             {
                 ChannelIndex = 2,
                 ChannelsEnabled = [2],
@@ -70,9 +63,9 @@ public class BenchVerificationSequence : Sequence
                 PgaLadder = 10,
                 Attenuator = false,
                 SampleRateHz = 1_000_000_000,
-                MaxFrequency = 10_000_000
+                MaxFrequency = 40_000_000
             },
-            new BodePlotStep("Channel 4 - Crossover flatness", Variables)
+            new BodePlotStep("Channel 4 - Attenuator off", Variables)
             {
                 ChannelIndex = 3,
                 ChannelsEnabled = [3],
@@ -80,10 +73,10 @@ public class BenchVerificationSequence : Sequence
                 PgaLadder = 10,
                 Attenuator = false,
                 SampleRateHz = 1_000_000_000,
-                MaxFrequency = 10_000_000
+                MaxFrequency = 40_000_000
             },
 
-            new CombinedSeriesStep("Combined - Crossover flatness", this)
+            new CombinedSeriesStep("Combined - Attenuator off", this)
             {
                 ChartTitle = "Overall gain vs. frequency",
                 ChartXAxis = new ResultMetadataXYChartAxis
@@ -98,57 +91,57 @@ public class BenchVerificationSequence : Sequence
                     AdditionalRangeValues = [-0.5, 0.5] 
                 },
                 ChartSeries = [
-                    new SeriesReference(){StepName = "Channel 1 - Crossover flatness"},
-                    new SeriesReference(){StepName = "Channel 2 - Crossover flatness"},
-                    new SeriesReference(){StepName = "Channel 3 - Crossover flatness"},
-                    new SeriesReference(){StepName = "Channel 4 - Crossover flatness"}
+                    new SeriesReference(){StepName = "Channel 1 - Attenuator off"},
+                    new SeriesReference(){StepName = "Channel 2 - Attenuator off"},
+                    new SeriesReference(){StepName = "Channel 3 - Attenuator off"},
+                    new SeriesReference(){StepName = "Channel 4 - Attenuator off"}
                 ],
                 ChartLegendLocation = ResultMetadataXYChartLegendLocation.BottomLeft,
             },
 
             // Note: SDG has 5 Vpp limit for frequencies above 10 MHz, use correct pregamp gain & ladder setting.
-            new BodePlotStep("Channel 1 - Attenuator flatness", Variables)
+            new BodePlotStep("Channel 1 - Attenuator on", Variables)
             {
                 ChannelIndex = 0,
                 ChannelsEnabled = [0],
-                PgaPreampGain = PgaPreampGain.High,
-                PgaLadder = 10,
+                PgaPreampGain = PgaPreampGain.Low,
+                PgaLadder = 1,
                 Attenuator = true,
                 SampleRateHz = 1_000_000_000,
-                MaxFrequency = 10_000_000
+                MaxFrequency = 40_000_000
             },
-            new BodePlotStep("Channel 2 - Attenuator flatness", Variables)
+            new BodePlotStep("Channel 2 - Attenuator on", Variables)
             {
                 ChannelIndex = 1,
                 ChannelsEnabled = [1],
-                PgaPreampGain = PgaPreampGain.High,
-                PgaLadder = 10,
+                PgaPreampGain = PgaPreampGain.Low,
+                PgaLadder = 1,
                 Attenuator = true,
                 SampleRateHz = 1_000_000_000,
-                MaxFrequency = 10_000_000
+                MaxFrequency = 40_000_000
             },
-            new BodePlotStep("Channel 3 - Attenuator flatness", Variables)
+            new BodePlotStep("Channel 3 - Attenuator on", Variables)
             {
                 ChannelIndex = 2,
                 ChannelsEnabled = [2],
-                PgaPreampGain = PgaPreampGain.High,
-                PgaLadder = 10,
+                PgaPreampGain = PgaPreampGain.Low,
+                PgaLadder = 1,
                 Attenuator = true,
                 SampleRateHz = 1_000_000_000,
-                MaxFrequency = 10_000_000
+                MaxFrequency = 40_000_000
             },
-            new BodePlotStep("Channel 4 - Attenuator flatness", Variables)
+            new BodePlotStep("Channel 4 - Attenuator on", Variables)
             {
                 ChannelIndex = 3,
                 ChannelsEnabled = [3],
-                PgaPreampGain = PgaPreampGain.High,
-                PgaLadder = 10,
+                PgaPreampGain = PgaPreampGain.Low,
+                PgaLadder = 1,
                 Attenuator = true,
                 SampleRateHz = 1_000_000_000,
-                MaxFrequency = 10_000_000
+                MaxFrequency = 40_000_000
             },
 
-            new CombinedSeriesStep("Combined - Attenuator flatness", this)
+            new CombinedSeriesStep("Combined - Attenuator on", this)
             {
                 ChartTitle = "Overall gain vs. frequency",
                 ChartXAxis = new ResultMetadataXYChartAxis
@@ -163,10 +156,10 @@ public class BenchVerificationSequence : Sequence
                     AdditionalRangeValues = [-0.5, 0.5]
                 },
                 ChartSeries = [
-                    new SeriesReference { StepName = "Channel 1 - Attenuator flatness" },
-                    new SeriesReference { StepName = "Channel 2 - Attenuator flatness" },
-                    new SeriesReference { StepName = "Channel 3 - Attenuator flatness" },
-                    new SeriesReference { StepName = "Channel 4 - Attenuator flatness" }
+                    new SeriesReference { StepName = "Channel 1 - Attenuator on" },
+                    new SeriesReference { StepName = "Channel 2 - Attenuator on" },
+                    new SeriesReference { StepName = "Channel 3 - Attenuator on" },
+                    new SeriesReference { StepName = "Channel 4 - Attenuator on" }
                 ],
                 ChartLegendLocation = ResultMetadataXYChartLegendLocation.BottomLeft,
             },

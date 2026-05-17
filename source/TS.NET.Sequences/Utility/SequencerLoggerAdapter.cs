@@ -28,7 +28,7 @@ internal sealed class SequencerLoggerAdapter(int stepIndex) : ILogger
         }
 
         var mappedLevel = MapLevel(logLevel);
-        Sequencer.Logger.Instance.Log(mappedLevel, stepIndex, message);
+        Sequencer.Logger.Instance.Log(mappedLevel, stepIndex, Sequencer.Status.Running, message);
     }
 
     private static Sequencer.LogLevel MapLevel(LogLevel level)

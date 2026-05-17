@@ -2,12 +2,6 @@
 
 public static class Utility
 {
-    [Obsolete]
-    public static FrontendPathCalibration GetChannelPathCalibration(int channelIndex, int pathIndex, CommonVariables variables)
-    {
-        return variables.Calibration.Frontend[channelIndex].Path[pathIndex];
-    }
-
     public static FrontendPathCalibration GetChannelPathCalibration(int channelIndex, PgaPreampGain pgaPreamp, int pgaLadder, CommonVariables variables)
     {
         return variables.Calibration.Frontend[channelIndex].Path.Where(p => p.PgaPreampGain == pgaPreamp && p.PgaLadder == pgaLadder).First();
@@ -26,13 +20,7 @@ public static class Utility
         return pathConfigs.Where(p => p.PgaPreampGain == pgaPreamp && p.PgaLadder == pgaLadder).First();
     }
 
-    public static bool TryTrimDacBinarySearch(
-        int channelIndex,
-        FrontendPathCalibration path,
-        double targetMin, double targetMax,
-        int trimSettlingTimeMs,
-        CancellationToken cancellationToken,
-        out ushort dac, out double adc)
+    public static bool TryTrimDacBinarySearch(int channelIndex, FrontendPathCalibration path, double targetMin, double targetMax, int trimSettlingTimeMs, CancellationToken cancellationToken, out ushort dac, out double adc)
     {
         int low = 0;
         int high = 4095;
@@ -40,7 +28,7 @@ public static class Utility
         {
             cancellationToken.ThrowIfCancellationRequested();
             int mid = low + (high - low) / 2;
-            Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, (ushort)mid, path.TrimDPot, path.PgaPreampGain, path.PgaLadder, trimSettlingTimeMs);
+            Instruments.Instance.SetThunderscopeCalManual50R(channelIndex, attenuator: false, (ushort)mid, path.TrimDPot, path.PgaPreampGain, path.PgaLadder, ThunderscopeBandwidth.Bw20M, trimSettlingTimeMs);
             var average = Instruments.Instance.GetThunderscopeAverage(channelIndex, sampleCount: 10_000_000);
             if (average >= targetMin && average <= targetMax)
             {
@@ -62,7 +50,7 @@ public static class Utility
         return false;
     }
 
-    public static double GetAndCheckSigGenZero(int channelIndex, ChannelPathData path, BenchCalibrationVariables variables, CancellationToken cancellationToken)
+    public static double GetAndCheckSigGenZero(int channelIndex, ChannelPathData path, FactoryVariables variables, CancellationToken cancellationToken)
     {
         double zeroValue = variables.SigGenZero;
         double average = 0;
@@ -150,7 +138,7 @@ public static class Utility
             SigGens.Instance.SetSdgParameterOffset(channelIndex, zeroValue);
             Thread.Sleep(10);
 
-            var adcPP = Instruments.Instance.GetThunderscopeAdcPeakPeakAtFrequencyLsq(channelIndex, frequencyHz, sampleRateHz);
+            var adcPP = Instruments.Instance.GetThunderscopeAdcPeakPeakAtFrequencyLsq(channelIndex, frequencyHz, sampleRateHz, out int range);
 
             if (adcPP > 243)
             {

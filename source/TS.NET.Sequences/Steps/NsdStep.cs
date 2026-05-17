@@ -1,4 +1,6 @@
 ﻿using CommunityToolkit.HighPerformance.Buffers;
+using System;
+using System.Numerics.Tensors;
 using TS.NET.Sequencer;
 
 namespace TS.NET.Sequences;
@@ -42,10 +44,10 @@ public class NsdStep : Step
             int sampleCount = 50_000_000;
             using SpanOwner<sbyte> i8Buffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
             Instruments.Instance.GetChannelDataI8(ChannelIndex, sampleCount, i8Buffer.Span);
+            Instruments.DataSaturationCheck(i8Buffer.Span, out _, out _);
             using MemoryOwner<double> f64Buffer = MemoryOwner<double>.Allocate(sampleCount);
-            
 
-            Widen.I8toF64(i8Buffer.Span, f64Buffer.Span);
+            TensorPrimitives.ConvertChecked<sbyte, double>(i8Buffer.Span, f64Buffer.Span);
             //var spectrum = Nsd.Linear(f64Buffer.Memory, rateHz, outputWidth: 131072);
             //var spectrum = Nsd.DualLinear(f64Buffer.Memory, rateHz, maxWidth: 262144, minWidth: 4096);
             var spectrum = Nsd.StackedLinear(f64Buffer.Memory, SampleRateHz, maxWidth: 262144, minWidth: 4096);

@@ -413,7 +413,7 @@
     },
     {
       "channel": 2,
-      "attenuatorScale": 0,
+      "attenuatorScale": 50.000,
       "path": [
         {
           "pgaPreampGain": "high",

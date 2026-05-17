@@ -1,0 +1,177 @@
+﻿using TS.NET.Sequencer;
+
+namespace TS.NET.Sequences;
+
+public class FactoryVerificationSequence : Sequence
+{
+    public FactoryVariables Variables { get; private set; }
+
+    public FactoryVerificationSequence(ModalUiContext modalUiContext, FactoryVariables variables)
+    {
+        Name = "Factory verification";
+        Variables = variables;
+        AddSteps(modalUiContext);
+        SetStepIndices();
+    }
+
+    private void AddSteps(ModalUiContext modalUiContext)
+    {
+        Steps =
+        [
+            new ModalDialogStep("Cable check", modalUiContext)
+            {
+                Title = "Cable check",
+                Message = "Channel 1 connected to GPSDO output 2?",
+                Buttons = DialogButtons.YesNo,
+                Icon = DialogIcon.Question
+            },
+            new InitialiseDeviceStep("Initialise device", Variables),
+            new LoadCalibrationFromUserCalStep("Load calibration from device", Variables),
+
+            //new WarmupStep("Warmup device", Variables, 40 * 60)
+            //{
+            //    Skip = false,
+            //    AllowSkip = true
+            //},
+
+            new BodePlotGpsdoStep("Channel 1 - Attenuator off", Variables)
+            {
+                ChannelIndex = 0,
+                ChannelsEnabled = [0],
+                PgaPreampGain = PgaPreampGain.Low,
+                PgaLadder = 10,
+                Attenuator = false,
+                SampleRateHz = 1_000_000_000,
+                MaxFrequency = 500_000_000
+            },
+            //new BodePlotGpsdoStep("Channel 2 - Attenuator off", Variables)
+            //{
+            //    ChannelIndex = 1,
+            //    ChannelsEnabled = [1],
+            //    PgaPreampGain = PgaPreampGain.Low,
+            //    PgaLadder = 10,
+            //    Attenuator = false,
+            //    SampleRateHz = 1_000_000_000,
+            //    MaxFrequency = 500_000_000
+            //},
+            //new BodePlotGpsdoStep("Channel 3 - Attenuator off", Variables)
+            //{
+            //    ChannelIndex = 2,
+            //    ChannelsEnabled = [2],
+            //    PgaPreampGain = PgaPreampGain.Low,
+            //    PgaLadder = 10,
+            //    Attenuator = false,
+            //    SampleRateHz = 1_000_000_000,
+            //    MaxFrequency = 500_000_000
+            //},
+            //new BodePlotGpsdoStep("Channel 4 - Attenuator off", Variables)
+            //{
+            //    ChannelIndex = 3,
+            //    ChannelsEnabled = [3],
+            //    PgaPreampGain = PgaPreampGain.Low,
+            //    PgaLadder = 10,
+            //    Attenuator = false,
+            //    SampleRateHz = 1_000_000_000,
+            //    MaxFrequency = 500_000_000
+            //},
+
+            //new CombinedSeriesStep("Combined - Attenuator off", this)
+            //{
+            //    ChartTitle = "Overall gain vs. frequency",
+            //    ChartXAxis = new ResultMetadataXYChartAxis
+            //    {
+            //        Label = "Frequency (Hz)",
+            //        Scale = XYChartScaleType.Log10
+            //    },
+            //    ChartYAxis = new ResultMetadataXYChartAxis
+            //    {
+            //        Label = "Gain (dB)",
+            //        Scale = XYChartScaleType.Linear,
+            //        AdditionalRangeValues = [-0.5, 0.5]
+            //    },
+            //    ChartSeries = [
+            //        new SeriesReference(){StepName = "Channel 1 - Attenuator off"},
+            //        new SeriesReference(){StepName = "Channel 2 - Attenuator off"},
+            //        new SeriesReference(){StepName = "Channel 3 - Attenuator off"},
+            //        new SeriesReference(){StepName = "Channel 4 - Attenuator off"}
+            //    ],
+            //    ChartLegendLocation = ResultMetadataXYChartLegendLocation.BottomLeft,
+            //},
+
+            // Note: SDG has 5 Vpp limit for frequencies above 10 MHz, use correct pregamp gain & ladder setting.
+            new BodePlotGpsdoStep("Channel 1 - Attenuator on", Variables)
+            {
+                ChannelIndex = 0,
+                ChannelsEnabled = [0],
+                PgaPreampGain = PgaPreampGain.High,
+                PgaLadder = 3,
+                Attenuator = true,
+                SampleRateHz = 1_000_000_000,
+                MaxFrequency = 500_000_000
+            },
+            //new BodePlotStep("Channel 2 - Attenuator on", Variables)
+            //{
+            //    ChannelIndex = 1,
+            //    ChannelsEnabled = [1],
+            //    PgaPreampGain = PgaPreampGain.High,
+            //    PgaLadder = 10,
+            //    Attenuator = true,
+            //    SampleRateHz = 1_000_000_000,
+            //    MaxFrequency = 500_000_000
+            //},
+            //new BodePlotStep("Channel 3 - Attenuator on", Variables)
+            //{
+            //    ChannelIndex = 2,
+            //    ChannelsEnabled = [2],
+            //    PgaPreampGain = PgaPreampGain.High,
+            //    PgaLadder = 10,
+            //    Attenuator = true,
+            //    SampleRateHz = 1_000_000_000,
+            //    MaxFrequency = 500_000_000
+            //},
+            //new BodePlotStep("Channel 4 - Attenuator on", Variables)
+            //{
+            //    ChannelIndex = 3,
+            //    ChannelsEnabled = [3],
+            //    PgaPreampGain = PgaPreampGain.High,
+            //    PgaLadder = 10,
+            //    Attenuator = true,
+            //    SampleRateHz = 1_000_000_000,
+            //    MaxFrequency = 500_000_000
+            //},
+
+            //new CombinedSeriesStep("Combined - Attenuator on", this)
+            //{
+            //    ChartTitle = "Overall gain vs. frequency",
+            //    ChartXAxis = new ResultMetadataXYChartAxis
+            //    {
+            //        Label = "Frequency (Hz)",
+            //        Scale = XYChartScaleType.Log10
+            //    },
+            //    ChartYAxis = new ResultMetadataXYChartAxis
+            //    {
+            //        Label = "Gain (dB)",
+            //        Scale = XYChartScaleType.Linear,
+            //        AdditionalRangeValues = [-0.5, 0.5]
+            //    },
+            //    ChartSeries = [
+            //        new SeriesReference { StepName = "Channel 1 - Attenuator on" },
+            //        new SeriesReference { StepName = "Channel 2 - Attenuator on" },
+            //        new SeriesReference { StepName = "Channel 3 - Attenuator on" },
+            //        new SeriesReference { StepName = "Channel 4 - Attenuator on" }
+            //    ],
+            //    ChartLegendLocation = ResultMetadataXYChartLegendLocation.BottomLeft,
+            //},
+
+            new Step("Cleanup")
+            {
+                Action = (CancellationToken cancellationToken) =>
+                {
+                    Instruments.Instance.Close();
+                    SigGens.Instance.Close();
+                    return Sequencer.Status.Done;
+                }
+            },
+        ];
+    }
+}

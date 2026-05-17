@@ -4,7 +4,7 @@ namespace TS.NET.Sequences;
 
 public class AdcLoadScaleStep : Step
 {
-    public AdcLoadScaleStep(string name, int[] channelIndices, uint sampleRateHz, BenchCalibrationVariables variables) : base(name)
+    public AdcLoadScaleStep(string name, int[] channelIndices, uint sampleRateHz, FactoryVariables variables) : base(name)
     {
         // A previous step should set Instruments.Instance.EnableSdgDc(channelIndex) to enable sig gen output
         Action = (CancellationToken cancellationToken) =>

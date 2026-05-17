@@ -2,7 +2,7 @@
 
 namespace TS.NET.Sequences;
 
-public class BodePlotStep : Step
+public class BodePlotGpsdoStep : Step
 {
     public required int ChannelIndex { get; set; }
     public required int[] ChannelsEnabled { get; set; }
@@ -12,7 +12,7 @@ public class BodePlotStep : Step
     public required uint SampleRateHz { get; set; }
     public required uint MaxFrequency { get; set; }
 
-    public BodePlotStep(string name, CommonVariables variables) : base(name)
+    public BodePlotGpsdoStep(string name, CommonVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {
@@ -30,30 +30,32 @@ public class BodePlotStep : Step
 
             var pathCalibration = Utility.GetChannelPathCalibration(ChannelIndex, PgaPreampGain, PgaLadder, variables);
             var scaleFactor = Attenuator ? variables.Calibration.Frontend[ChannelIndex].AttenuatorScale : 1.0;
-            double amplitudeVpp = pathCalibration.BufferInputVpp * 0.8 * scaleFactor;
-            if (amplitudeVpp > 5.0)
-            {
-                amplitudeVpp = 5.0;
-            }
-
-            SigGens.Instance.SetSdgChannel([ChannelIndex]);
-            SigGens.Instance.SetSdgLoad(ChannelIndex, ThunderscopeTermination.FiftyOhm);
-            SigGens.Instance.SetSdgSine(ChannelIndex);
-            SigGens.Instance.SetSdgParameterFrequency(ChannelIndex, 1000);
-            SigGens.Instance.SetSdgParameterAmplitude(ChannelIndex, amplitudeVpp);
-            SigGens.Instance.SetSdgParameterOffset(ChannelIndex, 0);
-
             var temperature = Instruments.Instance.GetThunderscopeFpgaTemp();
             var trimDacZero = Frontend.GetTrimDacZero(temperature, pathCalibration.TrimDacZeroM, pathCalibration.TrimDacZeroC);
-            Instruments.Instance.SetThunderscopeCalManual50R(ChannelIndex, Attenuator, trimDacZero, pathCalibration.TrimDPot, pathCalibration.PgaPreampGain, pathCalibration.PgaLadder, ThunderscopeBandwidth.BwFull, variables.FrontEndSettlingTimeMs);
+            Instruments.Instance.SetThunderscopeFrontend(ChannelIndex, new ThunderscopeChannelFrontendManualControl()
+            {
+                Coupling = ThunderscopeCoupling.AC,
+                Termination = ThunderscopeTermination.FiftyOhm,
+                Attenuator = Attenuator ? (byte)1 : (byte)0,
+                DAC = trimDacZero,
+                DPOT = pathCalibration.TrimDPot,
+                PgaLadderAttenuation = pathCalibration.PgaLadder,
+                PgaFilter = ThunderscopeBandwidth.BwFull,
+                PgaHighGain = (PgaPreampGain == PgaPreampGain.High) ? (byte)1 : (byte)0
+            }, variables.FrontEndSettlingTimeMs);
 
-            Logger.Instance.Log(LogLevel.Information, Index, Status.Running, $"Ch{ChannelIndex + 1}, {amplitudeVpp:F4} Vpp");
-            //var zeroValue = Utility.GetAndCheckSigGenZero(channelIndex, pathConfig, variables, cancellationToken);
+            Logger.Instance.Log(LogLevel.Information, Index, Status.Running, $"Ch{ChannelIndex + 1}");
 
             var frequenciesHz = new List<uint>();
-            uint startFrequencyHz = 100;
-            int pointsPerDecade = 40;
+            uint startFrequencyHz = 1000;
+            int pointsPerDecade = 20;
             var nyquistFrequency = SampleRateHz / 2;
+
+            LBE142x gpsdo = new LBE142x();
+            gpsdo.Connect();
+            gpsdo.SetFrequencyTemporary(2, startFrequencyHz);
+            gpsdo.SetPowerLevel(2, lowPower: false);
+            gpsdo.SetOutputsEnabled(true);
 
             bool continueLoop = true;
             for (int d = 0; d < 10 && continueLoop; d++)
@@ -72,21 +74,21 @@ public class BodePlotStep : Step
                     }
                 }
             }
-            if (!frequenciesHz.Contains(MaxFrequency))
-            {
-                frequenciesHz.Add(MaxFrequency);
-            }
+            //if (!frequenciesHz.Contains(MaxFrequency))
+            //{
+            //    frequenciesHz.Add(MaxFrequency);
+            //}
             //frequenciesHz.Add((uint)(startFrequencyHz * Math.Pow(10, decades)));
 
             var bodePoints = new Dictionary<uint, double>();
 
-            SigGens.Instance.SetSdgParameterFrequency(ChannelIndex, frequenciesHz[0]);
+            gpsdo.SetFrequencyTemporary(2, frequenciesHz[0]); Thread.Sleep(200);
             var signalAtRef = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(ChannelIndex, frequenciesHz[0], SampleRateHz, pathCalibration.BufferInputVpp, resolution, out float rangePercentAtRef) * scaleFactor;
 
             foreach (var frequencyHz in frequenciesHz)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                SigGens.Instance.SetSdgParameterFrequency(ChannelIndex, frequencyHz);
+                gpsdo.SetFrequencyTemporary(2, frequencyHz); Thread.Sleep(200);
                 var frequencyToSearch = frequencyHz;
                 if (frequencyHz > nyquistFrequency)
                 {
@@ -98,8 +100,11 @@ public class BodePlotStep : Step
                 double normalised = signalAtFrequency / signalAtRef;
                 bodePoints[frequencyHz] = normalised;
 
-                Logger.Instance.Log(LogLevel.Information, Index, Status.Running, $"Ch{ChannelIndex + 1}, frequency: {frequencyHz / 1e3:F3} kHz, scale: {normalised:F4}");
+                Logger.Instance.Log(LogLevel.Information, Index, Status.Running, $"Ch{ChannelIndex + 1}, frequency: {frequencyHz / 1e3:F3} kHz, scale: {normalised:F4}, ADC range {rangePercent:F0}%");
             }
+
+            gpsdo.SetFrequencyTemporary(2, 10_000_000);
+            gpsdo.Dispose();
 
             //var csv = bodePoints.Select(p => $"{p.Key},{p.Value:F4},{20.0 * Math.Log10(p.Value):F4}");
             //var csvString = "Frequency,Scale,dB\n" + string.Join("\n", csv);
@@ -118,7 +123,6 @@ public class BodePlotStep : Step
                         ["Attenuator", Attenuator ? "On" : "Off"],
                         ["Sample rate", ReportStringUtility.SampleRateHzToHumanReadable(SampleRateHz)],
                         ["Resolution", ReportStringUtility.AdcResolutionToHumanReadable(resolution)],
-                        ["Amplitude", $"{amplitudeVpp:F4} Vpp"],
                         ["ADC range (Fmin)", $"{rangePercentAtRef:F0}%"],
                         ["Points", bodePoints.Count.ToString()]]
             };

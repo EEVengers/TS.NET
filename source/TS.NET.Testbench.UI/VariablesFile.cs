@@ -6,7 +6,7 @@ public class VariablesFile
 {
     public required string SigGen1Ip { get; set; }
     public required string SigGen2Ip { get; set; }
-    public required bool Factory { get; set; }
+    public required string[] SequenceTypes { get; set; }
 
     public static VariablesFile FromJsonFile(string file)
     {

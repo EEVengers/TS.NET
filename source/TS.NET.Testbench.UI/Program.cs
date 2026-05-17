@@ -18,7 +18,7 @@ class Program
     static void Main(string[] args)
     {
         Sequence sequence = new();
-        IJsonVariables variables = new SelfCalibrationVariables() {};
+        IJsonVariables variables = new SelfCalibrationVariables() { };
         var cancellationTokenSource = new CancellationTokenSource();
         var variablesFile = VariablesFile.FromJsonFile("variables.json");
 
@@ -59,73 +59,110 @@ class Program
                         window.SendWebMessage(JsonSerializer.Serialize(LogDto.FromLog(), CamelCaseContext.Default.LogDto));
                         window.SendWebMessage(JsonSerializer.Serialize(VariablesDto.FromVariables(variables), DefaultCaseContext.Default.VariablesDto));
                         window.SendWebMessage(JsonSerializer.Serialize(SequenceDto.FromSequence(sequence), CamelCaseContext.Default.SequenceDto));
-                        if (variablesFile.Factory)
-                            window.SendWebMessage(JsonSerializer.Serialize(SequencesDto.CreateFactoryDefault(), CamelCaseContext.Default.SequencesDto));
-                        else
-                            window.SendWebMessage(JsonSerializer.Serialize(SequencesDto.CreateDefault(), CamelCaseContext.Default.SequencesDto));
+                        window.SendWebMessage(JsonSerializer.Serialize(SequencesDto.CreateForTypes(variablesFile.SequenceTypes), CamelCaseContext.Default.SequencesDto));
                         break;
                     case "load-sequence":
                         var sequenceString = json.RootElement.GetProperty("sequence").GetString();
                         switch (sequenceString)
                         {
                             case "self-calibration":
-                                var selfCalibrationVariables = new SelfCalibrationVariables() {};
-                                var selfCalibrationSequence = new SelfCalibrationSequence(modalUiContext, selfCalibrationVariables);
-                                
-                                variables = selfCalibrationVariables;
-                                sequence = selfCalibrationSequence;
-                                break;
-                            case "bench-calibration":
-                                var benchCalibrationVariables = new BenchCalibrationVariables
                                 {
-                                    SigGen1Host = variablesFile.SigGen1Ip,
-                                    SigGen2Host = variablesFile.SigGen2Ip
-                                };
-                                var benchCalibrationSequence = new BenchCalibrationSequence(modalUiContext, benchCalibrationVariables);
-                                variables = benchCalibrationVariables;
-                                sequence = benchCalibrationSequence;
-                                break;
+                                    var newVariables = new SelfCalibrationVariables() { };
+                                    var newSequence = new SelfCalibrationSequence(modalUiContext, newVariables);
+                                    variables = newVariables;
+                                    sequence = newSequence;
+                                    break;
+                                }
                             case "noise-verification":
-                                var noiseVerificationVariables = new NoiseVerificationVariables() {};
-                                var noiseVerificationSequence = new NoiseVerificationSequence(modalUiContext, noiseVerificationVariables);
-                                variables = noiseVerificationVariables;
-                                sequence = noiseVerificationSequence;
-                                break;
-                            case "bench-verification":
-                                var benchVerificationVariables = new BenchVerificationVariables
                                 {
-                                    SigGen1Host = variablesFile.SigGen1Ip,
-                                    SigGen2Host = variablesFile.SigGen2Ip
-                                };
-                                var benchVerificationSequence = new BenchVerificationSequence(modalUiContext, benchVerificationVariables);
-                                variables = benchVerificationVariables;
-                                sequence = benchVerificationSequence;
-                                break;
-                            case "factory-trim":
-                                var factoryTrimVariables = new BenchVerificationVariables
-                                {
-                                    SigGen1Host = variablesFile.SigGen1Ip,
-                                    SigGen2Host = variablesFile.SigGen2Ip
-                                };
-                                var factoryTrimSequence = new FactoryTrimSequence(modalUiContext, factoryTrimVariables);
-                                variables = factoryTrimVariables;
-                                sequence = factoryTrimSequence;
-                                break;
-                            case "beta-tester-hwid":
-                                var betaVariables = new CommonVariables() {};
-                                var betaSequence = new BetaTesterHwidSequence(modalUiContext, betaVariables);
-                                sequence = betaSequence;
-                                break;
+                                    var newVariables = new NoiseVerificationVariables() { };
+                                    var newSequence = new NoiseVerificationSequence(modalUiContext, newVariables);
+                                    variables = newVariables;
+                                    sequence = newSequence;
+                                    break;
+                                }
+
+                            // Factory sequences
                             case "factory-bring-up":
-                                var factoryBringUpVariables = new FactoryBringUpVariables
                                 {
-                                    SigGen1Host = variablesFile.SigGen1Ip,
-                                    SigGen2Host = variablesFile.SigGen2Ip,
-                                    FpgaFlashImagePath = "Bitfiles/thunderscope_full_dev_0.5.0.bin"
-                                };
-                                var factoryBringUpSequence = new FactoryBringUpSequence(modalUiContext, factoryBringUpVariables);
-                                variables = factoryBringUpVariables;
-                                sequence = factoryBringUpSequence;
+                                    var newVariables = new FactoryBringUpVariables
+                                    {
+                                        SigGen1Host = variablesFile.SigGen1Ip,
+                                        SigGen2Host = variablesFile.SigGen2Ip,
+                                        FpgaFlashImagePath = "Bitfiles/thunderscope_full_dev_0.5.0.bin"
+                                    };
+                                    var newSequence = new FactoryBringUpSequence(modalUiContext, newVariables);
+                                    variables = newVariables;
+                                    sequence = newSequence;
+                                    break;
+                                }
+                            case "factory-trim":
+                                {
+                                    var newVariables = new FactoryVariables
+                                    {
+                                        SigGen1Host = variablesFile.SigGen1Ip,
+                                        SigGen2Host = variablesFile.SigGen2Ip
+                                    };
+                                    var newSequence = new FactoryTrimSequence(modalUiContext, newVariables);
+                                    variables = newVariables;
+                                    sequence = newSequence;
+                                    break;
+                                }
+                            case "factory-calibration":
+                                {
+                                    var newVariables = new FactoryVariables
+                                    {
+                                        SigGen1Host = variablesFile.SigGen1Ip,
+                                        SigGen2Host = variablesFile.SigGen2Ip
+                                    };
+                                    var newSequence = new FactoryCalibrationSequence(modalUiContext, newVariables);
+                                    variables = newVariables;
+                                    sequence = newSequence;
+                                    break;
+                                }
+                            case "factory-verification":
+                                {
+                                    var newVariables = new FactoryVariables
+                                    {
+                                        SigGen1Host = variablesFile.SigGen1Ip,
+                                        SigGen2Host = variablesFile.SigGen2Ip
+                                    };
+                                    var newSequence = new FactoryVerificationSequence(modalUiContext, newVariables);
+                                    variables = newVariables;
+                                    sequence = newSequence;
+                                    break;
+                                }
+                            case "developer-calibration":
+                                {
+                                    var newVariables = new FactoryVariables
+                                    {
+                                        SigGen1Host = variablesFile.SigGen1Ip,
+                                        SigGen2Host = variablesFile.SigGen2Ip
+                                    };
+                                    var newSequence = new DeveloperCalibrationSequence(modalUiContext, newVariables);
+                                    variables = newVariables;
+                                    sequence = newSequence;
+                                    break;
+                                }
+                            case "developer-verification":
+                                {
+                                    var newVariables = new FactoryVariables
+                                    {
+                                        SigGen1Host = variablesFile.SigGen1Ip,
+                                        SigGen2Host = variablesFile.SigGen2Ip
+                                    };
+                                    var newSequence = new DeveloperVerificationSequence(modalUiContext, newVariables);
+                                    variables = newVariables;
+                                    sequence = newSequence;
+                                    break;
+                                }
+                            case "developer-hwid":
+                                {
+                                    var newVariables = new SelfCalibrationVariables() { };
+                                    var newSequence = new DeveloperHwidSequence(modalUiContext, newVariables);
+                                    variables = newVariables;
+                                    sequence = newSequence;
+                                }
                                 break;
                             default:
                                 throw new InvalidDataException();

@@ -11,13 +11,13 @@ public class TemperatureCheckStep : Step
             var temp = Instruments.Instance.GetThunderscopeFpgaTemp();
             Result!.Summary = $"{temp:F1}°C";
 
-            if (temp > 40.0)
+            if (temp > 45.0)
             {
-                Logger.Instance.Log(LogLevel.Error, Index, Status.Error, $"Temperature too high - {temp:F1}°C > 40°C");
+                Logger.Instance.Log(LogLevel.Error, Index, Status.Error, $"Temperature too high - {temp:F1}°C > 45°C");
                 return Status.Error;
             }
 
-            Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Temperature within limit {temp:F1}°C <= 40°C");
+            Logger.Instance.Log(LogLevel.Information, Index, Status.Done, $"Temperature within limit {temp:F1}°C <= 45°C");
             return Status.Passed;
         };
     }

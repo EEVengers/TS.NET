@@ -5,7 +5,7 @@ namespace TS.NET.Sequences;
 public class FindSigGenZeroStep : Step
 {
     // channelIndex is both sig gen channel and thunderscope channel.
-    public FindSigGenZeroStep(string name, int channelIndex, BenchCalibrationVariables variables) : base(name)
+    public FindSigGenZeroStep(string name, int channelIndex, FactoryVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {

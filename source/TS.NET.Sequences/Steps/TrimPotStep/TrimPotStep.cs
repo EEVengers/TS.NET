@@ -67,13 +67,13 @@ public class TrimPotStep : ModalUiStep
 
                 var bodePoints = new Dictionary<uint, double>();
                 SigGens.Instance.SetSdgParameterFrequency(ChannelIndex, frequenciesHz[0]);
-                var signalAtRef = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(ChannelIndex, frequenciesHz[0], SampleRateHz, pathCalibration.BufferInputVpp, resolution) / (Attenuator ? attenuatorScale : 1.0);
+                var signalAtRef = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(ChannelIndex, frequenciesHz[0], SampleRateHz, pathCalibration.BufferInputVpp, resolution, out float rangePercentAtRef) / (Attenuator ? attenuatorScale : 1.0);
                 bodePoints[frequenciesHz[0]] = 1.0;
                 for (int i = 1; i < frequenciesHz.Length && continueLoop; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     SigGens.Instance.SetSdgParameterFrequency(ChannelIndex, frequenciesHz[i]);
-                    var signalAtFrequency = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(ChannelIndex, frequenciesHz[i], SampleRateHz, pathCalibration.BufferInputVpp, resolution) / (Attenuator ? attenuatorScale : 1.0);
+                    var signalAtFrequency = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(ChannelIndex, frequenciesHz[i], SampleRateHz, pathCalibration.BufferInputVpp, resolution, out float rangePercent) / (Attenuator ? attenuatorScale : 1.0);
                     // Normalise relative to the reference measurement
                     double normalised = signalAtFrequency / signalAtRef;
                     bodePoints[frequenciesHz[i]] = normalised;

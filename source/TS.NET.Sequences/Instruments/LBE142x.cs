@@ -7,9 +7,9 @@ namespace TS.NET.Sequences
     /// </summary>
     public sealed class LBE142x : IDisposable
     {
-        private const int DefaultVendorId = 0x1dd2;
-        private const int ProductIdLbe1420 = 0x2443;
-        private const int ProductIdLbe1421 = 0x2444;
+        private const int Vid = 0x1dd2;
+        private const int PidLbe1420 = 0x2443;
+        private const int PidLbe1421 = 0x2444;
 
         private const int ReportLength = 64;
         private const byte ReportId = 0x4B;
@@ -33,7 +33,7 @@ namespace TS.NET.Sequences
         private const byte StatusOut1EnBit = 1 << 5;
         private const byte StatusOut2EnBit = 1 << 6;
         private const byte StatusPpsEnBit = 1 << 7;
-        
+
         public const uint MaxFrequencyHz = 1400000000u;
 
         private readonly Lock sync = new();
@@ -56,7 +56,7 @@ namespace TS.NET.Sequences
                     return;
                 }
 
-                device = DeviceList.Local.GetHidDevices(DefaultVendorId).FirstOrDefault(d => d.ProductID == ProductIdLbe1420 || d.ProductID == ProductIdLbe1421);
+                device = DeviceList.Local.GetHidDevices(Vid).FirstOrDefault(d => d.ProductID == PidLbe1420 || d.ProductID == PidLbe1421);
 
                 if (device == null)
                 {
@@ -72,7 +72,7 @@ namespace TS.NET.Sequences
                 stream.ReadTimeout = 1000;
                 stream.WriteTimeout = 1000;
 
-                Model = device.ProductID == ProductIdLbe1420 ? LbeModel.Lbe1420 : LbeModel.Lbe1421;
+                Model = device.ProductID == PidLbe1420 ? LbeModel.Lbe1420 : LbeModel.Lbe1421;
             }
         }
 
@@ -173,8 +173,7 @@ namespace TS.NET.Sequences
 
             if (frequencyHz < 1 || frequencyHz > MaxFrequencyHz)
             {
-                throw new ArgumentOutOfRangeException(nameof(frequencyHz),
-                    $"Frequency must be in range 1-{MaxFrequencyHz} Hz.");
+                throw new ArgumentOutOfRangeException(nameof(frequencyHz), $"Frequency must be in range 1-{MaxFrequencyHz} Hz.");
             }
 
             var buf = new byte[ReportLength];
@@ -333,13 +332,12 @@ namespace TS.NET.Sequences
 
             if (Model == LbeModel.Lbe1420)
             {
-                // Linux/windows mappings differ slightly; we follow the Linux layout as common
                 // buf[0] = ReportId
                 rawStatus = buf[1];
                 f1 = (uint)(buf[6] | (buf[7] << 8) | (buf[8] << 16) | (buf[9] << 24));
                 f2 = 0;
 
-                outputsEnabled = true; // seems always on in reference impl
+                outputsEnabled = true;
                 fllEnabled = buf[18] != 0;
                 pllLocked = (rawStatus & StatusPllLockBit) != 0;
                 antennaOk = (rawStatus & StatusAntOkBit) != 0;
@@ -349,7 +347,6 @@ namespace TS.NET.Sequences
             }
             else
             {
-                // LBE-1421 dual output (based on windows mapping)
                 rawStatus = buf[2];
                 f1 = (uint)(buf[7] | (buf[8] << 8) | (buf[9] << 16) | (buf[10] << 24));
                 f2 = (uint)(buf[15] | (buf[16] << 8) | (buf[17] << 16) | (buf[18] << 24));
@@ -364,17 +361,19 @@ namespace TS.NET.Sequences
                 out2Low = buf[21] != 0;
             }
 
-            return new LbeStatus(
-                rawStatus,
-                f1,
-                f2,
-                outputsEnabled,
-                fllEnabled,
-                pllLocked,
-                antennaOk,
-                ppsEnabled,
-                out1Low,
-                out2Low);
+            return new LbeStatus
+            {
+                RawStatus = rawStatus,
+                Frequency1Hz = f1,
+                Frequency2Hz = f2,
+                OutputsEnabled = outputsEnabled,
+                FllEnabled = fllEnabled,
+                PllLocked = pllLocked,
+                AntennaOk = antennaOk,
+                PpsEnabled = ppsEnabled,
+                Output1LowPower = out1Low,
+                Output2LowPower = out2Low
+            };
         }
 
         private void SendFeatureReport(byte[] buffer)
@@ -427,41 +426,17 @@ namespace TS.NET.Sequences
         Lbe1421 = 1
     }
 
-    public sealed class LbeStatus
+    public class LbeStatus
     {
-        public byte RawStatus { get; }
-        public uint Frequency1Hz { get; }
-        public uint Frequency2Hz { get; }
-        public bool OutputsEnabled { get; }
-        public bool FllEnabled { get; }
-        public bool PllLocked { get; }
-        public bool AntennaOk { get; }
-        public bool PpsEnabled { get; }
-        public bool Output1LowPower { get; }
-        public bool Output2LowPower { get; }
-
-        public LbeStatus(
-            byte rawStatus,
-            uint frequency1Hz,
-            uint frequency2Hz,
-            bool outputsEnabled,
-            bool fllEnabled,
-            bool pllLocked,
-            bool antennaOk,
-            bool ppsEnabled,
-            bool output1LowPower,
-            bool output2LowPower)
-        {
-            RawStatus = rawStatus;
-            Frequency1Hz = frequency1Hz;
-            Frequency2Hz = frequency2Hz;
-            OutputsEnabled = outputsEnabled;
-            FllEnabled = fllEnabled;
-            PllLocked = pllLocked;
-            AntennaOk = antennaOk;
-            PpsEnabled = ppsEnabled;
-            Output1LowPower = output1LowPower;
-            Output2LowPower = output2LowPower;
-        }
+        public required byte RawStatus { get; set; }
+        public required uint Frequency1Hz { get; set; }
+        public required uint Frequency2Hz { get; set; }
+        public required bool OutputsEnabled { get; set; }
+        public required bool FllEnabled { get; set; }
+        public required bool PllLocked { get; set; }
+        public required bool AntennaOk { get; set; }
+        public required bool PpsEnabled { get; set; }
+        public required bool Output1LowPower { get; set; }
+        public required bool Output2LowPower { get; set; }
     }
 }

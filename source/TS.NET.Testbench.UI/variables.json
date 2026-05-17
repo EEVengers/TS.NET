@@ -1,5 +1,5 @@
 ﻿{
-  "SigGen1Ip": "192.168.88.16",
-  "SigGen2Ip": "192.168.88.18",
-  "Factory": false
+  "sigGen1Ip": "192.168.88.16",
+  "sigGen2Ip": "192.168.88.18",
+  "sequenceTypes": [ "user", "developer" ]
 }

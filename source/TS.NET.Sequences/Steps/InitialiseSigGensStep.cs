@@ -4,7 +4,7 @@ namespace TS.NET.Sequences;
 
 public class InitialiseSigGensStep : Step
 {
-    public InitialiseSigGensStep(string name, BenchCalibrationVariables variables) : base(name)
+    public InitialiseSigGensStep(string name, FactoryVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {

@@ -2,13 +2,13 @@ using TS.NET.Sequencer;
 
 namespace TS.NET.Sequences;
 
-public class BetaTesterHwidSequence : Sequence
+public class DeveloperHwidSequence : Sequence
 {
     public CommonVariables Variables { get; private set; }
 
-    public BetaTesterHwidSequence(ModalUiContext modalUiContext, CommonVariables variables)
+    public DeveloperHwidSequence(ModalUiContext modalUiContext, CommonVariables variables)
     {
-        Name = "Beta tester HWID";
+        Name = "Developer HWID";
         Variables = variables;
         AddSteps(modalUiContext);
         SetStepIndices();

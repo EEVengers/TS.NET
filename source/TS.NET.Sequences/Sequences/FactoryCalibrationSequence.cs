@@ -2,13 +2,13 @@
 
 namespace TS.NET.Sequences;
 
-public class SelfCalibrationSequence : Sequence
+public class FactoryCalibrationSequence : Sequence
 {
-    public SelfCalibrationVariables Variables { get; private set; }
+    public FactoryVariables Variables { get; private set; }
 
-    public SelfCalibrationSequence(ModalUiContext modalUiContext, SelfCalibrationVariables variables)
+    public FactoryCalibrationSequence(ModalUiContext modalUiContext, FactoryVariables variables)
     {
-        Name = "Self calibration";
+        Name = "Factory calibration";
         Variables = variables;
         AddSteps(modalUiContext);
         SetStepIndices();
@@ -21,13 +21,17 @@ public class SelfCalibrationSequence : Sequence
             new ModalDialogStep("Cable check", modalUiContext)
             {
                 Title = "Cable check",
-                Message = "Are all cables disconnected from channels 1-4?",
+                Message = "Are cables connected from 2x signal generators to channel 1-4?",
                 Buttons = DialogButtons.YesNo,
                 Icon = DialogIcon.Question
             },
             new InitialiseDeviceStep("Initialise device", Variables),
-            new LoadCalibrationFromUserCalStep("Load calibration from device", Variables),
+            new InitialiseSigGensStep("Initialise signal generators", Variables),
+            new LoadCalibrationFromDefaultStep("Load calibration from default", Variables),
+
             new TemperatureCheckStep("Temperature check", Variables),
+
+            //new ReferenceClockInputValidStep("Reference clock input check", Variables) { Skip = false, AllowSkip = true },
 
             new WarmupStep("Initial warmup", Variables, 2 * 60) { Skip = false, AllowSkip = true },
 #region TrimDacZeroCold
@@ -310,6 +314,261 @@ public class SelfCalibrationSequence : Sequence
             new TrimDacScaleStep("Channel 4 - Trim DAC scale - LG L9", 3, PgaPreampGain.Low, pgaLadder: 9, Variables),
             new TrimDacScaleStep("Channel 4 - Trim DAC scale - LG L10", 3, PgaPreampGain.Low, pgaLadder: 10, Variables) { PostAction = cancellationToken => { Variables.TrimDacScaleCalibrated = true; } },
 #endregion
+            new FindSigGenZeroStep("Channel 1 - Signal generator zero", 0, Variables),
+
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - HG L0", channelIndex: 0, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(60), MaxRetries = 2 },
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - HG L1", channelIndex: 0, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(60), MaxRetries = 2 },
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - HG L2", channelIndex: 0, PgaPreampGain.High, pgaLadder: 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(60), MaxRetries = 2 },
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - HG L3", channelIndex: 0, PgaPreampGain.High, pgaLadder: 3, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - HG L4", channelIndex: 0, PgaPreampGain.High, pgaLadder: 4, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - HG L5", channelIndex: 0, PgaPreampGain.High, pgaLadder: 5, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - HG L6", channelIndex: 0, PgaPreampGain.High, pgaLadder: 6, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - HG L7", channelIndex: 0, PgaPreampGain.High, pgaLadder: 7, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - HG L8", channelIndex: 0, PgaPreampGain.High, pgaLadder: 8, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - HG L9", channelIndex: 0, PgaPreampGain.High, pgaLadder: 9, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - HG L10", channelIndex: 0, PgaPreampGain.High, pgaLadder: 10, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L0", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 0, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L1", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 1, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L2", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 2, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L3", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 3, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L4", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 4, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L5", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 5, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L6", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 6, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L7", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 7, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L8", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 8, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L9", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 9, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L10", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 10, Variables),
+
+            new AttenuatorStep("Channel 1 - Attenuator scale", channelIndex: 0, Variables) { IgnoreError = true },
+
+            new FindSigGenZeroStep("Channel 2 - Signal generator zero", 1, Variables),
+
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - HG L0", 1, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(60), MaxRetries = 2 },
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - HG L1", 1, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(60), MaxRetries = 2 },
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - HG L2", 1, PgaPreampGain.High, pgaLadder: 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(60), MaxRetries = 2 },
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - HG L3", 1, PgaPreampGain.High, pgaLadder: 3, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - HG L4", 1, PgaPreampGain.High, pgaLadder: 4, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - HG L5", 1, PgaPreampGain.High, pgaLadder: 5, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - HG L6", 1, PgaPreampGain.High, pgaLadder: 6, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - HG L7", 1, PgaPreampGain.High, pgaLadder: 7, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - HG L8", 1, PgaPreampGain.High, pgaLadder: 8, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - HG L9", 1, PgaPreampGain.High, pgaLadder: 9, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - HG L10", 1, PgaPreampGain.High, pgaLadder: 10, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - LG L0", 1, PgaPreampGain.Low, pgaLadder: 0, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - LG L1", 1, PgaPreampGain.Low, pgaLadder: 1, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - LG L2", 1, PgaPreampGain.Low, pgaLadder: 2, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - LG L3", 1, PgaPreampGain.Low, pgaLadder: 3, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - LG L4", 1, PgaPreampGain.Low, pgaLadder: 4, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - LG L5", 1, PgaPreampGain.Low, pgaLadder: 5, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - LG L6", 1, PgaPreampGain.Low, pgaLadder: 6, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - LG L7", 1, PgaPreampGain.Low, pgaLadder: 7, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - LG L8", 1, PgaPreampGain.Low, pgaLadder: 8, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - LG L9", 1, PgaPreampGain.Low, pgaLadder: 9, Variables),
+            new BufferInputVppStep("Channel 2 - Buffer input Vpp - LG L10", 1, PgaPreampGain.Low, pgaLadder: 10, Variables),
+
+            new AttenuatorStep("Channel 2 - Attenuator scale", 1, Variables) { IgnoreError = true },
+
+            new FindSigGenZeroStep("Channel 3 - Signal generator zero", 2, Variables),
+
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - HG L0", 2, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(60), MaxRetries = 2 },
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - HG L1", 2, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(60), MaxRetries = 2 },
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - HG L2", 2, PgaPreampGain.High, pgaLadder: 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(60), MaxRetries = 2 },
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - HG L3", 2, PgaPreampGain.High, pgaLadder: 3, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - HG L4", 2, PgaPreampGain.High, pgaLadder: 4, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - HG L5", 2, PgaPreampGain.High, pgaLadder: 5, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - HG L6", 2, PgaPreampGain.High, pgaLadder: 6, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - HG L7", 2, PgaPreampGain.High, pgaLadder: 7, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - HG L8", 2, PgaPreampGain.High, pgaLadder: 8, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - HG L9", 2, PgaPreampGain.High, pgaLadder: 9, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - HG L10", 2, PgaPreampGain.High, pgaLadder: 10, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - LG L0", 2, PgaPreampGain.Low, pgaLadder: 0, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - LG L1", 2, PgaPreampGain.Low, pgaLadder: 1, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - LG L2", 2, PgaPreampGain.Low, pgaLadder: 2, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - LG L3", 2, PgaPreampGain.Low, pgaLadder: 3, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - LG L4", 2, PgaPreampGain.Low, pgaLadder: 4, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - LG L5", 2, PgaPreampGain.Low, pgaLadder: 5, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - LG L6", 2, PgaPreampGain.Low, pgaLadder: 6, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - LG L7", 2, PgaPreampGain.Low, pgaLadder: 7, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - LG L8", 2, PgaPreampGain.Low, pgaLadder: 8, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - LG L9", 2, PgaPreampGain.Low, pgaLadder: 9, Variables),
+            new BufferInputVppStep("Channel 3 - Buffer input Vpp - LG L10", 2, PgaPreampGain.Low, pgaLadder: 10, Variables),
+
+            new AttenuatorStep("Channel 3 - Attenuator scale", 2, Variables) { IgnoreError = true },
+
+            new FindSigGenZeroStep("Channel 4 - Signal generator zero", 3, Variables),
+
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - HG L0", 3, PgaPreampGain.High, pgaLadder: 0, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(60), MaxRetries = 2 },
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - HG L1", 3, PgaPreampGain.High, pgaLadder: 1, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(60), MaxRetries = 2 },
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - HG L2", 3, PgaPreampGain.High, pgaLadder: 2, Variables) { IgnoreError = true, Timeout = TimeSpan.FromSeconds(60), MaxRetries = 2 },
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - HG L3", 3, PgaPreampGain.High, pgaLadder: 3, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - HG L4", 3, PgaPreampGain.High, pgaLadder: 4, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - HG L5", 3, PgaPreampGain.High, pgaLadder: 5, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - HG L6", 3, PgaPreampGain.High, pgaLadder: 6, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - HG L7", 3, PgaPreampGain.High, pgaLadder: 7, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - HG L8", 3, PgaPreampGain.High, pgaLadder: 8, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - HG L9", 3, PgaPreampGain.High, pgaLadder: 9, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - HG L10", 3, PgaPreampGain.High, pgaLadder: 10, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - LG L0", 3, PgaPreampGain.Low, pgaLadder: 0, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - LG L1", 3, PgaPreampGain.Low, pgaLadder: 1, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - LG L2", 3, PgaPreampGain.Low, pgaLadder: 2, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - LG L3", 3, PgaPreampGain.Low, pgaLadder: 3, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - LG L4", 3, PgaPreampGain.Low, pgaLadder: 4, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - LG L5", 3, PgaPreampGain.Low, pgaLadder: 5, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - LG L6", 3, PgaPreampGain.Low, pgaLadder: 6, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - LG L7", 3, PgaPreampGain.Low, pgaLadder: 7, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - LG L8", 3, PgaPreampGain.Low, pgaLadder: 8, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - LG L9", 3, PgaPreampGain.Low, pgaLadder: 9, Variables),
+            new BufferInputVppStep("Channel 4 - Buffer input Vpp - LG L10", 3, PgaPreampGain.Low, pgaLadder: 10, Variables) { PostAction = cancellationToken => { Variables.BufferInputVppCalibrated = true; } },
+
+            new AttenuatorStep("Channel 4 - Attenuator scale", 3, Variables) { IgnoreError = true },
+#region ADC load scale
+            new AdcLoadScaleStep("ADC load scale - [0] - 1 GSPS", [0], 1_000_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0] - 660 MSPS", [0], 660_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0] - 500 MSPS", [0], 500_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0] - 330 MSPS", [0], 330_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0] - 250 MSPS", [0], 250_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0] - 165 MSPS", [0], 165_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0] - 100 MSPS", [0], 100_000_000, Variables),
+
+            new AdcLoadScaleStep("ADC load scale - [1] - 1 GSPS", [1], 1_000_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [1] - 660 MSPS", [1], 660_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [1] - 500 MSPS", [1], 500_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [1] - 330 MSPS", [1], 330_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [1] - 250 MSPS", [1], 250_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [1] - 165 MSPS", [1], 165_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [1] - 100 MSPS", [1], 100_000_000, Variables),
+
+            new AdcLoadScaleStep("ADC load scale - [2] - 1 GSPS", [2], 1_000_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [2] - 660 MSPS", [2], 660_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [2] - 500 MSPS", [2], 500_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [2] - 330 MSPS", [2], 330_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [2] - 250 MSPS", [2], 250_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [2] - 165 MSPS", [2], 165_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [2] - 100 MSPS", [2], 100_000_000, Variables),
+
+            new AdcLoadScaleStep("ADC load scale - [3] - 1 GSPS", [3], 1_000_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [3] - 660 MSPS", [3], 660_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [3] - 500 MSPS", [3], 500_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [3] - 330 MSPS", [3], 330_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [3] - 250 MSPS", [3], 250_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [3] - 165 MSPS", [3], 165_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [3] - 100 MSPS", [3], 100_000_000, Variables),
+
+            new AdcLoadScaleStep("ADC load scale - [0,1] - 500 MSPS", [0,1], 500_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0,1] - 330 MSPS", [0,1], 330_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0,1] - 250 MSPS", [0,1], 250_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0,1] - 165 MSPS", [0,1], 165_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0,1] - 100 MSPS", [0,1], 100_000_000, Variables),
+
+            new AdcLoadScaleStep("ADC load scale - [1,2] - 500 MSPS", [1,2], 500_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [1,2] - 330 MSPS", [1,2], 330_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [1,2] - 250 MSPS", [1,2], 250_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [1,2] - 165 MSPS", [1,2], 165_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [1,2] - 100 MSPS", [1,2], 100_000_000, Variables),
+
+            new AdcLoadScaleStep("ADC load scale - [2,3] - 500 MSPS", [2,3], 500_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [2,3] - 330 MSPS", [2,3], 330_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [2,3] - 250 MSPS", [2,3], 250_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [2,3] - 165 MSPS", [2,3], 165_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [2,3] - 100 MSPS", [2,3], 100_000_000, Variables),
+
+            new AdcLoadScaleStep("ADC load scale - [0,2] - 500 MSPS", [0,2], 500_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0,2] - 330 MSPS", [0,2], 330_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0,2] - 250 MSPS", [0,2], 250_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0,2] - 165 MSPS", [0,2], 165_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0,2] - 100 MSPS", [0,2], 100_000_000, Variables),
+
+            new AdcLoadScaleStep("ADC load scale - [1,3] - 500 MSPS", [1,3], 500_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [1,3] - 330 MSPS", [1,3], 330_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [1,3] - 250 MSPS", [1,3], 250_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [1,3] - 165 MSPS", [1,3], 165_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [1,3] - 100 MSPS", [1,3], 100_000_000, Variables),
+
+            new AdcLoadScaleStep("ADC load scale - [0,3] - 500 MSPS", [0,3], 500_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0,3] - 330 MSPS", [0,3], 330_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0,3] - 250 MSPS", [0,3], 250_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0,3] - 165 MSPS", [0,3], 165_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0,3] - 100 MSPS", [0,3], 100_000_000, Variables),
+
+            new AdcLoadScaleStep("ADC load scale - [0,1,2,3] - 250 MSPS", [0,1,2,3], 250_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0,1,2,3] - 165 MSPS", [0,1,2,3], 165_000_000, Variables),
+            new AdcLoadScaleStep("ADC load scale - [0,1,2,3] - 100 MSPS", [0,1,2,3], 100_000_000, Variables),
+#endregion
+#region ADC branch gain
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0] - 1 GSPS", [0], 1_000_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0] - 660 MSPS", [0], 660_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0] - 500 MSPS", [0], 500_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0] - 330 MSPS", [0], 330_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0] - 250 MSPS", [0], 250_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0] - 165 MSPS", [0], 165_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0] - 100 MSPS", [0], 100_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1] - 1 GSPS", [1], 1_000_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1] - 660 MSPS", [1], 660_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1] - 500 MSPS", [1], 500_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1] - 330 MSPS", [1], 330_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1] - 250 MSPS", [1], 250_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1] - 165 MSPS", [1], 165_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1] - 100 MSPS", [1], 100_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [2] - 1 GSPS", [2], 1_000_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [2] - 660 MSPS", [2], 660_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [2] - 500 MSPS", [2], 500_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [2] - 330 MSPS", [2], 330_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [2] - 250 MSPS", [2], 250_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [2] - 165 MSPS", [2], 165_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [2] - 100 MSPS", [2], 100_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [3] - 1 GSPS", [3], 1_000_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [3] - 660 MSPS", [3], 660_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [3] - 500 MSPS", [3], 500_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [3] - 330 MSPS", [3], 330_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [3] - 250 MSPS", [3], 250_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [3] - 165 MSPS", [3], 165_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [3] - 100 MSPS", [3], 100_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,1] - 500 MSPS", [0,1], 500_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,1] - 330 MSPS", [0,1], 330_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,1] - 250 MSPS", [0,1], 250_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,1] - 165 MSPS", [0,1], 165_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,1] - 100 MSPS", [0,1], 100_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1,2] - 500 MSPS", [1,2], 500_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1,2] - 330 MSPS", [1,2], 330_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1,2] - 250 MSPS", [1,2], 250_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1,2] - 165 MSPS", [1,2], 165_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1,2] - 100 MSPS", [1,2], 100_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [2,3] - 500 MSPS", [2,3], 500_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [2,3] - 330 MSPS", [2,3], 330_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [2,3] - 250 MSPS", [2,3], 250_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [2,3] - 165 MSPS", [2,3], 165_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [2,3] - 100 MSPS", [2,3], 100_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,2] - 500 MSPS", [0,2], 500_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,2] - 330 MSPS", [0,2], 330_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,2] - 250 MSPS", [0,2], 250_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,2] - 165 MSPS", [0,2], 165_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,2] - 100 MSPS", [0,2], 100_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1,3] - 500 MSPS", [1,3], 500_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1,3] - 330 MSPS", [1,3], 330_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1,3] - 250 MSPS", [1,3], 250_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1,3] - 165 MSPS", [1,3], 165_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [1,3] - 100 MSPS", [1,3], 100_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,3] - 500 MSPS", [0,3], 500_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,3] - 330 MSPS", [0,3], 330_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,3] - 250 MSPS", [0,3], 250_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,3] - 165 MSPS", [0,3], 165_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,3] - 100 MSPS", [0,3], 100_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,1,2,3] - 250 MSPS", [0,1,2,3], 250_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,1,2,3] - 165 MSPS", [0,1,2,3], 165_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new AdcBranchGainPhaseOffsetStep("ADC branch gain - [0,1,2,3] - 100 MSPS", [0,1,2,3], 100_000_000, PgaPreampGain.Low, pgaLadder: 10, Variables),
+#endregion
+            new Step("Disconnect signal generator"){ Action = (CancellationToken cancellationToken) => { SigGens.Instance.SetSdgChannel([]); return Sequencer.Status.Done; }},
+
             new Step("Update calibration"){ Action = (CancellationToken cancellationToken) => {
                 Variables.Calibration.Serial = Variables.HwidSerial;
                 Variables.CalibrationTimestamp = DateTimeOffset.UtcNow;
@@ -317,10 +576,12 @@ public class SelfCalibrationSequence : Sequence
                 return Sequencer.Status.Done;
             }},
             new SaveCalToFileStep("Save calibration to file", Variables) { AllowSkip = true },
+            new SaveFactoryCalToDeviceStep("Save factory calibration to device", Variables) { AllowSkip = true },
             new SaveUserCalToDeviceStep("Save calibration to device", Variables) { AllowSkip = true },
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.Close();
+                SigGens.Instance.Close();
                 return Sequencer.Status.Done;
             }},
         ];

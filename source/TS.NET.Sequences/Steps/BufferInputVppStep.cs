@@ -4,7 +4,7 @@ namespace TS.NET.Sequences;
 
 public class BufferInputVppStep : Step
 {
-    public BufferInputVppStep(string name, int channelIndex, PgaPreampGain pgaGain, byte pgaLadder, BenchCalibrationVariables variables) : base(name)
+    public BufferInputVppStep(string name, int channelIndex, PgaPreampGain pgaGain, byte pgaLadder, FactoryVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {

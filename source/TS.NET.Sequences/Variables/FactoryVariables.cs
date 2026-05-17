@@ -2,7 +2,7 @@
 
 namespace TS.NET.Sequences;
 
-public class BenchCalibrationVariables : CalibrationVariables, IJsonVariables
+public class FactoryVariables : CalibrationVariables, IJsonVariables
 {
     public string? SigGen1Host { get; set; }
     public string? SigGen2Host { get; set; }
@@ -12,6 +12,6 @@ public class BenchCalibrationVariables : CalibrationVariables, IJsonVariables
 
     public string ToJson()
     {
-        return JsonSerializer.Serialize(this, DefaultCaseContext.Default.BenchCalibrationVariables);
+        return JsonSerializer.Serialize(this, DefaultCaseContext.Default.FactoryVariables);
     }
 }

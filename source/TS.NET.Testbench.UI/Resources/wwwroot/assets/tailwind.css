@@ -400,9 +400,6 @@
   .pr-2 {
     padding-right: calc(var(--spacing) * 2);
   }
-  .pb-1 {
-    padding-bottom: calc(var(--spacing) * 1);
-  }
   .pl-1 {
     padding-left: calc(var(--spacing) * 1);
   }
@@ -454,6 +451,12 @@
   }
   .text-yellow-400 {
     color: var(--color-yellow-400);
+  }
+  .underline {
+    text-decoration-line: underline;
+  }
+  .underline-offset-2 {
+    text-underline-offset: 2px;
   }
   .inset-ring-2 {
     --tw-inset-ring-shadow: inset 0 0 0 2px var(--tw-inset-ring-color, currentcolor);

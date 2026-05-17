@@ -246,39 +246,82 @@ document.addEventListener("DOMContentLoaded", () => {
         listContainer.innerHTML = "";
 
         const sequences = message.sequences || [];
+        const groupedSequences = new Map();
 
-        sequences.forEach((seq, index) => {
-            const label = document.createElement("label");
-            label.className = "flex flex-col items-start gap-1";
-
-            const headerDiv = document.createElement("div");
-            headerDiv.className = "flex items-center";
-
-            const input = document.createElement("input");
-            input.type = "radio";
-            input.name = "sequence";
-            input.value = seq.id;
-            input.className = "form-radio text-blue-600";
-            if (index === 0) {
-                input.checked = true;
+        sequences.forEach((sequence) => {
+            const sequenceType = sequence.type || "user";
+            if (!groupedSequences.has(sequenceType)) {
+                groupedSequences.set(sequenceType, []);
             }
 
-            const nameSpan = document.createElement("span");
-            nameSpan.className = "ml-2";
-            nameSpan.textContent = seq.name;
-
-            headerDiv.appendChild(input);
-            headerDiv.appendChild(nameSpan);
-
-            const descriptionDiv = document.createElement("div");
-            descriptionDiv.className = "ml-6 text-xs text-neutral-300";
-            descriptionDiv.textContent = seq.description || "";
-
-            label.appendChild(headerDiv);
-            label.appendChild(descriptionDiv);
-
-            listContainer.appendChild(label);
+            groupedSequences.get(sequenceType).push(sequence);
         });
+
+        let firstSequence = true;
+
+        groupedSequences.forEach((sequencesForType, sequenceType) => {
+            const section = document.createElement("div");
+            section.className = "flex flex-col gap-2";
+
+            const header = document.createElement("div");
+            header.className = "underline underline-offset-2";
+            header.textContent = formatSequenceType(sequenceType);
+            section.appendChild(header);
+
+            sequencesForType.forEach((seq) => {
+                const label = document.createElement("label");
+                label.className = "flex flex-col items-start gap-1";
+
+                const headerDiv = document.createElement("div");
+                headerDiv.className = "flex items-center";
+
+                const input = document.createElement("input");
+                input.type = "radio";
+                input.name = "sequence";
+                input.value = seq.id;
+                input.className = "form-radio text-blue-600";
+                if (firstSequence) {
+                    input.checked = true;
+                    firstSequence = false;
+                }
+
+                const nameSpan = document.createElement("span");
+                nameSpan.className = "ml-2";
+                nameSpan.textContent = seq.name;
+
+                headerDiv.appendChild(input);
+                headerDiv.appendChild(nameSpan);
+
+                const descriptionDiv = document.createElement("div");
+                descriptionDiv.className = "ml-6 text-xs text-neutral-300";
+                descriptionDiv.textContent = seq.description || "";
+
+                label.appendChild(headerDiv);
+                label.appendChild(descriptionDiv);
+                section.appendChild(label);
+            });
+
+            listContainer.appendChild(section);
+        });
+
+        if (firstSequence) {
+            const emptyState = document.createElement("div");
+            emptyState.className = "text-xs text-neutral-400";
+            emptyState.textContent = "No sequences available for the configured sequence types.";
+            listContainer.appendChild(emptyState);
+        }
+    }
+
+    function formatSequenceType(sequenceType) {
+        switch (sequenceType) {
+            case "developer":
+                return "Developer";
+            case "factory":
+                return "Factory";
+            case "user":
+            default:
+                return "User";
+        }
     }
 
     // Header sequence button - opens the dialog
@@ -288,9 +331,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Dialog OK button - closes dialog and loads sequence
     sequenceOkButton.addEventListener("click", () => {
-        const selectedSequence = document.querySelector(
-            'input[name="sequence"]:checked'
-        ).value;
+        const selectedInput = document.querySelector('input[name="sequence"]:checked');
+        if (!selectedInput) {
+            return;
+        }
+
+        const selectedSequence = selectedInput.value;
         document.getElementById("sequence-dialog").classList.add("hidden");
         sendMessage({ command: "load-sequence", sequence: selectedSequence });
     });

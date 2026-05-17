@@ -4,11 +4,11 @@ namespace TS.NET.Sequences;
 
 public class FactoryTrimSequence : Sequence
 {
-    public BenchVerificationVariables Variables { get; private set; }
+    public FactoryVariables Variables { get; private set; }
 
-    public FactoryTrimSequence(ModalUiContext modalUiContext, BenchVerificationVariables variables)
+    public FactoryTrimSequence(ModalUiContext modalUiContext, FactoryVariables variables)
     {
-        Name = "Bench verification";
+        Name = "Factory trim";
         Variables = variables;
         AddSteps(modalUiContext);
         SetStepIndices();

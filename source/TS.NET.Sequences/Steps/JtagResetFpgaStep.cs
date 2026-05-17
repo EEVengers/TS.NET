@@ -3,9 +3,9 @@ using TS.NET.Sequencer;
 
 namespace TS.NET.Sequences;
 
-public class JtagResetFpga : Step
+public class JtagResetFpgaStep : Step
 {
-    public JtagResetFpga(string name, FactoryBringUpVariables variables) : base(name)
+    public JtagResetFpgaStep(string name, FactoryBringUpVariables variables) : base(name)
     {
         Action = (CancellationToken cancellationToken) =>
         {
