@@ -22,36 +22,13 @@ public static class Frontend
         // Note: PGA input CM limit (pgaInputMaxDeviationFromBiasV) is enforced by the path calibration dpot never going below '4' (1562.5 ohms = around 1.9V to 3.1V input CM)
 
         var gainFactor = attenuator ? frontend.AttenuatorScale : 1.0;
-        if (gainFactor <= 0)
-        {
-            logger.LogCritical("Invalid gain factor <= 0");
-            minOffsetV = 0;
-            maxOffsetV = 0;
-            return;
-        }
-
         var offsetDacLsbV = path.BufferInputVpp / path.TrimDacScale;
-        if (offsetDacLsbV <= 0)
-        {
-            logger.LogCritical("Invalid offset DAC LSB <= 0");
-            minOffsetV = 0;
-            maxOffsetV = 0;
-            return;
-        }
-
         var dacZero = Frontend.GetTrimDacZero(temperature, path.TrimDacZeroM, path.TrimDacZeroC);
-        var minOffsetFromDacV = (0 - dacZero) * offsetDacLsbV / gainFactor;
-        var maxOffsetFromDacV = (4095 - dacZero) * offsetDacLsbV / gainFactor;
+        var minOffsetFromDacV = (0 - dacZero) * offsetDacLsbV * gainFactor;
+        var maxOffsetFromDacV = (4095 - dacZero) * offsetDacLsbV * gainFactor;
 
         minOffsetV = minOffsetFromDacV;
         maxOffsetV = maxOffsetFromDacV;
-
-        if (minOffsetV > maxOffsetV)
-        {
-            logger.LogCritical("Invalid offset calculation, min offset > max offset");
-            minOffsetV = 0;
-            maxOffsetV = 0;
-        }
     }
 
     /// <summary>
@@ -287,10 +264,10 @@ public static class Frontend
         if (attenuator)
             gainFactor = frontend.AttenuatorScale;
         // Note: if desired offset is beyond acceptable range for PGA input voltage limits, clamp it.
-        // -1 to make the SCPI API match most scope vendors, i.e. if input signal has 100mV offset, send CHAN1:OFFS 0.1 to cancel it out.
+        // SCPI API matches most scope vendors, i.e. if input signal has 100mV offset, send CHAN1:OFFS 0.1 to cancel it out.
         var dacZero = Frontend.GetTrimDacZero(temperature, selectedPath.TrimDacZeroM, selectedPath.TrimDacZeroC);
         var dacLsbV = selectedPath.BufferInputVpp / selectedPath.TrimDacScale;
-        var dacOffset = (int)((channel.RequestedVoltOffset * gainFactor) / dacLsbV);
+        var dacOffset = (int)((channel.RequestedVoltOffset / gainFactor) / dacLsbV);
         var dacValue = dacZero + dacOffset;
 
         // Note: last resort clamping of DAC value.
@@ -300,7 +277,7 @@ public static class Frontend
             dacValue = 4095;
 
         channel.ActualVoltFullScale = Frontend.CalculateConnectorInputVpp(channelIndex, sampleRateHz, frontend, selectedPath, channelLoadScale, channel.RequestedTermination, attenuator, beta);
-        channel.ActualVoltOffset = (dacOffset * dacLsbV) / gainFactor;
+        channel.ActualVoltOffset = Math.Round((dacOffset * dacLsbV) * gainFactor, 4);
         Frontend.CalculateAllowableOffsetRangeV(logger, frontend, selectedPath, attenuator, temperature, out var minOffsetV, out var maxOffsetV);
         channel.MinVoltOffset = minOffsetV;
         channel.MaxVoltOffset = maxOffsetV;

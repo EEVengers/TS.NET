@@ -103,7 +103,7 @@ public class Thunderscope : IThunderscope
         foreach (var path in frontend.Path)
         {
             Frontend.CalculateAllowableOffsetRangeV(logger, frontend, path, attenuator: true, temperature, out var minOffsetV, out var maxOffsetV);
-            logger.LogDebug($"Input range: {path.BufferInputVpp / frontend.AttenuatorScale:F3}Vpp, input offset: {minOffsetV:F3}V to {maxOffsetV:F3}V [{path.PgaPreampGain}, {path.PgaLadder}, attenuator on]");
+            logger.LogDebug($"Input range: {path.BufferInputVpp * frontend.AttenuatorScale:F3}Vpp, input offset: {minOffsetV:F3}V to {maxOffsetV:F3}V [{path.PgaPreampGain}, {path.PgaLadder}, attenuator on]");
         }
     }
 
