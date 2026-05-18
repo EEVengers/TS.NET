@@ -242,7 +242,8 @@ public class Instruments
 
         using SpanOwner<sbyte> i8Buffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
         GetChannelDataI8(channelIndex, sampleCount, i8Buffer.Span);
-        DataSaturationCheck(i8Buffer.Span, out _, out _);
+        // Don't check saturation - this method is used by Trim DAC steps        
+        // DataSaturationCheck(i8Buffer.Span, out _, out _);
 
         long sum = 0;
         foreach (var point in i8Buffer.Span)
