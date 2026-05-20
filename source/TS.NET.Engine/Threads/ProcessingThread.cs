@@ -974,7 +974,7 @@ public class ProcessingThread : IThread
                     if (thunderscope is Driver.Libtslitex.Thunderscope liteXThunderscope)
                     {
                         var status = liteXThunderscope.GetStatus();
-                        logger.LogDebug($"[LiteX] lost buffers: {status.AdcSamplesLost}, temp: {status.FpgaTemp:F2}, VCC int: {status.VccInt:F3}, VCC aux: {status.VccAux:F3}, VCC BRAM: {status.VccBram:F3}, ADC Sync: {status.AdcFrameSync}");
+                        logger.LogDebug($"[LiteX] lost buffers: {status.AdcSamplesLost}, temp: {status.FpgaTemp:F2}, VCC int: {status.VccInt:F3}, VCC aux: {status.VccAux:F3}, VCC BRAM: {status.VccBram:F3}, ADC Sync: {status.AdcFrameSync}, ref clock in: {status.RefClockInValid}");
                     }
 
                     var intervalCaptureWrites = captureBufferManager.IntervalCaptureWrites;
