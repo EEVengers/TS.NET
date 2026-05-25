@@ -10,6 +10,7 @@ public sealed class Jtag : IDisposable
 {
     private const ushort Xc7BypassInstruction = 0x3F;
     private const int MaxScanDevices = 32;
+    private const int Xc7DnaPortBitLength = 57;
     private const byte SupportedFlashManufacturerId = 0xC2;
     private const byte SupportedFlashMemoryTypeId = 0x20;
 
@@ -40,7 +41,7 @@ public sealed class Jtag : IDisposable
     public Jtag(ILogger logger, int d2xxDeviceIndex = 0, uint ioTimeoutMs = 5000, uint jtagClockHz = 10_000_000, ushort layoutValue = 0x00E8, ushort layoutDirection = 0x60EB)
     {
         this.logger = logger ?? NullLogger.Instance;
-        instructionSet = XilinxInstructionSet.XC7;
+        instructionSet = XilinxInstructionSet.XC7FuseDna;
         mpsse = D2xxMpsseDevice.OpenViaD2xx(d2xxDeviceIndex, ioTimeoutMs, jtagClockHz, layoutValue, layoutDirection);
         tap = new D2xxJtagTapController(mpsse);
     }
@@ -94,17 +95,6 @@ public sealed class Jtag : IDisposable
             return value;
         }
 
-        static ulong ReverseBits64(ulong value)
-        {
-            ulong reversed = 0;
-            for (var i = 0; i < 8; i++)
-            {
-                reversed = (reversed << 8) | BitManipulation.ReverseBits((byte)(value & 0xFF));
-                value >>= 8;
-            }
-            return reversed;
-        }
-
         lock (sync)
         {
             ThrowIfDisposed();
@@ -114,23 +104,28 @@ public sealed class Jtag : IDisposable
 
             tap.ResetTap();
 
-            tap.ShiftIrWriteTarget(idCodes.Count, chainIndex, instructionSet.IrLength, instructionSet.IscEnableInstruction, Xc7BypassInstruction);
-            tap.RunIdleCycles(instructionSet.DnaPreReadIdleClocks);
+            if (instructionSet.DnaRequiresIscEnable)
+            {
+                tap.ShiftIrWriteTarget(idCodes.Count, chainIndex, instructionSet.IrLength, instructionSet.IscEnableInstruction, Xc7BypassInstruction);
+                tap.RunIdleCycles(instructionSet.DnaPreReadIdleClocks);
+            }
 
             tap.ShiftIrWriteTarget(idCodes.Count, chainIndex, instructionSet.IrLength, instructionSet.DnaInstruction, Xc7BypassInstruction);
             var payload = new byte[(instructionSet.DnaReadBitLength + 7) / 8];
             var dnaRead = tap.ShiftDrReadWriteTarget(idCodes.Count, chainIndex, payload, instructionSet.DnaReadBitLength);
 
-            tap.RunIdleCycles(instructionSet.DnaPostReadIdleClocks);
-            tap.ShiftIrWriteTarget(idCodes.Count, chainIndex, instructionSet.IrLength, instructionSet.IscDisableInstruction, Xc7BypassInstruction);
-            tap.RunIdleCycles(instructionSet.DnaPostDisableIdleClocks);
+            if (instructionSet.DnaRequiresIscEnable)
+            {
+                tap.RunIdleCycles(instructionSet.DnaPostReadIdleClocks);
+                tap.ShiftIrWriteTarget(idCodes.Count, chainIndex, instructionSet.IrLength, instructionSet.IscDisableInstruction, Xc7BypassInstruction);
+                tap.RunIdleCycles(instructionSet.DnaPostDisableIdleClocks);
+            }
 
-            var raw64 = ReadBitsAsUInt64(dnaRead, 0, 64);
-            var rev64 = ReverseBits64(raw64);
-            var shift = 64 - instructionSet.DnaBitLength;
+            var raw64 = ReadBitsAsUInt64(dnaRead, 0, instructionSet.DnaReadBitLength);
+            var normalized64 = instructionSet.DnaReverseBits ? ReverseBits64(raw64) >> (64 - instructionSet.DnaBitLength) : raw64;
             var mask = instructionSet.DnaBitLength == 64 ? ulong.MaxValue : ((1UL << instructionSet.DnaBitLength) - 1);
 
-            return (rev64 >> shift) & mask;
+            return normalized64 & mask;
         }
     }
 
@@ -473,6 +468,24 @@ public sealed class Jtag : IDisposable
 
             tap.RunIdleCycles(instructionSet.PostProgramIdleClocks);
         }
+    }
+
+    public static ulong ConvertFuseDnaToDnaPort(ulong fuseDna)
+    {
+        var mask = (1UL << Xc7DnaPortBitLength) - 1;
+        var upper57 = (fuseDna >> (64 - Xc7DnaPortBitLength)) & mask;
+        return (ReverseBits64(upper57) >> (64 - Xc7DnaPortBitLength)) & mask;
+    }
+
+    private static ulong ReverseBits64(ulong value)
+    {
+        ulong reversed = 0;
+        for (var i = 0; i < 8; i++)
+        {
+            reversed = (reversed << 8) | BitManipulation.ReverseBits((byte)(value & 0xFF));
+            value >>= 8;
+        }
+        return reversed;
     }
 
     private JtagSpiProxy ProgramSpiProxy(int chainIndex, CancellationToken cancellationToken)

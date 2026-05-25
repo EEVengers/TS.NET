@@ -1,4 +1,4 @@
-﻿namespace TS.NET.JTAG;
+namespace TS.NET.JTAG;
 
 internal sealed class XilinxInstructionSet
 {
@@ -7,6 +7,8 @@ internal sealed class XilinxInstructionSet
     internal ushort IscEnableInstruction { get; init; }
     internal ushort IscDisableInstruction { get; init; }
     internal ushort DnaInstruction { get; init; }
+    internal bool DnaRequiresIscEnable { get; init; }
+    internal bool DnaReverseBits { get; init; }
     internal int DnaReadBitLength { get; init; }
     internal int DnaBitLength { get; init; }
     internal int DnaPreReadIdleClocks { get; init; }
@@ -25,18 +27,48 @@ internal sealed class XilinxInstructionSet
     internal int ProgramPostCfgInIdleClocks { get; init; }
     internal int PostProgramIdleClocks { get; init; }
 
-    internal static XilinxInstructionSet XC7 { get; } = new()
+    internal static XilinxInstructionSet XC7DnaPort { get; } = new()
     {
         IrLength = 6,
         IdCodeInstruction = 0x09,
         IscEnableInstruction = 0x10,
         IscDisableInstruction = 0x16,
         DnaInstruction = 0x17,
+        DnaRequiresIscEnable = true,
+        DnaReverseBits = true,
         DnaReadBitLength = 64,
         DnaBitLength = 57,
         DnaPreReadIdleClocks = 64,
         DnaPostReadIdleClocks = 64,
         DnaPostDisableIdleClocks = 64,
+        JProgramInstruction = 0x0B,
+        JShutdownInstruction = 0x0D,
+        CfgInInstruction = 0x05,
+        JStartInstruction = 0x0C,
+        User1Instruction = 0x02,
+        UserCodeInstruction = 0x08,
+        FlashPageSizeBytes = 256,
+        FlashSectorSizeBytes = 4096,
+        ProgramShutdownIdleClocks = 16,
+        ProgramPostJProgramDelayMs = 10,
+        ProgramPostCfgInIdleClocks = 1,
+        PostProgramIdleClocks = 2048,
+    };
+
+    internal static XilinxInstructionSet XC7FuseDna { get; } = new()
+    {
+        IrLength = 6,
+        IdCodeInstruction = 0x09,
+        IscEnableInstruction = 0x10,
+        IscDisableInstruction = 0x16,
+        DnaInstruction = 0x32,
+        DnaRequiresIscEnable = false,
+        DnaReverseBits = false,
+        DnaReadBitLength = 64,
+        DnaBitLength = 64,
+        DnaPreReadIdleClocks = 0,
+        DnaPostReadIdleClocks = 0,
+        DnaPostDisableIdleClocks = 0,
         JProgramInstruction = 0x0B,
         JShutdownInstruction = 0x0D,
         CfgInInstruction = 0x05,
