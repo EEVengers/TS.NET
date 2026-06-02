@@ -24,11 +24,6 @@ public class JtagEraseSpiFlashStep : Step
                 return Status.Error;
             }
 
-            if (!File.Exists(variables.FpgaFlashImagePath))
-            {
-                Logger.Instance.Log(LogLevel.Error, Index, Status.Error, $"FPGA flash image not found: {variables.FpgaFlashImagePath}");
-                return Status.Error;
-            }
             jtag.EraseSpiFlash(0, cancellationToken);
 
             return Status.Passed;

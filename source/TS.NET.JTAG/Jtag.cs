@@ -490,11 +490,6 @@ public sealed class Jtag : IDisposable
 
     private JtagSpiProxy ProgramSpiProxy(int chainIndex, CancellationToken cancellationToken)
     {
-        static bool IsProbeFailure(Exception ex)
-        {
-            return ex is InvalidOperationException || ex is InvalidDataException;
-        }
-
         static string ResolveProxyBitfilePath(string model)
         {
             if (!ProxyBitfiles.TryGetValue(model, out var proxyName))
@@ -502,12 +497,11 @@ public sealed class Jtag : IDisposable
                 throw new NotSupportedException($"No proxy bitfile mapping exists for model '{model}'.");
             }
 
-            var baseDir = AppContext.BaseDirectory;
             var candidates = new[]
             {
-            Path.Combine(baseDir, "Bitfiles", proxyName),
-            Path.Combine(Directory.GetCurrentDirectory(), "Bitfiles", proxyName),
-        };
+                Path.Combine(AppContext.BaseDirectory, "Bitfiles", proxyName),
+                Path.Combine(Directory.GetCurrentDirectory(), "Bitfiles", proxyName),
+            };
 
             foreach (var candidate in candidates)
             {
@@ -524,16 +518,13 @@ public sealed class Jtag : IDisposable
         ValidateChainIndex(chainIndex, devices.Count);
 
         var existingProxy = OpenSpiProxy(chainIndex);
-        try
+        if (TryReadFlashCapacityBytes(existingProxy, cancellationToken, out _))
         {
-            ReadFlashCapacityBytes(existingProxy, cancellationToken);
             logger.LogInformation("SPI proxy detected; SPI proxy programming skipped");
             return existingProxy;
         }
-        catch (Exception ex) when (IsProbeFailure(ex))
-        {
-            logger.LogInformation("SPI proxy not detected; programming SPI proxy");
-        }
+
+        logger.LogInformation("SPI proxy not detected; programming SPI proxy");
 
         var target = devices[chainIndex];
         var proxyPath = ResolveProxyBitfilePath(target.Model);
@@ -558,24 +549,6 @@ public sealed class Jtag : IDisposable
 
     private int ReadFlashCapacityBytes(JtagSpiProxy jtagSpiProxy, CancellationToken cancellationToken)
     {
-        static bool TryDecodeCapacityBytes(byte capacityCode, out int capacityBytes)
-        {
-            capacityBytes = 0;
-            if (capacityCode >= 31)
-            {
-                return false;
-            }
-
-            var bytes = 1L << capacityCode;
-            if (bytes <= 0 || bytes > int.MaxValue)
-            {
-                return false;
-            }
-
-            capacityBytes = (int)bytes;
-            return true;
-        }
-
         jtagSpiProxy.Write(SpiFlashOpcodes.ReleasePowerDown, ReadOnlySpan<byte>.Empty);
         cancellationToken.WaitHandle.WaitOne(2);
         cancellationToken.ThrowIfCancellationRequested();
@@ -602,6 +575,57 @@ public sealed class Jtag : IDisposable
         }
 
         return capacityBytes;
+    }
+
+    private bool TryReadFlashCapacityBytes(JtagSpiProxy jtagSpiProxy, CancellationToken cancellationToken, out int capacityBytes)
+    {
+        capacityBytes = 0;
+
+        jtagSpiProxy.Write(SpiFlashOpcodes.ReleasePowerDown, ReadOnlySpan<byte>.Empty);
+        cancellationToken.WaitHandle.WaitOne(2);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var id = jtagSpiProxy.Read(SpiFlashOpcodes.ReadId, ReadOnlySpan<byte>.Empty, 3);
+        if (id.Length < 3)
+        {
+            return false;
+        }
+
+        if (id[0] != SupportedFlashManufacturerId)
+        {
+            return false;
+        }
+
+        if (id[1] != SupportedFlashMemoryTypeId)
+        {
+            return false;
+        }
+
+        if (!TryDecodeCapacityBytes(id[2], out capacityBytes) || capacityBytes < 64 * 1024)
+        {
+            capacityBytes = 0;
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryDecodeCapacityBytes(byte capacityCode, out int capacityBytes)
+    {
+        capacityBytes = 0;
+        if (capacityCode >= 31)
+        {
+            return false;
+        }
+
+        var bytes = 1L << capacityCode;
+        if (bytes <= 0 || bytes > int.MaxValue)
+        {
+            return false;
+        }
+
+        capacityBytes = (int)bytes;
+        return true;
     }
 
     private static byte[] BuildAddress24(int address)

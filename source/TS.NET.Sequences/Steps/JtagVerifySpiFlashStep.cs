@@ -24,12 +24,21 @@ public class JtagVerifySpiFlashStep : Step
                 return Status.Error;
             }
 
-            if (!File.Exists(variables.FpgaFlashImagePath))
+            if (string.IsNullOrWhiteSpace(variables.FpgaModel))
             {
-                Logger.Instance.Log(LogLevel.Error, Index, Status.Error, $"FPGA flash image not found: {variables.FpgaFlashImagePath}");
+                Logger.Instance.Log(LogLevel.Error, Index, Status.Error, $"FPGA model not specified");
                 return Status.Error;
             }
-            jtag.VerifySpiFlash(0, variables.FpgaFlashImagePath, cancellationToken);
+
+            var flashImage = Path.Combine("Bitfiles", variables.FlashImages[variables.FpgaModel]);
+
+            if (!File.Exists(flashImage))
+            {
+                Logger.Instance.Log(LogLevel.Error, Index, Status.Error, $"FPGA flash image not found: {flashImage}");
+                return Status.Error;
+            }
+
+            jtag.VerifySpiFlash(0, flashImage, cancellationToken);
 
             return Status.Passed;
         };

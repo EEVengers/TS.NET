@@ -92,7 +92,12 @@ public class FactoryHwidStep : ModalUiStep
                 }
             });
 
-            UpdateUi<FactoryHwid>(new Dictionary<string, object?>() { { "BuildDate", DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")} });
+            var buildDate = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var manufacturingSignature = $"{variables.FpgaDna ?? 0UL:X16}";
+            UpdateUi<FactoryHwid>(new Dictionary<string, object?>() { 
+                { "BuildDate", buildDate }, 
+                { "ManufacturingSignature", manufacturingSignature } 
+            });
 
             while (continueLoop)
             {

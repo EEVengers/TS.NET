@@ -37,13 +37,13 @@ public class FactoryBringUpSequence : Sequence
             new JtagProgramHwidStep("JTAG program HWID", Variables),
             new JtagResetFpgaStep("JTAG reset FPGA", Variables),
 
-            new ModalDialogStep("Build check", modalUiContext)
-            {
-                Title = "Build check",
-                Message = "PCB installed in enclosure & connected to PC, power cycled, with cables connected from 2x signal generators to channel 1-4?",
-                Buttons = DialogButtons.YesNo,
-                Icon = DialogIcon.Question
-            },
+            //new ModalDialogStep("Build check", modalUiContext)
+            //{
+            //    Title = "Build check",
+            //    Message = "PCB installed in enclosure & connected to PC, power cycled, with cables connected from 2x signal generators to channel 1-4?",
+            //    Buttons = DialogButtons.YesNo,
+            //    Icon = DialogIcon.Question
+            //},
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 return Sequencer.Status.Done;

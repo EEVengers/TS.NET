@@ -6,7 +6,7 @@ public class FactoryBringUpVariables : FactoryVariables, IJsonVariables
 {
     public string? FpgaModel { get; set; }
     public ulong? FpgaDna { get; set; }
-    public string? FpgaFlashImagePath { get; set; }
+    public required Dictionary<string, string> FlashImages { get; set; }
 
     public Hwid Hwid { get; set; } = new();
 

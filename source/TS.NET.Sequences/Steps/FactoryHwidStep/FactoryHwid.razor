@@ -60,12 +60,12 @@
             <label class="block mb-1">Manufacturing Signature</label>
             <input id="modal-ui-mfg-signature"
                    class="w-full bg-zinc-800 border border-zinc-600 p-1 text-neutral-50 text-sm"
-                   value="@ManufacturingSignature" />
+                   value="@ManufacturingSignature" disabled/>
         </div>
         <div class="flex-none flex flex-row justify-end gap-2 mt-3">
         @foreach (var button in GetButtons())
         {
-            <button id="modal-ui-@button.Id-button" type="button" class="border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
+            <button id="modal-ui-@button.Id-button" type="button" disabled="@(button.Id == "ok")" class="border border-zinc-600 bg-zinc-600 p-3 text-neutral-50 font-normal text-sm w-20 h-11 inset-ring-2 inset-ring-zinc-800 active:inset-ring-zinc-500 hover:inset-ring-zinc-700 trim-box">
                 @button.Label
             </button>
         }
@@ -74,6 +74,18 @@
 </div>
 
 <script>
+    function areAllFieldsPopulated() {
+        return document.getElementById("modal-ui-serial-number").value.trim().length > 0
+            && document.getElementById("modal-ui-board-revision").value.trim().length > 0
+            && document.getElementById("modal-ui-build-config").value.trim().length > 0
+            && document.getElementById("modal-ui-build-date").value.trim().length > 0
+            && document.getElementById("modal-ui-mfg-signature").value.trim().length > 0;
+    }
+
+    function updateOkButtonState() {
+        document.getElementById("modal-ui-ok-button").disabled = !areAllFieldsPopulated();
+    }
+
     (function focusSerialNumberInput() {
         const serialInput = document.getElementById("modal-ui-serial-number");
         if (serialInput) {
@@ -86,6 +98,11 @@
                 }
             });
         }
+
+        document.getElementById("modal-ui-serial-number").addEventListener("input", updateOkButtonState);
+        document.getElementById("modal-ui-board-revision").addEventListener("input", updateOkButtonState);
+        document.getElementById("modal-ui-build-config").addEventListener("input", updateOkButtonState);
+        updateOkButtonState();
     })();
 
     function getHwidPayload(buttonId) {
@@ -110,6 +127,10 @@
     {
         <text>
         document.getElementById("modal-ui-@button.Id-button").addEventListener("click", function () {
+            if ("@button.Id" === "ok" && !areAllFieldsPopulated()) {
+                return;
+            }
+
             var message = { command: "modal-ui-event", event: getHwidPayload("@button.Id") };
             window.external.sendMessage(JSON.stringify(message));
         });

@@ -89,7 +89,11 @@ class Program
                                     {
                                         SigGen1Host = variablesFile.SigGen1Ip,
                                         SigGen2Host = variablesFile.SigGen2Ip,
-                                        FpgaFlashImagePath = "Bitfiles/thunderscope_full_prod_0.5.0.bin"
+                                        FlashImages = new(StringComparer.OrdinalIgnoreCase)
+                                        {
+                                            ["XC7A35T"] = "thunderscope_full_prod_0.5.0.bin",
+                                            ["XC7A50T"] = "thunderscope_full_dev_0.5.0.bin"
+                                        }
                                     };
                                     var newSequence = new FactoryBringUpSequence(modalUiContext, newVariables);
                                     variables = newVariables;
