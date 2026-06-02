@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -9,12 +10,43 @@ namespace TS.NET.Sequencer;
 
 public class ModalUiContext
 {
+    private readonly Lock eventHandlerExceptionLock = new();
+    private ExceptionDispatchInfo? eventHandlerException;
+
     public Action<ModalUiUpdate> Update { get; init; }
     public Action<JsonElement>? EventHandler { get; set; }
 
     public ModalUiContext(Action<ModalUiUpdate> update)
     {
         Update = update;
+    }
+
+    public void CaptureEventHandlerException(Exception exception)
+    {
+        lock (eventHandlerExceptionLock)
+        {
+            eventHandlerException = ExceptionDispatchInfo.Capture(exception);
+        }
+    }
+
+    public void ClearEventHandlerException()
+    {
+        lock (eventHandlerExceptionLock)
+        {
+            eventHandlerException = null;
+        }
+    }
+
+    public void ThrowIfEventHandlerException()
+    {
+        ExceptionDispatchInfo? exceptionToThrow;
+        lock (eventHandlerExceptionLock)
+        {
+            exceptionToThrow = eventHandlerException;
+            eventHandlerException = null;
+        }
+
+        exceptionToThrow?.Throw();
     }
 }
 
@@ -42,7 +74,13 @@ public class ModalUiStep : Step
 
     public void RegisterEventHandler(Action<JsonElement>? eventHandler)
     {
+        modalUiContext.ClearEventHandlerException();
         modalUiContext.EventHandler = eventHandler;
+    }
+
+    protected void ThrowIfEventHandlerException()
+    {
+        modalUiContext.ThrowIfEventHandlerException();
     }
 
     public Task UpdateUi<T>(Dictionary<string, object?> viewModel) where T : IComponent

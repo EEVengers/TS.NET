@@ -36,22 +36,28 @@ public class ModalDialogStep : ModalUiStep
                 }
             });
 
-            UpdateUi<ModalDialog>(new Dictionary<string, object?>()
+            try
             {
-                { "Title", Title},
-                { "Message", Message },
-                { "Buttons", Buttons },
-                { "Icon", Icon }
-            });
+                UpdateUi<ModalDialog>(new Dictionary<string, object?>()
+                {
+                    { "Title", Title},
+                    { "Message", Message },
+                    { "Buttons", Buttons },
+                    { "Icon", Icon }
+                });
 
-            continueLoop = true;
-            while (continueLoop)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                Thread.Sleep(100);
+                continueLoop = true;
+                while (continueLoop)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ThrowIfEventHandlerException();
+                    Thread.Sleep(100);
+                }
             }
-
-            HideUi();
+            finally
+            {
+                HideUi();
+            }
 
             return status;
         };

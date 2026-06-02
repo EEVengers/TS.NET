@@ -92,20 +92,26 @@ public class FactoryHwidStep : ModalUiStep
                 }
             });
 
-            var buildDate = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-            var manufacturingSignature = $"{variables.FpgaDna ?? 0UL:X16}";
-            UpdateUi<FactoryHwid>(new Dictionary<string, object?>() { 
-                { "BuildDate", buildDate }, 
-                { "ManufacturingSignature", manufacturingSignature } 
-            });
-
-            while (continueLoop)
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                Thread.Sleep(50);
-            }
+                var buildDate = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                var manufacturingSignature = $"{variables.FpgaDna ?? 0UL:X16}";
+                UpdateUi<FactoryHwid>(new Dictionary<string, object?>() {
+                    { "BuildDate", buildDate },
+                    { "ManufacturingSignature", manufacturingSignature }
+                });
 
-            
+                while (continueLoop)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ThrowIfEventHandlerException();
+                    Thread.Sleep(50);
+                }
+            }
+            finally
+            {
+                HideUi();
+            }
 
             return status;
         };

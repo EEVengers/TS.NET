@@ -89,15 +89,21 @@ public class BetaTesterHwidStep : ModalUiStep
                 }
             });
 
-            UpdateUi<BetaTesterHwid>(new Dictionary<string, object?>());
-
-            while (continueLoop)
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                Thread.Sleep(50);
-            }
+                UpdateUi<BetaTesterHwid>(new Dictionary<string, object?>());
 
-            
+                while (continueLoop)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ThrowIfEventHandlerException();
+                    Thread.Sleep(50);
+                }
+            }
+            finally
+            {
+                HideUi();
+            }
 
             return status;
         };

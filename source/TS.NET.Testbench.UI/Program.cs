@@ -213,7 +213,14 @@ class Program
                         sequence.Steps[stepIndex - 1].Skip = skip;
                         break;
                     case "modal-ui-event":
-                        modalUiContext?.EventHandler?.Invoke(json.RootElement.GetProperty("event"));
+                        try
+                        {
+                            modalUiContext?.EventHandler?.Invoke(json.RootElement.GetProperty("event"));
+                        }
+                        catch (Exception ex)
+                        {
+                            modalUiContext?.CaptureEventHandlerException(ex);
+                        }
                         break;
                 }
             }).Load(loadPath);
