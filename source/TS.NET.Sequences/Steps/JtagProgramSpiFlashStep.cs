@@ -24,19 +24,7 @@ public class JtagProgramSpiFlashStep : Step
                 return Status.Error;
             }
 
-            if(string.IsNullOrWhiteSpace(variables.FpgaModel))
-            {
-                Logger.Instance.Log(LogLevel.Error, Index, Status.Error, $"FPGA model not specified");
-                return Status.Error;
-            }
-
-            var flashImage = Path.Combine("Bitfiles", variables.FlashImages[variables.FpgaModel]);
-
-            if (!File.Exists(flashImage))
-            {
-                Logger.Instance.Log(LogLevel.Error, Index, Status.Error, $"FPGA flash image not found: {flashImage}");
-                return Status.Error;
-            }
+            var flashImage = Utility.FindFlashImagePath(variables);
 
             jtag.ProgramSpiFlash(0, flashImage, cancellationToken);
             Result!.Summary = Path.GetFileName(flashImage);

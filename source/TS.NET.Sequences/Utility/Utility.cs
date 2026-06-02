@@ -153,4 +153,29 @@ public static class Utility
         }
         throw new TestbenchException("Could not converge, signal generator amplitude too large");
     }
+
+    public static string FindFlashImagePath(FactoryBringUpVariables variables)
+    {
+        if (string.IsNullOrWhiteSpace(variables.FpgaModel))
+        {
+            throw new TestbenchException($"FPGA model not specified");
+        }
+
+        var flashImage = variables.FlashImages[variables.FpgaModel!];
+
+        var candidates = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "Bitfiles", flashImage),
+            Path.Combine(Directory.GetCurrentDirectory(), "Bitfiles", flashImage),
+        };
+
+        foreach (var candidate in candidates)
+        {
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+        throw new TestbenchException($"FPGA flash image not found: {flashImage}");
+    }
 }
