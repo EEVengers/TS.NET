@@ -5,7 +5,7 @@
   "frontend": [
     {
       "channel": 0,
-      "attenuatorScale": 50.701,
+      "attenuatorScale": 50.000,
       "path": [
         {
           "pgaPreampGain": "high",
@@ -209,7 +209,7 @@
     },
     {
       "channel": 1,
-      "attenuatorScale": 50.771,
+      "attenuatorScale": 50.000,
       "path": [
         {
           "pgaPreampGain": "high",
@@ -617,7 +617,7 @@
     },
     {
       "channel": 3,
-      "attenuatorScale": 50.644,
+      "attenuatorScale": 50.000,
       "path": [
         {
           "pgaPreampGain": "high",
