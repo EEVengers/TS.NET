@@ -3,4 +3,5 @@
     <assembly fullname="TS.NET.Testbench.UI" preserve="all" />
     <assembly fullname="TS.NET.Sequences" preserve="all" />
     <assembly fullname="TS.NET.Sequencer" preserve="all" />
+    <assembly fullname="CsvHelper" preserve="all" />
 </linker>
