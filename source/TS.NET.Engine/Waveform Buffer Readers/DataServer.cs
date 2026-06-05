@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
@@ -104,6 +105,13 @@ internal class DataServer : IThread
         }
     }
 
+    private enum Mode
+    {
+        Disabled,
+        OnDemand,
+        Credit,
+        CreditWithTag
+    }
     private void LoopSession(ILogger logger, Socket socket, CancellationToken cancelToken)
     {
         string sessionID = socket.RemoteEndPoint?.ToString() ?? "Unknown";
@@ -114,11 +122,11 @@ internal class DataServer : IThread
         try
         {
             Span<byte> cmdBuf = stackalloc byte[1];
-            bool creditMode = false;
+            Mode mode = Mode.Disabled;
             while (true)
             {
                 cancelToken.ThrowIfCancellationRequested();
-                if (creditMode)
+                if (mode == Mode.Credit || mode == Mode.CreditWithTag)
                 {
                     if (!CheckForAcks(logger, socket))
                         break;
@@ -134,7 +142,16 @@ internal class DataServer : IThread
                     else
                     {
                         //logger.LogInformation($"Sending waveform (seq={sequenceNumber})");
-                        SendScopehal(socket, sequenceNumber, cancelToken);
+                        switch (mode)
+                        {
+                            case Mode.Credit:
+                                SendScopehal(socket, sequenceNumber, sendTag: false, cancelToken);
+                                break;
+                            case Mode.CreditWithTag:
+                                SendScopehal(socket, sequenceNumber, sendTag: true, cancelToken);
+                                break;
+                        }
+
                         onSequenceUpdate(sequenceNumber);
                         sequenceNumber++;
                     }
@@ -150,12 +167,17 @@ internal class DataServer : IThread
                     switch (cmd)
                     {
                         case (byte)'S':
-                            SendScopehal(socket, sequenceNumber, cancelToken);
+                            mode = Mode.OnDemand;
+                            SendScopehal(socket, sequenceNumber, sendTag: false, cancelToken);
                             sequenceNumber++;
                             break;
                         case (byte)'C':
-                            creditMode = true;
+                            mode = Mode.Credit;
                             logger.LogInformation("Switching to credit mode");
+                            break;
+                        case (byte)'T':
+                            mode = Mode.CreditWithTag;
+                            logger.LogInformation("Switching to credit tag mode");
                             break;
                         default:
                             break;
@@ -211,9 +233,10 @@ internal class DataServer : IThread
         }
     }
 
-    private void SendScopehal(Socket socket, uint sequenceNumber, CancellationToken cancelToken)
+    private void SendScopehal(Socket socket, uint sequenceNumber, bool sendTag, CancellationToken cancelToken)
     {
         bool loop = true;
+        Span<byte> scratchBuffer = stackalloc byte[4];
         while (loop)
         {
             cancelToken.ThrowIfCancellationRequested();
@@ -277,6 +300,15 @@ internal class DataServer : IThread
 
                     unsafe
                     {
+                        if(sendTag)
+                        {
+                            // [Payload tag][Payload length][Payload bytes]
+                            uint payLoadLength = (uint)(sizeof(WaveformHeader) + channelCount * (sizeof(ChannelHeader) + captureBuffer.GetChannelReadByteBuffer(0).Length));
+                            socket.Send("DATA"u8);
+                            Span<byte> payloadLengthBytes = scratchBuffer.Slice(0, 4);
+                            BinaryPrimitives.WriteUInt32LittleEndian(payloadLengthBytes, payLoadLength);
+                            socket.Send(payloadLengthBytes);
+                        }
                         socket.Send(new ReadOnlySpan<byte>(&waveformHeader, sizeof(WaveformHeader)));
                         for (byte captureBufferIndex = 0; captureBufferIndex < captureBuffer.ChannelCount; captureBufferIndex++)
                         {
