@@ -11,7 +11,7 @@
 }
 
 <style>
-    @((MarkupString)TrimPotStep.GetChartStyle())
+    @((MarkupString)TrimStep.GetChartStyle())
 </style>
 
 <div class="z-1 flex flex-col border border-zinc-600 bg-zinc-900 absolute inset-1/2 -translate-1/2" style="width: 800px; height: 600px;">
@@ -61,7 +61,7 @@
         </text>
     }
 
-    @((MarkupString)(TrimPotStep.GetChartJs()))
+    @((MarkupString)(TrimStep.GetChartJs()))
     
     new ResultMetadataXYChart("chart-1", {
         width: 700,
