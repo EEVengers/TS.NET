@@ -522,6 +522,9 @@ public sealed class Jtag : IDisposable
         var devices = Scan();
         ValidateChainIndex(chainIndex, devices.Count);
 
+        tap.ShiftIrWriteTarget(devices.Count, chainIndex, instructionSet.IrLength, instructionSet.JShutdownInstruction, Xc7BypassInstruction);
+        tap.RunIdleCycles(instructionSet.ProgramShutdownIdleClocks);
+
         var existingProxy = OpenSpiProxy(chainIndex);
         if (TryReadFlashCapacityBytes(existingProxy, cancellationToken, out _))
         {
