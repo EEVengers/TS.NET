@@ -460,9 +460,17 @@ public sealed class Jtag : IDisposable
             ValidateChainIndex(chainIndex, idCodes.Count);
 
             logger.LogInformation("Reset FPGA");
+
+            tap.ShiftIrWriteTarget(idCodes.Count, chainIndex, instructionSet.IrLength, instructionSet.JShutdownInstruction, Xc7BypassInstruction);
+            tap.RunIdleCycles(instructionSet.ProgramShutdownIdleClocks);
+            cancellationToken.ThrowIfCancellationRequested();
+
             tap.ShiftIrWriteTarget(idCodes.Count, chainIndex, instructionSet.IrLength, instructionSet.JProgramInstruction, Xc7BypassInstruction);
             DelayWithCancellation(instructionSet.ProgramPostJProgramDelayMs, cancellationToken);
 
+            tap.RunIdleCycles(instructionSet.PostProgramIdleClocks);
+
+            tap.ShiftIrWriteTarget(idCodes.Count, chainIndex, instructionSet.IrLength, Xc7BypassInstruction, Xc7BypassInstruction);
             tap.RunIdleCycles(instructionSet.PostProgramIdleClocks);
         }
     }
