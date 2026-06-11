@@ -192,8 +192,7 @@ public sealed class Jtag : IDisposable
             cancellationToken.ThrowIfCancellationRequested();
 
             tap.ShiftIrWriteTarget(idCodes.Count, chainIndex, instructionSet.IrLength, instructionSet.JProgramInstruction, Xc7BypassInstruction);
-            cancellationToken.WaitHandle.WaitOne(instructionSet.ProgramPostJProgramDelayMs);
-            cancellationToken.ThrowIfCancellationRequested();
+            DelayWithCancellation(instructionSet.ProgramPostJProgramDelayMs, cancellationToken);
 
             tap.ShiftIrWriteTarget(idCodes.Count, chainIndex, instructionSet.IrLength, instructionSet.CfgInInstruction, Xc7BypassInstruction);
             tap.ShiftDrWriteTarget(idCodes.Count, chainIndex, configStream, configStream.Length * 8, progressReporter);
@@ -204,8 +203,7 @@ public sealed class Jtag : IDisposable
             tap.ShiftIrWriteTarget(idCodes.Count, chainIndex, instructionSet.IrLength, instructionSet.JStartInstruction, Xc7BypassInstruction);
             tap.RunIdleCycles(instructionSet.PostProgramIdleClocks);
 
-            cancellationToken.WaitHandle.WaitOne(50);
-            cancellationToken.ThrowIfCancellationRequested();
+            DelayWithCancellation(50, cancellationToken);
 
             logger.LogInformation("Program complete");
         }
@@ -463,8 +461,7 @@ public sealed class Jtag : IDisposable
 
             logger.LogInformation("Reset FPGA");
             tap.ShiftIrWriteTarget(idCodes.Count, chainIndex, instructionSet.IrLength, instructionSet.JProgramInstruction, Xc7BypassInstruction);
-            cancellationToken.WaitHandle.WaitOne(instructionSet.ProgramPostJProgramDelayMs);
-            cancellationToken.ThrowIfCancellationRequested();
+            DelayWithCancellation(instructionSet.ProgramPostJProgramDelayMs, cancellationToken);
 
             tap.RunIdleCycles(instructionSet.PostProgramIdleClocks);
         }
@@ -547,13 +544,33 @@ public sealed class Jtag : IDisposable
         return new JtagSpiProxy(tap, idCodes.Count, chainIndex);
     }
 
+    private static void ResetSpiFlash(JtagSpiProxy jtagSpiProxy, CancellationToken cancellationToken)
+    {
+        jtagSpiProxy.Write(SpiFlashOpcodes.ReleasePowerDown, []);
+        DelayWithCancellation(2, cancellationToken);
+
+        jtagSpiProxy.Write(SpiFlashOpcodes.EnableReset, []);
+        jtagSpiProxy.Write(SpiFlashOpcodes.ResetMemory, []);
+        DelayWithCancellation(2, cancellationToken);
+
+        jtagSpiProxy.Write(SpiFlashOpcodes.Exit4ByteAddressMode, []);
+        jtagSpiProxy.Write(SpiFlashOpcodes.ReleasePowerDown, []);
+        DelayWithCancellation(2, cancellationToken);
+    }
+
+    private static void DelayWithCancellation(int milliseconds, CancellationToken cancellationToken)
+    {
+        if (cancellationToken.WaitHandle.WaitOne(milliseconds))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+    }
+
     private int ReadFlashCapacityBytes(JtagSpiProxy jtagSpiProxy, CancellationToken cancellationToken)
     {
-        jtagSpiProxy.Write(SpiFlashOpcodes.ReleasePowerDown, ReadOnlySpan<byte>.Empty);
-        cancellationToken.WaitHandle.WaitOne(2);
-        cancellationToken.ThrowIfCancellationRequested();
+        ResetSpiFlash(jtagSpiProxy, cancellationToken);
 
-        var id = jtagSpiProxy.Read(SpiFlashOpcodes.ReadId, ReadOnlySpan<byte>.Empty, 3);
+        var id = jtagSpiProxy.Read(SpiFlashOpcodes.ReadId, [], 3);
         if (id.Length < 3)
         {
             throw new InvalidDataException("Invalid ID length.");
@@ -581,11 +598,9 @@ public sealed class Jtag : IDisposable
     {
         capacityBytes = 0;
 
-        jtagSpiProxy.Write(SpiFlashOpcodes.ReleasePowerDown, ReadOnlySpan<byte>.Empty);
-        cancellationToken.WaitHandle.WaitOne(2);
-        cancellationToken.ThrowIfCancellationRequested();
+        ResetSpiFlash(jtagSpiProxy, cancellationToken);
 
-        var id = jtagSpiProxy.Read(SpiFlashOpcodes.ReadId, ReadOnlySpan<byte>.Empty, 3);
+        var id = jtagSpiProxy.Read(SpiFlashOpcodes.ReadId, [], 3);
         if (id.Length < 3)
         {
             return false;
