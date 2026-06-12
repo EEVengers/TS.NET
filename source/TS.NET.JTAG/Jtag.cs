@@ -216,7 +216,8 @@ public sealed class Jtag : IDisposable
             ThrowIfDisposed();
             cancellationToken.ThrowIfCancellationRequested();
 
-            var spiProxy = ProgramSpiProxy(chainIndex, cancellationToken);
+            var spiProxy = OpenSpiProxy(chainIndex);
+
             var flashCapacityBytes = ReadFlashCapacityBytes(spiProxy, cancellationToken);
             logger.LogInformation($"Detected SPI flash with capacity of {(flashCapacityBytes * 8) / 1024 / 1024}Mb");
             if (flashCapacityBytes > 0x01_00_00_00)
@@ -283,7 +284,8 @@ public sealed class Jtag : IDisposable
             ThrowIfDisposed();
             cancellationToken.ThrowIfCancellationRequested();
 
-            var spiProxy = ProgramSpiProxy(chainIndex, cancellationToken);
+            var spiProxy = OpenSpiProxy(chainIndex);
+
             var flashCapacityBytes = ReadFlashCapacityBytes(spiProxy, cancellationToken);
             logger.LogInformation($"Detected SPI flash with capacity of {(flashCapacityBytes * 8) / 1024 / 1024}Mb");
             if (image.Length > flashCapacityBytes)
@@ -349,7 +351,8 @@ public sealed class Jtag : IDisposable
             ThrowIfDisposed();
             cancellationToken.ThrowIfCancellationRequested();
 
-            var spiProxy = ProgramSpiProxy(chainIndex, cancellationToken);
+            var spiProxy = OpenSpiProxy(chainIndex);
+
             var flashCapacityBytes = ReadFlashCapacityBytes(spiProxy, cancellationToken);
 
             if ((long)address + data.Length > flashCapacityBytes)
@@ -407,7 +410,8 @@ public sealed class Jtag : IDisposable
             ThrowIfDisposed();
             cancellationToken.ThrowIfCancellationRequested();
 
-            var spiProxy = ProgramSpiProxy(chainIndex, cancellationToken);
+            var spiProxy = OpenSpiProxy(chainIndex);
+
             var flashCapacityBytes = ReadFlashCapacityBytes(spiProxy, cancellationToken);
             logger.LogInformation($"Detected SPI flash with capacity of {(flashCapacityBytes * 8) / 1024 / 1024}Mb");
             if (image.Length > flashCapacityBytes)
@@ -493,7 +497,7 @@ public sealed class Jtag : IDisposable
         return reversed;
     }
 
-    private JtagSpiProxy ProgramSpiProxy(int chainIndex, CancellationToken cancellationToken)
+    public void ProgramSpiProxy(int chainIndex, CancellationToken cancellationToken)
     {
         static string ResolveProxyBitfilePath(string model)
         {
@@ -522,18 +526,6 @@ public sealed class Jtag : IDisposable
         var devices = Scan();
         ValidateChainIndex(chainIndex, devices.Count);
 
-        tap.ShiftIrWriteTarget(devices.Count, chainIndex, instructionSet.IrLength, instructionSet.JShutdownInstruction, Xc7BypassInstruction);
-        tap.RunIdleCycles(instructionSet.ProgramShutdownIdleClocks);
-
-        var existingProxy = OpenSpiProxy(chainIndex);
-        if (TryReadFlashCapacityBytes(existingProxy, cancellationToken, out _))
-        {
-            logger.LogInformation("SPI proxy detected; SPI proxy programming skipped");
-            return existingProxy;
-        }
-
-        logger.LogInformation("SPI proxy not detected; programming SPI proxy");
-
         var target = devices[chainIndex];
         var proxyPath = ResolveProxyBitfilePath(target.Model);
         Program(chainIndex, proxyPath, cancellationToken);
@@ -541,17 +533,13 @@ public sealed class Jtag : IDisposable
         var spiProxy = OpenSpiProxy(chainIndex);
         ReadFlashCapacityBytes(spiProxy, cancellationToken);
         logger.LogInformation("SPI proxy programmed and verified");
-
-        return spiProxy;
     }
 
     private JtagSpiProxy OpenSpiProxy(int chainIndex)
     {
         var idCodes = tap.ReadChainIdCodes(instructionSet.IrLength, instructionSet.IdCodeInstruction, MaxScanDevices);
         ValidateChainIndex(chainIndex, idCodes.Count);
-
         tap.ShiftIrWriteTarget(idCodes.Count, chainIndex, instructionSet.IrLength, instructionSet.User1Instruction, Xc7BypassInstruction);
-
         return new JtagSpiProxy(tap, idCodes.Count, chainIndex);
     }
 
@@ -571,7 +559,7 @@ public sealed class Jtag : IDisposable
 
     private static void DelayWithCancellation(int milliseconds, CancellationToken cancellationToken)
     {
-        if (cancellationToken.WaitHandle.WaitOne(milliseconds))
+        if (cancellationToken.WaitHandle.WaitOne(milliseconds * 10))
         {
             cancellationToken.ThrowIfCancellationRequested();
         }
@@ -603,37 +591,6 @@ public sealed class Jtag : IDisposable
         }
 
         return capacityBytes;
-    }
-
-    private bool TryReadFlashCapacityBytes(JtagSpiProxy jtagSpiProxy, CancellationToken cancellationToken, out int capacityBytes)
-    {
-        capacityBytes = 0;
-
-        ResetSpiFlash(jtagSpiProxy, cancellationToken);
-
-        var id = jtagSpiProxy.Read(SpiFlashOpcodes.ReadId, [], 3);
-        if (id.Length < 3)
-        {
-            return false;
-        }
-
-        if (id[0] != SupportedFlashManufacturerId)
-        {
-            return false;
-        }
-
-        if (id[1] != SupportedFlashMemoryTypeId)
-        {
-            return false;
-        }
-
-        if (!TryDecodeCapacityBytes(id[2], out capacityBytes) || capacityBytes < 64 * 1024)
-        {
-            capacityBytes = 0;
-            return false;
-        }
-
-        return true;
     }
 
     private static bool TryDecodeCapacityBytes(byte capacityCode, out int capacityBytes)

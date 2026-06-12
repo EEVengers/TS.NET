@@ -31,6 +31,7 @@ public class FactoryBringUpSequence : Sequence
 
             new FactoryHwidStep("HWID input", modalUiContext, Variables),
 
+            new JtagProgramSpiProxyStep("JTAG program SPI proxy", Variables),
             new JtagEraseSpiFlashStep("JTAG erase SPI flash", Variables),
             new JtagProgramSpiFlashStep("JTAG program SPI flash", Variables),
             new JtagVerifySpiFlashStep("JTAG verify SPI flash", Variables),
