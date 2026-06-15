@@ -28,7 +28,8 @@ public class FactoryTrimSequence : Sequence
             },
             new InitialiseDeviceStep("Initialise device", Variables),
             new InitialiseSigGensStep("Initialise signal generators", Variables),
-            new LoadCalibrationFromUserCalStep("Load calibration from device", Variables),
+            //new LoadCalibrationFromUserCalStep("Load calibration from device", Variables),
+            new LoadCalibrationFromFileStep("Load calibration from file", Variables),
             new Step("Load ADC branch gains")
             {
                 Action = (CancellationToken cancellationToken) =>
