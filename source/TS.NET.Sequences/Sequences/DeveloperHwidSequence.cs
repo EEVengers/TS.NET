@@ -9,6 +9,7 @@ public class DeveloperHwidSequence : Sequence
     public DeveloperHwidSequence(ModalUiContext modalUiContext, CommonVariables variables)
     {
         Name = "Developer HWID";
+        Version = "1.0";
         Variables = variables;
         AddSteps(modalUiContext);
         SetStepIndices();

@@ -9,6 +9,7 @@ public class AdcBranchGainsAnalysisSequence : Sequence
     public AdcBranchGainsAnalysisSequence(ModalUiContext modalUiContext, FactoryVariables variables)
     {
         Name = "ADC branch gains analysis";
+        Version = "1.0";
         Variables = variables;
         AddSteps(modalUiContext);
         SetStepIndices();

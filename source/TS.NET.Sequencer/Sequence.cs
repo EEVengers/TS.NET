@@ -9,6 +9,7 @@ namespace TS.NET.Sequencer;
 public class Sequence
 {
     public string? Name { get; set; }
+    public string? Version { get; set; }
     private Status? status;
     public Status? Status { get { return status; } set { status = value; SequenceStatusChanged?.Invoke(value); } }
     public DateTimeOffset StartTimestamp { get; set; }

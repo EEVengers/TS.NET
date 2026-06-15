@@ -9,6 +9,7 @@ public class SelfCalibrationSequence : Sequence
     public SelfCalibrationSequence(ModalUiContext modalUiContext, SelfCalibrationVariables variables)
     {
         Name = "Self calibration";
+        Version = "1.0";
         Variables = variables;
         AddSteps(modalUiContext);
         SetStepIndices();
@@ -317,7 +318,7 @@ public class SelfCalibrationSequence : Sequence
                 return Sequencer.Status.Done;
             }},
             new SaveCalToFileStep("Save calibration to file", Variables) { AllowSkip = true },
-            new SaveUserCalToDeviceStep("Save calibration to device", Variables) { AllowSkip = true },
+            new SaveUserCalToDeviceStep("Save user calibration to device", Variables) { AllowSkip = true },
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.Close();

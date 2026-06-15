@@ -9,6 +9,7 @@ public class FactoryTrimSequence : Sequence
     public FactoryTrimSequence(ModalUiContext modalUiContext, FactoryVariables variables)
     {
         Name = "Factory trim";
+        Version = "1.0";
         Variables = variables;
         AddSteps(modalUiContext);
         SetStepIndices();

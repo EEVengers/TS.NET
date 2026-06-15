@@ -24,11 +24,13 @@
         <div class="flex flex-row gap-2 mb-8 text-sm text-black">
             <div class="flex flex-col gap-1">
                 <div>Sequence name:</div>
+                <div>Sequence version:</div>
                 <div>Start date/time:</div>
                 <div>Duration:</div>
             </div>
             <div class="flex flex-col gap-1">
                 <div>@Sequence.Name</div>
+                <div>@Sequence.Version</div>
                 <div>@Sequence.StartTimestamp.ToString("yyyy-MM-dd HH:mm:ssK") (@Sequence.TzId)</div>
                 <div>@HumanDuration(Sequence.Duration)</div>
             </div>

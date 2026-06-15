@@ -9,6 +9,7 @@ public class FactoryVerificationSequence : Sequence
     public FactoryVerificationSequence(ModalUiContext modalUiContext, FactoryVariables variables)
     {
         Name = "Factory verification";
+        Version = "1.0";
         Variables = variables;
         AddSteps(modalUiContext);
         SetStepIndices();

@@ -9,6 +9,7 @@ public class DeveloperVerificationSequence : Sequence
     public DeveloperVerificationSequence(ModalUiContext modalUiContext, FactoryVariables variables)
     {
         Name = "Developer verification";
+        Version = "1.0";
         Variables = variables;
         AddSteps(modalUiContext);
         SetStepIndices();

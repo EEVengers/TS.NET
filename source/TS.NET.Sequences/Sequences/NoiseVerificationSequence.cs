@@ -9,6 +9,7 @@ public class NoiseVerificationSequence : Sequence
     public NoiseVerificationSequence(ModalUiContext modalUiContext, NoiseVerificationVariables variables)
     {
         Name = "Noise verification";
+        Version = "1.0";
         Variables = variables;
         AddSteps(modalUiContext);
         SetStepIndices();

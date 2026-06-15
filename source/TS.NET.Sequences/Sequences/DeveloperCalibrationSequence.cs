@@ -9,6 +9,7 @@ public class DeveloperCalibrationSequence : Sequence
     public DeveloperCalibrationSequence(ModalUiContext modalUiContext, FactoryVariables variables)
     {
         Name = "Developer calibration";
+        Version = "1.0";
         Variables = variables;
         AddSteps(modalUiContext);
         SetStepIndices();
@@ -28,10 +29,6 @@ public class DeveloperCalibrationSequence : Sequence
             new InitialiseDeviceStep("Initialise device", Variables),
             new InitialiseSigGensStep("Initialise signal generators", Variables),
             new LoadCalibrationFromDefaultStep("Load calibration from default", Variables),
-            //new LoadCalibrationFromUserCalStep("Load calibration from user cal", Variables),
-            //new LoadCalibrationFromFileStep("Load calibration from file", Variables) { PostAction = cancellationToken => { Variables.TrimDacZeroCalibrated = true; Variables.TrimDacScaleCalibrated = true; Variables.BufferInputVppCalibrated = true; } },
-            //new SaveFactoryCalToDeviceStep("Save factory calibration to device", Variables),
-            //new SaveUserCalToDeviceStep("Save user calibration to device", Variables),
             new TemperatureCheckStep("Temperature check", Variables),
 
             //new ReferenceClockInputValidStep("Reference clock input check", Variables) { Skip = false, AllowSkip = true },
@@ -330,17 +327,17 @@ public class DeveloperCalibrationSequence : Sequence
             new BufferInputVppStep("Channel 1 - Buffer input Vpp - HG L8", channelIndex: 0, PgaPreampGain.High, pgaLadder: 8, Variables) { MaxRetries = 2 },
             new BufferInputVppStep("Channel 1 - Buffer input Vpp - HG L9", channelIndex: 0, PgaPreampGain.High, pgaLadder: 9, Variables) { MaxRetries = 2 },
             new BufferInputVppStep("Channel 1 - Buffer input Vpp - HG L10", channelIndex: 0, PgaPreampGain.High, pgaLadder: 10, Variables) { MaxRetries = 2 },
-            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L0", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 0, Variables),
-            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L1", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 1, Variables),
-            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L2", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 2, Variables),
-            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L3", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 3, Variables),
-            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L4", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 4, Variables),
-            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L5", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 5, Variables),
-            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L6", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 6, Variables),
-            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L7", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 7, Variables),
-            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L8", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 8, Variables),
-            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L9", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 9, Variables),
-            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L10", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 10, Variables),
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L0", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 0, Variables) { MaxRetries = 2 },
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L1", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 1, Variables) { MaxRetries = 2 },
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L2", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 2, Variables) { MaxRetries = 2 },
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L3", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 3, Variables) { MaxRetries = 2 },
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L4", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 4, Variables) { MaxRetries = 2 },
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L5", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 5, Variables) { MaxRetries = 2 },
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L6", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 6, Variables) { MaxRetries = 2 },
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L7", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 7, Variables) { MaxRetries = 2 },
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L8", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 8, Variables) { MaxRetries = 2 },
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L9", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 9, Variables) { MaxRetries = 2 },
+            new BufferInputVppStep("Channel 1 - Buffer input Vpp - LG L10", channelIndex: 0, PgaPreampGain.Low, pgaLadder: 10, Variables) { MaxRetries = 2 },
 
             new AttenuatorStep("Channel 1 - Attenuator scale", channelIndex: 0, Variables) { IgnoreError = true, MaxRetries = 2 },
 
@@ -579,7 +576,7 @@ public class DeveloperCalibrationSequence : Sequence
                 return Sequencer.Status.Done;
             }},
             new SaveCalToFileStep("Save calibration to file", Variables) { AllowSkip = true },
-            new SaveUserCalToDeviceStep("Save calibration to device", Variables) { AllowSkip = true },
+            new SaveUserCalToDeviceStep("Save user calibration to device", Variables) { AllowSkip = true },
 
             new Step("Cleanup"){ Action = (CancellationToken cancellationToken) => {
                 Instruments.Instance.Close();
