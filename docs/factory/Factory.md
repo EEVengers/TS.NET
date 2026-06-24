@@ -4,6 +4,13 @@
 To show factory sequences in the testbench software, edit `variables.json` to display the factory sequences:
 ```"sequenceTypes": [ "factory" ]```
 
+To build libtslitex with factory methods:
+```
+cd build/
+cmake --fresh .. -DENABLE_FACTORY_PROVISIONING=ON
+cmake --build .
+```
+
 ### Factory bring-up sequence
 
 Requires a JTAG-HS2 USB device.  
