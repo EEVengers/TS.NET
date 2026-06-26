@@ -1,6 +1,6 @@
-# SCPI Command Reference
+# SCPI socket Reference
 
-This document lists the SCPI commands currently implemented by `TS.NET.Engine/Threads/ScpiServer.cs`.
+This document lists the SCPI commands supported by the SCPI socket (typically port 5025).
 
 ## Transport / framing
 
