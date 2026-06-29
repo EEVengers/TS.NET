@@ -14,6 +14,9 @@ public class AttenuatorStep : Step
                 throw new TestbenchException($"Trim DAC zero must be calibrated before running {nameof(AttenuatorStep)}");
             }
 
+            // Set the scale to 50.0 now, so any errors in the step don't prevent this.
+            variables.Calibration.Frontend[channelIndex].AttenuatorScale = 50.0;
+
             const uint sampleRateHz = 1_000_000_000;
             Instruments.Instance.SetThunderscopeChannel([channelIndex]);
             Instruments.Instance.SetThunderscopeResolution(AdcResolution.EightBit);
@@ -46,7 +49,7 @@ public class AttenuatorStep : Step
                 variables.Calibration.Frontend[channelIndex].AttenuatorScale = 50.0;
                 variables.ParametersSet++;
                 Result!.Summary = $"Scale: {scale:F3}";
-                Logger.Instance.Log(LogLevel.Information, Index, Status.Failed, $"Attenuator scale outside limits: {scale:F3}");
+                Logger.Instance.Log(LogLevel.Information, Index, Status.Failed, $"Attenuator scale outside limits: {scale:F3}, set to 50.0");
                 return Status.Failed;
             }
 

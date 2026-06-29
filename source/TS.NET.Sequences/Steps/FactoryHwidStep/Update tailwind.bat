@@ -1,1 +1,1 @@
-tailwindcss-windows-x64.exe -o .\BetaTesterHwid.css -m
+tailwindcss-windows-x64.exe -o .\FactoryHwid.css -m

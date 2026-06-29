@@ -1,4 +1,7 @@
-﻿namespace TS.NET.Sequences;
+﻿using System.Buffers;
+using System.Numerics.Tensors;
+
+namespace TS.NET.Sequences;
 
 public readonly record struct SineWaveParameters(double FrequencyHz, double Amplitude, double PhaseDeg, double Offset);
 
@@ -9,7 +12,19 @@ public static class LsqFit
     // signal(t) = amplitude * sin(2π * frequency * time + phaseRadians) + offset
     public static SineWaveParameters SineThreeParameter(ReadOnlySpan<double> data, double sampleRateHz, double frequencyHz)
     {
-        var coefficients = FitCoefficientsAtFrequency(sampleRateHz, data, frequencyHz);
+        var sampleCount = data.Length;
+        var sinBuffer = ArrayPool<double>.Shared.Rent(sampleCount);
+        var cosBuffer = ArrayPool<double>.Shared.Rent(sampleCount);
+        SineCoefficientFit coefficients;
+        try
+        {
+            coefficients = FitCoefficientsAtFrequency(sampleRateHz, data, frequencyHz, sinBuffer.AsSpan(0, sampleCount), cosBuffer.AsSpan(0, sampleCount));
+        }
+        finally
+        {
+            ArrayPool<double>.Shared.Return(sinBuffer, clearArray: false);
+            ArrayPool<double>.Shared.Return(cosBuffer, clearArray: false);
+        }
 
         double amplitude = Math.Sqrt((coefficients.CoefficientB * coefficients.CoefficientB) + (coefficients.CoefficientD * coefficients.CoefficientD));
         double phaseRadians = Math.Atan2(coefficients.CoefficientD, coefficients.CoefficientB);
@@ -34,143 +49,185 @@ public static class LsqFit
         if (upperFrequency <= lowerFrequency)
             throw new ArgumentException("Frequency search range is invalid. Check approximate frequency, span, and sample rate.");
 
-        double step = (upperFrequency - lowerFrequency) / coarseSteps;
-        double bestFrequency = approximateFrequencyHz;
-        double bestRss = double.PositiveInfinity;
-
-        for (int i = 0; i <= coarseSteps; i++)
+        var sampleCount = data.Length;
+        var sinBuffer = ArrayPool<double>.Shared.Rent(sampleCount);
+        var cosBuffer = ArrayPool<double>.Shared.Rent(sampleCount);
+        try
         {
-            double candidateFrequency = lowerFrequency + (i * step);
-            var coefficients = FitCoefficientsAtFrequency(sampleRateHz, data, candidateFrequency);
-            double rss = coefficients.Rss;
-            if (rss < bestRss)
+            var sinTerms = sinBuffer.AsSpan(0, sampleCount);
+            var cosTerms = cosBuffer.AsSpan(0, sampleCount);
+
+            double step = (upperFrequency - lowerFrequency) / coarseSteps;
+            double bestFrequency = approximateFrequencyHz;
+            double bestRss = double.PositiveInfinity;
+
+            for (int i = 0; i <= coarseSteps; i++)
             {
-                bestRss = rss;
-                bestFrequency = candidateFrequency;
+                double candidateFrequency = lowerFrequency + (i * step);
+                var coefficients = FitCoefficientsAtFrequency(sampleRateHz, data, candidateFrequency, sinTerms, cosTerms);
+                double rss = coefficients.Rss;
+                if (rss < bestRss)
+                {
+                    bestRss = rss;
+                    bestFrequency = candidateFrequency;
+                }
             }
+
+            double a = Math.Max(lowerFrequency, bestFrequency - step);
+            double b = Math.Min(upperFrequency, bestFrequency + step);
+
+            const double goldenRatio = 0.6180339887498948;
+            double c = b - ((b - a) * goldenRatio);
+            double d = a + ((b - a) * goldenRatio);
+            double rssC = FitCoefficientsAtFrequency(sampleRateHz, data, c, sinTerms, cosTerms).Rss;
+            double rssD = FitCoefficientsAtFrequency(sampleRateHz, data, d, sinTerms, cosTerms).Rss;
+
+            for (int i = 0; i < refinementIterations; i++)
+            {
+                if (rssC < rssD)
+                {
+                    b = d;
+                    d = c;
+                    rssD = rssC;
+                    c = b - ((b - a) * goldenRatio);
+                    rssC = FitCoefficientsAtFrequency(sampleRateHz, data, c, sinTerms, cosTerms).Rss;
+                }
+                else
+                {
+                    a = c;
+                    c = d;
+                    rssC = rssD;
+                    d = a + ((b - a) * goldenRatio);
+                    rssD = FitCoefficientsAtFrequency(sampleRateHz, data, d, sinTerms, cosTerms).Rss;
+                }
+            }
+
+            double fittedFrequency = (a + b) * 0.5;
+            var fittedCoefficients = FitCoefficientsAtFrequency(sampleRateHz, data, fittedFrequency, sinTerms, cosTerms);
+
+            double amplitude = Math.Sqrt((fittedCoefficients.CoefficientB * fittedCoefficients.CoefficientB) + (fittedCoefficients.CoefficientD * fittedCoefficients.CoefficientD));
+            double phaseRadians = Math.Atan2(fittedCoefficients.CoefficientD, fittedCoefficients.CoefficientB);
+            return new SineWaveParameters(fittedFrequency, amplitude, phaseRadians * (180.0 / Math.PI), fittedCoefficients.Offset);
         }
-        
-        double a = Math.Max(lowerFrequency, bestFrequency - step);
-        double b = Math.Min(upperFrequency, bestFrequency + step);
-
-        const double goldenRatio = 0.6180339887498948;
-        double c = b - ((b - a) * goldenRatio);
-        double d = a + ((b - a) * goldenRatio);
-        double rssC = FitCoefficientsAtFrequency(sampleRateHz, data, c).Rss;
-        double rssD = FitCoefficientsAtFrequency(sampleRateHz, data, d).Rss;
-
-        for (int i = 0; i < refinementIterations; i++)
+        finally
         {
-            if (rssC < rssD)
-            {
-                b = d;
-                d = c;
-                rssD = rssC;
-                c = b - ((b - a) * goldenRatio);
-                rssC = FitCoefficientsAtFrequency(sampleRateHz, data, c).Rss;
-            }
-            else
-            {
-                a = c;
-                c = d;
-                rssC = rssD;
-                d = a + ((b - a) * goldenRatio);
-                rssD = FitCoefficientsAtFrequency(sampleRateHz, data, d).Rss;
-            }
+            ArrayPool<double>.Shared.Return(sinBuffer, clearArray: false);
+            ArrayPool<double>.Shared.Return(cosBuffer, clearArray: false);
         }
-
-        double fittedFrequency = (a + b) * 0.5;
-        var fittedCoefficients = FitCoefficientsAtFrequency(sampleRateHz, data, fittedFrequency);
-
-        double amplitude = Math.Sqrt((fittedCoefficients.CoefficientB * fittedCoefficients.CoefficientB) + (fittedCoefficients.CoefficientD * fittedCoefficients.CoefficientD));
-        double phaseRadians = Math.Atan2(fittedCoefficients.CoefficientD, fittedCoefficients.CoefficientB);
-        return new SineWaveParameters(fittedFrequency, amplitude, phaseRadians * (180.0 / Math.PI), fittedCoefficients.Offset);
     }
 
-    private static SineCoefficientFit FitCoefficientsAtFrequency(double sampleRateHz, ReadOnlySpan<double> sampleValues, double frequency)
+    private static SineCoefficientFit FitCoefficientsAtFrequency(double sampleRateHz, ReadOnlySpan<double> sampleValues, double frequency, Span<double> sinTerms, Span<double> cosTerms)
     {
         int sampleCount = sampleValues.Length;
-        double angularFrequency = 2.0 * Math.PI * frequency;
+        if (sinTerms.Length < sampleCount || cosTerms.Length < sampleCount)
+            throw new ArgumentException("Basis buffers must be at least sample length.");
 
-        double sumSin = 0;
-        double sumCos = 0;
-        double sumOne = 0;
-        double sumSinSquared = 0;
-        double sumCosSquared = 0;
-        double sumSinCos = 0;
-        double sumValueSin = 0;
-        double sumValueCos = 0;
-        double sumValues = 0;
+        var sinBasis = sinTerms.Slice(0, sampleCount);
+        var cosBasis = cosTerms.Slice(0, sampleCount);
+        BuildSinCosBasis(sampleRateHz, frequency, sinBasis, cosBasis);
 
-        for (int i = 0; i < sampleCount; i++)
-        {
-            var time = i / sampleRateHz;
-            double sineTerm = Math.Sin(angularFrequency * time);
-            double cosineTerm = Math.Cos(angularFrequency * time);
-            double signalValue = sampleValues[i];
+        double sumSin = TensorPrimitives.Sum(sinBasis);
+        double sumCos = TensorPrimitives.Sum(cosBasis);
+        double sumOne = sampleCount;
+        double sumSinSquared = TensorPrimitives.Dot(sinBasis, sinBasis);
+        double sumCosSquared = TensorPrimitives.Dot(cosBasis, cosBasis);
+        double sumSinCos = TensorPrimitives.Dot(sinBasis, cosBasis);
+        double sumValueSin = TensorPrimitives.Dot(sampleValues, sinBasis);
+        double sumValueCos = TensorPrimitives.Dot(sampleValues, cosBasis);
+        double sumValues = TensorPrimitives.Sum(sampleValues);
+        double sumValueSquared = TensorPrimitives.Dot(sampleValues, sampleValues);
 
-            sumSin += sineTerm;
-            sumCos += cosineTerm;
-            sumOne += 1.0;
-            sumSinSquared += sineTerm * sineTerm;
-            sumCosSquared += cosineTerm * cosineTerm;
-            sumSinCos += sineTerm * cosineTerm;
-            sumValueSin += signalValue * sineTerm;
-            sumValueCos += signalValue * cosineTerm;
-            sumValues += signalValue;
-        }
+        Solve3x3(
+            m11: sumSinSquared,
+            m12: sumSinCos,
+            m13: sumSin,
+            m21: sumSinCos,
+            m22: sumCosSquared,
+            m23: sumCos,
+            m31: sumSin,
+            m32: sumCos,
+            m33: sumOne,
+            rhs1: sumValueSin,
+            rhs2: sumValueCos,
+            rhs3: sumValues,
+            out double coefficientB,
+            out double coefficientD,
+            out double offset);
 
-        double[,] normalMatrix = {
-            { sumSinSquared, sumSinCos, sumSin },
-            { sumSinCos, sumCosSquared, sumCos },
-            { sumSin, sumCos, sumOne }
-        };
+        // Residual sum of squares expanded in terms of the precomputed sums.
+        double rss = sumValueSquared
+            - (2.0 * ((coefficientB * sumValueSin) + (coefficientD * sumValueCos) + (offset * sumValues)))
+            + ((coefficientB * coefficientB * sumSinSquared)
+            + (coefficientD * coefficientD * sumCosSquared)
+            + (offset * offset * sumOne)
+            + (2.0 * coefficientB * coefficientD * sumSinCos)
+            + (2.0 * coefficientB * offset * sumSin)
+            + (2.0 * coefficientD * offset * sumCos));
 
-        double[] rightHandSide = { sumValueSin, sumValueCos, sumValues };
-        double[] coefficients = Solve3x3(normalMatrix, rightHandSide);
-        double coefficientB = coefficients[0];
-        double coefficientD = coefficients[1];
-        double offset = coefficients[2];
-
-        double rss = 0;
-        for (int i = 0; i < sampleCount; i++)
-        {
-            var time = i / sampleRateHz;
-            double modelValue = (coefficientB * Math.Sin(angularFrequency * time)) + (coefficientD * Math.Cos(angularFrequency * time)) + offset;
-            double residual = sampleValues[i] - modelValue;
-            rss += residual * residual;
-        }
+        if (rss < 0 && rss > -1e-9)
+            rss = 0;
 
         return new SineCoefficientFit(coefficientB, coefficientD, offset, rss);
     }
 
-    // Solves a 3x3 linear system using Cramer's Rule
-    private static double[] Solve3x3(double[,] matrix, double[] rhs)
+    private static void BuildSinCosBasis(double sampleRateHz, double frequency, Span<double> sinBasis, Span<double> cosBasis)
     {
-        double determinant =
-            matrix[0, 0] * (matrix[1, 1] * matrix[2, 2] - matrix[1, 2] * matrix[2, 1]) -
-            matrix[0, 1] * (matrix[1, 0] * matrix[2, 2] - matrix[1, 2] * matrix[2, 0]) +
-            matrix[0, 2] * (matrix[1, 0] * matrix[2, 1] - matrix[1, 1] * matrix[2, 0]);
+        double angularStep = (2.0 * Math.PI * frequency) / sampleRateHz;
+        double sinStep = Math.Sin(angularStep);
+        double cosStep = Math.Cos(angularStep);
 
-        double[] solution = new double[3];
+        double sinCurrent = 0.0;
+        double cosCurrent = 1.0;
 
-        for (int col = 0; col < 3; col++)
+        for (int i = 0; i < sinBasis.Length; i++)
         {
-            double[,] matrixCopy = (double[,])matrix.Clone();
-            for (int row = 0; row < 3; row++)
+            sinBasis[i] = sinCurrent;
+            cosBasis[i] = cosCurrent;
+
+            double nextSin = (sinCurrent * cosStep) + (cosCurrent * sinStep);
+            double nextCos = (cosCurrent * cosStep) - (sinCurrent * sinStep);
+
+            sinCurrent = nextSin;
+            cosCurrent = nextCos;
+
+            // Keep recurrence numerically stable for long vectors.
+            if ((i & 1023) == 1023)
             {
-                matrixCopy[row, col] = rhs[row];
-
+                double magnitude = Math.Sqrt((sinCurrent * sinCurrent) + (cosCurrent * cosCurrent));
+                if (magnitude != 0)
+                {
+                    double invMagnitude = 1.0 / magnitude;
+                    sinCurrent *= invMagnitude;
+                    cosCurrent *= invMagnitude;
+                }
             }
+        }
+    }
 
-            double determinantCol =
-                matrixCopy[0, 0] * (matrixCopy[1, 1] * matrixCopy[2, 2] - matrixCopy[1, 2] * matrixCopy[2, 1]) -
-                matrixCopy[0, 1] * (matrixCopy[1, 0] * matrixCopy[2, 2] - matrixCopy[1, 2] * matrixCopy[2, 0]) +
-                matrixCopy[0, 2] * (matrixCopy[1, 0] * matrixCopy[2, 1] - matrixCopy[1, 1] * matrixCopy[2, 0]);
+    // Solves a 3x3 linear system using Cramer's Rule
+    private static void Solve3x3(
+        double m11, double m12, double m13,
+        double m21, double m22, double m23,
+        double m31, double m32, double m33,
+        double rhs1, double rhs2, double rhs3,
+        out double x1, out double x2, out double x3)
+    {
+        double determinant = (m11 * ((m22 * m33) - (m23 * m32))) - (m12 * ((m21 * m33) - (m23 * m31))) + (m13 * ((m21 * m32) - (m22 * m31)));
 
-            solution[col] = determinantCol / determinant;
+        if (Math.Abs(determinant) < 1e-24)
+        {
+            x1 = 0;
+            x2 = 0;
+            x3 = 0;
+            return;
         }
 
-        return solution;
+        double determinantX1 = (rhs1 * ((m22 * m33) - (m23 * m32))) - (m12 * ((rhs2 * m33) - (m23 * rhs3))) + (m13 * ((rhs2 * m32) - (m22 * rhs3)));
+        double determinantX2 = (m11 * ((rhs2 * m33) - (m23 * rhs3))) - (rhs1 * ((m21 * m33) - (m23 * m31))) + (m13 * ((m21 * rhs3) - (rhs2 * m31)));
+        double determinantX3 = (m11 * ((m22 * rhs3) - (rhs2 * m32))) - (m12 * ((m21 * rhs3) - (rhs2 * m31))) + (rhs1 * ((m21 * m32) - (m22 * m31)));
+
+        x1 = determinantX1 / determinant;
+        x2 = determinantX2 / determinant;
+        x3 = determinantX3 / determinant;
     }
 }

@@ -102,6 +102,13 @@ public class TcpScpiConnection : IDisposable
     {
         CheckOpen();
         streamWriter!.WriteLine(data);
+        streamWriter.Flush();
+    }
+
+    public void WriteRaw(byte[] data)
+    {
+        CheckOpen();
+        networkStream!.Write(data, 0, data.Length);
     }
 
     public string ReadLine()

@@ -462,9 +462,15 @@ public class Instruments
 
         using SpanOwner<sbyte> i8Buffer = SpanOwner<sbyte>.Allocate(sampleCount);           // Returned to pool when it goes out of scope
         GetChannelDataI8(channelIndex, sampleCount, i8Buffer.Span);
-        DataSaturationCheck(i8Buffer.Span, out sbyte min, out sbyte max);
-        using SpanOwner<double> f64Buffer = SpanOwner<double>.Allocate(sampleCount);  // Returned to pool when it goes out of scope
-        var i8Span = i8Buffer.Span;
+        var lsqVpp = GetPeakPeakAtFrequencyLsq(i8Buffer.Span, frequency, sampleRateHz, out range);
+        return lsqVpp;
+    }
+
+    public double GetPeakPeakAtFrequencyLsq(Span<sbyte> data, double frequency, double sampleRateHz, out int range)
+    {
+        DataSaturationCheck(data, out sbyte min, out sbyte max);
+        using SpanOwner<double> f64Buffer = SpanOwner<double>.Allocate(data.Length);  // Returned to pool when it goes out of scope
+        var i8Span = data;
         var f64Span = f64Buffer.Span;
 
         range = max - min;
@@ -490,6 +496,193 @@ public class Instruments
         Debug.WriteLine($"LSQ time: {lsqTime:F2}ms, over length {f64Span.Length}");
 
         return lsqVpp;
+    }
+
+    public void GetSingleRisingEdgeTriggeredCaptureI8(TriggerChannel triggerChannel, int captureLength, double triggerTimeoutS, Span<sbyte> outputBuffer, FrontendPathCalibration pathCalibration, Action? onAfterFirstRead = null, float triggerLevelV = 0.0f, float hysteresisPercent = 5.0f)
+    {
+        if (captureLength <= 0)
+            throw new ArgumentOutOfRangeException(nameof(captureLength), "Capture length must be greater than zero.");
+        if (triggerTimeoutS <= 0)
+            throw new ArgumentOutOfRangeException(nameof(triggerTimeoutS), "Trigger timeout must be greater than zero.");
+        if (outputBuffer.Length < captureLength)
+            throw new ArgumentException("Output buffer length is less than capture length.", nameof(outputBuffer));
+        if (triggerChannel is TriggerChannel.None or TriggerChannel.External)
+            throw new TestbenchException("Trigger channel must be one of Channel1..Channel4.");
+
+        var config = thunderScope!.GetConfiguration();
+        if (config.Acquisition.EnabledChannelsCount() != 1)
+            throw new TestbenchException("Exactly one channel must be enabled.");
+        if (config.Acquisition.Resolution != AdcResolution.EightBit)
+            throw new TestbenchException("Acquisition is not configured for 8-bit capture.");
+
+        var enabledChannelIndex = GetSingleEnabledChannelIndex(config.Acquisition);
+        var triggerChannelIndex = (int)triggerChannel - 1;
+        if (enabledChannelIndex != triggerChannelIndex)
+            throw new TestbenchException("Trigger channel must match the single enabled channel.");
+
+        var triggerParameters = new EdgeTriggerParameters
+        {
+            Direction = EdgeDirection.Rising,
+            LevelV = triggerLevelV,
+            HysteresisPercent = hysteresisPercent
+        };
+
+        var trigger = new RisingEdgeTriggerI8(triggerParameters, pathCalibration.BufferInputVpp, 0.0);
+
+        const int blockSizeBytes = 1024 * 1024;
+        var subsetDataMemory = dataMemory!.Subset(blockSizeBytes);
+        var chunk = subsetDataMemory.DataSpanI8;
+
+        var maxTransitions = Math.Max(1024, (chunk.Length / 1000) + 16);
+        var triggerResults = new EdgeTriggerResults
+        {
+            ArmIndices = new ulong[maxTransitions],
+            TriggerIndices = new ulong[maxTransitions],
+            CaptureEndIndices = new ulong[maxTransitions]
+        };
+
+        thunderScope.Stop();
+        thunderScope.Start();
+
+        int captured = 0;
+        bool triggered = false;
+        bool firstRead = true;
+        var timeout = Stopwatch.StartNew();
+        var destination = outputBuffer.Slice(0, captureLength);
+
+        while (captured < captureLength)
+        {
+            if (thunderScope.TryRead(subsetDataMemory.DataSpanU8, out var sampleStartIndex, out var sampleLengthPerChannel))
+            {
+                var readChunk = chunk.Slice(0, sampleLengthPerChannel);
+                if (firstRead)
+                {
+                    onAfterFirstRead?.Invoke();
+                    firstRead = false;
+                }
+
+                if (!triggered)
+                {
+                    trigger.Process(readChunk, sampleStartIndex, ref triggerResults);
+                    if (triggerResults.TriggerCount > 0)
+                    {
+                        var triggerSampleIndex = triggerResults.TriggerIndices[0];
+                        if (triggerSampleIndex < sampleStartIndex)
+                        {
+                            continue;
+                        }
+
+                        var localTriggerOffset = triggerSampleIndex - sampleStartIndex;
+                        if (localTriggerOffset >= (ulong)readChunk.Length)
+                        {
+                            continue;
+                        }
+
+                        int triggerIndex = (int)localTriggerOffset;
+                        int copyLength = Math.Min(captureLength - captured, readChunk.Length - triggerIndex);
+                        readChunk.Slice(triggerIndex, copyLength).CopyTo(destination.Slice(captured, copyLength));
+                        captured += copyLength;
+                        triggered = true;
+                    }
+                    else if (timeout.Elapsed.TotalSeconds > triggerTimeoutS)
+                    {
+                        throw new TimeoutException($"Timeout waiting for rising edge trigger on {triggerChannel} after {triggerTimeoutS}s.");
+                    }
+                }
+                else
+                {
+                    int copyLength = Math.Min(captureLength - captured, readChunk.Length);
+                    readChunk.Slice(0, copyLength).CopyTo(destination.Slice(captured, copyLength));
+                    captured += copyLength;
+                }
+            }
+        }
+    }
+
+    public void GetSingleRisingEdgeTriggeredCaptureI16(TriggerChannel triggerChannel, int captureLength, int triggerTimeoutMs, Span<short> outputBuffer, Action? onAfterFirstRead = null, float triggerLevelV = 0.0f, float hysteresisPercent = 5.0f)
+    {
+        if (captureLength <= 0)
+            throw new ArgumentOutOfRangeException(nameof(captureLength), "Capture length must be greater than zero.");
+        if (triggerTimeoutMs <= 0)
+            throw new ArgumentOutOfRangeException(nameof(triggerTimeoutMs), "Trigger timeout must be greater than zero.");
+        if (outputBuffer.Length < captureLength)
+            throw new ArgumentException("Output buffer length is less than capture length.", nameof(outputBuffer));
+        if (triggerChannel is TriggerChannel.None or TriggerChannel.External)
+            throw new TestbenchException("Trigger channel must be one of Channel1..Channel4.");
+
+        var config = thunderScope!.GetConfiguration();
+        if (config.Acquisition.EnabledChannelsCount() != 1)
+            throw new TestbenchException("Exactly one channel must be enabled.");
+        if (config.Acquisition.Resolution != AdcResolution.TwelveBit)
+            throw new TestbenchException("Acquisition is not configured for 12-bit (I16) capture.");
+
+        var enabledChannelIndex = GetSingleEnabledChannelIndex(config.Acquisition);
+        var triggerChannelIndex = (int)triggerChannel - 1;
+        if (enabledChannelIndex != triggerChannelIndex)
+            throw new TestbenchException("Trigger channel must match the single enabled channel.");
+
+        var triggerParameters = new EdgeTriggerParameters
+        {
+            Direction = EdgeDirection.Rising,
+            LevelV = triggerLevelV,
+            HysteresisPercent = hysteresisPercent
+        };
+        var triggerFrontend = config.Frontend[triggerChannelIndex];
+        var trigger = new RisingEdgeTriggerI16(triggerParameters, config.Acquisition.Resolution, triggerFrontend.ActualVoltFullScale, triggerFrontend.ActualVoltOffset);
+
+        const int blockSizeBytes = 1024 * 1024;
+        var subsetDataMemory = dataMemory!.Subset(blockSizeBytes);
+        var chunk = subsetDataMemory.DataSpanI16;
+
+        var maxTransitions = Math.Max(1024, (chunk.Length / 1000) + 16);
+        var triggerResults = new EdgeTriggerResults
+        {
+            ArmIndices = new ulong[maxTransitions],
+            TriggerIndices = new ulong[maxTransitions],
+            CaptureEndIndices = new ulong[maxTransitions]
+        };
+
+        thunderScope.Stop();
+        thunderScope.Start();
+
+        int captured = 0;
+        bool triggered = false;
+        bool firstRead = true;
+        var timeout = Stopwatch.StartNew();
+        var destination = outputBuffer.Slice(0, captureLength);
+
+        while (captured < captureLength)
+        {
+            thunderScope.Read(subsetDataMemory);
+            if (firstRead)
+            {
+                onAfterFirstRead?.Invoke();
+                firstRead = false;
+            }
+
+            if (!triggered)
+            {
+                trigger.Process(chunk, 0, ref triggerResults);
+                if (triggerResults.TriggerCount > 0)
+                {
+                    int triggerIndex = (int)triggerResults.TriggerIndices[0];
+                    int copyLength = Math.Min(captureLength - captured, chunk.Length - triggerIndex);
+                    chunk.Slice(triggerIndex, copyLength).CopyTo(destination.Slice(captured, copyLength));
+                    captured += copyLength;
+                    triggered = true;
+                }
+                else if (timeout.ElapsedMilliseconds > triggerTimeoutMs)
+                {
+                    throw new TimeoutException($"Timeout waiting for rising edge trigger on {triggerChannel} after {triggerTimeoutMs} ms.");
+                }
+            }
+            else
+            {
+                int copyLength = Math.Min(captureLength - captured, chunk.Length);
+                chunk.Slice(0, copyLength).CopyTo(destination.Slice(captured, copyLength));
+                captured += copyLength;
+            }
+        }
     }
 
     private ReadOnlySpan<sbyte> GetDataI8Interleaved(int minLengthPerChannel)
@@ -600,75 +793,13 @@ public class Instruments
             throw new TestbenchException($"Signal saturated the ADC ({sbyte.MaxValue})");
     }
 
-    //public (double amplitude, double phaseDeg, double offset) GetThunderscopeBodeAtFrequencyLsq(int channelIndex, double frequency, double sampleRateHz, double inputVpp, AdcResolution resolution)
-    //{
-    //    var config = thunderScope!.GetConfiguration();
-    //    if (config.Acquisition.EnabledChannelsCount() != 2)
-    //        throw new TestbenchException("2 channels must be enabled");
-    //    if (!config.Acquisition.IsChannelIndexAnEnabledChannel(channelIndex))
-    //        throw new TestbenchException("Requested channel index is not an enabled channel");
-
-    //    int triggerChannelIndex = channelIndex switch
-    //    {
-    //        0 => 1,
-    //        1 => 0,
-    //        _ => throw new NotImplementedException()
-    //    };
-
-    //    thunderScope!.Stop();
-    //    thunderScope!.Start();
-    //    var subsetDataMemory = dataMemory!.Subset(32 * 1024 * 1024);
-    //    var subsetShuffleMemory = shuffleMemory!.Subset(32 * 1024 * 1024);
-    //    thunderScope!.Read(subsetDataMemory);
-
-    //    var sampleCount = (int)((sampleRateHz / frequency) * 10.0);
-    //    var samples = subsetDataMemory.DataSpanI8;//.Slice(subsetDataMemory.DataSpanI8.Length - sampleCount, sampleCount);
-    //    Span<sbyte> triggerChannel;
-    //    Span<sbyte> dataChannel;
-    //    switch (config.Acquisition.EnabledChannelsCount())
-    //    {
-    //        case 2:
-    //            {
-    //                Span<sbyte> twoChannels = subsetShuffleMemory.DataSpanI8;
-    //                ShuffleI8.TwoChannels(samples, twoChannels);
-    //                var length = samples.Length / 2;
-    //                dataChannel = twoChannels.Slice(channelIndex * length, length);
-    //                triggerChannel = twoChannels.Slice(triggerChannelIndex * length, length);
-    //                break;
-    //            }
-    //        default:
-    //            throw new NotImplementedException();
-    //    }
-
-    //    var trigger = new RisingEdgeTriggerI8(new EdgeTriggerParameters() { Direction = EdgeDirection.Rising, HysteresisPercent = 5, LevelV = 0 }, 0.8);
-    //    var triggerResults = new EdgeTriggerResults()
-    //    {
-    //        ArmIndices = new ulong[100],
-    //        TriggerIndices = new ulong[100],
-    //        CaptureEndIndices = new ulong[100]
-    //    };
-    //    trigger.Process(triggerChannel, 0, ref triggerResults);
-    //    if (triggerResults.TriggerCount == 0)
-    //        throw new TestbenchException("No triggers found");
-    //    if (triggerResults.CaptureEndCount == 0)
-    //        throw new TestbenchException("No captures found");
-
-    //    var triggeredData = dataChannel.Slice((int)triggerResults.TriggerIndices[0], sampleCount);
-    //    var squareData = triggerChannel.Slice((int)triggerResults.TriggerIndices[0], sampleCount);
-
-    //    double[] scaledSamples = new double[triggeredData.Length];
-    //    var vPerBit = resolution switch
-    //    {
-    //        AdcResolution.EightBit => (double)(inputVpp / 256.0),
-    //        AdcResolution.TwelveBit => (double)(inputVpp / 4096.0),
-    //        _ => throw new NotImplementedException()
-    //    };
-
-    //    for (int i = 0; i < scaledSamples.Length; i++)
-    //    {
-    //        scaledSamples[i] = triggeredData[i] * vPerBit;
-    //    }
-
-    //    return SineLeastSquaresFit.FitSineWave(sampleRateHz, scaledSamples, frequency);
-    //}
+    private static int GetSingleEnabledChannelIndex(ThunderscopeAcquisitionConfig acquisition)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            if (acquisition.IsChannelIndexAnEnabledChannel(i))
+                return i;
+        }
+        throw new TestbenchException("No enabled channels.");
+    }
 }

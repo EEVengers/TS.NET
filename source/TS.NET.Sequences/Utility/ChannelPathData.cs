@@ -14,7 +14,7 @@ public class ChannelPathData
     public ushort TrimDacZeroHotDac { get; set; }
     public double TrimDacZeroHotTemp { get; set; }
 
-    public ChannelPathData(PgaPreampGain pgaPreampGain, byte pgaLadder, double targetDPotRes, double sgAmpStep, double sgAmpStart = 0)
+    public ChannelPathData(PgaPreampGain pgaPreampGain, byte pgaLadder, double targetDPotRes, double sgAmpStep, double sgAmpStart)
     {
         PgaPreampGain = pgaPreampGain;
         PgaLadder = pgaLadder;

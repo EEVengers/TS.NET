@@ -43,11 +43,20 @@ public class TrimDacZeroHotStep : Step
                     variables.LastDacValue = dac;
 
                     // Now calculate the calibration value
-                    var m = (pathData.TrimDacZeroColdDac - pathData.TrimDacZeroHotDac) / (pathData.TrimDacZeroColdTemp - pathData.TrimDacZeroHotTemp);
-                    var c = pathData.TrimDacZeroHotDac - (m * pathData.TrimDacZeroHotTemp);
-                    pathCalibration.TrimDacZeroM = Math.Round(m, 2);
-                    pathCalibration.TrimDacZeroC = Math.Round(c, 1);
-                    Logger.Instance.Log(LogLevel.Information, Index, Status.Passed, $"TrimDacZeroM: {pathCalibration.TrimDacZeroM}, TrimDacZeroC: {pathCalibration.TrimDacZeroC}°C");
+                    if(pathData.TrimDacZeroColdDac != 0 && pathData.TrimDacZeroColdTemp != 0)
+                    {
+                        var m = (pathData.TrimDacZeroColdDac - pathData.TrimDacZeroHotDac) / (pathData.TrimDacZeroColdTemp - pathData.TrimDacZeroHotTemp);
+                        var c = pathData.TrimDacZeroHotDac - (m * pathData.TrimDacZeroHotTemp);
+                        pathCalibration.TrimDacZeroM = Math.Round(m, 2);
+                        pathCalibration.TrimDacZeroC = Math.Round(c, 1);
+                    }
+                    else
+                    {
+                        // Factory trim sequence does not have cold trim values, so m to 0 and c to dac value
+                        pathCalibration.TrimDacZeroM = 0;
+                        pathCalibration.TrimDacZeroC = dac;
+                    }
+                    Logger.Instance.Log(LogLevel.Information, Index, Status.Passed, $"TrimDacZeroM: {pathCalibration.TrimDacZeroM}, TrimDacZeroC: {pathCalibration.TrimDacZeroC}");
                     variables.ParametersSet += 2;
                     return Status.Passed;
                 }

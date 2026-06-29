@@ -1,0 +1,1 @@
+tailwindcss-windows-x64.exe -o .\Trim.css -m
