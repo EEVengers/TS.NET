@@ -466,9 +466,9 @@ public class Instruments
         return lsqVpp;
     }
 
-    public double GetPeakPeakAtFrequencyLsq(Span<sbyte> data, double frequency, double sampleRateHz, out int range)
+    public double GetPeakPeakAtFrequencyLsq(Span<sbyte> data, double frequency, double sampleRateHz, out int range, bool saturationCheck = true)
     {
-        DataSaturationCheck(data, out sbyte min, out sbyte max);
+        DataSaturationCheck(data, out sbyte min, out sbyte max, saturationCheck);
         using SpanOwner<double> f64Buffer = SpanOwner<double>.Allocate(data.Length);  // Returned to pool when it goes out of scope
         var i8Span = data;
         var f64Span = f64Buffer.Span;
@@ -783,14 +783,17 @@ public class Instruments
         thunderScope?.FactoryDataAppend(tag, jsonBytes);
     }
 
-    public static void DataSaturationCheck(ReadOnlySpan<sbyte> data, out sbyte min, out sbyte max)
+    public static void DataSaturationCheck(ReadOnlySpan<sbyte> data, out sbyte min, out sbyte max, bool throwException = true)
     {
         min = TensorPrimitives.MinNumber<sbyte>(data);
         max = TensorPrimitives.MaxNumber<sbyte>(data);
-        if (min == sbyte.MinValue)
-            throw new TestbenchException($"Signal saturated the ADC ({sbyte.MinValue})");
-        if (max == sbyte.MaxValue)
-            throw new TestbenchException($"Signal saturated the ADC ({sbyte.MaxValue})");
+        if (throwException)
+        {
+            if (min == sbyte.MinValue)
+                throw new TestbenchException($"Signal saturated the ADC ({sbyte.MinValue})");
+            if (max == sbyte.MaxValue)
+                throw new TestbenchException($"Signal saturated the ADC ({sbyte.MaxValue})");
+        }
     }
 
     private static int GetSingleEnabledChannelIndex(ThunderscopeAcquisitionConfig acquisition)

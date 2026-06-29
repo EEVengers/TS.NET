@@ -118,7 +118,7 @@ public class ModalUiStep : Step
         });
     }
 
-    public static string GetEmbeddedStyle<TDerived>()
+    public static string GetEmbeddedCss<TDerived>()
     {
         var ns = typeof(TDerived).Namespace ?? string.Empty;
         var fileName = $"{typeof(TDerived).Name}.css";
@@ -137,6 +137,34 @@ public class ModalUiStep : Step
             {
                 using var reader = new StreamReader(stream);
                 return reader.ReadToEnd();
+            }
+        }
+
+        return string.Empty;
+    }
+
+    public static string GetEmbeddedPngDataUri<TDerived>(string fileName)
+    {
+        var ns = typeof(TDerived).Namespace ?? string.Empty;
+
+        // Use the assembly that defines the derived component type
+        var assembly = typeof(TDerived).Assembly;
+        var resourceNames = assembly.GetManifestResourceNames();
+
+        var match = resourceNames.FirstOrDefault(r =>
+            r.Contains(ns, StringComparison.Ordinal) &&
+            r.EndsWith(fileName, StringComparison.Ordinal));
+
+        if (match != null)
+        {
+            using var stream = assembly.GetManifestResourceStream(match);
+            if (stream != null)
+            {
+                using var memoryStream = new MemoryStream();
+                stream.CopyTo(memoryStream);
+
+                var base64 = Convert.ToBase64String(memoryStream.ToArray());
+                return $"data:image/png;base64,{base64}";
             }
         }
 

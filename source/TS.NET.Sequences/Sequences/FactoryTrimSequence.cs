@@ -86,7 +86,7 @@ public class FactoryTrimSequence : Sequence
             new BufferInputVppStep("Channel 2 - Buffer input Vpp - LG L1", channelIndex: 1, PgaPreampGain.Low, pgaLadder: 1, Variables),
             new BufferInputVppStep("Channel 3 - Buffer input Vpp - LG L1", channelIndex: 2, PgaPreampGain.Low, pgaLadder: 1, Variables),
             new BufferInputVppStep("Channel 4 - Buffer input Vpp - LG L1", channelIndex: 3, PgaPreampGain.Low, pgaLadder: 1, Variables),
-            
+
             new AttenuatorStep("Channel 1 - Attenuator scale", channelIndex: 0, Variables) { IgnoreError = true },
             new AttenuatorStep("Channel 2 - Attenuator scale", channelIndex: 1, Variables) { IgnoreError = true },
             new AttenuatorStep("Channel 3 - Attenuator scale", channelIndex: 2, Variables) { IgnoreError = true },
@@ -98,10 +98,10 @@ public class FactoryTrimSequence : Sequence
                 {
                     trimPotArbWaveform.Length = SigGens.Instance.LoadSdgArbitraryBurstList(0, trimPotArbWaveform.SampleRateHz, trimPotArbWaveform.Frequencies, trimPotArbWaveform.CyclesPerFrequency, waveName: trimPotArbWaveform.Name, waveShape: SigGens.ArbitraryWaveShape.Square);
                     SigGens.Instance.LoadSdgArbitraryBurstList(2, trimPotArbWaveform.SampleRateHz, trimPotArbWaveform.Frequencies, trimPotArbWaveform.CyclesPerFrequency, waveName: trimPotArbWaveform.Name, waveShape: SigGens.ArbitraryWaveShape.Square);
-                    
+
                     trimCapArbWaveform.Length = SigGens.Instance.LoadSdgArbitraryBurstList(0, trimCapArbWaveform.SampleRateHz, trimCapArbWaveform.Frequencies, trimCapArbWaveform.CyclesPerFrequency, waveName: trimCapArbWaveform.Name, waveShape: SigGens.ArbitraryWaveShape.Square);
                     SigGens.Instance.LoadSdgArbitraryBurstList(2, trimCapArbWaveform.SampleRateHz, trimCapArbWaveform.Frequencies, trimCapArbWaveform.CyclesPerFrequency, waveName: trimCapArbWaveform.Name, waveShape: SigGens.ArbitraryWaveShape.Square);
-                    
+
                     return Sequencer.Status.Done;
                 }
             },
@@ -114,39 +114,10 @@ public class FactoryTrimSequence : Sequence
                 PgaLadder = 10,
                 Attenuator = false,
                 SampleRateHz = 100_000_000,
-                ArbProfile = trimPotArbWaveform
+                ArbProfile = trimPotArbWaveform,
+                ArrowX = 148,
+                ArrowY = 100
             },
-            new TrimStep2("Channel 2 - Trim pot", modalUiContext, Variables)
-            {
-                ChannelIndex = 1,
-                ChannelsEnabled = [1],
-                PgaPreampGain = PgaPreampGain.Low,
-                PgaLadder = 10,
-                Attenuator = false,
-                SampleRateHz = 100_000_000,
-                ArbProfile = trimPotArbWaveform
-            },
-            new TrimStep2("Channel 3 - Trim pot", modalUiContext, Variables)
-            {
-                ChannelIndex = 2,
-                ChannelsEnabled = [2],
-                PgaPreampGain = PgaPreampGain.Low,
-                PgaLadder = 10,
-                Attenuator = false,
-                SampleRateHz = 100_000_000,
-                ArbProfile = trimPotArbWaveform
-            },
-            new TrimStep2("Channel 4 - Trim pot", modalUiContext, Variables)
-            {
-                ChannelIndex = 3,
-                ChannelsEnabled = [3],
-                PgaPreampGain = PgaPreampGain.Low,
-                PgaLadder = 10,
-                Attenuator = false,
-                SampleRateHz = 100_000_000,
-                ArbProfile = trimPotArbWaveform
-            },
-
             new TrimStep2("Channel 1 - Trim cap", modalUiContext, Variables)
             {
                 ChannelIndex = 0,
@@ -155,7 +126,22 @@ public class FactoryTrimSequence : Sequence
                 PgaLadder = 1,
                 Attenuator = true,
                 SampleRateHz = 100_000_000,
-                ArbProfile = trimCapArbWaveform
+                ArbProfile = trimCapArbWaveform,
+                ArrowX = 128,
+                ArrowY = 29
+            },
+
+            new TrimStep2("Channel 2 - Trim pot", modalUiContext, Variables)
+            {
+                ChannelIndex = 1,
+                ChannelsEnabled = [1],
+                PgaPreampGain = PgaPreampGain.Low,
+                PgaLadder = 10,
+                Attenuator = false,
+                SampleRateHz = 100_000_000,
+                ArbProfile = trimPotArbWaveform,
+                ArrowX = 148,
+                ArrowY = 224
             },
             new TrimStep2("Channel 2 - Trim cap", modalUiContext, Variables)
             {
@@ -165,7 +151,22 @@ public class FactoryTrimSequence : Sequence
                 PgaLadder = 1,
                 Attenuator = true,
                 SampleRateHz = 100_000_000,
-                ArbProfile = trimCapArbWaveform
+                ArbProfile = trimCapArbWaveform,
+                ArrowX = 128,
+                ArrowY = 154
+            },
+
+            new TrimStep2("Channel 3 - Trim pot", modalUiContext, Variables)
+            {
+                ChannelIndex = 2,
+                ChannelsEnabled = [2],
+                PgaPreampGain = PgaPreampGain.Low,
+                PgaLadder = 10,
+                Attenuator = false,
+                SampleRateHz = 100_000_000,
+                ArbProfile = trimPotArbWaveform,
+                ArrowX = 148,
+                ArrowY = 348,
             },
             new TrimStep2("Channel 3 - Trim cap", modalUiContext, Variables)
             {
@@ -175,7 +176,22 @@ public class FactoryTrimSequence : Sequence
                 PgaLadder = 1,
                 Attenuator = true,
                 SampleRateHz = 100_000_000,
-                ArbProfile = trimCapArbWaveform
+                ArbProfile = trimCapArbWaveform,
+                ArrowX = 128,
+                ArrowY = 278
+            },
+
+            new TrimStep2("Channel 4 - Trim pot", modalUiContext, Variables)
+            {
+                ChannelIndex = 3,
+                ChannelsEnabled = [3],
+                PgaPreampGain = PgaPreampGain.Low,
+                PgaLadder = 10,
+                Attenuator = false,
+                SampleRateHz = 100_000_000,
+                ArbProfile = trimPotArbWaveform,
+                ArrowX = 148,
+                ArrowY = 472
             },
             new TrimStep2("Channel 4 - Trim cap", modalUiContext, Variables)
             {
@@ -185,7 +201,9 @@ public class FactoryTrimSequence : Sequence
                 PgaLadder = 1,
                 Attenuator = true,
                 SampleRateHz = 100_000_000,
-                ArbProfile = trimCapArbWaveform
+                ArbProfile = trimCapArbWaveform,
+                ArrowX = 128,
+                ArrowY = 402
             },
 
             new Step("Cleanup")

@@ -22,6 +22,7 @@
 
   <ItemGroup>
 	<EmbeddedResource Include="Steps\**\*.css" />
+	<EmbeddedResource Include="Steps\**\*.png" />
   </ItemGroup>
 
 </Project>
