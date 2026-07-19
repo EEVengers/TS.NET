@@ -113,6 +113,9 @@ internal class ScpiServer : IThread
         var buffer = new byte[4096];
         var sb = new StringBuilder();
 
+        //Reset sequence number to zero for the new socket
+        sequence = 0;
+
         try
         {
             while (true)
