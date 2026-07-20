@@ -10,8 +10,7 @@ internal class DataServer : IThread
 {
     private readonly ILogger logger;
     private readonly ThunderscopeSettings settings;
-    private readonly IPAddress address;
-    private readonly int port;
+    private readonly IPEndPoint endpoint;
     private readonly ICaptureBufferManagerReader captureBufferManager;
     private readonly Action<uint> onSequenceUpdate;
 
@@ -26,15 +25,13 @@ internal class DataServer : IThread
     public DataServer(
         ILogger logger,
         ThunderscopeSettings settings,
-        IPAddress address,
-        int port,
+        IPEndPoint endpoint,
         ICaptureBufferManagerReader captureBuffer,
         Action<uint> onSequenceUpdate)
     {
         this.logger = logger;
         this.settings = settings;
-        this.address = address;
-        this.port = port;
+        this.endpoint = endpoint;
         this.captureBufferManager = captureBuffer;
         this.onSequenceUpdate = onSequenceUpdate;
     }
@@ -60,8 +57,8 @@ internal class DataServer : IThread
     {
         while (!cancelToken.IsCancellationRequested)
         {
-            socketListener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            socketListener.Bind(new IPEndPoint(address, port));
+            socketListener = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            socketListener.Bind(endpoint);
             socketListener.Listen(backlog: 1);
             logger.LogInformation($"Data socket listening {socketListener.LocalEndPoint}");
             try
@@ -300,7 +297,7 @@ internal class DataServer : IThread
 
                     unsafe
                     {
-                        if(sendTag)
+                        if (sendTag)
                         {
                             // [Payload tag][Payload length][Payload bytes]
                             uint payLoadLength = (uint)(sizeof(WaveformHeader) + channelCount * (sizeof(ChannelHeader) + captureBuffer.GetChannelReadByteBuffer(0).Length));

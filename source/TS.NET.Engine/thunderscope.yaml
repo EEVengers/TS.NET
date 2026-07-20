@@ -13,13 +13,27 @@
 # Value: Integer, typically 10000000. Larger values may be used for longer triggered captures.
 # Configures the maximum data length of each channel possible. At runtime, the processing logic could use any number up to this maximum. This has a large correlation with the amount of RAM usage.
 #
-# Key: ScpiPort
-# Value: Integer, typically 5025.
-# Configures the port number for the SCPI service.
+# Key: ScpiServer
+# Value: String
+# Configures the address and TCP port on which the SCPI server accepts connections.
+# Examples:
+#    "127.0.0.1:5025" for IPv4 loopback
+#    "localhost:5025" for local access
+#    "192.168.0.100:5025" for a specific IPv4 interface
+#    "0.0.0.0:5025" for all IPv4 interfaces
+#    "[::]:5025" for all IPv6 interfaces
+# Opening a server beyond localhost may require opening the port in the system firewall.
 #
-# Key: DataPort
-# Value: Integer, typically 5026.
-# Configures the port number for the Data service.
+# Key: DataServer
+# Value: String
+# Configures the address and TCP port on which the Data server accepts connections.
+# Examples:
+#    "127.0.0.1:5026" for IPv4 loopback
+#    "localhost:5026" for local access
+#    "192.168.0.100:5026" for a specific IPv4 interface
+#    "0.0.0.0:5026" for all IPv4 interfaces
+#    "[::]:5026" for all IPv6 interfaces
+# Opening a server beyond localhost may require opening the port in the system firewall.
 #
 # Key: WaveformBufferReader
 # Value: String, with one of None/DataServer.
@@ -28,8 +42,8 @@
 HardwareDriver: libtslitex
 HardwareRevision: Rev5.1
 MaxCaptureLength: 50000000
-ScpiPort: 5025
-DataPort: 5026
+ScpiServer: 127.0.0.1:5025
+DataServer: 127.0.0.1:5026
 WaveformBufferReader: DataServer
 
 ###################################################################################################

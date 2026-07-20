@@ -11,12 +11,12 @@ public class ThunderscopeSettings
     public string HardwareDriver { get; set; } = "";
     public string HardwareRevision { get; set; } = "";
     public int MaxCaptureLength { get; set; }
-    public int ScpiPort { get; set; }
-    public int DataPort { get; set; }
+    public string ScpiServer { get; set; } = "";
+    public string DataServer { get; set; } = "";
     public string WaveformBufferReader { get; set; } = "";
 
     public int ProcessingThreadProcessorAffinity { get; set; } = -1;
-    
+
     public const int SegmentLengthBytes = 8 * 1024 * 1024;
 
     public static ThunderscopeSettings Default()
@@ -26,8 +26,8 @@ public class ThunderscopeSettings
             HardwareDriver = "LiteX",
             HardwareRevision = "Rev5",
             MaxCaptureLength = 10000000,
-            ScpiPort = 5025,
-            DataPort = 5026,
+            ScpiServer = "127.0.0.1:5025",
+            DataServer = "127.0.0.1:5026",
             WaveformBufferReader = "DataServer",
 
             ProcessingThreadProcessorAffinity = -1,

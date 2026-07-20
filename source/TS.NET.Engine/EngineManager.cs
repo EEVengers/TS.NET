@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Net;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
@@ -47,6 +49,24 @@ public class EngineManager
         logger?.LogInformation($"Configuration path: {configurationFile}");
 
         thunderscopeSettings = ThunderscopeSettings.FromYamlFile(configurationFile);
+        if (thunderscopeSettings.ScpiServer == "")
+        {   // Backwards compatibility for old configuration files
+            thunderscopeSettings.ScpiServer = "127.0.0.1:5025";
+        }
+        if (thunderscopeSettings.DataServer == "")
+        {   // Backwards compatibility for old configuration files
+            thunderscopeSettings.DataServer = "127.0.0.1:5026";
+        }
+        if (!TryParseServer(thunderscopeSettings.ScpiServer, out var scpiEndpoint))
+        {
+            logger?.LogCritical($"Invalid SCPI server address: {thunderscopeSettings.ScpiServer}");
+            return false;
+        }
+        if (!TryParseServer(thunderscopeSettings.DataServer, out var dataEndpoint))
+        {
+            logger?.LogCritical($"Invalid data server address: {thunderscopeSettings.DataServer}");
+            return false;
+        }
 
         if (RuntimeInformation.ProcessArchitecture == Architecture.X86 || RuntimeInformation.ProcessArchitecture == Architecture.X64)
         {
@@ -188,7 +208,7 @@ public class EngineManager
         switch (thunderscopeSettings.WaveformBufferReader)
         {
             case "DataServer":
-                dataServer = new DataServer(loggerFactory.CreateLogger(nameof(DataServer)), thunderscopeSettings, System.Net.IPAddress.Any, 5026, captureBuffer, seq => scpiServer?.OnUpdateSequence(seq));
+                dataServer = new DataServer(loggerFactory.CreateLogger(nameof(DataServer)), thunderscopeSettings, dataEndpoint, captureBuffer, seq => scpiServer?.OnUpdateSequence(seq));
                 waveformBufferReader = dataServer;
                 break;
             case "None":
@@ -215,8 +235,7 @@ public class EngineManager
             logger: loggerFactory.CreateLogger(nameof(ScpiServer)),
             thunderscopeSettings,
             thunderscopeSerial,
-            System.Net.IPAddress.Any,
-            5025,
+            scpiEndpoint,
             processingControl);
         scpiServer.Start(startSemaphore);
 
@@ -230,6 +249,11 @@ public class EngineManager
         //    Environment.Exit(0);
         //}
         return true;
+    }
+
+    private static bool TryParseServer(string value, out IPEndPoint? endpoint)
+    {
+        return IPEndPoint.TryParse(value, out endpoint);
     }
 
     public void Stop()

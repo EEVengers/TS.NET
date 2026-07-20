@@ -12,8 +12,7 @@ internal class ScpiServer : IThread
     private readonly ILogger logger;
     private readonly ThunderscopeSettings settings;
     private readonly string thunderscopeSerial;
-    private readonly IPAddress address;
-    private readonly int port;
+    private readonly IPEndPoint endpoint;
     private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
 
     private CancellationTokenSource? listenerCancelTokenSource;
@@ -30,15 +29,13 @@ internal class ScpiServer : IThread
         ILogger logger,
         ThunderscopeSettings settings,
         string thunderscopeSerial,
-        IPAddress address,
-        int port,
+        IPEndPoint endpoint,
         BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl)
     {
         this.logger = logger;
         this.settings = settings;
         this.thunderscopeSerial = thunderscopeSerial;
-        this.address = address;
-        this.port = port;
+        this.endpoint = endpoint;
         this.processingControl = processingControl;
     }
 
@@ -63,8 +60,8 @@ internal class ScpiServer : IThread
     {
         while (!cancelToken.IsCancellationRequested)
         {
-            socketListener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            socketListener.Bind(new IPEndPoint(address, port));
+            socketListener = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            socketListener.Bind(endpoint);
             socketListener.Listen(backlog: 1);
             logger.LogInformation($"SCPI socket listening {socketListener.LocalEndPoint}");
             try
