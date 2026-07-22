@@ -21,6 +21,13 @@ public record ProcessingSetTriggerInterpolation(bool Enabled) : ProcessingReques
 
 public record ProcessingSetEdgeTriggerLevel(float LevelVolts) : ProcessingRequestDto, INotificationDto;
 public record ProcessingSetEdgeTriggerDirection(EdgeDirection Edge) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetEdgeTriggerHysteresis(float Percent) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetBurstTriggerLevel(float LevelVolts) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetBurstTriggerDirection(BurstEdgeDirection Edge) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetBurstTriggerHysteresis(float Percent) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetBurstTriggerQuietHighLevel(float LevelVolts) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetBurstTriggerQuietLowLevel(float LevelVolts) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetBurstTriggerQuietTime(long Femtoseconds) : ProcessingRequestDto, INotificationDto;
 
 public record HardwareSetRate(ulong Rate) : ProcessingRequestDto, INotificationDto;
 public record HardwareSetResolution(AdcResolution Resolution) : ProcessingRequestDto, INotificationDto;
@@ -47,6 +54,13 @@ public record ProcessingGetTriggerInterpolationRequest() : ProcessingRequestDto;
 
 public record ProcessingGetEdgeTriggerLevelRequest() : ProcessingRequestDto;
 public record ProcessingGetEdgeTriggerDirectionRequest() : ProcessingRequestDto;
+public record ProcessingGetEdgeTriggerHysteresisRequest() : ProcessingRequestDto;
+public record ProcessingGetBurstTriggerLevelRequest() : ProcessingRequestDto;
+public record ProcessingGetBurstTriggerDirectionRequest() : ProcessingRequestDto;
+public record ProcessingGetBurstTriggerHysteresisRequest() : ProcessingRequestDto;
+public record ProcessingGetBurstTriggerQuietHighLevelRequest() : ProcessingRequestDto;
+public record ProcessingGetBurstTriggerQuietLowLevelRequest() : ProcessingRequestDto;
+public record ProcessingGetBurstTriggerQuietTimeRequest() : ProcessingRequestDto;
 
 public record HardwareGetRateRequest() : ProcessingRequestDto;
 public record HardwareGetResolutionRequest() : ProcessingRequestDto;

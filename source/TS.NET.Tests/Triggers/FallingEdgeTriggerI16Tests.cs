@@ -42,7 +42,7 @@ public class FallingEdgeTriggerI16Tests
 
     private static void RunSituation(EdgeTriggerSituationI16 situation)
     {
-        var trigger = new FallingEdgeTriggerI16(situation.Parameters, AdcResolution.TwelveBit, 256, 0);
+        var trigger = new FallingEdgeTriggerI16(new TriggerChannelParameters(1_000_000_000, 256, 0), situation.Parameters);
         var edgeTriggerResults = new EdgeTriggerResults()
         {
             ArmIndices = new ulong[1000],

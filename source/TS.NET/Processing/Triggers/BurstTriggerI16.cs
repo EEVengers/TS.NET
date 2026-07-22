@@ -1,19 +1,19 @@
-﻿using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace TS.NET;
 
-public class BurstTriggerI8 : ITriggerI8
+public class BurstTriggerI16 : ITriggerI16
 {
     enum TriggerState { Unarmed, QuietComplete, Armed, InCapture, InHoldoff }
     private TriggerState triggerState = TriggerState.Unarmed;
 
     private BurstEdgeDirection triggerDirection;
-    private sbyte triggerLevel;
-    private sbyte armLevel;
-    private sbyte quietHighLevel;
-    private sbyte quietLowLevel;
+    private short triggerLevel;
+    private short armLevel;
+    private short quietHighLevel;
+    private short quietLowLevel;
 
     private long quietSamples;
     private long quietSamplesRemaining;
@@ -24,35 +24,36 @@ public class BurstTriggerI8 : ITriggerI8
     private long holdoffSamples;
     private long holdoffRemaining;
 
-    public BurstTriggerI8(TriggerChannelParameters triggerChannelParameters, BurstTriggerParameters parameters)
+    public BurstTriggerI16(TriggerChannelParameters triggerChannelParameters, BurstTriggerParameters parameters)
     {
-        SetParameters(parameters, triggerChannelParameters.SampleRateHz, triggerChannelParameters.TriggerChannelVpp, triggerChannelParameters.TriggerChannelOffsetV);
+        // Fixed 12-bit for now, may have 14-bit in future
+        SetParameters(parameters, AdcResolution.TwelveBit, triggerChannelParameters.SampleRateHz, triggerChannelParameters.TriggerChannelVpp, triggerChannelParameters.TriggerChannelOffsetV);
         SetHorizontal(1000000, 500000, 0);
     }
 
-    private void SetParameters(BurstTriggerParameters parameters, ulong sampleRateHz, double triggerChannelVpp, double triggerChannelOffsetV)
+    private void SetParameters(BurstTriggerParameters parameters, AdcResolution adcResolution, ulong sampleRateHz, double triggerChannelVpp, double triggerChannelOffsetV)
     {
-        int hysteresisCount = TriggerUtility.HysteresisValue(AdcResolution.EightBit, parameters.HysteresisPercent);
-        var levelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.LevelV, triggerChannelVpp, triggerChannelOffsetV);
-        var quietHighLevelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.QuietHighLevelV, triggerChannelVpp, triggerChannelOffsetV);
-        var quietLowLevelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.QuietLowLevelV, triggerChannelVpp, triggerChannelOffsetV);
+        int hysteresisCount = TriggerUtility.HysteresisValue(adcResolution, parameters.HysteresisPercent);
+        int levelCount = TriggerUtility.LevelValue(adcResolution, parameters.LevelV, triggerChannelVpp, triggerChannelOffsetV);
+        var quietHighLevelCount = TriggerUtility.LevelValue(adcResolution, parameters.QuietHighLevelV, triggerChannelVpp, triggerChannelOffsetV);
+        var quietLowLevelCount = TriggerUtility.LevelValue(adcResolution, parameters.QuietLowLevelV, triggerChannelVpp, triggerChannelOffsetV);
 
-        if (levelCount <= sbyte.MinValue)
-            levelCount = sbyte.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
-        if (levelCount >= sbyte.MaxValue)
-            levelCount = sbyte.MaxValue - 1;  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms
+        if (levelCount <= TriggerUtility.AdcMin(adcResolution))
+            levelCount = TriggerUtility.AdcMin(adcResolution) + 1;
+        if (levelCount >= TriggerUtility.AdcMax(adcResolution))
+            levelCount = TriggerUtility.AdcMax(adcResolution) - 1;
 
         triggerState = TriggerState.Unarmed;
-        triggerLevel = (sbyte)levelCount;
+        triggerLevel = (short)levelCount;
         triggerDirection = parameters.Direction;
         armLevel = triggerDirection switch
         {
-            BurstEdgeDirection.Rising => (sbyte)Math.Max(sbyte.MinValue, levelCount - hysteresisCount),
-            BurstEdgeDirection.Falling => (sbyte)Math.Min(sbyte.MaxValue, levelCount + hysteresisCount),
+            BurstEdgeDirection.Rising => (short)Math.Max(TriggerUtility.AdcMin(adcResolution), levelCount - hysteresisCount),
+            BurstEdgeDirection.Falling => (short)Math.Min(TriggerUtility.AdcMax(adcResolution), levelCount + hysteresisCount),
             _ => throw new NotImplementedException()
         };
-        quietHighLevel = (sbyte)quietHighLevelCount;
-        quietLowLevel = (sbyte)quietLowLevelCount;
+        quietHighLevel = (short)quietHighLevelCount;
+        quietLowLevel = (short)quietLowLevelCount;
         quietSamples = (long)Math.Ceiling(parameters.QuietTimeFs * (double)sampleRateHz / 1_000_000_000_000_000d);
         quietSamplesRemaining = 0;
     }
@@ -77,28 +78,28 @@ public class BurstTriggerI8 : ITriggerI8
             triggerState = TriggerState.Unarmed;
     }
 
-    public void Process(ReadOnlySpan<sbyte> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
+    public void Process(ReadOnlySpan<short> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
         int inputLength = input.Length;
-        int v256Length = inputLength - Vector256<sbyte>.Count;
+        int v256Length = inputLength - Vector256<short>.Count;
         results.ArmCount = 0;
         results.TriggerCount = 0;
         results.CaptureEndCount = 0;
         int i = 0;
         int simdBlock = 0;
 
-        Vector256<sbyte> triggerLevelVector256 = Vector256.Create(triggerLevel);
-        Vector256<sbyte> armLevelVector256 = Vector256.Create(armLevel);
-        Vector256<sbyte> quietHighLevelVector256 = Vector256.Create(quietHighLevel);
-        Vector256<sbyte> quietLowLevelVector256 = Vector256.Create(quietLowLevel);
-        Vector128<sbyte> triggerLevelVector128 = Vector128.Create(triggerLevel);
-        Vector128<sbyte> armLevelVector128 = Vector128.Create(armLevel);
-        Vector128<sbyte> quietHighLevelVector128 = Vector128.Create(quietHighLevel);
-        Vector128<sbyte> quietLowLevelVector128 = Vector128.Create(quietLowLevel);
+        Vector256<short> triggerLevelVector256 = Vector256.Create(triggerLevel);
+        Vector256<short> armLevelVector256 = Vector256.Create(armLevel);
+        Vector256<short> quietHighLevelVector256 = Vector256.Create(quietHighLevel);
+        Vector256<short> quietLowLevelVector256 = Vector256.Create(quietLowLevel);
+        Vector128<short> triggerLevelVector128 = Vector128.Create(triggerLevel);
+        Vector128<short> armLevelVector128 = Vector128.Create(armLevel);
+        Vector128<short> quietHighLevelVector128 = Vector128.Create(quietHighLevel);
+        Vector128<short> quietLowLevelVector128 = Vector128.Create(quietLowLevel);
 
         unsafe
         {
-            fixed (sbyte* samplesPtr = input)
+            fixed (short* samplesPtr = input)
             {
                 while (i < inputLength)
                 {
@@ -106,7 +107,7 @@ public class BurstTriggerI8 : ITriggerI8
                     {
                         // Scan samples to ensure that they're within the quiet window.
                         case TriggerState.Unarmed:
-                            // Look for a period where the samples remain within the quiet window for quietTime length.
+                            // Look for a period where the samples remain within the quiet window for quietSamples length.
 
                             if (quietSamplesRemaining == 0)  // Assign variables if initial condition
                                 quietSamplesRemaining = quietSamples;
@@ -117,25 +118,25 @@ public class BurstTriggerI8 : ITriggerI8
                                 // e.g. if quietLowLevel = -20 and quietHighLevel = 20, then values must be in -19 to 19 range.
                                 if (Avx2.IsSupported)
                                 {
-                                    while (i < v256Length && quietSamplesRemaining > Vector256<sbyte>.Count && simdBlock == 0)
+                                    while (i < v256Length && quietSamplesRemaining > Vector256<short>.Count && simdBlock == 0)
                                     {
                                         var inputVector = Vector256.Load(samplesPtr + i);
                                         var gt = Vector256.GreaterThan(inputVector, quietLowLevelVector256);
                                         var lt = Vector256.LessThan(inputVector, quietHighLevelVector256);
-                                        var fullyGt = gt == Vector256<sbyte>.AllBitsSet;   // vptest  (better than vpmovmskb on most architectures)
-                                        var fullyLt = lt == Vector256<sbyte>.AllBitsSet;
+                                        var fullyGt = gt == Vector256<short>.AllBitsSet;   // vptest  (better than vpmovmskb on most architectures)
+                                        var fullyLt = lt == Vector256<short>.AllBitsSet;
 
                                         if (fullyGt && fullyLt)
                                         {
-                                            quietSamplesRemaining -= Vector256<sbyte>.Count;
+                                            quietSamplesRemaining -= Vector256<short>.Count;
                                         }
                                         else
                                         {
-                                            var partialGt = fullyGt ^ (gt != Vector256<sbyte>.Zero);
-                                            var partialLt = fullyLt ^ (lt != Vector256<sbyte>.Zero);
+                                            var partialGt = fullyGt ^ (gt != Vector256<short>.Zero);
+                                            var partialLt = fullyLt ^ (lt != Vector256<short>.Zero);
                                             if (partialGt || partialLt)      // Window transition in SIMD block, fallback to scalar.
                                             {
-                                                simdBlock = Vector256<sbyte>.Count;
+                                                simdBlock = Vector256<short>.Count;
                                                 break;
                                             }
                                             else
@@ -143,33 +144,33 @@ public class BurstTriggerI8 : ITriggerI8
                                                 quietSamplesRemaining = quietSamples;
                                             }
                                         }
-                                        i += Vector256<sbyte>.Count;
+                                        i += Vector256<short>.Count;
                                     }
                                 }
                                 else if (AdvSimd.Arm64.IsSupported)
                                 {
-                                    while (i < v256Length && quietSamplesRemaining > Vector256<sbyte>.Count && simdBlock == 0)
+                                    while (i < v256Length && quietSamplesRemaining > Vector256<short>.Count && simdBlock == 0)
                                     {
                                         var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
-                                        var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<sbyte>.Count);
+                                        var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
                                         var gt1 = AdvSimd.CompareGreaterThan(inputVector1, quietLowLevelVector128);
                                         var lt1 = AdvSimd.CompareLessThan(inputVector1, quietHighLevelVector128);
                                         var gt2 = AdvSimd.CompareGreaterThan(inputVector2, quietLowLevelVector128);
                                         var lt2 = AdvSimd.CompareLessThan(inputVector2, quietHighLevelVector128);
-                                        var fullyGt = gt1 == Vector128<sbyte>.AllBitsSet && gt2 == Vector128<sbyte>.AllBitsSet;
-                                        var fullyLt = lt1 == Vector128<sbyte>.AllBitsSet && lt2 == Vector128<sbyte>.AllBitsSet;
+                                        var fullyGt = gt1 == Vector128<short>.AllBitsSet && gt2 == Vector128<short>.AllBitsSet;
+                                        var fullyLt = lt1 == Vector128<short>.AllBitsSet && lt2 == Vector128<short>.AllBitsSet;
 
                                         if (fullyGt && fullyLt)
                                         {
-                                            quietSamplesRemaining -= Vector256<sbyte>.Count;
+                                            quietSamplesRemaining -= Vector256<short>.Count;
                                         }
                                         else
                                         {
-                                            var partialGt = fullyGt ^ (gt1 != Vector128<sbyte>.Zero || gt2 != Vector128<sbyte>.Zero);
-                                            var partialLt = fullyLt ^ (lt1 != Vector128<sbyte>.Zero || lt2 != Vector128<sbyte>.Zero);
+                                            var partialGt = fullyGt ^ (gt1 != Vector128<short>.Zero || gt2 != Vector128<short>.Zero);
+                                            var partialLt = fullyLt ^ (lt1 != Vector128<short>.Zero || lt2 != Vector128<short>.Zero);
                                             if (partialGt || partialLt)
                                             {
-                                                simdBlock = Vector256<sbyte>.Count;
+                                                simdBlock = Vector256<short>.Count;
                                                 break;
                                             }
                                             else
@@ -177,10 +178,10 @@ public class BurstTriggerI8 : ITriggerI8
                                                 quietSamplesRemaining = quietSamples;
                                             }
                                         }
-                                        i += Vector256<sbyte>.Count;
+                                        i += Vector256<short>.Count;
                                     }
                                 }
-                                // Note, by this point SIMD logic should ensure quietTimeRemaining > 0.
+                                // Note, by this point SIMD logic should ensure quietSamplesRemaining > 0.
                                 if (samplesPtr[i] > quietLowLevel && samplesPtr[i] < quietHighLevel)
                                     quietSamplesRemaining--;
                                 else
@@ -207,9 +208,10 @@ public class BurstTriggerI8 : ITriggerI8
                                         {
                                             var inputVector = Avx.LoadVector256(samplesPtr + i);
                                             var resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector256, inputVector), armLevelVector256);
-                                            if (Avx2.MoveMask(resultVector) != 0)
+                                            var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
+                                            if (Avx2.MoveMask(packedResult) != 0)
                                                 break;
-                                            i += Vector256<sbyte>.Count;
+                                            i += Vector256<short>.Count;
                                         }
                                     }
                                     else if (AdvSimd.Arm64.IsSupported)
@@ -217,12 +219,12 @@ public class BurstTriggerI8 : ITriggerI8
                                         while (i < v256Length)
                                         {
                                             var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
-                                            var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<sbyte>.Count);
+                                            var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
                                             var resultVector1 = AdvSimd.CompareLessThanOrEqual(inputVector1, armLevelVector128);
                                             var resultVector2 = AdvSimd.CompareLessThanOrEqual(inputVector2, armLevelVector128);
-                                            if (resultVector1 != Vector128<sbyte>.Zero || resultVector2 != Vector128<sbyte>.Zero)
+                                            if (resultVector1 != Vector128<short>.Zero || resultVector2 != Vector128<short>.Zero)
                                                 break;
-                                            i += Vector256<sbyte>.Count;
+                                            i += Vector256<short>.Count;
                                         }
                                     }
                                     while (i < inputLength)
@@ -243,9 +245,10 @@ public class BurstTriggerI8 : ITriggerI8
                                         {
                                             var inputVector = Avx.LoadVector256(samplesPtr + i);
                                             var resultVector = Avx2.CompareEqual(Avx2.Min(armLevelVector256, inputVector), armLevelVector256);
-                                            if (Avx2.MoveMask(resultVector) != 0)
+                                            var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
+                                            if (Avx2.MoveMask(packedResult) != 0)
                                                 break;
-                                            i += Vector256<sbyte>.Count;
+                                            i += Vector256<short>.Count;
                                         }
                                     }
                                     else if (AdvSimd.Arm64.IsSupported)
@@ -253,12 +256,12 @@ public class BurstTriggerI8 : ITriggerI8
                                         while (i < v256Length)
                                         {
                                             var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
-                                            var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<sbyte>.Count);
+                                            var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
                                             var resultVector1 = AdvSimd.CompareGreaterThanOrEqual(inputVector1, armLevelVector128);
                                             var resultVector2 = AdvSimd.CompareGreaterThanOrEqual(inputVector2, armLevelVector128);
-                                            if (resultVector1 != Vector128<sbyte>.Zero || resultVector2 != Vector128<sbyte>.Zero)
+                                            if (resultVector1 != Vector128<short>.Zero || resultVector2 != Vector128<short>.Zero)
                                                 break;
-                                            i += Vector256<sbyte>.Count;
+                                            i += Vector256<short>.Count;
                                         }
                                     }
                                     while (i < inputLength)
@@ -276,7 +279,6 @@ public class BurstTriggerI8 : ITriggerI8
                                     throw new NotImplementedException();
                             }
                             break;
-
                         case TriggerState.Armed:
                             switch (triggerDirection)
                             {
@@ -287,9 +289,10 @@ public class BurstTriggerI8 : ITriggerI8
                                         {
                                             var inputVector = Avx.LoadVector256(samplesPtr + i);
                                             var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector256, inputVector), triggerLevelVector256);
-                                            if (Avx2.MoveMask(resultVector) != 0)
+                                            var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
+                                            if (Avx2.MoveMask(packedResult) != 0)
                                                 break;
-                                            i += Vector256<sbyte>.Count;
+                                            i += Vector256<short>.Count;
                                         }
                                     }
                                     else if (AdvSimd.Arm64.IsSupported)
@@ -297,12 +300,12 @@ public class BurstTriggerI8 : ITriggerI8
                                         while (i < v256Length)
                                         {
                                             var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
-                                            var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<sbyte>.Count);
+                                            var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
                                             var resultVector1 = AdvSimd.CompareGreaterThan(inputVector1, triggerLevelVector128);
                                             var resultVector2 = AdvSimd.CompareGreaterThan(inputVector2, triggerLevelVector128);
-                                            if (resultVector1 != Vector128<sbyte>.Zero || resultVector2 != Vector128<sbyte>.Zero)
+                                            if (resultVector1 != Vector128<short>.Zero || resultVector2 != Vector128<short>.Zero)
                                                 break;
-                                            i += Vector256<sbyte>.Count;
+                                            i += Vector256<short>.Count;
                                         }
                                     }
                                     while (i < inputLength)
@@ -323,9 +326,10 @@ public class BurstTriggerI8 : ITriggerI8
                                         {
                                             var inputVector = Avx.LoadVector256(samplesPtr + i);
                                             var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector256, inputVector), triggerLevelVector256);
-                                            if (Avx2.MoveMask(resultVector) != 0)
+                                            var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
+                                            if (Avx2.MoveMask(packedResult) != 0)
                                                 break;
-                                            i += Vector256<sbyte>.Count;
+                                            i += Vector256<short>.Count;
                                         }
                                     }
                                     else if (AdvSimd.Arm64.IsSupported)
@@ -333,12 +337,12 @@ public class BurstTriggerI8 : ITriggerI8
                                         while (i < v256Length)
                                         {
                                             var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
-                                            var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<sbyte>.Count);
+                                            var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
                                             var resultVector1 = AdvSimd.CompareLessThan(inputVector1, triggerLevelVector128);
                                             var resultVector2 = AdvSimd.CompareLessThan(inputVector2, triggerLevelVector128);
-                                            if (resultVector1 != Vector128<sbyte>.Zero || resultVector2 != Vector128<sbyte>.Zero)
+                                            if (resultVector1 != Vector128<short>.Zero || resultVector2 != Vector128<short>.Zero)
                                                 break;
-                                            i += Vector256<sbyte>.Count;
+                                            i += Vector256<short>.Count;
                                         }
                                     }
                                     while (i < inputLength)

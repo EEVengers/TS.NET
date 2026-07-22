@@ -1,4 +1,5 @@
 ﻿using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace TS.NET;
@@ -18,9 +19,10 @@ public class AnyEdgeTriggerI16 : ITriggerI16
     private long holdoffSamples;
     private long holdoffRemaining;
 
-    public AnyEdgeTriggerI16(EdgeTriggerParameters parameters, AdcResolution resolution, double triggerChannelVpp, double triggerChannelOffsetV)
+    public AnyEdgeTriggerI16(TriggerChannelParameters triggerChannelParameters, EdgeTriggerParameters parameters)
     {
-        SetParameters(parameters, resolution, triggerChannelVpp, triggerChannelOffsetV);
+        // Fixed 12-bit for now, may have 14-bit in future
+        SetParameters(parameters, AdcResolution.TwelveBit, triggerChannelParameters.TriggerChannelVpp, triggerChannelParameters.TriggerChannelOffsetV);
         SetHorizontal(1000000, 0, 0);
     }
 
@@ -56,6 +58,7 @@ public class AnyEdgeTriggerI16 : ITriggerI16
         }
     }
 
+    // Parameters are in units of samples, not time.
     public void SetHorizontal(long windowWidth, long windowTriggerPosition, long additionalHoldoff)
     {
         if (windowWidth < 1000)
@@ -84,9 +87,12 @@ public class AnyEdgeTriggerI16 : ITriggerI16
         results.CaptureEndCount = 0;
         int i = 0;
 
-        Vector256<short> triggerLevelVector = Vector256.Create(triggerLevel);
-        Vector256<short> upperArmLevelVector = Vector256.Create(upperArmLevel);
-        Vector256<short> lowerArmLevelVector = Vector256.Create(lowerArmLevel);
+        Vector256<short> triggerLevelVector256 = Vector256.Create(triggerLevel);
+        Vector256<short> upperArmLevelVector256 = Vector256.Create(upperArmLevel);
+        Vector256<short> lowerArmLevelVector256 = Vector256.Create(lowerArmLevel);
+        Vector128<short> triggerLevelVector128 = Vector128.Create(triggerLevel);
+        Vector128<short> upperArmLevelVector128 = Vector128.Create(upperArmLevel);
+        Vector128<short> lowerArmLevelVector128 = Vector128.Create(lowerArmLevel);
 
         unsafe
         {
@@ -104,19 +110,36 @@ public class AnyEdgeTriggerI16 : ITriggerI16
                                 {
                                     uint resultCount = 0;
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var lowerArmRegion = Avx2.CompareEqual(Avx2.Max(lowerArmLevelVector, inputVector), lowerArmLevelVector);
+                                    var lowerArmRegion = Avx2.CompareEqual(Avx2.Max(lowerArmLevelVector256, inputVector), lowerArmLevelVector256);
                                     // Convert 16-bit comparison results to 8-bit and extract mask
                                     var packedResult = Avx2.PackSignedSaturate(lowerArmRegion, Vector256<short>.Zero);
                                     resultCount = (uint)Avx2.MoveMask(packedResult);     // Quick way to do horizontal vector scan of byte[n] > 0
                                     if (resultCount != 0)
                                         break;
-                                    var upperArmRegion = Avx2.CompareEqual(Avx2.Min(upperArmLevelVector, inputVector), upperArmLevelVector);
+                                    var upperArmRegion = Avx2.CompareEqual(Avx2.Min(upperArmLevelVector256, inputVector), upperArmLevelVector256);
                                     // Convert 16-bit comparison results to 8-bit and extract mask
                                     packedResult = Avx2.PackSignedSaturate(upperArmRegion, Vector256<short>.Zero);
                                     resultCount = (uint)Avx2.MoveMask(packedResult);     // Quick way to do horizontal vector scan of byte[n] > 0
                                     if (resultCount != 0)
                                         break;
-                                    i += 32;
+                                    i += Vector256<short>.Count;
+                                }
+                            }
+                            else if (AdvSimd.Arm64.IsSupported)
+                            {
+                                while (i < v256Length)
+                                {
+                                    var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
+                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
+                                    var lowerArmRegion1 = AdvSimd.CompareLessThanOrEqual(inputVector1, lowerArmLevelVector128);
+                                    var lowerArmRegion2 = AdvSimd.CompareLessThanOrEqual(inputVector2, lowerArmLevelVector128);
+                                    if (lowerArmRegion1 != Vector128<short>.Zero || lowerArmRegion2 != Vector128<short>.Zero)
+                                        break;
+                                    var upperArmRegion1 = AdvSimd.CompareGreaterThanOrEqual(inputVector1, upperArmLevelVector128);
+                                    var upperArmRegion2 = AdvSimd.CompareGreaterThanOrEqual(inputVector2, upperArmLevelVector128);
+                                    if (upperArmRegion1 != Vector128<short>.Zero || upperArmRegion2 != Vector128<short>.Zero)
+                                        break;
+                                    i += Vector256<short>.Count;
                                 }
                             }
                             while (i < inputLength)
@@ -142,13 +165,26 @@ public class AnyEdgeTriggerI16 : ITriggerI16
                                 while (i < v256Length)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector, inputVector), triggerLevelVector);
+                                    var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector256, inputVector), triggerLevelVector256);
                                     // Convert 16-bit comparison results to 8-bit and extract mask
                                     var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
                                     uint resultCount = (uint)Avx2.MoveMask(packedResult);     // Quick way to do horizontal vector scan of byte[n] > 0
                                     if (resultCount != 0)
                                         break;
-                                    i += 32;
+                                    i += Vector256<short>.Count;
+                                }
+                            }
+                            else if (AdvSimd.Arm64.IsSupported)
+                            {
+                                while (i < v256Length)
+                                {
+                                    var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
+                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
+                                    var resultVector1 = AdvSimd.CompareGreaterThan(inputVector1, triggerLevelVector128);
+                                    var resultVector2 = AdvSimd.CompareGreaterThan(inputVector2, triggerLevelVector128);
+                                    if (resultVector1 != Vector128<short>.Zero || resultVector2 != Vector128<short>.Zero)
+                                        break;
+                                    i += Vector256<short>.Count;
                                 }
                             }
                             while (i < inputLength)
@@ -169,13 +205,26 @@ public class AnyEdgeTriggerI16 : ITriggerI16
                                 while (i < v256Length)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector, inputVector), triggerLevelVector);
+                                    var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector256, inputVector), triggerLevelVector256);
                                     // Convert 16-bit comparison results to 8-bit and extract mask
                                     var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
                                     uint resultCount = (uint)Avx2.MoveMask(packedResult);     // Quick way to do horizontal vector scan of byte[n] > 0
                                     if (resultCount != 0)
                                         break;
-                                    i += 32;
+                                    i += Vector256<short>.Count;
+                                }
+                            }
+                            else if (AdvSimd.Arm64.IsSupported)
+                            {
+                                while (i < v256Length)
+                                {
+                                    var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
+                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
+                                    var resultVector1 = AdvSimd.CompareLessThan(inputVector1, triggerLevelVector128);
+                                    var resultVector2 = AdvSimd.CompareLessThan(inputVector2, triggerLevelVector128);
+                                    if (resultVector1 != Vector128<short>.Zero || resultVector2 != Vector128<short>.Zero)
+                                        break;
+                                    i += Vector256<short>.Count;
                                 }
                             }
                             while (i < inputLength)

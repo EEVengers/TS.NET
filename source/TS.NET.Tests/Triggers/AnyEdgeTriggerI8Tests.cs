@@ -77,7 +77,7 @@ public class AnyEdgeTriggerI8Tests
 
     private static void RunSituation(EdgeTriggerSituationI8 situation)
     {
-        var trigger = new AnyEdgeTriggerI8(situation.Parameters, 256, 0);
+        var trigger = new AnyEdgeTriggerI8(new TriggerChannelParameters(1_000_000_000, 256, 0), situation.Parameters);
         var edgeTriggerResults = new EdgeTriggerResults()
         {
             ArmIndices = new ulong[1000],

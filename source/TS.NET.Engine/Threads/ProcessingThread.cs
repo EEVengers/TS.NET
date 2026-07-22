@@ -116,8 +116,8 @@ public class ProcessingThread : IThread
                 TriggerHoldoffFs = 0,
                 TriggerInterpolation = true,
                 AutoTimeoutMs = 1000,
-                EdgeTriggerParameters = new EdgeTriggerParameters() { LevelV = 0, HysteresisPercent = 5, Direction = EdgeDirection.Rising },
-                BurstTriggerParameters = new BurstTriggerParameters() { WindowHighLevel = 64, WindowLowLevel = -64, MinimumInRangePeriod = 450000 },
+                EdgeTriggerParameters = new EdgeTriggerParameters() { LevelV = 0, Direction = EdgeDirection.Rising, HysteresisPercent = 5 },
+                BurstTriggerParameters = new BurstTriggerParameters() { LevelV = 0, Direction = BurstEdgeDirection.Rising, HysteresisPercent = 5, QuietHighLevelV = 1, QuietLowLevelV = -1, QuietTimeFs = 1000000000000L },
                 BoxcarAveraging = BoxcarAveraging.None
             };
             uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
@@ -470,7 +470,7 @@ public class ProcessingThread : IThread
                             if (processingConfig.TriggerChannel != processingSetTriggerSourceDto.Channel)
                             {
                                 // If coming out of external trigger mode, disable external trigger input
-                                if(processingConfig.TriggerChannel == TriggerChannel.External)
+                                if (processingConfig.TriggerChannel == TriggerChannel.External)
                                 {
                                     currentHardwareConfig.ExtSyncMode = ThunderscopeExtSyncMode.Disabled;
                                     thunderscope.SetExtSyncMode(currentHardwareConfig.ExtSyncMode);
@@ -479,7 +479,7 @@ public class ProcessingThread : IThread
                                 processingConfig.TriggerChannel = processingSetTriggerSourceDto.Channel;
 
                                 // If going into external trigger mode, enable external trigger input
-                                if(processingConfig.TriggerChannel == TriggerChannel.External)
+                                if (processingConfig.TriggerChannel == TriggerChannel.External)
                                 {
                                     currentHardwareConfig.ExtSyncMode = ThunderscopeExtSyncMode.Input;
                                     thunderscope.SetExtSyncMode(currentHardwareConfig.ExtSyncMode);
@@ -572,6 +572,97 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerDirection)} (no change)");
                             }
                             break;
+                        case ProcessingSetEdgeTriggerHysteresis processingSetEdgeTriggerHysteresis:
+                            if (processingConfig.EdgeTriggerParameters.HysteresisPercent != processingSetEdgeTriggerHysteresis.Percent)
+                            {
+                                processingConfig.EdgeTriggerParameters.HysteresisPercent = processingSetEdgeTriggerHysteresis.Percent;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerHysteresis)} (percent: {processingConfig.EdgeTriggerParameters.HysteresisPercent})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerHysteresis)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetBurstTriggerLevel processingSetBurstTriggerLevel:
+                            if (processingConfig.BurstTriggerParameters.LevelV != processingSetBurstTriggerLevel.LevelVolts)
+                            {
+                                processingConfig.BurstTriggerParameters.LevelV = processingSetBurstTriggerLevel.LevelVolts;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerLevel)} (level: {processingConfig.BurstTriggerParameters.LevelV})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerLevel)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetBurstTriggerDirection processingSetBurstTriggerDirection:
+                            if (processingConfig.BurstTriggerParameters.Direction != processingSetBurstTriggerDirection.Edge)
+                            {
+                                processingConfig.BurstTriggerParameters.Direction = processingSetBurstTriggerDirection.Edge;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerDirection)} (direction: {processingConfig.BurstTriggerParameters.Direction})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerDirection)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetBurstTriggerHysteresis processingSetBurstTriggerHysteresis:
+                            if (processingConfig.BurstTriggerParameters.HysteresisPercent != processingSetBurstTriggerHysteresis.Percent)
+                            {
+                                processingConfig.BurstTriggerParameters.HysteresisPercent = processingSetBurstTriggerHysteresis.Percent;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerHysteresis)} (percent: {processingConfig.BurstTriggerParameters.HysteresisPercent})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerHysteresis)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetBurstTriggerQuietHighLevel processingSetBurstTriggerHighLevel:
+                            if (processingConfig.BurstTriggerParameters.QuietHighLevelV != processingSetBurstTriggerHighLevel.LevelVolts)
+                            {
+                                processingConfig.BurstTriggerParameters.QuietHighLevelV = processingSetBurstTriggerHighLevel.LevelVolts;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietHighLevel)} (level: {processingConfig.BurstTriggerParameters.QuietHighLevelV})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietHighLevel)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetBurstTriggerQuietLowLevel processingSetBurstTriggerLowLevel:
+                            if (processingConfig.BurstTriggerParameters.QuietLowLevelV != processingSetBurstTriggerLowLevel.LevelVolts)
+                            {
+                                processingConfig.BurstTriggerParameters.QuietLowLevelV = processingSetBurstTriggerLowLevel.LevelVolts;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietLowLevel)} (level: {processingConfig.BurstTriggerParameters.QuietLowLevelV})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietLowLevel)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetBurstTriggerQuietTime processingSetBurstTriggerQuietTime:
+                            if (processingConfig.BurstTriggerParameters.QuietTimeFs != processingSetBurstTriggerQuietTime.Femtoseconds)
+                            {
+                                processingConfig.BurstTriggerParameters.QuietTimeFs = processingSetBurstTriggerQuietTime.Femtoseconds;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietTime)} (femtoseconds: {processingConfig.BurstTriggerParameters.QuietTimeFs})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietTime)} (no change)");
+                            }
+                            break;
 
                         case ProcessingGetStateRequest processingGetStateRequest:
                             processingControl.Response.Writer.Write(new ProcessingGetStateResponse(runMode));
@@ -612,6 +703,34 @@ public class ProcessingThread : IThread
                         case ProcessingGetEdgeTriggerDirectionRequest processingGetEdgeTriggerDirectionRequest:
                             processingControl.Response.Writer.Write(new ProcessingGetEdgeTriggerDirectionResponse(processingConfig.EdgeTriggerParameters.Direction));
                             logger.LogDebug($"{nameof(ProcessingGetEdgeTriggerDirectionRequest)}");
+                            break;
+                        case ProcessingGetEdgeTriggerHysteresisRequest processingGetEdgeTriggerHysteresisRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetEdgeTriggerHysteresisResponse(processingConfig.EdgeTriggerParameters.HysteresisPercent));
+                            logger.LogDebug($"{nameof(ProcessingGetEdgeTriggerHysteresisRequest)}");
+                            break;
+                        case ProcessingGetBurstTriggerLevelRequest processingGetBurstTriggerLevelRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerLevelResponse(processingConfig.BurstTriggerParameters.LevelV));
+                            logger.LogDebug($"{nameof(ProcessingGetBurstTriggerLevelRequest)}");
+                            break;
+                        case ProcessingGetBurstTriggerDirectionRequest processingGetBurstTriggerDirectionRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerDirectionResponse(processingConfig.BurstTriggerParameters.Direction));
+                            logger.LogDebug($"{nameof(ProcessingGetBurstTriggerDirectionRequest)}");
+                            break;
+                        case ProcessingGetBurstTriggerHysteresisRequest processingGetBurstTriggerHysteresisRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerHysteresisResponse(processingConfig.BurstTriggerParameters.HysteresisPercent));
+                            logger.LogDebug($"{nameof(ProcessingGetBurstTriggerHysteresisRequest)}");
+                            break;
+                        case ProcessingGetBurstTriggerQuietHighLevelRequest processingGetBurstTriggerQuietHighLevelRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerQuietHighLevelResponse(processingConfig.BurstTriggerParameters.QuietHighLevelV));
+                            logger.LogDebug($"{nameof(ProcessingGetBurstTriggerQuietHighLevelRequest)}");
+                            break;
+                        case ProcessingGetBurstTriggerQuietLowLevelRequest processingGetBurstTriggerQuietLowLevelRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerQuietLowLevelResponse(processingConfig.BurstTriggerParameters.QuietLowLevelV));
+                            logger.LogDebug($"{nameof(ProcessingGetBurstTriggerQuietLowLevelRequest)}");
+                            break;
+                        case ProcessingGetBurstTriggerQuietTimeRequest processingGetBurstTriggerQuietTimeRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerQuietTimeResponse(processingConfig.BurstTriggerParameters.QuietTimeFs));
+                            logger.LogDebug($"{nameof(ProcessingGetBurstTriggerQuietTimeRequest)}");
                             break;
 
                         case ProcessingGetRatesRequest processingGetRatesRequest:
@@ -1246,35 +1365,37 @@ public class ProcessingThread : IThread
                     return;
                 }
                 var triggerChannel = currentHardwareConfig.GetTriggerChannelFrontend(processingConfig.TriggerChannel);
+                var triggerChannelParameters = new TriggerChannelParameters()
+                {
+                    SampleRateHz = currentHardwareConfig.Acquisition.SampleRateHz,
+                    TriggerChannelVpp = (float)triggerChannel.ActualVoltFullScale,
+                    TriggerChannelOffsetV = (float)triggerChannel.ActualVoltOffset
+                };
 
                 triggerI8 = processingConfig.TriggerType switch
                 {
                     TriggerType.Edge => processingConfig.EdgeTriggerParameters.Direction switch
                     {
-                        EdgeDirection.Rising => new RisingEdgeTriggerI8(processingConfig.EdgeTriggerParameters, triggerChannel.ActualVoltFullScale, triggerChannel.ActualVoltOffset),
-                        EdgeDirection.Falling => new FallingEdgeTriggerI8(processingConfig.EdgeTriggerParameters, triggerChannel.ActualVoltFullScale, triggerChannel.ActualVoltOffset),
-                        EdgeDirection.Any => new AnyEdgeTriggerI8(processingConfig.EdgeTriggerParameters, triggerChannel.ActualVoltFullScale, triggerChannel.ActualVoltOffset),
+                        EdgeDirection.Rising => new RisingEdgeTriggerI8(triggerChannelParameters, processingConfig.EdgeTriggerParameters),
+                        EdgeDirection.Falling => new FallingEdgeTriggerI8(triggerChannelParameters, processingConfig.EdgeTriggerParameters),
+                        EdgeDirection.Any => new AnyEdgeTriggerI8(triggerChannelParameters, processingConfig.EdgeTriggerParameters),
                         _ => throw new NotImplementedException()
                     },
-                    TriggerType.Burst => new BurstTriggerI8(processingConfig.BurstTriggerParameters),
+                    TriggerType.Burst => new BurstTriggerI8(triggerChannelParameters, processingConfig.BurstTriggerParameters),
                     _ => throw new NotImplementedException()
                 };
                 triggerI16 = processingConfig.TriggerType switch
                 {
                     TriggerType.Edge => processingConfig.EdgeTriggerParameters.Direction switch
                     {
-                        EdgeDirection.Rising => new RisingEdgeTriggerI16(processingConfig.EdgeTriggerParameters, currentHardwareConfig.Acquisition.Resolution, triggerChannel.ActualVoltFullScale, triggerChannel.ActualVoltOffset),
-                        EdgeDirection.Falling => new FallingEdgeTriggerI16(processingConfig.EdgeTriggerParameters, currentHardwareConfig.Acquisition.Resolution, triggerChannel.ActualVoltFullScale, triggerChannel.ActualVoltOffset),
-                        EdgeDirection.Any => new AnyEdgeTriggerI16(processingConfig.EdgeTriggerParameters, currentHardwareConfig.Acquisition.Resolution, triggerChannel.ActualVoltFullScale, triggerChannel.ActualVoltOffset),
+                        EdgeDirection.Rising => new RisingEdgeTriggerI16(triggerChannelParameters, processingConfig.EdgeTriggerParameters),
+                        EdgeDirection.Falling => new FallingEdgeTriggerI16(triggerChannelParameters, processingConfig.EdgeTriggerParameters),
+                        EdgeDirection.Any => new AnyEdgeTriggerI16(triggerChannelParameters, processingConfig.EdgeTriggerParameters),
                         _ => throw new NotImplementedException()
                     },
-                    TriggerType.Burst => new NotImplementedTriggerI16(),
+                    TriggerType.Burst => new BurstTriggerI16(triggerChannelParameters, processingConfig.BurstTriggerParameters),
                     _ => throw new NotImplementedException()
                 };
-                if (triggerI16 is NotImplementedTriggerI16)
-                {
-                    logger.LogWarning($"Trigger type is not implemented for I16 data.");
-                }
 
                 // Set trigger horizontal parameters
                 triggerI8.SetHorizontal(processingConfig.ChannelDataLength, windowTriggerPosition, additionalHoldoff);

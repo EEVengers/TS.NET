@@ -18,9 +18,10 @@ public class FallingEdgeTriggerI16 : ITriggerI16
     private long holdoffSamples;
     private long holdoffRemaining;
 
-    public FallingEdgeTriggerI16(EdgeTriggerParameters parameters, AdcResolution adcResolution, double triggerChannelVpp, double triggerChannelOffsetV)
+    public FallingEdgeTriggerI16(TriggerChannelParameters triggerChannelParameters, EdgeTriggerParameters parameters)
     {
-        SetParameters(parameters, adcResolution, triggerChannelVpp, triggerChannelOffsetV);
+        // Fixed 12-bit for now, may have 14-bit in future
+        SetParameters(parameters, AdcResolution.TwelveBit, triggerChannelParameters.TriggerChannelVpp, triggerChannelParameters.TriggerChannelOffsetV);
         SetHorizontal(1000000, 0, 0);
     }
 
@@ -35,16 +36,17 @@ public class FallingEdgeTriggerI16 : ITriggerI16
         triggerState = TriggerState.Unarmed;
         triggerLevel = (short)levelCount;     // Logic = LT
 
-        if((levelCount + hysteresisCount) > TriggerUtility.AdcMax(adcResolution))
+        if ((levelCount + hysteresisCount) > TriggerUtility.AdcMax(adcResolution))
         {
             armLevel = (short)TriggerUtility.AdcMax(adcResolution);        // Logic = GTE
-        }    
+        }
         else
         {
             armLevel = (short)(levelCount + hysteresisCount);
         }
     }
 
+    // Parameters are in units of samples, not time.
     public void SetHorizontal(long windowWidth, long windowTriggerPosition, long additionalHoldoff)
     {
         if (windowWidth < 1000)
@@ -98,7 +100,7 @@ public class FallingEdgeTriggerI16 : ITriggerI16
                                     var conditionFound = Avx2.MoveMask(packedResult) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
                                     if (conditionFound)
                                         break;
-                                    i += 32;
+                                    i += Vector256<short>.Count;
                                 }
                             }
                             else if (AdvSimd.Arm64.IsSupported)
@@ -106,14 +108,12 @@ public class FallingEdgeTriggerI16 : ITriggerI16
                                 while (i < v256Length)
                                 {
                                     var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
-                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + 16);
+                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
                                     var resultVector1 = AdvSimd.CompareGreaterThanOrEqual(inputVector1, armLevelVector128);
                                     var resultVector2 = AdvSimd.CompareGreaterThanOrEqual(inputVector2, armLevelVector128);
-                                    var conditionFound = resultVector1 != Vector128<short>.Zero;
-                                    conditionFound |= resultVector2 != Vector128<short>.Zero;
-                                    if (conditionFound)
+                                    if (resultVector1 != Vector128<short>.Zero || resultVector2 != Vector128<short>.Zero)
                                         break;
-                                    i += 32;
+                                    i += Vector256<short>.Count;
                                 }
                             }
                             while (i < inputLength)
@@ -139,7 +139,7 @@ public class FallingEdgeTriggerI16 : ITriggerI16
                                     var conditionFound = Avx2.MoveMask(packedResult) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
                                     if (conditionFound)
                                         break;
-                                    i += 32;
+                                    i += Vector256<short>.Count;
                                 }
                             }
                             else if (AdvSimd.Arm64.IsSupported)
@@ -147,14 +147,12 @@ public class FallingEdgeTriggerI16 : ITriggerI16
                                 while (i < v256Length)
                                 {
                                     var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
-                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + 16);
+                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
                                     var resultVector1 = AdvSimd.CompareLessThan(inputVector1, triggerLevelVector128);
                                     var resultVector2 = AdvSimd.CompareLessThan(inputVector2, triggerLevelVector128);
-                                    var conditionFound = resultVector1 != Vector128<short>.Zero;
-                                    conditionFound |= resultVector2 != Vector128<short>.Zero;
-                                    if (conditionFound)
+                                    if (resultVector1 != Vector128<short>.Zero || resultVector2 != Vector128<short>.Zero)
                                         break;
-                                    i += 32;
+                                    i += Vector256<short>.Count;
                                 }
                             }
                             while (i < inputLength)

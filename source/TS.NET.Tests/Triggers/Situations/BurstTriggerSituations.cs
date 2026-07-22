@@ -19,13 +19,13 @@ internal class BurstTriggerSituation
 internal class BurstTriggerSituations
 {
     /// <summary>
-    /// 1000 sample waveform at index 1000
+    /// 1000 quiet samples followed by an arm sample and a rising crossing.
     /// </summary>
     public static BurstTriggerSituation SituationA()
     {
         var situation = new BurstTriggerSituation()
         {
-            Parameters = new BurstTriggerParameters(WindowHighLevel: 20, WindowLowLevel: -20, MinimumInRangePeriod: 1000),
+            Parameters = new BurstTriggerParameters(LevelV: 20, Direction: BurstEdgeDirection.Rising, HysteresisPercent: 5, QuietHighLevelV: 20, QuietLowLevelV: -20, QuietTimeFs: 1_000_000_000),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -37,18 +37,19 @@ internal class BurstTriggerSituations
         situation.ExpectedWindowEndIndices = new ulong[1];
         situation.Input.Span.Fill(sbyte.MaxValue);
         situation.Input.Span.Slice(1000, 1000).Fill(0);
-        situation.ExpectedWindowEndIndices.Span[0] = 12000;
+        situation.Input.Span[2000] = 0;
+        situation.ExpectedWindowEndIndices.Span[0] = 12001;
         return situation;
     }
 
     /// <summary>
-    /// 999 sample waveform at index 1000, to be ignored, 1000 wide waveform at index 10000
+    /// 999 quiet samples at index 1000 are ignored; the later quiet period arms and triggers.
     /// </summary>
     public static BurstTriggerSituation SituationB()
     {
         var situation = new BurstTriggerSituation()
         {
-            Parameters = new BurstTriggerParameters(WindowHighLevel: 20, WindowLowLevel: -20, MinimumInRangePeriod: 1000),
+            Parameters = new BurstTriggerParameters(LevelV: 20, Direction: BurstEdgeDirection.Rising, HysteresisPercent: 5, QuietHighLevelV: 20, QuietLowLevelV: -20, QuietTimeFs: 1_000_000_000),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -61,7 +62,8 @@ internal class BurstTriggerSituations
         situation.Input.Span.Fill(sbyte.MaxValue);
         situation.Input.Span.Slice(1000, 995).Fill(0);       // Should be ignored
         situation.Input.Span.Slice(10000, 1000).Fill(0);
-        situation.ExpectedWindowEndIndices.Span[0] = 21000;
+        situation.Input.Span[11000] = 0;
+        situation.ExpectedWindowEndIndices.Span[0] = 21001;
         return situation;
     }
 }

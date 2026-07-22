@@ -21,7 +21,7 @@ public class BurstTriggerI8Tests
 
     private static void RunSituation(BurstTriggerSituation situation)
     {
-        var trigger = new BurstTriggerI8(situation.Parameters);
+        var trigger = new BurstTriggerI8(new TriggerChannelParameters(1_000_000_000, 256, 0), situation.Parameters);
         var edgeTriggerResults = new EdgeTriggerResults()
         {
             ArmIndices = new ulong[1000],

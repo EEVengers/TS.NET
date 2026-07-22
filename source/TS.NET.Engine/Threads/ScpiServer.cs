@@ -376,13 +376,13 @@ internal class ScpiServer : IThread
                                     TriggerType? triggerType = argument.ToUpper() switch
                                     {
                                         "EDGE" => TriggerType.Edge,
-                                        "WINDOW" => TriggerType.Window,
-                                        "RUNT" => TriggerType.Runt,
-                                        "WIDTH" => TriggerType.Width,
-                                        "INTERVAL" => TriggerType.Interval,
+                                        //"WINDOW" => TriggerType.Window,
+                                        //"RUNT" => TriggerType.Runt,
+                                        //"WIDTH" => TriggerType.Width,
+                                        //"INTERVAL" => TriggerType.Interval,
                                         "BURST" => TriggerType.Burst,
-                                        "DROPOUT" => TriggerType.Dropout,
-                                        "SLEWRATE" => TriggerType.SlewRate,
+                                        //"DROPOUT" => TriggerType.Dropout,
+                                        //"SLEWRATE" => TriggerType.SlewRate,
                                         _ => null
                                     };
 
@@ -457,6 +457,61 @@ internal class ScpiServer : IThread
                                     processingControl.Request.Writer.Write(new ProcessingSetEdgeTriggerDirection(type));
                                     return null;
                                 }
+                            case var _ when command.StartsWith("EDGE:HYS") && argument != null:
+                                {
+                                    float hysteresis = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
+                                    logger.LogDebug($"Set edge trigger hysteresis to {hysteresis}%");
+                                    processingControl.Request.Writer.Write(new ProcessingSetEdgeTriggerHysteresis(hysteresis));
+                                    return null;
+                                }
+                            case var _ when command.StartsWith("BURST:LEV") && argument != null:
+                                {
+                                    float level = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
+                                    logger.LogDebug($"Set burst trigger level to {level}V");
+                                    processingControl.Request.Writer.Write(new ProcessingSetBurstTriggerLevel(level));
+                                    return null;
+                                }
+                            case var _ when command.StartsWith("BURST:DIR") && argument != null:
+                                {
+                                    var edge = argument.ToUpperInvariant() switch
+                                    {
+                                        "RISING" => BurstEdgeDirection.Rising,
+                                        "FALLING" => BurstEdgeDirection.Falling,
+                                        _ => throw new ArgumentException("Burst trigger edge must be RISING or FALLING.")
+                                    };
+                                    logger.LogDebug($"Set burst trigger edge to {edge}");
+                                    processingControl.Request.Writer.Write(new ProcessingSetBurstTriggerDirection(edge));
+                                    return null;
+                                }
+                            case var _ when command.StartsWith("BURST:HYS") && argument != null:
+                                {
+                                    float hysteresis = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
+                                    logger.LogDebug($"Set burst trigger hysteresis to {hysteresis}%");
+                                    processingControl.Request.Writer.Write(new ProcessingSetBurstTriggerHysteresis(hysteresis));
+                                    return null;
+                                }
+                            case var _ when command.StartsWith("BURST:QUIET:HIGH") && argument != null:
+                                {
+                                    float level = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
+                                    logger.LogDebug($"Set burst trigger quiet high level to {level}V");
+                                    processingControl.Request.Writer.Write(new ProcessingSetBurstTriggerQuietHighLevel(level));
+                                    return null;
+                                }
+                            case var _ when command.StartsWith("BURST:QUIET:LOW") && argument != null:
+                                {
+                                    float level = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
+                                    logger.LogDebug($"Set burst trigger quiet low level to {level}V");
+                                    processingControl.Request.Writer.Write(new ProcessingSetBurstTriggerQuietLowLevel(level));
+                                    return null;
+                                }
+                            case var _ when command.StartsWith("BURST:QUIET:TIME") && argument != null:
+                                {
+                                    long period = Convert.ToInt64(argument, CultureInfo.InvariantCulture);
+                                    logger.LogDebug($"Set burst trigger quiet time to {period}fs");
+                                    processingControl.Request.Writer.Write(new ProcessingSetBurstTriggerQuietTime(period));
+                                    return null;
+                                }
+
                         }
                         break;
                     }
@@ -948,6 +1003,118 @@ internal class ScpiServer : IThread
                             else
                             {
                                 logger.LogError($"TRIG:EDGE:DIR? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            return "Error: No/bad response from channel.\n";
+                        }
+                    case var _ when command.StartsWith("EDGE:HYS"):
+                        {
+                            processingControl.Request.Writer.Write(new ProcessingGetEdgeTriggerHysteresisRequest());
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
+                            {
+                                if (response is ProcessingGetEdgeTriggerHysteresisResponse triggerHysteresisResponse)
+                                    return Invariant($"{triggerHysteresisResponse.Percent:0.######}\n");
+
+                                logger.LogError($"TRIG:EDGE:HYS? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            else
+                            {
+                                logger.LogError($"TRIG:EDGE:HYS? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            return "Error: No/bad response from channel.\n";
+                        }
+                    case var _ when command.StartsWith("BURST:LEV"):
+                        {
+                            processingControl.Request.Writer.Write(new ProcessingGetBurstTriggerLevelRequest());
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
+                            {
+                                if (response is ProcessingGetBurstTriggerLevelResponse triggerLevelResponse)
+                                    return Invariant($"{triggerLevelResponse.LevelVolts:0.######}\n");
+
+                                logger.LogError($"TRIG:BURST:LEV? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            else
+                            {
+                                logger.LogError($"TRIG:BURST:LEV? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            return "Error: No/bad response from channel.\n";
+                        }
+                    case var _ when command.StartsWith("BURST:EDGE") || command.StartsWith("BURST:DIR"):
+                        {
+                            processingControl.Request.Writer.Write(new ProcessingGetBurstTriggerDirectionRequest());
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
+                            {
+                                if (response is ProcessingGetBurstTriggerDirectionResponse triggerDirectionResponse)
+                                    return $"{triggerDirectionResponse.Direction.ToString().ToUpperInvariant()}\n";
+
+                                logger.LogError($"TRIG:BURST:EDGE? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            else
+                            {
+                                logger.LogError($"TRIG:BURST:EDGE? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            return "Error: No/bad response from channel.\n";
+                        }
+                    case var _ when command.StartsWith("BURST:HYS"):
+                        {
+                            processingControl.Request.Writer.Write(new ProcessingGetBurstTriggerHysteresisRequest());
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
+                            {
+                                if (response is ProcessingGetBurstTriggerHysteresisResponse triggerHysteresisResponse)
+                                    return Invariant($"{triggerHysteresisResponse.Percent:0.######}\n");
+
+                                logger.LogError($"TRIG:BURST:HYS? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            else
+                            {
+                                logger.LogError($"TRIG:BURST:HYS? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            return "Error: No/bad response from channel.\n";
+                        }
+                    case var _ when command.StartsWith("BURST:QUIET:HIGH"):
+                        {
+                            processingControl.Request.Writer.Write(new ProcessingGetBurstTriggerQuietHighLevelRequest());
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
+                            {
+                                if (response is ProcessingGetBurstTriggerQuietHighLevelResponse triggerQuietHighLevelResponse)
+                                    return Invariant($"{triggerQuietHighLevelResponse.LevelVolts:0.######}\n");
+
+                                logger.LogError($"TRIG:BURST:QUIET:HIGH? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            else
+                            {
+                                logger.LogError($"TRIG:BURST:QUIET:HIGH? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            return "Error: No/bad response from channel.\n";
+                        }
+                    case var _ when command.StartsWith("BURST:QUIET:LOW"):
+                        {
+                            processingControl.Request.Writer.Write(new ProcessingGetBurstTriggerQuietLowLevelRequest());
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
+                            {
+                                if (response is ProcessingGetBurstTriggerQuietLowLevelResponse triggerQuietLowLevelResponse)
+                                    return Invariant($"{triggerQuietLowLevelResponse.LevelVolts:0.######}\n");
+
+                                logger.LogError($"TRIG:BURST:QUIET:LOW? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            else
+                            {
+                                logger.LogError($"TRIG:BURST:QUIET:LOW? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            return "Error: No/bad response from channel.\n";
+                        }
+                    case var _ when command.StartsWith("BURST:QUIET:TIME"):
+                        {
+                            processingControl.Request.Writer.Write(new ProcessingGetBurstTriggerQuietTimeRequest());
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
+                            {
+                                if (response is ProcessingGetBurstTriggerQuietTimeResponse triggerQuietTimeResponse)
+                                    return Invariant($"{triggerQuietTimeResponse.Femtoseconds}\n");
+
+                                logger.LogError($"TRIG:BURST:QUIET:TIME? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            else
+                            {
+                                logger.LogError($"TRIG:BURST:QUIET:TIME? - No response from {nameof(processingControl.Response.Reader)}");
                             }
                             return "Error: No/bad response from channel.\n";
                         }

@@ -527,7 +527,7 @@ public class Instruments
             HysteresisPercent = hysteresisPercent
         };
 
-        var trigger = new RisingEdgeTriggerI8(triggerParameters, pathCalibration.BufferInputVpp, 0.0);
+        var trigger = new RisingEdgeTriggerI8(new TriggerChannelParameters(config.Acquisition.SampleRateHz, (float)pathCalibration.BufferInputVpp, 0.0f), triggerParameters);
 
         const int blockSizeBytes = 1024 * 1024;
         var subsetDataMemory = dataMemory!.Subset(blockSizeBytes);
@@ -628,7 +628,7 @@ public class Instruments
             HysteresisPercent = hysteresisPercent
         };
         var triggerFrontend = config.Frontend[triggerChannelIndex];
-        var trigger = new RisingEdgeTriggerI16(triggerParameters, config.Acquisition.Resolution, triggerFrontend.ActualVoltFullScale, triggerFrontend.ActualVoltOffset);
+        var trigger = new RisingEdgeTriggerI16(new TriggerChannelParameters(config.Acquisition.SampleRateHz, (float)triggerFrontend.ActualVoltFullScale, (float)triggerFrontend.ActualVoltOffset), triggerParameters);
 
         const int blockSizeBytes = 1024 * 1024;
         var subsetDataMemory = dataMemory!.Subset(blockSizeBytes);

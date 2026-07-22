@@ -18,9 +18,10 @@ public class RisingEdgeTriggerI16 : ITriggerI16
     private long holdoffSamples;
     private long holdoffRemaining;
 
-    public RisingEdgeTriggerI16(EdgeTriggerParameters parameters, AdcResolution adcResolution, double triggerChannelVpp, double triggerChannelOffsetV)
+    public RisingEdgeTriggerI16(TriggerChannelParameters triggerChannelParameters, EdgeTriggerParameters parameters)
     {
-        SetParameters(parameters, adcResolution, triggerChannelVpp, triggerChannelOffsetV);
+        // Fixed 12-bit for now, may have 14-bit in future
+        SetParameters(parameters, AdcResolution.TwelveBit, triggerChannelParameters.TriggerChannelVpp, triggerChannelParameters.TriggerChannelOffsetV);
         SetHorizontal(1000000, 0, 0);
     }
 
@@ -45,6 +46,7 @@ public class RisingEdgeTriggerI16 : ITriggerI16
         }
     }
 
+    // Parameters are in units of samples, not time.
     public void SetHorizontal(long windowWidth, long windowTriggerPosition, long additionalHoldoff)
     {
         if (windowWidth < 1000)
@@ -93,10 +95,7 @@ public class RisingEdgeTriggerI16 : ITriggerI16
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
                                     var resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector256, inputVector), armLevelVector256);
-                                    // Convert 16-bit comparison results to 8-bit and extract mask
-                                    var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
-                                    var conditionFound = Avx2.MoveMask(packedResult) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (conditionFound)
+                                    if (resultVector != Vector256<short>.Zero)
                                         break;
                                     i += Vector256<short>.Count;
                                 }
@@ -106,12 +105,10 @@ public class RisingEdgeTriggerI16 : ITriggerI16
                                 while (i < v256Length)
                                 {
                                     var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
-                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + 16);
+                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
                                     var resultVector1 = AdvSimd.CompareLessThanOrEqual(inputVector1, armLevelVector128);
                                     var resultVector2 = AdvSimd.CompareLessThanOrEqual(inputVector2, armLevelVector128);
-                                    var conditionFound = resultVector1 != Vector128<short>.Zero;
-                                    conditionFound |= resultVector2 != Vector128<short>.Zero;
-                                    if (conditionFound)
+                                    if (resultVector1 != Vector128<short>.Zero || resultVector2 != Vector128<short>.Zero)
                                         break;
                                     i += Vector256<short>.Count;    // Loading 2x128
                                 }
@@ -147,12 +144,10 @@ public class RisingEdgeTriggerI16 : ITriggerI16
                                 while (i < v256Length)
                                 {
                                     var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
-                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + 16);
+                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
                                     var resultVector1 = AdvSimd.CompareGreaterThan(inputVector1, triggerLevelVector128);
                                     var resultVector2 = AdvSimd.CompareGreaterThan(inputVector2, triggerLevelVector128);
-                                    var conditionFound = resultVector1 != Vector128<short>.Zero;
-                                    conditionFound |= resultVector2 != Vector128<short>.Zero;
-                                    if (conditionFound)
+                                    if (resultVector1 != Vector128<short>.Zero || resultVector2 != Vector128<short>.Zero)
                                         break;
                                     i += Vector256<short>.Count;    // Loading 2x128
                                 }

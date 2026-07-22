@@ -1,4 +1,5 @@
 ﻿using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace TS.NET;
@@ -18,9 +19,9 @@ public class AnyEdgeTriggerI8 : ITriggerI8
     private long holdoffSamples;
     private long holdoffRemaining;
 
-    public AnyEdgeTriggerI8(EdgeTriggerParameters parameters, double triggerChannelVpp, double triggerChannelOffsetV)
+    public AnyEdgeTriggerI8(TriggerChannelParameters triggerChannelParameters, EdgeTriggerParameters parameters)
     {
-        SetParameters(parameters, triggerChannelVpp, triggerChannelOffsetV);
+        SetParameters(parameters, triggerChannelParameters.TriggerChannelVpp, triggerChannelParameters.TriggerChannelOffsetV);
         SetHorizontal(1000000, 0, 0);
     }
 
@@ -56,6 +57,7 @@ public class AnyEdgeTriggerI8 : ITriggerI8
         }
     }
 
+    // Parameters are in units of samples, not time.
     public void SetHorizontal(long windowWidth, long windowTriggerPosition, long additionalHoldoff)
     {
         if (windowWidth < 1000)
@@ -84,9 +86,12 @@ public class AnyEdgeTriggerI8 : ITriggerI8
         results.CaptureEndCount = 0;
         int i = 0;
 
-        Vector256<sbyte> triggerLevelVector = Vector256.Create(triggerLevel);
-        Vector256<sbyte> upperArmLevelVector = Vector256.Create(upperArmLevel);
-        Vector256<sbyte> lowerArmLevelVector = Vector256.Create(lowerArmLevel);
+        Vector256<sbyte> triggerLevelVector256 = Vector256.Create(triggerLevel);
+        Vector256<sbyte> upperArmLevelVector256 = Vector256.Create(upperArmLevel);
+        Vector256<sbyte> lowerArmLevelVector256 = Vector256.Create(lowerArmLevel);
+        Vector128<sbyte> triggerLevelVector128 = Vector128.Create(triggerLevel);
+        Vector128<sbyte> upperArmLevelVector128 = Vector128.Create(upperArmLevel);
+        Vector128<sbyte> lowerArmLevelVector128 = Vector128.Create(lowerArmLevel);
 
         unsafe
         {
@@ -104,13 +109,30 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                                 {
                                     uint resultCount = 0;
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var lowerArmRegion = Avx2.CompareEqual(Avx2.Max(lowerArmLevelVector, inputVector), lowerArmLevelVector);
+                                    var lowerArmRegion = Avx2.CompareEqual(Avx2.Max(lowerArmLevelVector256, inputVector), lowerArmLevelVector256);
                                     resultCount = (uint)Avx2.MoveMask(lowerArmRegion);     // Quick way to do horizontal vector scan of byte[n] > 0
                                     if (resultCount != 0)
                                         break;
-                                    var upperArmRegion = Avx2.CompareEqual(Avx2.Min(upperArmLevelVector, inputVector), upperArmLevelVector);
+                                    var upperArmRegion = Avx2.CompareEqual(Avx2.Min(upperArmLevelVector256, inputVector), upperArmLevelVector256);
                                     resultCount = (uint)Avx2.MoveMask(upperArmRegion);     // Quick way to do horizontal vector scan of byte[n] > 0
                                     if (resultCount != 0)
+                                        break;
+                                    i += Vector256<sbyte>.Count;
+                                }
+                            }
+                            else if (AdvSimd.Arm64.IsSupported)
+                            {
+                                while (i < v256Length)
+                                {
+                                    var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
+                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<sbyte>.Count);
+                                    var lowerArmRegion1 = AdvSimd.CompareLessThanOrEqual(inputVector1, lowerArmLevelVector128);
+                                    var lowerArmRegion2 = AdvSimd.CompareLessThanOrEqual(inputVector2, lowerArmLevelVector128);
+                                    if (lowerArmRegion1 != Vector128<sbyte>.Zero || lowerArmRegion2 != Vector128<sbyte>.Zero)
+                                        break;
+                                    var upperArmRegion1 = AdvSimd.CompareGreaterThanOrEqual(inputVector1, upperArmLevelVector128);
+                                    var upperArmRegion2 = AdvSimd.CompareGreaterThanOrEqual(inputVector2, upperArmLevelVector128);
+                                    if (upperArmRegion1 != Vector128<sbyte>.Zero || upperArmRegion2 != Vector128<sbyte>.Zero)
                                         break;
                                     i += Vector256<sbyte>.Count;
                                 }
@@ -138,9 +160,22 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                                 while (i < v256Length)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector, inputVector), triggerLevelVector);
+                                    var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector256, inputVector), triggerLevelVector256);
                                     uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
                                     if (resultCount != 0)
+                                        break;
+                                    i += Vector256<sbyte>.Count;
+                                }
+                            }
+                            else if (AdvSimd.Arm64.IsSupported)
+                            {
+                                while (i < v256Length)
+                                {
+                                    var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
+                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<sbyte>.Count);
+                                    var resultVector1 = AdvSimd.CompareGreaterThan(inputVector1, triggerLevelVector128);
+                                    var resultVector2 = AdvSimd.CompareGreaterThan(inputVector2, triggerLevelVector128);
+                                    if (resultVector1 != Vector128<sbyte>.Zero || resultVector2 != Vector128<sbyte>.Zero)
                                         break;
                                     i += Vector256<sbyte>.Count;
                                 }
@@ -163,9 +198,22 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                                 while (i < v256Length)
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector, inputVector), triggerLevelVector);
+                                    var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector256, inputVector), triggerLevelVector256);
                                     uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
                                     if (resultCount != 0)
+                                        break;
+                                    i += Vector256<sbyte>.Count;
+                                }
+                            }
+                            else if (AdvSimd.Arm64.IsSupported)
+                            {
+                                while (i < v256Length)
+                                {
+                                    var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
+                                    var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<sbyte>.Count);
+                                    var resultVector1 = AdvSimd.CompareLessThan(inputVector1, triggerLevelVector128);
+                                    var resultVector2 = AdvSimd.CompareLessThan(inputVector2, triggerLevelVector128);
+                                    if (resultVector1 != Vector128<sbyte>.Zero || resultVector2 != Vector128<sbyte>.Zero)
                                         break;
                                     i += Vector256<sbyte>.Count;
                                 }

@@ -23,6 +23,13 @@ public record ProcessingGetTriggerInterpolationResponse(bool Enabled) : Processi
 
 public record ProcessingGetEdgeTriggerLevelResponse(double LevelVolts) : ProcessingResponseDto();
 public record ProcessingGetEdgeTriggerDirectionResponse(EdgeDirection Direction) : ProcessingResponseDto();
+public record ProcessingGetEdgeTriggerHysteresisResponse(double Percent) : ProcessingResponseDto();
+public record ProcessingGetBurstTriggerLevelResponse(double LevelVolts) : ProcessingResponseDto();
+public record ProcessingGetBurstTriggerDirectionResponse(BurstEdgeDirection Direction) : ProcessingResponseDto();
+public record ProcessingGetBurstTriggerHysteresisResponse(double Percent) : ProcessingResponseDto();
+public record ProcessingGetBurstTriggerQuietHighLevelResponse(double LevelVolts) : ProcessingResponseDto();
+public record ProcessingGetBurstTriggerQuietLowLevelResponse(double LevelVolts) : ProcessingResponseDto();
+public record ProcessingGetBurstTriggerQuietTimeResponse(long Femtoseconds) : ProcessingResponseDto();
 
 public record HardwareGetVoltOffsetResponse(double RequestedVoltOffset, double ActualVoltOffset) : ProcessingResponseDto;
 public record HardwareGetVoltFullScaleResponse(double RequestedVoltFullScale, double ActualVoltFullScale) : ProcessingResponseDto;
