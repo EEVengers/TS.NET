@@ -490,18 +490,18 @@ internal class ScpiServer : IThread
                                     processingControl.Request.Writer.Write(new ProcessingSetBurstTriggerHysteresis(hysteresis));
                                     return null;
                                 }
-                            case var _ when command.StartsWith("BURST:QUIET:HIGH") && argument != null:
+                            case var _ when command.StartsWith("BURST:QUIET:UPPER") && argument != null:
                                 {
                                     float level = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
-                                    logger.LogDebug($"Set burst trigger quiet high level to {level}V");
-                                    processingControl.Request.Writer.Write(new ProcessingSetBurstTriggerQuietHighLevel(level));
+                                    logger.LogDebug($"Set burst trigger quiet upper level to {level}V");
+                                    processingControl.Request.Writer.Write(new ProcessingSetBurstTriggerQuietUpperLevel(level));
                                     return null;
                                 }
-                            case var _ when command.StartsWith("BURST:QUIET:LOW") && argument != null:
+                            case var _ when command.StartsWith("BURST:QUIET:LOWER") && argument != null:
                                 {
                                     float level = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
-                                    logger.LogDebug($"Set burst trigger quiet low level to {level}V");
-                                    processingControl.Request.Writer.Write(new ProcessingSetBurstTriggerQuietLowLevel(level));
+                                    logger.LogDebug($"Set burst trigger quiet lower level to {level}V");
+                                    processingControl.Request.Writer.Write(new ProcessingSetBurstTriggerQuietLowerLevel(level));
                                     return null;
                                 }
                             case var _ when command.StartsWith("BURST:QUIET:TIME") && argument != null:
@@ -1070,35 +1070,35 @@ internal class ScpiServer : IThread
                             }
                             return "Error: No/bad response from channel.\n";
                         }
-                    case var _ when command.StartsWith("BURST:QUIET:HIGH"):
+                    case var _ when command.StartsWith("BURST:QUIET:UPPER"):
                         {
-                            processingControl.Request.Writer.Write(new ProcessingGetBurstTriggerQuietHighLevelRequest());
+                            processingControl.Request.Writer.Write(new ProcessingGetBurstTriggerQuietUpperLevelRequest());
                             if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
                             {
-                                if (response is ProcessingGetBurstTriggerQuietHighLevelResponse triggerQuietHighLevelResponse)
-                                    return Invariant($"{triggerQuietHighLevelResponse.LevelVolts:0.######}\n");
+                                if (response is ProcessingGetBurstTriggerQuietUpperLevelResponse triggerQuietUpperLevelResponse)
+                                    return Invariant($"{triggerQuietUpperLevelResponse.LevelVolts:0.######}\n");
 
-                                logger.LogError($"TRIG:BURST:QUIET:HIGH? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                                logger.LogError($"TRIG:BURST:QUIET:UPPER? - Invalid response from {nameof(processingControl.Response.Reader)}");
                             }
                             else
                             {
-                                logger.LogError($"TRIG:BURST:QUIET:HIGH? - No response from {nameof(processingControl.Response.Reader)}");
+                                logger.LogError($"TRIG:BURST:QUIET:UPPER? - No response from {nameof(processingControl.Response.Reader)}");
                             }
                             return "Error: No/bad response from channel.\n";
                         }
-                    case var _ when command.StartsWith("BURST:QUIET:LOW"):
+                    case var _ when command.StartsWith("BURST:QUIET:LOWER"):
                         {
-                            processingControl.Request.Writer.Write(new ProcessingGetBurstTriggerQuietLowLevelRequest());
+                            processingControl.Request.Writer.Write(new ProcessingGetBurstTriggerQuietLowerLevelRequest());
                             if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
                             {
-                                if (response is ProcessingGetBurstTriggerQuietLowLevelResponse triggerQuietLowLevelResponse)
-                                    return Invariant($"{triggerQuietLowLevelResponse.LevelVolts:0.######}\n");
+                                if (response is ProcessingGetBurstTriggerQuietLowerLevelResponse triggerQuietLowerLevelResponse)
+                                    return Invariant($"{triggerQuietLowerLevelResponse.LevelVolts:0.######}\n");
 
-                                logger.LogError($"TRIG:BURST:QUIET:LOW? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                                logger.LogError($"TRIG:BURST:QUIET:LOWER? - Invalid response from {nameof(processingControl.Response.Reader)}");
                             }
                             else
                             {
-                                logger.LogError($"TRIG:BURST:QUIET:LOW? - No response from {nameof(processingControl.Response.Reader)}");
+                                logger.LogError($"TRIG:BURST:QUIET:LOWER? - No response from {nameof(processingControl.Response.Reader)}");
                             }
                             return "Error: No/bad response from channel.\n";
                         }

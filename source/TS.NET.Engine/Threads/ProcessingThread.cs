@@ -117,7 +117,7 @@ public class ProcessingThread : IThread
                 TriggerInterpolation = true,
                 AutoTimeoutMs = 1000,
                 EdgeTriggerParameters = new EdgeTriggerParameters() { LevelV = 0, Direction = EdgeDirection.Rising, HysteresisPercent = 5 },
-                BurstTriggerParameters = new BurstTriggerParameters() { LevelV = 0, Direction = BurstEdgeDirection.Rising, HysteresisPercent = 5, QuietHighLevelV = 1, QuietLowLevelV = -1, QuietTimeFs = 1000000000000L },
+                BurstTriggerParameters = new BurstTriggerParameters() { LevelV = 0, Direction = BurstEdgeDirection.Rising, HysteresisPercent = 5, QuietUpperLevelV = 1, QuietLowerLevelV = -1, QuietTimeFs = 1000000000000L },
                 BoxcarAveraging = BoxcarAveraging.None
             };
             uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
@@ -624,30 +624,30 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(ProcessingSetBurstTriggerHysteresis)} (no change)");
                             }
                             break;
-                        case ProcessingSetBurstTriggerQuietHighLevel processingSetBurstTriggerHighLevel:
-                            if (processingConfig.BurstTriggerParameters.QuietHighLevelV != processingSetBurstTriggerHighLevel.LevelVolts)
+                        case ProcessingSetBurstTriggerQuietUpperLevel processingSetBurstTriggerUpperLevel:
+                            if (processingConfig.BurstTriggerParameters.QuietUpperLevelV != processingSetBurstTriggerUpperLevel.LevelVolts)
                             {
-                                processingConfig.BurstTriggerParameters.QuietHighLevelV = processingSetBurstTriggerHighLevel.LevelVolts;
+                                processingConfig.BurstTriggerParameters.QuietUpperLevelV = processingSetBurstTriggerUpperLevel.LevelVolts;
                                 ResetTrigger();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
-                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietHighLevel)} (level: {processingConfig.BurstTriggerParameters.QuietHighLevelV})");
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietUpperLevel)} (level: {processingConfig.BurstTriggerParameters.QuietUpperLevelV})");
                             }
                             else
                             {
-                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietHighLevel)} (no change)");
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietUpperLevel)} (no change)");
                             }
                             break;
-                        case ProcessingSetBurstTriggerQuietLowLevel processingSetBurstTriggerLowLevel:
-                            if (processingConfig.BurstTriggerParameters.QuietLowLevelV != processingSetBurstTriggerLowLevel.LevelVolts)
+                        case ProcessingSetBurstTriggerQuietLowerLevel processingSetBurstTriggerLowerLevel:
+                            if (processingConfig.BurstTriggerParameters.QuietLowerLevelV != processingSetBurstTriggerLowerLevel.LevelVolts)
                             {
-                                processingConfig.BurstTriggerParameters.QuietLowLevelV = processingSetBurstTriggerLowLevel.LevelVolts;
+                                processingConfig.BurstTriggerParameters.QuietLowerLevelV = processingSetBurstTriggerLowerLevel.LevelVolts;
                                 ResetTrigger();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
-                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietLowLevel)} (level: {processingConfig.BurstTriggerParameters.QuietLowLevelV})");
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietLowerLevel)} (level: {processingConfig.BurstTriggerParameters.QuietLowerLevelV})");
                             }
                             else
                             {
-                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietLowLevel)} (no change)");
+                                logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietLowerLevel)} (no change)");
                             }
                             break;
                         case ProcessingSetBurstTriggerQuietTime processingSetBurstTriggerQuietTime:
@@ -720,13 +720,13 @@ public class ProcessingThread : IThread
                             processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerHysteresisResponse(processingConfig.BurstTriggerParameters.HysteresisPercent));
                             logger.LogDebug($"{nameof(ProcessingGetBurstTriggerHysteresisRequest)}");
                             break;
-                        case ProcessingGetBurstTriggerQuietHighLevelRequest processingGetBurstTriggerQuietHighLevelRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerQuietHighLevelResponse(processingConfig.BurstTriggerParameters.QuietHighLevelV));
-                            logger.LogDebug($"{nameof(ProcessingGetBurstTriggerQuietHighLevelRequest)}");
+                        case ProcessingGetBurstTriggerQuietUpperLevelRequest processingGetBurstTriggerQuietUpperLevelRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerQuietUpperLevelResponse(processingConfig.BurstTriggerParameters.QuietUpperLevelV));
+                            logger.LogDebug($"{nameof(ProcessingGetBurstTriggerQuietUpperLevelRequest)}");
                             break;
-                        case ProcessingGetBurstTriggerQuietLowLevelRequest processingGetBurstTriggerQuietLowLevelRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerQuietLowLevelResponse(processingConfig.BurstTriggerParameters.QuietLowLevelV));
-                            logger.LogDebug($"{nameof(ProcessingGetBurstTriggerQuietLowLevelRequest)}");
+                        case ProcessingGetBurstTriggerQuietLowerLevelRequest processingGetBurstTriggerQuietLowerLevelRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerQuietLowerLevelResponse(processingConfig.BurstTriggerParameters.QuietLowerLevelV));
+                            logger.LogDebug($"{nameof(ProcessingGetBurstTriggerQuietLowerLevelRequest)}");
                             break;
                         case ProcessingGetBurstTriggerQuietTimeRequest processingGetBurstTriggerQuietTimeRequest:
                             processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerQuietTimeResponse(processingConfig.BurstTriggerParameters.QuietTimeFs));

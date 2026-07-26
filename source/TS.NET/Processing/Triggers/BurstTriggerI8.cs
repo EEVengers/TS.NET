@@ -12,8 +12,8 @@ public class BurstTriggerI8 : ITriggerI8
     private BurstEdgeDirection triggerDirection;
     private sbyte triggerLevel;
     private sbyte armLevel;
-    private sbyte quietHighLevel;
-    private sbyte quietLowLevel;
+    private sbyte quietUpperLevel;
+    private sbyte quietLowerLevel;
 
     private long quietSamples;
     private long quietSamplesRemaining;
@@ -34,8 +34,8 @@ public class BurstTriggerI8 : ITriggerI8
     {
         int hysteresisCount = TriggerUtility.HysteresisValue(AdcResolution.EightBit, parameters.HysteresisPercent);
         var levelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.LevelV, triggerChannelVpp, triggerChannelOffsetV);
-        var quietHighLevelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.QuietHighLevelV, triggerChannelVpp, triggerChannelOffsetV);
-        var quietLowLevelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.QuietLowLevelV, triggerChannelVpp, triggerChannelOffsetV);
+        var quietUpperLevelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.QuietUpperLevelV, triggerChannelVpp, triggerChannelOffsetV);
+        var quietLowerLevelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.QuietLowerLevelV, triggerChannelVpp, triggerChannelOffsetV);
 
         if (levelCount <= sbyte.MinValue)
             levelCount = sbyte.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
@@ -51,8 +51,8 @@ public class BurstTriggerI8 : ITriggerI8
             BurstEdgeDirection.Falling => (sbyte)Math.Min(sbyte.MaxValue, levelCount + hysteresisCount),
             _ => throw new NotImplementedException()
         };
-        quietHighLevel = (sbyte)quietHighLevelCount;
-        quietLowLevel = (sbyte)quietLowLevelCount;
+        quietUpperLevel = (sbyte)quietUpperLevelCount;
+        quietLowerLevel = (sbyte)quietLowerLevelCount;
         quietSamples = (long)Math.Ceiling(parameters.QuietTimeFs * (double)sampleRateHz / 1_000_000_000_000_000d);
         quietSamplesRemaining = 0;
     }
@@ -89,12 +89,12 @@ public class BurstTriggerI8 : ITriggerI8
 
         Vector256<sbyte> triggerLevelVector256 = Vector256.Create(triggerLevel);
         Vector256<sbyte> armLevelVector256 = Vector256.Create(armLevel);
-        Vector256<sbyte> quietHighLevelVector256 = Vector256.Create(quietHighLevel);
-        Vector256<sbyte> quietLowLevelVector256 = Vector256.Create(quietLowLevel);
+        Vector256<sbyte> quietUpperLevelVector256 = Vector256.Create(quietUpperLevel);
+        Vector256<sbyte> quietLowerLevelVector256 = Vector256.Create(quietLowerLevel);
         Vector128<sbyte> triggerLevelVector128 = Vector128.Create(triggerLevel);
         Vector128<sbyte> armLevelVector128 = Vector128.Create(armLevel);
-        Vector128<sbyte> quietHighLevelVector128 = Vector128.Create(quietHighLevel);
-        Vector128<sbyte> quietLowLevelVector128 = Vector128.Create(quietLowLevel);
+        Vector128<sbyte> quietUpperLevelVector128 = Vector128.Create(quietUpperLevel);
+        Vector128<sbyte> quietLowerLevelVector128 = Vector128.Create(quietLowerLevel);
 
         unsafe
         {
@@ -114,14 +114,14 @@ public class BurstTriggerI8 : ITriggerI8
                             while (i < inputLength)
                             {
                                 // The quiet window excludes the high/low level.
-                                // e.g. if quietLowLevel = -20 and quietHighLevel = 20, then values must be in -19 to 19 range.
+                                // e.g. if quietLowerLevel = -20 and quietUpperLevel = 20, then values must be in -19 to 19 range.
                                 if (Avx2.IsSupported)
                                 {
                                     while (i < v256Length && quietSamplesRemaining > Vector256<sbyte>.Count && simdBlock == 0)
                                     {
                                         var inputVector = Vector256.Load(samplesPtr + i);
-                                        var gt = Vector256.GreaterThan(inputVector, quietLowLevelVector256);
-                                        var lt = Vector256.LessThan(inputVector, quietHighLevelVector256);
+                                        var gt = Vector256.GreaterThan(inputVector, quietLowerLevelVector256);
+                                        var lt = Vector256.LessThan(inputVector, quietUpperLevelVector256);
                                         var fullyGt = gt == Vector256<sbyte>.AllBitsSet;   // vptest  (better than vpmovmskb on most architectures)
                                         var fullyLt = lt == Vector256<sbyte>.AllBitsSet;
 
@@ -152,10 +152,10 @@ public class BurstTriggerI8 : ITriggerI8
                                     {
                                         var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
                                         var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<sbyte>.Count);
-                                        var gt1 = AdvSimd.CompareGreaterThan(inputVector1, quietLowLevelVector128);
-                                        var lt1 = AdvSimd.CompareLessThan(inputVector1, quietHighLevelVector128);
-                                        var gt2 = AdvSimd.CompareGreaterThan(inputVector2, quietLowLevelVector128);
-                                        var lt2 = AdvSimd.CompareLessThan(inputVector2, quietHighLevelVector128);
+                                        var gt1 = AdvSimd.CompareGreaterThan(inputVector1, quietLowerLevelVector128);
+                                        var lt1 = AdvSimd.CompareLessThan(inputVector1, quietUpperLevelVector128);
+                                        var gt2 = AdvSimd.CompareGreaterThan(inputVector2, quietLowerLevelVector128);
+                                        var lt2 = AdvSimd.CompareLessThan(inputVector2, quietUpperLevelVector128);
                                         var fullyGt = gt1 == Vector128<sbyte>.AllBitsSet && gt2 == Vector128<sbyte>.AllBitsSet;
                                         var fullyLt = lt1 == Vector128<sbyte>.AllBitsSet && lt2 == Vector128<sbyte>.AllBitsSet;
 
@@ -181,7 +181,7 @@ public class BurstTriggerI8 : ITriggerI8
                                     }
                                 }
                                 // Note, by this point SIMD logic should ensure quietTimeRemaining > 0.
-                                if (samplesPtr[i] > quietLowLevel && samplesPtr[i] < quietHighLevel)
+                                if (samplesPtr[i] > quietLowerLevel && samplesPtr[i] < quietUpperLevel)
                                     quietSamplesRemaining--;
                                 else
                                     quietSamplesRemaining = quietSamples;

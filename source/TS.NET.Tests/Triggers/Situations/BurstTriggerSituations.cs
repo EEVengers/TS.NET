@@ -25,7 +25,7 @@ internal class BurstTriggerSituations
     {
         var situation = new BurstTriggerSituation()
         {
-            Parameters = new BurstTriggerParameters(LevelV: 20, Direction: BurstEdgeDirection.Rising, HysteresisPercent: 5, QuietHighLevelV: 20, QuietLowLevelV: -20, QuietTimeFs: 1_000_000_000),
+            Parameters = new BurstTriggerParameters(LevelV: 20, Direction: BurstEdgeDirection.Rising, HysteresisPercent: 5, QuietUpperLevelV: 20, QuietLowerLevelV: -20, QuietTimeFs: 1_000_000_000),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,
@@ -49,7 +49,7 @@ internal class BurstTriggerSituations
     {
         var situation = new BurstTriggerSituation()
         {
-            Parameters = new BurstTriggerParameters(LevelV: 20, Direction: BurstEdgeDirection.Rising, HysteresisPercent: 5, QuietHighLevelV: 20, QuietLowLevelV: -20, QuietTimeFs: 1_000_000_000),
+            Parameters = new BurstTriggerParameters(LevelV: 20, Direction: BurstEdgeDirection.Rising, HysteresisPercent: 5, QuietUpperLevelV: 20, QuietLowerLevelV: -20, QuietTimeFs: 1_000_000_000),
             WindowWidth = 10000,
             WindowTriggerPosition = 0,
             AdditionalHoldoff = 0,

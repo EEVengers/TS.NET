@@ -27,8 +27,8 @@ public record ProcessingGetEdgeTriggerHysteresisResponse(double Percent) : Proce
 public record ProcessingGetBurstTriggerLevelResponse(double LevelVolts) : ProcessingResponseDto();
 public record ProcessingGetBurstTriggerDirectionResponse(BurstEdgeDirection Direction) : ProcessingResponseDto();
 public record ProcessingGetBurstTriggerHysteresisResponse(double Percent) : ProcessingResponseDto();
-public record ProcessingGetBurstTriggerQuietHighLevelResponse(double LevelVolts) : ProcessingResponseDto();
-public record ProcessingGetBurstTriggerQuietLowLevelResponse(double LevelVolts) : ProcessingResponseDto();
+public record ProcessingGetBurstTriggerQuietUpperLevelResponse(double LevelVolts) : ProcessingResponseDto();
+public record ProcessingGetBurstTriggerQuietLowerLevelResponse(double LevelVolts) : ProcessingResponseDto();
 public record ProcessingGetBurstTriggerQuietTimeResponse(long Femtoseconds) : ProcessingResponseDto();
 
 public record HardwareGetVoltOffsetResponse(double RequestedVoltOffset, double ActualVoltOffset) : ProcessingResponseDto;
