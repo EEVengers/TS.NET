@@ -376,7 +376,7 @@ internal class ScpiServer : IThread
                                     TriggerType? triggerType = argument.ToUpper() switch
                                     {
                                         "EDGE" => TriggerType.Edge,
-                                        //"WINDOW" => TriggerType.Window,
+                                        "WINDOW" => TriggerType.Window,
                                         //"RUNT" => TriggerType.Runt,
                                         //"WIDTH" => TriggerType.Width,
                                         //"INTERVAL" => TriggerType.Interval,
@@ -445,16 +445,24 @@ internal class ScpiServer : IThread
                                 {
                                     // TRIGger:EDGE:DIRection <arg>
                                     // TRIG:EDGE:DIR <arg>
-                                    string dir = argument ?? throw new NullReferenceException();
-                                    logger.LogDebug($"Set [edge] trigger direction to {dir}");
-                                    var type = dir.ToUpper() switch
+                                    var edgeDirection = EdgeDirection.Rising;
+                                    switch (argument.ToUpperInvariant())
                                     {
-                                        "RISING" => EdgeDirection.Rising,
-                                        "FALLING" => EdgeDirection.Falling,
-                                        "ANY" => EdgeDirection.Any,
-                                        _ => throw new NotImplementedException()
-                                    };
-                                    processingControl.Request.Writer.Write(new ProcessingSetEdgeTriggerDirection(type));
+                                        case "RISING":
+                                            edgeDirection = EdgeDirection.Rising;
+                                            break;
+                                        case "FALLING":
+                                            edgeDirection = EdgeDirection.Falling;
+                                            break;
+                                        case "ANY":
+                                            edgeDirection = EdgeDirection.Any;
+                                            break;
+                                        default:
+                                            logger.LogError("Edge trigger direction must be RISING, FALLING, or ANY.");
+                                            return null;
+                                    }
+                                    logger.LogDebug($"Set [edge] trigger direction to {edgeDirection}");
+                                    processingControl.Request.Writer.Write(new ProcessingSetEdgeTriggerDirection(edgeDirection));
                                     return null;
                                 }
                             case var _ when command.StartsWith("EDGE:HYS") && argument != null:
@@ -462,6 +470,39 @@ internal class ScpiServer : IThread
                                     float hysteresis = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
                                     logger.LogDebug($"Set edge trigger hysteresis to {hysteresis}%");
                                     processingControl.Request.Writer.Write(new ProcessingSetEdgeTriggerHysteresis(hysteresis));
+                                    return null;
+                                }
+                            case var _ when command.StartsWith("WINDOW:UPPER") && argument != null:
+                                {
+                                    float level = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
+                                    logger.LogDebug($"Set window trigger upper level to {level}V");
+                                    processingControl.Request.Writer.Write(new ProcessingSetWindowTriggerUpperLevel(level));
+                                    return null;
+                                }
+                            case var _ when command.StartsWith("WINDOW:LOWER") && argument != null:
+                                {
+                                    float level = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
+                                    logger.LogDebug($"Set window trigger lower level to {level}V");
+                                    processingControl.Request.Writer.Write(new ProcessingSetWindowTriggerLowerLevel(level));
+                                    return null;
+                                }
+                            case var _ when command.StartsWith("WINDOW:DIR") && argument != null:
+                                {
+                                    var windowDirection = WindowDirection.Enter;
+                                    switch (argument.ToUpperInvariant())
+                                    {
+                                        case "ENTER":
+                                            windowDirection = WindowDirection.Enter;
+                                            break;
+                                        case "EXIT":
+                                            windowDirection = WindowDirection.Exit;
+                                            break;
+                                        default:
+                                            logger.LogError("Window trigger direction must be ENTER or EXIT.");
+                                            return null;
+                                    }
+                                    logger.LogDebug($"Set window trigger direction to {windowDirection}");
+                                    processingControl.Request.Writer.Write(new ProcessingSetWindowTriggerDirection(windowDirection));
                                     return null;
                                 }
                             case var _ when command.StartsWith("BURST:LEV") && argument != null:
@@ -473,14 +514,21 @@ internal class ScpiServer : IThread
                                 }
                             case var _ when command.StartsWith("BURST:DIR") && argument != null:
                                 {
-                                    var edge = argument.ToUpperInvariant() switch
+                                    var burstEdgeDirection = BurstEdgeDirection.Rising;
+                                    switch (argument.ToUpperInvariant())
                                     {
-                                        "RISING" => BurstEdgeDirection.Rising,
-                                        "FALLING" => BurstEdgeDirection.Falling,
-                                        _ => throw new ArgumentException("Burst trigger edge must be RISING or FALLING.")
-                                    };
-                                    logger.LogDebug($"Set burst trigger edge to {edge}");
-                                    processingControl.Request.Writer.Write(new ProcessingSetBurstTriggerDirection(edge));
+                                        case "RISING":
+                                            burstEdgeDirection = BurstEdgeDirection.Rising;
+                                            break;
+                                        case "FALLING":
+                                            burstEdgeDirection = BurstEdgeDirection.Falling;
+                                            break;
+                                        default:
+                                            logger.LogError("Burst trigger edge must be RISING or FALLING.");
+                                            return null;
+                                    }
+                                    logger.LogDebug($"Set burst trigger edge to {burstEdgeDirection}");
+                                    processingControl.Request.Writer.Write(new ProcessingSetBurstTriggerDirection(burstEdgeDirection));
                                     return null;
                                 }
                             case var _ when command.StartsWith("BURST:HYS") && argument != null:
@@ -1019,6 +1067,54 @@ internal class ScpiServer : IThread
                             else
                             {
                                 logger.LogError($"TRIG:EDGE:HYS? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            return "Error: No/bad response from channel.\n";
+                        }
+                    case var _ when command.StartsWith("WINDOW:UPPER"):
+                        {
+                            processingControl.Request.Writer.Write(new ProcessingGetWindowTriggerUpperLevelRequest());
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
+                            {
+                                if (response is ProcessingGetWindowTriggerUpperLevelResponse triggerUpperLevelResponse)
+                                    return Invariant($"{triggerUpperLevelResponse.LevelVolts:0.######}\n");
+
+                                logger.LogError($"TRIG:WINDOW:UPPER? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            else
+                            {
+                                logger.LogError($"TRIG:WINDOW:UPPER? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            return "Error: No/bad response from channel.\n";
+                        }
+                    case var _ when command.StartsWith("WINDOW:LOWER"):
+                        {
+                            processingControl.Request.Writer.Write(new ProcessingGetWindowTriggerLowerLevelRequest());
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
+                            {
+                                if (response is ProcessingGetWindowTriggerLowerLevelResponse triggerLowerLevelResponse)
+                                    return Invariant($"{triggerLowerLevelResponse.LevelVolts:0.######}\n");
+
+                                logger.LogError($"TRIG:WINDOW:LOWER? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            else
+                            {
+                                logger.LogError($"TRIG:WINDOW:LOWER? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            return "Error: No/bad response from channel.\n";
+                        }
+                    case var _ when command.StartsWith("WINDOW:DIR"):
+                        {
+                            processingControl.Request.Writer.Write(new ProcessingGetWindowTriggerDirectionRequest());
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
+                            {
+                                if (response is ProcessingGetWindowTriggerDirectionResponse triggerDirectionResponse)
+                                    return $"{triggerDirectionResponse.Direction.ToString().ToUpperInvariant()}\n";
+
+                                logger.LogError($"TRIG:WINDOW:DIR? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            else
+                            {
+                                logger.LogError($"TRIG:WINDOW:DIR? - No response from {nameof(processingControl.Response.Reader)}");
                             }
                             return "Error: No/bad response from channel.\n";
                         }

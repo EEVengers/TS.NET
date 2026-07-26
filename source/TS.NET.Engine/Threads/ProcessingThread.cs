@@ -117,6 +117,7 @@ public class ProcessingThread : IThread
                 TriggerInterpolation = true,
                 AutoTimeoutMs = 1000,
                 EdgeTriggerParameters = new EdgeTriggerParameters() { LevelV = 0, Direction = EdgeDirection.Rising, HysteresisPercent = 5 },
+                WindowTriggerParameters = new WindowTriggerParameters() { UpperLevelV = 1, LowerLevelV = -1, Direction = WindowDirection.Enter },
                 BurstTriggerParameters = new BurstTriggerParameters() { LevelV = 0, Direction = BurstEdgeDirection.Rising, HysteresisPercent = 5, QuietUpperLevelV = 1, QuietLowerLevelV = -1, QuietTimeFs = 1000000000000L },
                 BoxcarAveraging = BoxcarAveraging.None
             };
@@ -585,6 +586,45 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerHysteresis)} (no change)");
                             }
                             break;
+                        case ProcessingSetWindowTriggerUpperLevel processingSetWindowTriggerUpperLevel:
+                            if (processingConfig.WindowTriggerParameters.UpperLevelV != processingSetWindowTriggerUpperLevel.LevelVolts)
+                            {
+                                processingConfig.WindowTriggerParameters.UpperLevelV = processingSetWindowTriggerUpperLevel.LevelVolts;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetWindowTriggerUpperLevel)} (level: {processingConfig.WindowTriggerParameters.UpperLevelV})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetWindowTriggerUpperLevel)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetWindowTriggerLowerLevel processingSetWindowTriggerLowerLevel:
+                            if (processingConfig.WindowTriggerParameters.LowerLevelV != processingSetWindowTriggerLowerLevel.LevelVolts)
+                            {
+                                processingConfig.WindowTriggerParameters.LowerLevelV = processingSetWindowTriggerLowerLevel.LevelVolts;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetWindowTriggerLowerLevel)} (level: {processingConfig.WindowTriggerParameters.LowerLevelV})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetWindowTriggerLowerLevel)} (no change)");
+                            }
+                            break;
+                        case ProcessingSetWindowTriggerDirection processingSetWindowTriggerDirection:
+                            if (processingConfig.WindowTriggerParameters.Direction != processingSetWindowTriggerDirection.Direction)
+                            {
+                                processingConfig.WindowTriggerParameters.Direction = processingSetWindowTriggerDirection.Direction;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetWindowTriggerDirection)} (direction: {processingConfig.WindowTriggerParameters.Direction})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetWindowTriggerDirection)} (no change)");
+                            }
+                            break;
                         case ProcessingSetBurstTriggerLevel processingSetBurstTriggerLevel:
                             if (processingConfig.BurstTriggerParameters.LevelV != processingSetBurstTriggerLevel.LevelVolts)
                             {
@@ -707,6 +747,18 @@ public class ProcessingThread : IThread
                         case ProcessingGetEdgeTriggerHysteresisRequest processingGetEdgeTriggerHysteresisRequest:
                             processingControl.Response.Writer.Write(new ProcessingGetEdgeTriggerHysteresisResponse(processingConfig.EdgeTriggerParameters.HysteresisPercent));
                             logger.LogDebug($"{nameof(ProcessingGetEdgeTriggerHysteresisRequest)}");
+                            break;
+                        case ProcessingGetWindowTriggerUpperLevelRequest processingGetWindowTriggerUpperLevelRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetWindowTriggerUpperLevelResponse(processingConfig.WindowTriggerParameters.UpperLevelV));
+                            logger.LogDebug($"{nameof(ProcessingGetWindowTriggerUpperLevelRequest)}");
+                            break;
+                        case ProcessingGetWindowTriggerLowerLevelRequest processingGetWindowTriggerLowerLevelRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetWindowTriggerLowerLevelResponse(processingConfig.WindowTriggerParameters.LowerLevelV));
+                            logger.LogDebug($"{nameof(ProcessingGetWindowTriggerLowerLevelRequest)}");
+                            break;
+                        case ProcessingGetWindowTriggerDirectionRequest processingGetWindowTriggerDirectionRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetWindowTriggerDirectionResponse(processingConfig.WindowTriggerParameters.Direction));
+                            logger.LogDebug($"{nameof(ProcessingGetWindowTriggerDirectionRequest)}");
                             break;
                         case ProcessingGetBurstTriggerLevelRequest processingGetBurstTriggerLevelRequest:
                             processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerLevelResponse(processingConfig.BurstTriggerParameters.LevelV));
@@ -1381,6 +1433,7 @@ public class ProcessingThread : IThread
                         EdgeDirection.Any => new AnyEdgeTriggerI8(triggerChannelParameters, processingConfig.EdgeTriggerParameters),
                         _ => throw new NotImplementedException()
                     },
+                    TriggerType.Window => new WindowTriggerI8(triggerChannelParameters, processingConfig.WindowTriggerParameters),
                     TriggerType.Burst => new BurstTriggerI8(triggerChannelParameters, processingConfig.BurstTriggerParameters),
                     _ => throw new NotImplementedException()
                 };
@@ -1393,6 +1446,7 @@ public class ProcessingThread : IThread
                         EdgeDirection.Any => new AnyEdgeTriggerI16(triggerChannelParameters, processingConfig.EdgeTriggerParameters),
                         _ => throw new NotImplementedException()
                     },
+                    TriggerType.Window => new WindowTriggerI16(triggerChannelParameters, processingConfig.WindowTriggerParameters),
                     TriggerType.Burst => new BurstTriggerI16(triggerChannelParameters, processingConfig.BurstTriggerParameters),
                     _ => throw new NotImplementedException()
                 };

@@ -24,6 +24,9 @@ public record ProcessingGetTriggerInterpolationResponse(bool Enabled) : Processi
 public record ProcessingGetEdgeTriggerLevelResponse(double LevelVolts) : ProcessingResponseDto();
 public record ProcessingGetEdgeTriggerDirectionResponse(EdgeDirection Direction) : ProcessingResponseDto();
 public record ProcessingGetEdgeTriggerHysteresisResponse(double Percent) : ProcessingResponseDto();
+public record ProcessingGetWindowTriggerUpperLevelResponse(double LevelVolts) : ProcessingResponseDto();
+public record ProcessingGetWindowTriggerLowerLevelResponse(double LevelVolts) : ProcessingResponseDto();
+public record ProcessingGetWindowTriggerDirectionResponse(WindowDirection Direction) : ProcessingResponseDto();
 public record ProcessingGetBurstTriggerLevelResponse(double LevelVolts) : ProcessingResponseDto();
 public record ProcessingGetBurstTriggerDirectionResponse(BurstEdgeDirection Direction) : ProcessingResponseDto();
 public record ProcessingGetBurstTriggerHysteresisResponse(double Percent) : ProcessingResponseDto();

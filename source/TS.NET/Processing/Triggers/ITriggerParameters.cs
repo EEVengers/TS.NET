@@ -6,7 +6,7 @@
 
     public enum BurstEdgeDirection { Rising, Falling };
 
-    public enum WindowDirection { Enter, Exit, Any };
+    public enum WindowDirection { Enter, Exit };
 
     public record struct TriggerChannelParameters(ulong SampleRateHz, float TriggerChannelVpp, float TriggerChannelOffsetV);
 

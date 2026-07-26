@@ -25,6 +25,7 @@ public class ProcessingConfigDto : INotificationDto
     public long AutoTimeoutMs { get; set; }
 
     public EdgeTriggerParameters EdgeTriggerParameters;
+    public WindowTriggerParameters WindowTriggerParameters;
     public BurstTriggerParameters BurstTriggerParameters;
 
     public BoxcarAveraging BoxcarAveraging;

@@ -19,6 +19,7 @@ namespace TS.NET
         public long AutoTimeoutMs;
 
         public EdgeTriggerParameters EdgeTriggerParameters;
+        public WindowTriggerParameters WindowTriggerParameters;
         public BurstTriggerParameters BurstTriggerParameters;
 
         public BoxcarAveraging BoxcarAveraging; // U32
