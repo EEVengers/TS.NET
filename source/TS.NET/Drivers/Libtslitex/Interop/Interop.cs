@@ -6,7 +6,7 @@ namespace TS.NET.Driver.Libtslitex
     internal static partial class Interop
     {
         private const string library = "tslitex";
-        
+
         [StructLayout(LayoutKind.Sequential)]
         public struct tsChannelParam_t
         {
@@ -27,11 +27,11 @@ namespace TS.NET.Driver.Libtslitex
             public uint gw_id;
             public uint litex;
             public uint board_rev;
-            [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
             public string devicePath;
-            [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
             public string identity;
-            [MarshalAs (UnmanagedType.ByValTStr, SizeConst = 256)]
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
             public string serialNumber;
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
             public string buildConfig;
@@ -111,7 +111,7 @@ namespace TS.NET.Driver.Libtslitex
 
         [LibraryImport(library, EntryPoint = "thunderscopeChannelConfigGet")]
         public static partial int GetChannelConfig(nint ts, uint channel, out tsChannelParam_t conf);
-        
+
         [LibraryImport(library, EntryPoint = "thunderscopeChannelConfigSet")]
         public static partial int SetChannelConfig(nint ts, uint channel, in tsChannelParam_t conf);
 
@@ -146,7 +146,7 @@ namespace TS.NET.Driver.Libtslitex
 
         [DllImport(library, EntryPoint = "thunderscopeChanCalibrationSet")]     // Use runtime marshalling for now. Custom marshalling later.
         public static extern int SetCalibration(nint ts, uint channel, in tsChannelCalibration_t cal);
-        
+
         [DllImport(library, EntryPoint = "thunderscopeAdcCalibrationSet")]      // Use runtime marshalling for now. Custom marshalling later.
         public static extern int SetAdcCalibration(nint ts, in tsAdcCalibration_t cal);
 
@@ -217,5 +217,8 @@ namespace TS.NET.Driver.Libtslitex
 
         [LibraryImport(library, EntryPoint = "thunderscopeFactoryProvisionAppendTLV")]
         public static unsafe partial int FactoryDataAppend(nint ts, uint tag, uint length, byte* content);
+
+        [LibraryImport(library, EntryPoint = "thunderscopeFactoryReadItem")]
+        public static unsafe partial int FactoryDataRead(nint ts, uint tag, byte* content, uint maxLength);
     }
 }

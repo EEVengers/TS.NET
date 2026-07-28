@@ -37,9 +37,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="thunderscope-calibration.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="thunderscope.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>

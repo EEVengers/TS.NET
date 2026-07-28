@@ -67,7 +67,7 @@ class Program
             .Enrich.FromLogContext()
             .WriteTo.Console(theme: AnsiConsoleTheme.Code, outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}"
             )
-            .WriteTo.File("Logs/TS.NET.Engine .txt", rollingInterval: RollingInterval.Day, outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}")
+            .WriteTo.File("Logs/TS.NET.Engine.txt", rollingInterval: RollingInterval.Day, outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
 #else
         var serilog = new LoggerConfiguration()

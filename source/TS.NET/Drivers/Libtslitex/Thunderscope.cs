@@ -653,6 +653,22 @@ public class Thunderscope : IThunderscope
         }
     }
 
+    public int FactoryDataRead(uint tag, Span<byte> buffer)
+    {
+        CheckOpen();
+
+        unsafe
+        {
+            fixed (byte* bufferP = buffer)
+            {
+                var retVal = Interop.FactoryDataRead(tsHandle, tag, bufferP, (uint)buffer.Length);
+                if (retVal < 0)
+                    throw new ThunderscopeException($"Failed to read factory data ({GetLibraryReturnString(retVal)})");
+                return retVal;
+            }
+        }
+    }
+
     private void SetChannelFrontend(int channelIndex, ThunderscopeChannelFrontend channel, double channelLoadScale)
     {
         CheckOpen();

@@ -147,16 +147,26 @@ public class EngineManager
                     var ts = new Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
                     ts.Open(deviceIndex);
 
+                    // Order of priority for loading calibration:
+                    // 1. Calibration file specified
+                    // 2. User calibration stored in memory (UCAL)
+                    // 2. Factory calibration stored in memory (FCAL)
+                    // 3. Calibration file thunderscope-calibration.json in current directory
                     Calibration loadedCalibration = new();
                     if (File.Exists(calibrationFile))
                     {
                         logger?.LogInformation($"Calibration loaded from path: {calibrationFile}");
                         loadedCalibration = Calibration.FromJsonFile(calibrationFile);
                     }
-                    else if (ThunderscopeNonVolatileMemory.TryReadUserCalibration(ts, out var calibration))
+                    else if (ThunderscopeNonVolatileMemory.TryReadUserCalibration(ts, out var userCalibration))
                     {
                         logger?.LogInformation($"Calibration loaded from user calibration memory");
-                        loadedCalibration = calibration!;
+                        loadedCalibration = userCalibration!;
+                    }
+                    else if (ThunderscopeNonVolatileMemory.TryReadFactoryCalibration(ts, out var factoryCalibration))
+                    {
+                        logger?.LogInformation($"Calibration loaded from factory calibration memory");
+                        loadedCalibration = factoryCalibration!;
                     }
                     else if (File.Exists("thunderscope-calibration.json"))
                     {
@@ -165,7 +175,8 @@ public class EngineManager
                     }
                     else
                     {
-                        throw new ThunderscopeException("Could not load calibration from device or file");
+                        logger?.LogCritical("Could not load calibration from device or file");
+                        return false;
                     }
 
                     ThunderscopeHardwareConfig initialHardwareConfiguration = new();

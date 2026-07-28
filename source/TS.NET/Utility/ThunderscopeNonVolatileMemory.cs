@@ -5,6 +5,30 @@ namespace TS.NET;
 
 public static class ThunderscopeNonVolatileMemory
 {
+    public static bool TryReadFactoryCalibration(Driver.Libtslitex.Thunderscope thunderscope, out Calibration? calibration)
+    {
+        calibration = null;
+
+        const int maxCalibrationBytes = 1_048_576;
+        var tag = BinaryPrimitives.ReadUInt32BigEndian("FCAL"u8);
+        Span<byte> calibrationBytes = new byte[maxCalibrationBytes];
+        try
+        {
+            var bytesRead = thunderscope.FactoryDataRead(tag, calibrationBytes);
+            if (bytesRead <= 0 || bytesRead > calibrationBytes.Length)
+                return false;
+
+            var json = Encoding.UTF8.GetString(calibrationBytes[..bytesRead]);
+            calibration = Calibration.FromDeviceJson(json);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+
     public static bool TryReadUserCalibration(Driver.Libtslitex.Thunderscope thunderscope, out Calibration? calibration)
     {
         calibration = null;
