@@ -8,7 +8,7 @@ To build libtslitex with factory methods:
 ```
 cd build/
 cmake --fresh .. -DENABLE_FACTORY_PROVISIONING=ON
-cmake --build .
+cmake --build . --clean-first --config Release
 ```
 
 ### Factory bring-up sequence
