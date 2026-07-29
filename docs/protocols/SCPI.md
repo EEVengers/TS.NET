@@ -95,8 +95,8 @@ Subject matches `TRIG`/`TRIGger` abbreviations via `subject.StartsWith("TRIG")`.
 | `TRIG:BURST:LEV <volts>` | f32 | Set burst trigger level in volts. |
 | `TRIG:BURST:DIR <RISING\|FALLING>` | enum | Set burst trigger edge direction. |
 | `TRIG:BURST:HYS <percent>` | f32 | Set burst-trigger hysteresis as a percentage of the full-scale range. Enter the numeric value only; for example, `5` means 5%. |
-| `TRIG:BURST:QUIET:HIGH <volts>` | f32 | Set the upper bound of the burst trigger quiet window. |
-| `TRIG:BURST:QUIET:LOW <volts>` | f32 | Set the lower bound of the burst trigger quiet window. |
+| `TRIG:BURST:QUIET:UPPER <volts>` | f32 | Set the upper bound of the burst trigger quiet window. |
+| `TRIG:BURST:QUIET:LOWER <volts>` | f32 | Set the lower bound of the burst trigger quiet window. |
 | `TRIG:BURST:QUIET:TIME <femtoseconds>` | i64 | Set the required quiet-window duration before burst arming. |
 
 ### Queries
@@ -115,8 +115,8 @@ Subject matches `TRIG`/`TRIGger` abbreviations via `subject.StartsWith("TRIG")`.
 | `TRIG:BURST:DIR?` | `RISING`, `FALLING` | enum | Get burst trigger edge direction as uppercase enum name. |
 | `TRIG:BURST:EDGE?` | `RISING`, `FALLING` | enum | Alias for `TRIG:BURST:DIR?`. |
 | `TRIG:BURST:HYS?` | `<percent>` | f32 | Get burst-trigger hysteresis as a numeric percentage (formatted `0.######`, without `%`). |
-| `TRIG:BURST:QUIET:HIGH?` | `<volts>` | f32 | Get the upper quiet-window bound (formatted `0.######`). |
-| `TRIG:BURST:QUIET:LOW?` | `<volts>` | f32 | Get the lower quiet-window bound (formatted `0.######`). |
+| `TRIG:BURST:QUIET:UPPER?` | `<volts>` | f32 | Get the upper quiet-window bound (formatted `0.######`). |
+| `TRIG:BURST:QUIET:LOWER?` | `<volts>` | f32 | Get the lower quiet-window bound (formatted `0.######`). |
 | `TRIG:BURST:QUIET:TIME?` | `<femtoseconds>` | i64 | Get the required quiet-window duration. |
 
 ## Channel subsystem (`CHAN<n>...`)
