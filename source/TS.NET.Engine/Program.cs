@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Sinks.SystemConsole.Themes;
+using System.Diagnostics;
 using System.CommandLine;
 using System.Text.Json;
 using TS.NET;
@@ -20,6 +21,7 @@ class Program
         var calibrationFilePathOption = new Option<string>(name: "-calibration", description: "Calibration file to use.", getDefaultValue: () => { return ""; });
         var secondsOption = new Option<int>(name: "-seconds", description: "Run for an integer number of seconds. Useful for profiling.", getDefaultValue: () => { return 0; });
         var membenchOption = new Option<bool>(name: "-membench", description: "Run memory benchmark.", getDefaultValue: () => { return false; });
+        var ngscopeclientOption = new Option<bool>(name: "-ngscopeclient", description: "Start ngscopeclient after the engine starts.", getDefaultValue: () => { return false; });
 
         var rootCommand = new RootCommand("TS.NET.Engine")
         {
@@ -27,14 +29,15 @@ class Program
             configurationFilePathOption,
             calibrationFilePathOption,
             secondsOption,
-            membenchOption
+            membenchOption,
+            ngscopeclientOption
         };
 
-        rootCommand.SetHandler(Start, deviceIndexOption, configurationFilePathOption, calibrationFilePathOption, secondsOption, membenchOption);
+        rootCommand.SetHandler(Start, deviceIndexOption, configurationFilePathOption, calibrationFilePathOption, secondsOption, membenchOption, ngscopeclientOption);
         return await rootCommand.InvokeAsync(args);
     }
 
-    static void Start(int deviceIndex, string configurationFile, string calibrationFile, int seconds, bool membench)
+    static void Start(int deviceIndex, string configurationFile, string calibrationFile, int seconds, bool membench, bool ngscopeclient)
     {
         if (membench)
         {
@@ -86,6 +89,39 @@ class Program
         var deviceSerial = deviceIndex.ToString();
         if (!engine.TryStart(configurationFile, calibrationFile, deviceSerial))
             return;
+
+        if (ngscopeclient && OperatingSystem.IsWindows())
+        {
+            var ngscopeclientPaths = new[]
+            {
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ThunderScope", "ngscopeclient", "ngscopeclient.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ngscopeclient", "ngscopeclient.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "ngscopeclient", "ngscopeclient.exe")
+            };
+            var ngscopeclientPath = ngscopeclientPaths.FirstOrDefault(File.Exists);
+
+            if (ngscopeclientPath is not null)
+            {
+                var ngscopeclientProcess = Process.Start(new ProcessStartInfo
+                {
+                    FileName = ngscopeclientPath,
+                    Arguments = "ThunderScope:thunderscope:twinlan:127.0.0.1:5025:5026",
+                    WorkingDirectory = Path.GetDirectoryName(ngscopeclientPath)!,
+                    UseShellExecute = true
+                });
+                logger.LogInformation($"ngscopeclient started from {ngscopeclientPath}");
+
+                if (ngscopeclientProcess is not null)
+                {
+                    ngscopeclientProcess.Exited += (_, _) =>
+                    {
+                        logger.LogInformation("ngscopeclient exited, stopping engine.");
+                        appCancellationTokenSource.Cancel();
+                    };
+                    ngscopeclientProcess.EnableRaisingEvents = true;
+                }
+            }
+        }
 
         DateTimeOffset startTime = DateTimeOffset.UtcNow;
         while (!appCancellationTokenSource.IsCancellationRequested)

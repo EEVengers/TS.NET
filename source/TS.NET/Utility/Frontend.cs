@@ -129,7 +129,7 @@ public static class Frontend
         adcBranchGain[5] = (byte)(rateBranchGain.Gain[5] & 0x7F);
         adcBranchGain[6] = (byte)(rateBranchGain.Gain[6] & 0x7F);
         adcBranchGain[7] = (byte)(rateBranchGain.Gain[7] & 0x7F);
-        Console.WriteLine($"Updating ADC branch gain with: {string.Join(", ", rateBranchGain.Gain.Select(g => g.ToString()))}");
+        //Console.WriteLine($"Updating ADC branch gain with: {string.Join(", ", rateBranchGain.Gain.Select(g => g.ToString()))}");
 
         return adcBranchGain;
     }

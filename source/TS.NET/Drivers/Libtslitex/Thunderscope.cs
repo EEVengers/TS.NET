@@ -692,7 +692,7 @@ public class Thunderscope : IThunderscope
             // Update all frontends that aren't under manual override, even for disabled channels (so relays actuate when expected)
             if (!channelManualOverride[i])
             {
-                Console.WriteLine($"Updating channel {i} frontend with load scale {loadScales[i]:F3}");
+                //Console.WriteLine($"Updating channel {i} frontend with load scale {loadScales[i]:F3}");
                 SetChannelFrontend(i, channelFrontend[i], loadScales[i]);
             }
         }
