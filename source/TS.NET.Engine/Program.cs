@@ -109,7 +109,7 @@ class Program
                     WorkingDirectory = Path.GetDirectoryName(ngscopeclientPath)!,
                     UseShellExecute = true
                 });
-                logger.LogInformation($"ngscopeclient started from {ngscopeclientPath}");
+                logger.LogInformation($"ngscopeclient started.");
 
                 if (ngscopeclientProcess is not null)
                 {

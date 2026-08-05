@@ -62,7 +62,7 @@ foreach (var rid in targetRids)
 }
 
 Console.ForegroundColor = ConsoleColor.Green;
-Console.WriteLine("Build omplete");
+Console.WriteLine("Build complete");
 Console.ResetColor();
 
 // ----- Local functions -----

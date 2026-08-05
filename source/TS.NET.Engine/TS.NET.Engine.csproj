@@ -10,7 +10,7 @@
 
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <ApplicationIcon>TS.NET.Engine.ico</ApplicationIcon>
     <RuntimeIdentifiers>win-x64; linux-x64; osx-x64; osx-arm64</RuntimeIdentifiers>
   </PropertyGroup>
 
@@ -22,7 +22,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="icon.ico" />
+    <EmbeddedResource Include="TS.NET.Engine.ico" />
   </ItemGroup>
 
   <ItemGroup>

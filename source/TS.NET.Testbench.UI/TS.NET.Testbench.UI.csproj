@@ -11,7 +11,7 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <InvariantGlobalization>true</InvariantGlobalization>
     <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
-    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <ApplicationIcon>TS.NET.Testbench.UI.ico</ApplicationIcon>
     <RuntimeIdentifiers>win-x64; linux-x64; osx-x64; osx-arm64</RuntimeIdentifiers>
     <PreserveCompilationContext>true</PreserveCompilationContext>
   </PropertyGroup>
@@ -32,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="icon.ico" />
+    <EmbeddedResource Include="TS.NET.Testbench.UI.ico" />
   </ItemGroup>
 
   <ItemGroup>
