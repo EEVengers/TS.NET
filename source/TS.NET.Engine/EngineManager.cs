@@ -76,7 +76,7 @@ public class EngineManager
             }
             else
             {
-                logger?.LogInformation("x86/x64 CPU with AVX2.");
+                logger?.LogDebug("x86/x64 CPU with AVX2.");
             }
         }
         if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
@@ -87,7 +87,7 @@ public class EngineManager
             }
             else
             {
-                logger?.LogInformation("AArch64 CPU with Neon.");
+                logger?.LogDebug("AArch64 CPU with Neon.");
             }
         }
 

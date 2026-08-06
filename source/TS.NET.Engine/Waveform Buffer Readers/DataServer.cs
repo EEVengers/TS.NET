@@ -60,7 +60,7 @@ internal class DataServer : IThread
             socketListener = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             socketListener.Bind(endpoint);
             socketListener.Listen(backlog: 1);
-            logger.LogInformation($"Data socket listening {socketListener.LocalEndPoint}");
+            logger.LogDebug($"Data socket listening {socketListener.LocalEndPoint}");
             try
             {
                 while (true)
@@ -70,13 +70,13 @@ internal class DataServer : IThread
                     session.NoDelay = true;
                     if (taskSession != null)
                     {
-                        logger.LogInformation($"Dropping data session ({socketSession?.RemoteEndPoint?.ToString() ?? "Unknown"}) and accepting new session");
+                        logger.LogDebug($"Dropping data session ({socketSession?.RemoteEndPoint?.ToString() ?? "Unknown"}) and accepting new session");
                         try { socketSession?.Shutdown(SocketShutdown.Both); } catch { }
                         try { socketSession?.Close(); } catch { }
                         sessionCancelTokenSource?.Cancel();
                         taskSession?.Wait();
                     }
-                    logger.LogInformation($"Data session accepted ({session.RemoteEndPoint})");
+                    logger.LogDebug($"Data session accepted ({session.RemoteEndPoint})");
                     sessionCancelTokenSource = new CancellationTokenSource();
                     taskSession = Task.Factory.StartNew(() => LoopSession(logger, session, sessionCancelTokenSource.Token), TaskCreationOptions.LongRunning);
                     socketSession = session;
@@ -170,11 +170,11 @@ internal class DataServer : IThread
                             break;
                         case (byte)'C':
                             mode = Mode.Credit;
-                            logger.LogInformation("Switching to credit mode");
+                            logger.LogDebug("Switching to credit mode");
                             break;
                         case (byte)'T':
                             mode = Mode.CreditWithTag;
-                            logger.LogInformation("Switching to credit tag mode");
+                            logger.LogDebug("Switching to credit tag mode");
                             break;
                         default:
                             break;
@@ -193,7 +193,7 @@ internal class DataServer : IThread
         }
         finally
         {
-            logger.LogInformation($"Session dropped ({sessionID})");
+            logger.LogDebug($"Session dropped ({sessionID})");
             socketSession = null;
         }
 

@@ -63,7 +63,7 @@ internal class ScpiServer : IThread
             socketListener = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             socketListener.Bind(endpoint);
             socketListener.Listen(backlog: 1);
-            logger.LogInformation($"SCPI socket listening {socketListener.LocalEndPoint}");
+            logger.LogDebug($"SCPI socket listening {socketListener.LocalEndPoint}");
             try
             {
                 while (true)
@@ -73,12 +73,12 @@ internal class ScpiServer : IThread
                     session.NoDelay = true;
                     if (socketSession != null)
                     {
-                        logger.LogInformation($"Dropping SCPI session {socketSession?.RemoteEndPoint} and accepting new SCPI session");
+                        logger.LogDebug($"Dropping SCPI session {socketSession?.RemoteEndPoint} and accepting new SCPI session");
                         try { socketSession?.Shutdown(SocketShutdown.Both); } catch { }
                         try { socketSession?.Close(); } catch { }
                         sessionCancelTokenSource?.Cancel();
                     }
-                    logger.LogInformation($"SCPI session accepted ({session.RemoteEndPoint})");
+                    logger.LogDebug($"SCPI session accepted ({session.RemoteEndPoint})");
                     sessionCancelTokenSource = new CancellationTokenSource();
                     taskSession = Task.Factory.StartNew(() => LoopSession(logger, session, sessionCancelTokenSource.Token), TaskCreationOptions.LongRunning);
                     socketSession = session;
@@ -154,7 +154,7 @@ internal class ScpiServer : IThread
         }
         finally
         {
-            logger.LogInformation($"SCPI session dropped ({sessionID})");
+            logger.LogDebug($"SCPI session dropped ({sessionID})");
             socketSession = null;
             try { socket.Shutdown(SocketShutdown.Both); } catch { }
             try { socket.Close(); } catch { }

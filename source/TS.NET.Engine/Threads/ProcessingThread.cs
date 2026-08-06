@@ -181,7 +181,7 @@ public class ProcessingThread : IThread
             var postShuffleMemory = new ThunderscopeMemory(ThunderscopeSettings.SegmentLengthBytes);
             bool optimisationWarning = false;
 
-            logger.LogInformation("Started");
+            logger.LogDebug("Started");
             startSemaphore.Release();
 
             //Start();

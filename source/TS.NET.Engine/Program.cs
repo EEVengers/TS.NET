@@ -22,6 +22,7 @@ class Program
         var secondsOption = new Option<int>(name: "-seconds", description: "Run for an integer number of seconds. Useful for profiling.", getDefaultValue: () => { return 0; });
         var membenchOption = new Option<bool>(name: "-membench", description: "Run memory benchmark.", getDefaultValue: () => { return false; });
         var ngscopeclientOption = new Option<bool>(name: "-ngscopeclient", description: "Start ngscopeclient after the engine starts.", getDefaultValue: () => { return false; });
+        var debugLogOption = new Option<bool>(name: "-debuglog", description: "Enable debug logging.", getDefaultValue: () => { return false; });
 
         var rootCommand = new RootCommand("TS.NET.Engine")
         {
@@ -30,14 +31,15 @@ class Program
             calibrationFilePathOption,
             secondsOption,
             membenchOption,
-            ngscopeclientOption
+            ngscopeclientOption,
+            debugLogOption
         };
 
-        rootCommand.SetHandler(Start, deviceIndexOption, configurationFilePathOption, calibrationFilePathOption, secondsOption, membenchOption, ngscopeclientOption);
+        rootCommand.SetHandler(Start, deviceIndexOption, configurationFilePathOption, calibrationFilePathOption, secondsOption, membenchOption, ngscopeclientOption, debugLogOption);
         return await rootCommand.InvokeAsync(args);
     }
 
-    static void Start(int deviceIndex, string configurationFile, string calibrationFile, int seconds, bool membench, bool ngscopeclient)
+    static void Start(int deviceIndex, string configurationFile, string calibrationFile, int seconds, bool membench, bool ngscopeclient, bool debugLog)
     {
         if (membench)
         {
@@ -64,23 +66,30 @@ class Program
         //var configuration = configurationBuilder.Build();
 
 #if DEBUG
-        var serilog = new LoggerConfiguration()
-            .MinimumLevel.Debug()
-            .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
-            .Enrich.FromLogContext()
-            .WriteTo.Console(theme: AnsiConsoleTheme.Code, outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}"
-            )
-            .WriteTo.File("Logs/TS.NET.Engine.txt", rollingInterval: RollingInterval.Day, outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}")
-            .CreateLogger();
-#else
-        var serilog = new LoggerConfiguration()
-            .MinimumLevel.Information()
-            .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
-            .Enrich.FromLogContext()
-            .WriteTo.Console(theme: AnsiConsoleTheme.Code, outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}"
-            )
-            .CreateLogger();
+        debugLog = true;    // Override debug log value
 #endif
+
+        Serilog.Core.Logger? serilog;
+        if (debugLog)
+        {
+            serilog = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+                .Enrich.FromLogContext()
+                .WriteTo.Console(theme: AnsiConsoleTheme.Code, outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}")
+                .WriteTo.File("logs/TS.NET.Engine.txt", rollingInterval: RollingInterval.Day, outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}")
+                .CreateLogger();
+        }
+        else
+        {
+            serilog = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+                .Enrich.FromLogContext()
+                .WriteTo.Console(theme: AnsiConsoleTheme.Code, outputTemplate: "[{Timestamp:HH:mm:ss} {Level:w4}] {SourceContext} {Message:lj}{NewLine}{Exception}")
+                .CreateLogger();
+        }
+
         var loggerFactory = new LoggerFactory().AddSerilog(serilog);
         var logger = loggerFactory.CreateLogger("TS.NET.Engine");
         var appCancellationTokenSource = new CancellationTokenSource();
