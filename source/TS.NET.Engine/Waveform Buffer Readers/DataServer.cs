@@ -329,15 +329,15 @@ internal class DataServer : IThread
                         var channelScale = (float)(triggerChannelFrontend.ActualVoltFullScale / TriggerUtility.AdcRange(captureBuffer.Metadata.HardwareConfig.Acquisition.Resolution));
                         var channelOffset = (float)triggerChannelFrontend.ActualVoltOffset;
 
-                        float fa = channelScale * pointA - channelOffset;
-                        float fb = channelScale * pointB - channelOffset;
-                        float triggerLevel = captureBuffer.Metadata.ProcessingConfig.EdgeTriggerParameters.LevelV + channelOffset;
+                        float fa = channelScale * pointA + channelOffset;
+                        float fb = channelScale * pointB + channelOffset;
+                        float triggerLevel = captureBuffer.Metadata.ProcessingConfig.EdgeTriggerParameters.LevelV;
                         float slope = fb - fa;
                         float delta = triggerLevel - fa;
-                        float trigphase = delta / slope;
-                        if (trigphase > 1.0f || trigphase < -1.0f)
-                            trigphase = 0.0f;
-                        var result = femtosecondsPerSample * (1 - trigphase);
+                        float phase = delta / slope;
+                        if (phase > 1.0f || phase < -1.0f)
+                            phase = 0.0f;
+                        var result = femtosecondsPerSample * (1 - phase);
                         if (!double.IsFinite(result))
                             result = 0;
                         var delay = captureBuffer.Metadata.ProcessingConfig.TriggerDelayFs - (ulong)triggerIndex * femtosecondsPerSample;
