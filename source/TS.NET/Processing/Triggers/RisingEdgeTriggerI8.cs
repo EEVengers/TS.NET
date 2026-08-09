@@ -9,6 +9,7 @@ public class RisingEdgeTriggerI8 : ITriggerI8
     enum TriggerState { Unarmed, Armed, InCapture, InHoldoff }
     private TriggerState triggerState = TriggerState.Unarmed;
 
+    private bool validParameters;
     private sbyte triggerLevel;
     private sbyte armLevel;
 
@@ -26,22 +27,25 @@ public class RisingEdgeTriggerI8 : ITriggerI8
 
     private void SetParameters(EdgeTriggerParameters parameters, double triggerChannelVpp, double triggerChannelOffsetV)
     {
+        validParameters = true;
+        triggerState = TriggerState.Unarmed;
+        triggerLevel = 0;
+        armLevel = 0;
+
         int hysteresisCount = TriggerUtility.HysteresisValue(AdcResolution.EightBit, parameters.HysteresisPercent);
         int levelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.LevelV, triggerChannelVpp, triggerChannelOffsetV);
+        int armCount = levelCount - hysteresisCount;
 
-        if (levelCount >= sbyte.MaxValue)
-            levelCount = sbyte.MaxValue - 1;  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms             
-
-        triggerState = TriggerState.Unarmed;
-        triggerLevel = (sbyte)levelCount;     // Logic = GT
-
-        if ((levelCount - hysteresisCount) < sbyte.MinValue)
+        if (levelCount > TriggerUtility.AdcMax(AdcResolution.EightBit) ||
+            armCount < TriggerUtility.AdcMin(AdcResolution.EightBit))
         {
-            armLevel = sbyte.MinValue;              // Logic = LTE
+            validParameters = false;
         }
-        else
+
+        if(validParameters)
         {
-            armLevel = (sbyte)(levelCount - hysteresisCount);
+            triggerLevel = checked((sbyte)levelCount);
+            armLevel = checked((sbyte)armCount);
         }
     }
 
@@ -67,11 +71,15 @@ public class RisingEdgeTriggerI8 : ITriggerI8
 
     public void Process(ReadOnlySpan<sbyte> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
+        if (!validParameters)
+            return;
+
         int inputLength = input.Length;
         int v256Length = inputLength - Vector256<sbyte>.Count;
         results.ArmCount = 0;
         results.TriggerCount = 0;
         results.CaptureEndCount = 0;
+
         int i = 0;
 
         Vector256<sbyte> triggerLevelVector256 = Vector256.Create(triggerLevel);
@@ -94,7 +102,7 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                                 {
                                     var inputVector = Avx.LoadVector256(samplesPtr + i);
                                     var resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector256, inputVector), armLevelVector256);
-                                    if(resultVector != Vector256<sbyte>.Zero)
+                                    if (resultVector != Vector256<sbyte>.Zero)
                                         break;
                                     i += Vector256<sbyte>.Count;
                                 }

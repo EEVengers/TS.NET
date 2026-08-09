@@ -9,6 +9,7 @@ public class AnyEdgeTriggerI8 : ITriggerI8
     enum TriggerState { Unarmed, ArmedRisingEdge, ArmedFallingEdge, InCapture, InHoldoff }
     private TriggerState triggerState = TriggerState.Unarmed;
 
+    private bool validParameters;
     private sbyte triggerLevel;
     private sbyte upperArmLevel;
     private sbyte lowerArmLevel;
@@ -27,33 +28,30 @@ public class AnyEdgeTriggerI8 : ITriggerI8
 
     private void SetParameters(EdgeTriggerParameters parameters, double triggerChannelVpp, double triggerChannelOffsetV)
     {
+        validParameters = true;
+        triggerState = TriggerState.Unarmed;
+        triggerLevel = 0;
+        upperArmLevel = 0;
+        lowerArmLevel = 0;
+
         int hysteresisCount = TriggerUtility.HysteresisValue(AdcResolution.EightBit, parameters.HysteresisPercent);
         int levelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.LevelV, triggerChannelVpp, triggerChannelOffsetV);
+        int upperArmCount = levelCount + hysteresisCount;
+        int lowerArmCount = levelCount - hysteresisCount;
 
-        if (levelCount <= sbyte.MinValue)
-            levelCount = sbyte.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
-        if (levelCount >= sbyte.MaxValue)
-            levelCount = sbyte.MaxValue - 1;  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms
-
-        triggerState = TriggerState.Unarmed;
-        triggerLevel = (sbyte)levelCount;
-
-        if ((levelCount + hysteresisCount) > sbyte.MaxValue)
+        if (levelCount < TriggerUtility.AdcMin(AdcResolution.EightBit) || 
+            levelCount > TriggerUtility.AdcMax(AdcResolution.EightBit) || 
+            upperArmCount > TriggerUtility.AdcMax(AdcResolution.EightBit) || 
+            lowerArmCount < TriggerUtility.AdcMin(AdcResolution.EightBit))
         {
-            upperArmLevel = sbyte.MaxValue;              // Logic = GTE
-        }
-        else
-        {
-            upperArmLevel = (sbyte)(levelCount + hysteresisCount);
+            validParameters = false;
         }
 
-        if ((levelCount - hysteresisCount) < sbyte.MinValue)
+        if (validParameters)
         {
-            lowerArmLevel = sbyte.MinValue;              // Logic = LTE
-        }
-        else
-        {
-            lowerArmLevel = (sbyte)(levelCount - hysteresisCount);
+            triggerLevel = checked((sbyte)levelCount);
+            upperArmLevel = checked((sbyte)upperArmCount);
+            lowerArmLevel = checked((sbyte)lowerArmCount);
         }
     }
 
@@ -79,11 +77,15 @@ public class AnyEdgeTriggerI8 : ITriggerI8
 
     public void Process(ReadOnlySpan<sbyte> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
+        if (!validParameters)
+            return;
+
         int inputLength = input.Length;
         int v256Length = inputLength - Vector256<sbyte>.Count;
         results.ArmCount = 0;
         results.TriggerCount = 0;
         results.CaptureEndCount = 0;
+
         int i = 0;
 
         Vector256<sbyte> triggerLevelVector256 = Vector256.Create(triggerLevel);

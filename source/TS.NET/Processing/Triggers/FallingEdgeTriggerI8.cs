@@ -9,6 +9,7 @@ public class FallingEdgeTriggerI8 : ITriggerI8
     enum TriggerState { Unarmed, Armed, InCapture, InHoldoff }
     private TriggerState triggerState = TriggerState.Unarmed;
 
+    private bool validParameters;
     private sbyte triggerLevel;
     private sbyte armLevel;
 
@@ -26,22 +27,25 @@ public class FallingEdgeTriggerI8 : ITriggerI8
 
     private void SetParameters(EdgeTriggerParameters parameters, double triggerChannelVpp, double triggerChannelOffsetV)
     {
+        validParameters = true;
+        triggerState = TriggerState.Unarmed;
+        triggerLevel = 0;
+        armLevel = 0;
+
         int hysteresisCount = TriggerUtility.HysteresisValue(AdcResolution.EightBit, parameters.HysteresisPercent);
         int levelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.LevelV, triggerChannelVpp, triggerChannelOffsetV);
+        int armCount = levelCount + hysteresisCount;
 
-        if (levelCount <= sbyte.MinValue)
-            levelCount = sbyte.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
-
-        triggerState = TriggerState.Unarmed;
-        triggerLevel = (sbyte)levelCount;     // Logic = LT
-
-        if((levelCount + hysteresisCount) > sbyte.MaxValue)
+        if (levelCount < TriggerUtility.AdcMin(AdcResolution.EightBit) ||
+            armCount > TriggerUtility.AdcMax(AdcResolution.EightBit))
         {
-            armLevel = sbyte.MaxValue;              // Logic = GTE
-        }    
-        else
+            validParameters = false;
+        }
+
+        if (validParameters)
         {
-            armLevel = (sbyte)(levelCount + hysteresisCount);
+            triggerLevel = checked((sbyte)levelCount);
+            armLevel = checked((sbyte)armCount);
         }
     }
 
@@ -67,11 +71,15 @@ public class FallingEdgeTriggerI8 : ITriggerI8
 
     public void Process(ReadOnlySpan<sbyte> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
+        if (!validParameters)
+            return;
+
         int inputLength = input.Length;
         int v256Length = inputLength - Vector256<sbyte>.Count;
         results.ArmCount = 0;
         results.TriggerCount = 0;
         results.CaptureEndCount = 0;
+
         int i = 0;
 
         Vector256<sbyte> triggerLevelVector256 = Vector256.Create(triggerLevel);

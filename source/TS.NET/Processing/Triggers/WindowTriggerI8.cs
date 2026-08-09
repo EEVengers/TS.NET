@@ -9,8 +9,8 @@ public class WindowTriggerI8 : ITriggerI8
     enum TriggerState { Unarmed, Armed, InCapture, InHoldoff }
     private TriggerState triggerState = TriggerState.Unarmed;
 
+    private bool validParameters;
     private WindowDirection direction;
-
     private sbyte upperLevel;
     private sbyte lowerLevel;
 
@@ -28,16 +28,32 @@ public class WindowTriggerI8 : ITriggerI8
 
     private void SetParameters(WindowTriggerParameters parameters, double triggerChannelVpp, double triggerChannelOffsetV)
     {
+        validParameters = true;
+        triggerState = TriggerState.Unarmed;
+        upperLevel = 0;
+        lowerLevel = 0;
+
         int upperLevelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.UpperLevelV, triggerChannelVpp, triggerChannelOffsetV);
         int lowerLevelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.LowerLevelV, triggerChannelVpp, triggerChannelOffsetV);
-        upperLevel = (sbyte)Math.Clamp(upperLevelCount, sbyte.MinValue, sbyte.MaxValue);
-        lowerLevel = (sbyte)Math.Clamp(lowerLevelCount, sbyte.MinValue, sbyte.MaxValue);
 
-        if (lowerLevel >= upperLevel)
+        if (upperLevelCount < TriggerUtility.AdcMin(AdcResolution.EightBit) ||
+            upperLevelCount > TriggerUtility.AdcMax(AdcResolution.EightBit) ||
+            lowerLevelCount < TriggerUtility.AdcMin(AdcResolution.EightBit) ||
+            lowerLevelCount > TriggerUtility.AdcMax(AdcResolution.EightBit))
+        {
+            validParameters = false;
+        }
+
+        if (validParameters)
+        {
+            upperLevel = checked((sbyte)upperLevelCount);
+            lowerLevel = checked((sbyte)lowerLevelCount);
+        }
+
+        if (validParameters && lowerLevel >= upperLevel)
             throw new ArgumentException("Lower window level must be below the upper window level.");
 
         direction = parameters.Direction;
-        triggerState = TriggerState.Unarmed;
     }
 
     public void SetHorizontal(long windowWidth, long windowTriggerPosition, long additionalHoldoff)
@@ -59,11 +75,15 @@ public class WindowTriggerI8 : ITriggerI8
 
     public void Process(ReadOnlySpan<sbyte> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
+        if (!validParameters)
+            return;
+
         int inputLength = input.Length;
         int v256Length = inputLength - Vector256<sbyte>.Count;
         results.ArmCount = 0;
         results.TriggerCount = 0;
         results.CaptureEndCount = 0;
+
         int i = 0;
 
         var upperLevelVector256 = Vector256.Create(upperLevel);

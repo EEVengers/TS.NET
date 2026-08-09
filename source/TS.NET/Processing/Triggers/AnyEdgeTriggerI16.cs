@@ -9,6 +9,7 @@ public class AnyEdgeTriggerI16 : ITriggerI16
     enum TriggerState { Unarmed, ArmedRisingEdge, ArmedFallingEdge, InCapture, InHoldoff }
     private TriggerState triggerState = TriggerState.Unarmed;
 
+    private bool validParameters;
     private short triggerLevel;
     private short upperArmLevel;
     private short lowerArmLevel;
@@ -28,33 +29,30 @@ public class AnyEdgeTriggerI16 : ITriggerI16
 
     private void SetParameters(EdgeTriggerParameters parameters, AdcResolution adcResolution, double triggerChannelVpp, double triggerChannelOffsetV)
     {
+        validParameters = true;
+        triggerState = TriggerState.Unarmed;
+        triggerLevel = 0;
+        upperArmLevel = 0;
+        lowerArmLevel = 0;
+
         int hysteresisCount = TriggerUtility.HysteresisValue(adcResolution, parameters.HysteresisPercent);
         int levelCount = TriggerUtility.LevelValue(adcResolution, parameters.LevelV, triggerChannelVpp, triggerChannelOffsetV);
+        int upperArmCount = levelCount + hysteresisCount;
+        int lowerArmCount = levelCount - hysteresisCount;
 
-        if (levelCount <= TriggerUtility.AdcMin(adcResolution))
-            levelCount = TriggerUtility.AdcMin(adcResolution) + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
-        if (levelCount >= TriggerUtility.AdcMax(adcResolution))
-            levelCount = TriggerUtility.AdcMax(adcResolution) - 1;  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms
-
-        triggerState = TriggerState.Unarmed;
-        triggerLevel = (short)levelCount;
-
-        if ((levelCount + hysteresisCount) > TriggerUtility.AdcMax(adcResolution))
+        if (levelCount < TriggerUtility.AdcMin(adcResolution) ||
+            levelCount > TriggerUtility.AdcMax(adcResolution) || 
+            upperArmCount > TriggerUtility.AdcMax(adcResolution) || 
+            lowerArmCount < TriggerUtility.AdcMin(adcResolution))
         {
-            upperArmLevel = (short)TriggerUtility.AdcMax(adcResolution);    // Logic = GTE
-        }
-        else
-        {
-            upperArmLevel = (short)(levelCount + hysteresisCount);
+            validParameters = false;
         }
 
-        if ((levelCount - hysteresisCount) < TriggerUtility.AdcMin(adcResolution))
+        if (validParameters)
         {
-            lowerArmLevel = (short)TriggerUtility.AdcMin(adcResolution);    // Logic = LTE
-        }
-        else
-        {
-            lowerArmLevel = (short)(levelCount - hysteresisCount);
+            triggerLevel = checked((short)levelCount);
+            upperArmLevel = checked((short)upperArmCount);
+            lowerArmLevel = checked((short)lowerArmCount);
         }
     }
 
@@ -80,11 +78,15 @@ public class AnyEdgeTriggerI16 : ITriggerI16
 
     public void Process(ReadOnlySpan<short> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
+        if (!validParameters)
+            return;
+
         int inputLength = input.Length;
         int v256Length = inputLength - Vector256<short>.Count;
         results.ArmCount = 0;
         results.TriggerCount = 0;
         results.CaptureEndCount = 0;
+
         int i = 0;
 
         Vector256<short> triggerLevelVector256 = Vector256.Create(triggerLevel);

@@ -9,6 +9,7 @@ public class BurstTriggerI8 : ITriggerI8
     enum TriggerState { Unarmed, QuietComplete, Armed, InCapture, InHoldoff }
     private TriggerState triggerState = TriggerState.Unarmed;
 
+    private bool validParameters;
     private BurstEdgeDirection triggerDirection;
     private sbyte triggerLevel;
     private sbyte armLevel;
@@ -32,27 +33,44 @@ public class BurstTriggerI8 : ITriggerI8
 
     private void SetParameters(BurstTriggerParameters parameters, ulong sampleRateHz, double triggerChannelVpp, double triggerChannelOffsetV)
     {
-        int hysteresisCount = TriggerUtility.HysteresisValue(AdcResolution.EightBit, parameters.HysteresisPercent);
-        var levelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.LevelV, triggerChannelVpp, triggerChannelOffsetV);
-        var quietUpperLevelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.QuietUpperLevelV, triggerChannelVpp, triggerChannelOffsetV);
-        var quietLowerLevelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.QuietLowerLevelV, triggerChannelVpp, triggerChannelOffsetV);
-
-        if (levelCount <= sbyte.MinValue)
-            levelCount = sbyte.MinValue + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
-        if (levelCount >= sbyte.MaxValue)
-            levelCount = sbyte.MaxValue - 1;  // Coerce as the trigger logic is GT, ensuring a non-zero chance of seeing some waveforms
-
+        validParameters = true;
         triggerState = TriggerState.Unarmed;
-        triggerLevel = (sbyte)levelCount;
+        triggerLevel = 0;
+        armLevel = 0;
+        quietUpperLevel = 0;
+        quietLowerLevel = 0;
+
+        int hysteresisCount = TriggerUtility.HysteresisValue(AdcResolution.EightBit, parameters.HysteresisPercent);
+        int levelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.LevelV, triggerChannelVpp, triggerChannelOffsetV);
+        int quietUpperLevelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.QuietUpperLevelV, triggerChannelVpp, triggerChannelOffsetV);
+        int quietLowerLevelCount = TriggerUtility.LevelValue(AdcResolution.EightBit, parameters.QuietLowerLevelV, triggerChannelVpp, triggerChannelOffsetV);
         triggerDirection = parameters.Direction;
-        armLevel = triggerDirection switch
+        int armCount = triggerDirection switch
         {
-            BurstEdgeDirection.Rising => (sbyte)Math.Max(sbyte.MinValue, levelCount - hysteresisCount),
-            BurstEdgeDirection.Falling => (sbyte)Math.Min(sbyte.MaxValue, levelCount + hysteresisCount),
+            BurstEdgeDirection.Rising => levelCount - hysteresisCount,
+            BurstEdgeDirection.Falling => levelCount + hysteresisCount,
             _ => throw new NotImplementedException()
         };
-        quietUpperLevel = (sbyte)quietUpperLevelCount;
-        quietLowerLevel = (sbyte)quietLowerLevelCount;
+
+        if (levelCount < TriggerUtility.AdcMin(AdcResolution.EightBit) ||
+            levelCount > TriggerUtility.AdcMax(AdcResolution.EightBit) ||
+            armCount < TriggerUtility.AdcMin(AdcResolution.EightBit) ||
+            armCount > TriggerUtility.AdcMax(AdcResolution.EightBit) ||
+            quietUpperLevelCount < TriggerUtility.AdcMin(AdcResolution.EightBit) ||
+            quietUpperLevelCount > TriggerUtility.AdcMax(AdcResolution.EightBit) ||
+            quietLowerLevelCount < TriggerUtility.AdcMin(AdcResolution.EightBit) ||
+            quietLowerLevelCount > TriggerUtility.AdcMax(AdcResolution.EightBit))
+        {
+            validParameters = false;
+        }
+
+        if (validParameters)
+        {
+            triggerLevel = checked((sbyte)levelCount);
+            armLevel = checked((sbyte)armCount);
+            quietUpperLevel = checked((sbyte)quietUpperLevelCount);
+            quietLowerLevel = checked((sbyte)quietLowerLevelCount);
+        }
         quietSamples = (long)Math.Ceiling(parameters.QuietTimeFs * (double)sampleRateHz / 1_000_000_000_000_000d);
         quietSamplesRemaining = 0;
     }
@@ -79,11 +97,15 @@ public class BurstTriggerI8 : ITriggerI8
 
     public void Process(ReadOnlySpan<sbyte> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
+        if (!validParameters)
+            return;
+
         int inputLength = input.Length;
         int v256Length = inputLength - Vector256<sbyte>.Count;
         results.ArmCount = 0;
         results.TriggerCount = 0;
         results.CaptureEndCount = 0;
+
         int i = 0;
         int simdBlock = 0;
 

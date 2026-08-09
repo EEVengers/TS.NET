@@ -9,6 +9,7 @@ public class FallingEdgeTriggerI16 : ITriggerI16
     enum TriggerState { Unarmed, Armed, InCapture, InHoldoff }
     private TriggerState triggerState = TriggerState.Unarmed;
 
+    private bool validParameters;
     private short triggerLevel;
     private short armLevel;
 
@@ -27,22 +28,25 @@ public class FallingEdgeTriggerI16 : ITriggerI16
 
     private void SetParameters(EdgeTriggerParameters parameters, AdcResolution adcResolution, double triggerChannelVpp, double triggerChannelOffsetV)
     {
+        validParameters = true;
+        triggerState = TriggerState.Unarmed;
+        triggerLevel = 0;
+        armLevel = 0;
+
         int hysteresisCount = TriggerUtility.HysteresisValue(adcResolution, parameters.HysteresisPercent);
         int levelCount = TriggerUtility.LevelValue(adcResolution, parameters.LevelV, triggerChannelVpp, triggerChannelOffsetV);
+        int armCount = levelCount + hysteresisCount;
 
-        if (levelCount <= TriggerUtility.AdcMin(adcResolution))
-            levelCount = TriggerUtility.AdcMin(adcResolution) + 1;  // Coerce as the trigger logic is LT, ensuring a non-zero chance of seeing some waveforms
-
-        triggerState = TriggerState.Unarmed;
-        triggerLevel = (short)levelCount;     // Logic = LT
-
-        if ((levelCount + hysteresisCount) > TriggerUtility.AdcMax(adcResolution))
+        if (levelCount < TriggerUtility.AdcMin(adcResolution) ||
+            armCount > TriggerUtility.AdcMax(adcResolution))
         {
-            armLevel = (short)TriggerUtility.AdcMax(adcResolution);        // Logic = GTE
+            validParameters = false;
         }
-        else
+
+        if (validParameters)
         {
-            armLevel = (short)(levelCount + hysteresisCount);
+            triggerLevel = checked((short)levelCount);
+            armLevel = checked((short)armCount);
         }
     }
 
@@ -68,11 +72,15 @@ public class FallingEdgeTriggerI16 : ITriggerI16
 
     public void Process(ReadOnlySpan<short> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
+        if (!validParameters)
+            return;
+
         int inputLength = input.Length;
         int v256Length = inputLength - Vector256<short>.Count;
         results.ArmCount = 0;
         results.TriggerCount = 0;
         results.CaptureEndCount = 0;
+
         int i = 0;
 
         Vector256<short> triggerLevelVector256 = Vector256.Create(triggerLevel);

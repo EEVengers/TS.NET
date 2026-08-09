@@ -833,7 +833,7 @@ public class ProcessingThread : IThread
                     }
                 }
 
-                if(startWhenAllProcessingControlRequestsProcessed)
+                if (startWhenAllProcessingControlRequestsProcessed)
                 {
                     currentHardwareConfig = thunderscope.GetConfiguration();        // Required for ResetTrigger() to set the correct trigger level
                     ResetBuffers();     // 30ms

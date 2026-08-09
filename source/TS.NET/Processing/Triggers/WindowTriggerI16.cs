@@ -9,8 +9,8 @@ public class WindowTriggerI16 : ITriggerI16
     enum TriggerState { Unarmed, Armed, InCapture, InHoldoff }
     private TriggerState triggerState = TriggerState.Unarmed;
 
+    private bool validParameters;
     private WindowDirection direction;
-
     private short upperLevel;
     private short lowerLevel;
 
@@ -28,16 +28,32 @@ public class WindowTriggerI16 : ITriggerI16
 
     private void SetParameters(WindowTriggerParameters parameters, AdcResolution adcResolution, double triggerChannelVpp, double triggerChannelOffsetV)
     {
+        validParameters = true;
+        triggerState = TriggerState.Unarmed;
+        upperLevel = 0;
+        lowerLevel = 0;
+
         int upperLevelCount = TriggerUtility.LevelValue(adcResolution, parameters.UpperLevelV, triggerChannelVpp, triggerChannelOffsetV);
         int lowerLevelCount = TriggerUtility.LevelValue(adcResolution, parameters.LowerLevelV, triggerChannelVpp, triggerChannelOffsetV);
-        upperLevel = (short)Math.Clamp(upperLevelCount, TriggerUtility.AdcMin(adcResolution), TriggerUtility.AdcMax(adcResolution));
-        lowerLevel = (short)Math.Clamp(lowerLevelCount, TriggerUtility.AdcMin(adcResolution), TriggerUtility.AdcMax(adcResolution));
 
-        if (lowerLevel >= upperLevel)
+        if (upperLevelCount < TriggerUtility.AdcMin(adcResolution) ||
+            upperLevelCount > TriggerUtility.AdcMax(adcResolution) ||
+            lowerLevelCount < TriggerUtility.AdcMin(adcResolution) ||
+            lowerLevelCount > TriggerUtility.AdcMax(adcResolution))
+        {
+            validParameters = false;
+        }
+
+        if (validParameters)
+        {
+            upperLevel = checked((short)upperLevelCount);
+            lowerLevel = checked((short)lowerLevelCount);
+        }
+
+        if (validParameters && lowerLevel >= upperLevel)
             throw new ArgumentException("Lower window level must be below the upper window level.");
 
         direction = parameters.Direction;
-        triggerState = TriggerState.Unarmed;
     }
 
     public void SetHorizontal(long windowWidth, long windowTriggerPosition, long additionalHoldoff)
@@ -59,11 +75,15 @@ public class WindowTriggerI16 : ITriggerI16
 
     public void Process(ReadOnlySpan<short> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
+        if (!validParameters)
+            return;
+
         int inputLength = input.Length;
         int v256Length = inputLength - Vector256<short>.Count;
         results.ArmCount = 0;
         results.TriggerCount = 0;
         results.CaptureEndCount = 0;
+
         int i = 0;
 
         var upperLevelVector256 = Vector256.Create(upperLevel);

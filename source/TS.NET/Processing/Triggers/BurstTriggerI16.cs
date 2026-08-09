@@ -9,6 +9,7 @@ public class BurstTriggerI16 : ITriggerI16
     enum TriggerState { Unarmed, QuietComplete, Armed, InCapture, InHoldoff }
     private TriggerState triggerState = TriggerState.Unarmed;
 
+    private bool validParameters;
     private BurstEdgeDirection triggerDirection;
     private short triggerLevel;
     private short armLevel;
@@ -33,27 +34,44 @@ public class BurstTriggerI16 : ITriggerI16
 
     private void SetParameters(BurstTriggerParameters parameters, AdcResolution adcResolution, ulong sampleRateHz, double triggerChannelVpp, double triggerChannelOffsetV)
     {
+        validParameters = true;
+        triggerState = TriggerState.Unarmed;
+        triggerLevel = 0;
+        armLevel = 0;
+        quietUpperLevel = 0;
+        quietLowerLevel = 0;
+
         int hysteresisCount = TriggerUtility.HysteresisValue(adcResolution, parameters.HysteresisPercent);
         int levelCount = TriggerUtility.LevelValue(adcResolution, parameters.LevelV, triggerChannelVpp, triggerChannelOffsetV);
-        var quietUpperLevelCount = TriggerUtility.LevelValue(adcResolution, parameters.QuietUpperLevelV, triggerChannelVpp, triggerChannelOffsetV);
-        var quietLowerLevelCount = TriggerUtility.LevelValue(adcResolution, parameters.QuietLowerLevelV, triggerChannelVpp, triggerChannelOffsetV);
-
-        if (levelCount <= TriggerUtility.AdcMin(adcResolution))
-            levelCount = TriggerUtility.AdcMin(adcResolution) + 1;
-        if (levelCount >= TriggerUtility.AdcMax(adcResolution))
-            levelCount = TriggerUtility.AdcMax(adcResolution) - 1;
-
-        triggerState = TriggerState.Unarmed;
-        triggerLevel = (short)levelCount;
+        int quietUpperLevelCount = TriggerUtility.LevelValue(adcResolution, parameters.QuietUpperLevelV, triggerChannelVpp, triggerChannelOffsetV);
+        int quietLowerLevelCount = TriggerUtility.LevelValue(adcResolution, parameters.QuietLowerLevelV, triggerChannelVpp, triggerChannelOffsetV);
         triggerDirection = parameters.Direction;
-        armLevel = triggerDirection switch
+        int armCount = triggerDirection switch
         {
-            BurstEdgeDirection.Rising => (short)Math.Max(TriggerUtility.AdcMin(adcResolution), levelCount - hysteresisCount),
-            BurstEdgeDirection.Falling => (short)Math.Min(TriggerUtility.AdcMax(adcResolution), levelCount + hysteresisCount),
+            BurstEdgeDirection.Rising => levelCount - hysteresisCount,
+            BurstEdgeDirection.Falling => levelCount + hysteresisCount,
             _ => throw new NotImplementedException()
         };
-        quietUpperLevel = (short)quietUpperLevelCount;
-        quietLowerLevel = (short)quietLowerLevelCount;
+
+        if (levelCount < TriggerUtility.AdcMin(adcResolution) ||
+            levelCount > TriggerUtility.AdcMax(adcResolution) ||
+            armCount < TriggerUtility.AdcMin(adcResolution) ||
+            armCount > TriggerUtility.AdcMax(adcResolution) ||
+            quietUpperLevelCount < TriggerUtility.AdcMin(adcResolution) ||
+            quietUpperLevelCount > TriggerUtility.AdcMax(adcResolution) ||
+            quietLowerLevelCount < TriggerUtility.AdcMin(adcResolution) ||
+            quietLowerLevelCount > TriggerUtility.AdcMax(adcResolution))
+        {
+            validParameters = false;
+        }
+
+        if (validParameters)
+        {
+            triggerLevel = checked((short)levelCount);
+            armLevel = checked((short)armCount);
+            quietUpperLevel = checked((short)quietUpperLevelCount);
+            quietLowerLevel = checked((short)quietLowerLevelCount);
+        }
         quietSamples = (long)Math.Ceiling(parameters.QuietTimeFs * (double)sampleRateHz / 1_000_000_000_000_000d);
         quietSamplesRemaining = 0;
     }
@@ -80,11 +98,15 @@ public class BurstTriggerI16 : ITriggerI16
 
     public void Process(ReadOnlySpan<short> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
+        if (!validParameters)
+            return;
+
         int inputLength = input.Length;
         int v256Length = inputLength - Vector256<short>.Count;
         results.ArmCount = 0;
         results.TriggerCount = 0;
         results.CaptureEndCount = 0;
+
         int i = 0;
         int simdBlock = 0;
 
