@@ -180,6 +180,7 @@ public class ProcessingThread : IThread
             var preShuffleMemory = new ThunderscopeMemory(ThunderscopeSettings.SegmentLengthBytes);
             var postShuffleMemory = new ThunderscopeMemory(ThunderscopeSettings.SegmentLengthBytes);
             bool optimisationWarning = false;
+            bool startWhenAllProcessingControlRequestsProcessed = false;
 
             logger.LogDebug("Started");
             startSemaphore.Release();
@@ -298,16 +299,10 @@ public class ProcessingThread : IThread
                                 var reset = runMode;
                                 if (reset)
                                 {
-                                    Stop();
+                                    Stop();     // 1ms
+                                    startWhenAllProcessingControlRequestsProcessed = true;
                                 }
                                 thunderscope.SetChannelFrontend(channelIndex, channelFrontend);
-                                currentHardwareConfig = thunderscope.GetConfiguration();
-                                if (reset)
-                                {
-                                    ResetBuffers();
-                                    ResetTrigger();     // thunderscope.GetConfiguration() should be called before this line to get the correct trigger level
-                                    Start();
-                                }
                                 switch (request)
                                 {
                                     case HardwareSetVoltOffset hardwareSetOffsetRequest:
@@ -404,11 +399,9 @@ public class ProcessingThread : IThread
                             }
 
                         case ProcessingRun processingRun:
-                            ResetBuffers();
-                            ResetTrigger();
                             if (processingConfig.Mode == Mode.Single)
                                 singleTriggerLatch = true;
-                            Start();
+                            startWhenAllProcessingControlRequestsProcessed = true;
                             uiNotifications?.TryWrite(processingRun);
                             logger.LogDebug($"{nameof(ProcessingRun)}");
                             break;
@@ -444,7 +437,7 @@ public class ProcessingThread : IThread
                                 case Mode.Single:                // SINGLE forces runMode.
                                     if (runMode != true)
                                     {
-                                        Start();
+                                        startWhenAllProcessingControlRequestsProcessed = true;
                                     }
                                     singleTriggerLatch = true;
                                     processingConfig.Mode = processingSetMode.Mode;
@@ -838,6 +831,15 @@ public class ProcessingThread : IThread
                             logger.LogWarning($"Unknown ProcessingRequestDto: {request}");
                             break;
                     }
+                }
+
+                if(startWhenAllProcessingControlRequestsProcessed)
+                {
+                    currentHardwareConfig = thunderscope.GetConfiguration();        // Required for ResetTrigger() to set the correct trigger level
+                    ResetBuffers();     // 30ms
+                    ResetTrigger();     // 0.1ms
+                    Start();            // 3ms
+                    startWhenAllProcessingControlRequestsProcessed = false;
                 }
 
                 if (thunderscope.Running())
