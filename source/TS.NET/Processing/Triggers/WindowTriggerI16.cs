@@ -158,13 +158,25 @@ public class WindowTriggerI16 : ITriggerI16
                             }
                             while (i < inputLength)
                             {
-                                bool isInWindow = samplesPtr[i] > lowerLevel && samplesPtr[i] < upperLevel;
-                                if ((direction == WindowDirection.Enter && !isInWindow) || (direction == WindowDirection.Exit && isInWindow))
+                                switch (direction)
                                 {
-                                    triggerState = TriggerState.Armed;
-                                    results.ArmIndices[results.ArmCount++] = sampleStartIndex + (ulong)i;
-                                    break;
+                                    case WindowDirection.Enter:
+                                        if (samplesPtr[i] > upperLevel || samplesPtr[i] < lowerLevel)
+                                        {
+                                            triggerState = TriggerState.Armed;
+                                            results.ArmIndices[results.ArmCount++] = sampleStartIndex + (ulong)i;
+                                        }
+                                        break;
+                                    case WindowDirection.Exit:
+                                        if (samplesPtr[i] < upperLevel && samplesPtr[i] > lowerLevel)
+                                        {
+                                            triggerState = TriggerState.Armed;
+                                            results.ArmIndices[results.ArmCount++] = sampleStartIndex + (ulong)i;
+                                        }
+                                        break;
                                 }
+                                if (triggerState == TriggerState.Armed)
+                                    break;
                                 i++;
                             }
                             break;
@@ -227,14 +239,27 @@ public class WindowTriggerI16 : ITriggerI16
                             }
                             while (i < inputLength)
                             {
-                                bool isInWindow = samplesPtr[i] > lowerLevel && samplesPtr[i] < upperLevel;
-                                if ((direction == WindowDirection.Enter && isInWindow) || (direction == WindowDirection.Exit && !isInWindow))
+                                switch (direction)
                                 {
-                                    triggerState = TriggerState.InCapture;
-                                    captureRemaining = captureSamples;
-                                    results.TriggerIndices[results.TriggerCount++] = sampleStartIndex + (ulong)i;
-                                    break;
+                                    case WindowDirection.Enter:
+                                        if (samplesPtr[i] <= upperLevel && samplesPtr[i] >= lowerLevel)
+                                        {
+                                            triggerState = TriggerState.InCapture;
+                                            captureRemaining = captureSamples;
+                                            results.TriggerIndices[results.TriggerCount++] = sampleStartIndex + (ulong)i;
+                                        }
+                                        break;
+                                    case WindowDirection.Exit:
+                                        if (samplesPtr[i] >= upperLevel || samplesPtr[i] <= lowerLevel)
+                                        {
+                                            triggerState = TriggerState.InCapture;
+                                            captureRemaining = captureSamples;
+                                            results.TriggerIndices[results.TriggerCount++] = sampleStartIndex + (ulong)i;
+                                        }
+                                        break;
                                 }
+                                if (triggerState == TriggerState.InCapture)
+                                    break;
                                 i++;
                             }
                             break;
