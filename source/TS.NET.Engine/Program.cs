@@ -103,7 +103,7 @@ class Program
         {
             var ngscopeclientPaths = new[]
             {
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ThunderScope", "ngscopeclient", "ngscopeclient.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "ThunderScope", "ngscopeclient", "ngscopeclient.exe"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ngscopeclient", "ngscopeclient.exe"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "ngscopeclient", "ngscopeclient.exe")
             };
@@ -129,6 +129,10 @@ class Program
                     };
                     ngscopeclientProcess.EnableRaisingEvents = true;
                 }
+            }
+            else
+            {
+                logger.LogWarning("ngscopeclient not found.");
             }
         }
 
