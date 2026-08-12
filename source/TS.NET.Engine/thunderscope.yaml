@@ -1,3 +1,5 @@
+ConfigurationVersion: 1
+
 ###################################################################################################
 # General configuration
 #
@@ -10,7 +12,7 @@
 # Selects the hardware revision.
 #
 # Key: MaxCaptureLength
-# Value: Integer, typically 10000000. Larger values may be used for longer triggered captures.
+# Value: Integer, typically 50000000. Larger values may be used for longer triggered captures.
 # Configures the maximum data length of each channel possible. At runtime, the processing logic could use any number up to this maximum. This has a large correlation with the amount of RAM usage.
 #
 # Key: ScpiServer

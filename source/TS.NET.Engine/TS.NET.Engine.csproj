@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="TS.NET.Engine.ico" />
+    <EmbeddedResource Include="thunderscope.yaml" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,16 +40,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TS.NET\TS.NET.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="thunderscope.json">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
-    <None Update="thunderscope.yaml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-
   </ItemGroup>
 
 </Project>

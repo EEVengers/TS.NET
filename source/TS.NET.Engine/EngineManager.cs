@@ -46,9 +46,8 @@ public class EngineManager
         // Commented out for now, more testing needed on Windows
         //using FileStream fs = new(lockFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
 
-        logger?.LogInformation($"Configuration path: {configurationFile}");
+        thunderscopeSettings = LoadConfiguration(configurationFile);
 
-        thunderscopeSettings = ThunderscopeSettings.FromYamlFile(configurationFile);
         if (thunderscopeSettings.ScpiServer == "")
         {   // Backwards compatibility for old configuration files
             thunderscopeSettings.ScpiServer = "127.0.0.1:5025";
@@ -148,7 +147,7 @@ public class EngineManager
                     ts.Open(deviceIndex);
 
                     // Order of priority for loading calibration:
-                    // 1. Calibration file specified
+                    // 1. Calibration file specified on CLI
                     // 2. User calibration stored in memory (UCAL)
                     // 2. Factory calibration stored in memory (FCAL)
                     // 3. Calibration file thunderscope-calibration.json in current directory
@@ -265,6 +264,76 @@ public class EngineManager
     private static bool TryParseServer(string value, out IPEndPoint? endpoint)
     {
         return IPEndPoint.TryParse(value, out endpoint);
+    }
+
+    private ThunderscopeSettings LoadConfiguration(string configurationFile)
+    {
+        // Order of priority for configuration file:
+        // 1. Configuration file specified on CLI
+        // 2. Configuration file loaded from LocalApplicationData
+        // 3. Default configuration file created in LocalApplicationData
+        // 4. Default configuration file created in working directory
+        // 5. Default configuration from memory
+
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(configurationFile) && File.Exists(configurationFile))
+            {
+                var settings = ThunderscopeSettings.FromYamlFile(configurationFile);
+                logger.LogInformation("Configuration loaded from CLI");
+                return settings;
+            }
+        }
+        catch { }
+
+        try
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var localApplicationDataConfigurationFile = Path.Combine(localAppData, "ThunderScope", "thunderscope.yaml");
+            Directory.CreateDirectory(Path.GetDirectoryName(localApplicationDataConfigurationFile)!);
+            if (!File.Exists(localApplicationDataConfigurationFile))
+                WriteDefaultConfiguration(localApplicationDataConfigurationFile);
+
+            var settings = ThunderscopeSettings.FromYamlFile(localApplicationDataConfigurationFile);
+            logger.LogInformation("Configuration loaded from LocalApplicationData");
+            return settings;
+        }
+        catch { }
+
+        const string workingDirectoryConfigurationFile = "thunderscope.yaml";
+        try
+        {
+            if (!File.Exists(workingDirectoryConfigurationFile))
+                WriteDefaultConfiguration(workingDirectoryConfigurationFile);
+
+            var settings = ThunderscopeSettings.FromYamlFile(workingDirectoryConfigurationFile);
+            logger.LogInformation("Configuration loaded from working directory");
+            return settings;
+        }
+        catch { }
+
+        logger.LogInformation("Configuration loaded from default");
+        return ReadDefaultConfiguration();
+    }
+
+    private static void WriteDefaultConfiguration(string configurationFile)
+    {
+        using var resourceStream = OpenDefaultConfigurationStream();
+        using var outputStream = File.Create(configurationFile);
+        resourceStream.CopyTo(outputStream);
+    }
+
+    private static ThunderscopeSettings ReadDefaultConfiguration()
+    {
+        using var resourceStream = OpenDefaultConfigurationStream();
+        using var reader = new StreamReader(resourceStream);
+        return ThunderscopeSettings.FromYaml(reader.ReadToEnd());
+    }
+
+    private static Stream OpenDefaultConfigurationStream()
+    {
+        return typeof(EngineManager).Assembly.GetManifestResourceStream("TS.NET.Engine.thunderscope.yaml")
+            ?? throw new InvalidOperationException("Embedded default configuration was not found.");
     }
 
     public void Stop()

@@ -8,6 +8,7 @@ namespace TS.NET.Engine;
 [YamlSerializable]
 public class ThunderscopeSettings
 {
+    public int ConfigurationVersion { get; set; } = 1;
     public string HardwareDriver { get; set; } = "";
     public string HardwareRevision { get; set; } = "";
     public int MaxCaptureLength { get; set; }
@@ -23,6 +24,7 @@ public class ThunderscopeSettings
     {
         return new ThunderscopeSettings()
         {
+            ConfigurationVersion = 1,
             HardwareDriver = "LiteX",
             HardwareRevision = "Rev5",
             MaxCaptureLength = 10000000,
@@ -47,14 +49,20 @@ public class ThunderscopeSettings
         if (!File.Exists(file))
             throw new FileNotFoundException(file);
 
+        return FromYaml(File.ReadAllText(file));
+    }
+
+    internal static ThunderscopeSettings FromYaml(string yaml)
+    {
         var context = new StaticContext();
         var deserializer = new StaticDeserializerBuilder(context)
             .WithNamingConvention(PascalCaseNamingConvention.Instance)
             .IgnoreUnmatchedProperties()
             .Build();
 
-        return deserializer.Deserialize<ThunderscopeSettings>(File.ReadAllText(file));
+        return deserializer.Deserialize<ThunderscopeSettings>(yaml);
     }
+
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true, UseStringEnumConverter = true)]
