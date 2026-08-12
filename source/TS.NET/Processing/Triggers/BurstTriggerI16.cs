@@ -228,10 +228,9 @@ public class BurstTriggerI16 : ITriggerI16
                                     {
                                         while (i < v256Length)
                                         {
-                                            var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                            var resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector256, inputVector), armLevelVector256);
-                                            var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
-                                            if (Avx2.MoveMask(packedResult) != 0)
+                                            var inputVector = Vector256.Load(samplesPtr + i);
+                                            var resultVector = Vector256.LessThanOrEqual(inputVector, armLevelVector256);
+                                            if (resultVector != Vector256<short>.Zero)
                                                 break;
                                             i += Vector256<short>.Count;
                                         }
@@ -265,10 +264,9 @@ public class BurstTriggerI16 : ITriggerI16
                                     {
                                         while (i < v256Length)
                                         {
-                                            var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                            var resultVector = Avx2.CompareEqual(Avx2.Min(armLevelVector256, inputVector), armLevelVector256);
-                                            var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
-                                            if (Avx2.MoveMask(packedResult) != 0)
+                                            var inputVector = Vector256.Load(samplesPtr + i);
+                                            var resultVector = Vector256.GreaterThanOrEqual(inputVector, armLevelVector256);
+                                            if (resultVector != Vector256<short>.Zero)
                                                 break;
                                             i += Vector256<short>.Count;
                                         }
@@ -309,10 +307,9 @@ public class BurstTriggerI16 : ITriggerI16
                                     {
                                         while (i < v256Length)
                                         {
-                                            var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                            var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector256, inputVector), triggerLevelVector256);
-                                            var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
-                                            if (Avx2.MoveMask(packedResult) != 0)
+                                            var inputVector = Vector256.Load(samplesPtr + i);
+                                            var resultVector = Vector256.GreaterThan(inputVector, triggerLevelVector256);
+                                            if (resultVector != Vector256<short>.Zero)
                                                 break;
                                             i += Vector256<short>.Count;
                                         }
@@ -346,10 +343,9 @@ public class BurstTriggerI16 : ITriggerI16
                                     {
                                         while (i < v256Length)
                                         {
-                                            var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                            var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector256, inputVector), triggerLevelVector256);
-                                            var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
-                                            if (Avx2.MoveMask(packedResult) != 0)
+                                            var inputVector = Vector256.Load(samplesPtr + i);
+                                            var resultVector = Vector256.LessThan(inputVector, triggerLevelVector256);
+                                            if (resultVector != Vector256<short>.Zero)
                                                 break;
                                             i += Vector256<short>.Count;
                                         }

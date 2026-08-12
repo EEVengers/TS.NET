@@ -107,9 +107,9 @@ public class WindowTriggerI16 : ITriggerI16
                                     case WindowDirection.Enter:
                                         while (i < v256Length)
                                         {
-                                            var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                            var inWindow = Avx2.And(Avx2.CompareGreaterThan(inputVector, lowerLevelVector256), Avx2.CompareGreaterThan(upperLevelVector256, inputVector));
-                                            if (inWindow != Vector256<short>.AllBitsSet)
+                                            var inputVector = Vector256.Load(samplesPtr + i);
+                                            var outsideWindow = Vector256.GreaterThan(inputVector, upperLevelVector256) | Vector256.LessThan(inputVector, lowerLevelVector256);
+                                            if (outsideWindow != Vector256<short>.Zero)
                                                 break;
                                             i += Vector256<short>.Count;
                                         }
@@ -117,8 +117,8 @@ public class WindowTriggerI16 : ITriggerI16
                                     case WindowDirection.Exit:
                                         while (i < v256Length)
                                         {
-                                            var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                            var inWindow = Avx2.And(Avx2.CompareGreaterThan(inputVector, lowerLevelVector256), Avx2.CompareGreaterThan(upperLevelVector256, inputVector));
+                                            var inputVector = Vector256.Load(samplesPtr + i);
+                                            var inWindow = Vector256.LessThan(inputVector, upperLevelVector256) & Vector256.GreaterThan(inputVector, lowerLevelVector256);
                                             if (inWindow != Vector256<short>.Zero)
                                                 break;
                                             i += Vector256<short>.Count;
@@ -135,9 +135,9 @@ public class WindowTriggerI16 : ITriggerI16
                                         {
                                             var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
                                             var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
-                                            var inWindow1 = AdvSimd.And(AdvSimd.CompareGreaterThan(inputVector1, lowerLevelVector128), AdvSimd.CompareLessThan(inputVector1, upperLevelVector128));
-                                            var inWindow2 = AdvSimd.And(AdvSimd.CompareGreaterThan(inputVector2, lowerLevelVector128), AdvSimd.CompareLessThan(inputVector2, upperLevelVector128));
-                                            if (inWindow1 != Vector128<short>.AllBitsSet || inWindow2 != Vector128<short>.AllBitsSet)
+                                            var outsideWindow1 = AdvSimd.CompareGreaterThan(inputVector1, upperLevelVector128) | AdvSimd.CompareLessThan(inputVector1, lowerLevelVector128);
+                                            var outsideWindow2 = AdvSimd.CompareGreaterThan(inputVector2, upperLevelVector128) | AdvSimd.CompareLessThan(inputVector2, lowerLevelVector128);
+                                            if (outsideWindow1 != Vector128<short>.Zero || outsideWindow2 != Vector128<short>.Zero)
                                                 break;
                                             i += Vector256<short>.Count;
                                         }
@@ -147,8 +147,8 @@ public class WindowTriggerI16 : ITriggerI16
                                         {
                                             var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
                                             var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
-                                            var inWindow1 = AdvSimd.And(AdvSimd.CompareGreaterThan(inputVector1, lowerLevelVector128), AdvSimd.CompareLessThan(inputVector1, upperLevelVector128));
-                                            var inWindow2 = AdvSimd.And(AdvSimd.CompareGreaterThan(inputVector2, lowerLevelVector128), AdvSimd.CompareLessThan(inputVector2, upperLevelVector128));
+                                            var inWindow1 = AdvSimd.CompareLessThan(inputVector1, upperLevelVector128) & AdvSimd.CompareGreaterThan(inputVector1, lowerLevelVector128);
+                                            var inWindow2 = AdvSimd.CompareLessThan(inputVector2, upperLevelVector128) & AdvSimd.CompareGreaterThan(inputVector2, lowerLevelVector128);
                                             if (inWindow1 != Vector128<short>.Zero || inWindow2 != Vector128<short>.Zero)
                                                 break;
                                             i += Vector256<short>.Count;
@@ -188,8 +188,8 @@ public class WindowTriggerI16 : ITriggerI16
                                     case WindowDirection.Enter:
                                         while (i < v256Length)
                                         {
-                                            var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                            var inWindow = Avx2.And(Avx2.CompareGreaterThan(inputVector, lowerLevelVector256), Avx2.CompareGreaterThan(upperLevelVector256, inputVector));
+                                            var inputVector = Vector256.Load(samplesPtr + i);
+                                            var inWindow = Vector256.LessThanOrEqual(inputVector, upperLevelVector256) & Vector256.GreaterThanOrEqual(inputVector, lowerLevelVector256);
                                             if (inWindow != Vector256<short>.Zero)
                                                 break;
                                             i += Vector256<short>.Count;
@@ -198,9 +198,9 @@ public class WindowTriggerI16 : ITriggerI16
                                     case WindowDirection.Exit:
                                         while (i < v256Length)
                                         {
-                                            var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                            var inWindow = Avx2.And(Avx2.CompareGreaterThan(inputVector, lowerLevelVector256), Avx2.CompareGreaterThan(upperLevelVector256, inputVector));
-                                            if (inWindow != Vector256<short>.AllBitsSet)
+                                            var inputVector = Vector256.Load(samplesPtr + i);
+                                            var outsideWindow = Vector256.GreaterThanOrEqual(inputVector, upperLevelVector256) | Vector256.LessThanOrEqual(inputVector, lowerLevelVector256);
+                                            if (outsideWindow != Vector256<short>.Zero)
                                                 break;
                                             i += Vector256<short>.Count;
                                         }
@@ -216,8 +216,8 @@ public class WindowTriggerI16 : ITriggerI16
                                         {
                                             var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
                                             var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
-                                            var inWindow1 = AdvSimd.And(AdvSimd.CompareGreaterThan(inputVector1, lowerLevelVector128), AdvSimd.CompareLessThan(inputVector1, upperLevelVector128));
-                                            var inWindow2 = AdvSimd.And(AdvSimd.CompareGreaterThan(inputVector2, lowerLevelVector128), AdvSimd.CompareLessThan(inputVector2, upperLevelVector128));
+                                            var inWindow1 = AdvSimd.CompareLessThanOrEqual(inputVector1, upperLevelVector128) & AdvSimd.CompareGreaterThanOrEqual(inputVector1, lowerLevelVector128);
+                                            var inWindow2 = AdvSimd.CompareLessThanOrEqual(inputVector2, upperLevelVector128) & AdvSimd.CompareGreaterThanOrEqual(inputVector2, lowerLevelVector128);
                                             if (inWindow1 != Vector128<short>.Zero || inWindow2 != Vector128<short>.Zero)
                                                 break;
                                             i += Vector256<short>.Count;
@@ -228,9 +228,9 @@ public class WindowTriggerI16 : ITriggerI16
                                         {
                                             var inputVector1 = AdvSimd.LoadVector128(samplesPtr + i);
                                             var inputVector2 = AdvSimd.LoadVector128(samplesPtr + i + Vector128<short>.Count);
-                                            var inWindow1 = AdvSimd.And(AdvSimd.CompareGreaterThan(inputVector1, lowerLevelVector128), AdvSimd.CompareLessThan(inputVector1, upperLevelVector128));
-                                            var inWindow2 = AdvSimd.And(AdvSimd.CompareGreaterThan(inputVector2, lowerLevelVector128), AdvSimd.CompareLessThan(inputVector2, upperLevelVector128));
-                                            if (inWindow1 != Vector128<short>.AllBitsSet || inWindow2 != Vector128<short>.AllBitsSet)
+                                            var outsideWindow1 = AdvSimd.CompareGreaterThanOrEqual(inputVector1, upperLevelVector128) | AdvSimd.CompareLessThanOrEqual(inputVector1, lowerLevelVector128);
+                                            var outsideWindow2 = AdvSimd.CompareGreaterThanOrEqual(inputVector2, upperLevelVector128) | AdvSimd.CompareLessThanOrEqual(inputVector2, lowerLevelVector128);
+                                            if (outsideWindow1 != Vector128<short>.Zero || outsideWindow2 != Vector128<short>.Zero)
                                                 break;
                                             i += Vector256<short>.Count;
                                         }

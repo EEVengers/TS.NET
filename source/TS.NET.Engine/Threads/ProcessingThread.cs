@@ -1435,7 +1435,7 @@ public class ProcessingThread : IThread
                         EdgeDirection.Any => new AnyEdgeTriggerI8(triggerChannelParameters, processingConfig.EdgeTriggerParameters),
                         _ => throw new NotImplementedException()
                     },
-                    TriggerType.Window => new WindowTriggerI8(triggerChannelParameters, processingConfig.WindowTriggerParameters),
+                    //TriggerType.Window => new WindowTriggerI8(triggerChannelParameters, processingConfig.WindowTriggerParameters),    // Not ready until hysteresis is implemented
                     TriggerType.Burst => new BurstTriggerI8(triggerChannelParameters, processingConfig.BurstTriggerParameters),
                     _ => throw new NotImplementedException()
                 };
@@ -1448,7 +1448,7 @@ public class ProcessingThread : IThread
                         EdgeDirection.Any => new AnyEdgeTriggerI16(triggerChannelParameters, processingConfig.EdgeTriggerParameters),
                         _ => throw new NotImplementedException()
                     },
-                    TriggerType.Window => new WindowTriggerI16(triggerChannelParameters, processingConfig.WindowTriggerParameters),
+                    //TriggerType.Window => new WindowTriggerI16(triggerChannelParameters, processingConfig.WindowTriggerParameters),   // Not ready until hysteresis is implemented
                     TriggerType.Burst => new BurstTriggerI16(triggerChannelParameters, processingConfig.BurstTriggerParameters),
                     _ => throw new NotImplementedException()
                 };
