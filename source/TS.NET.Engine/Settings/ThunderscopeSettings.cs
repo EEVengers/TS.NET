@@ -8,7 +8,7 @@ namespace TS.NET.Engine;
 [YamlSerializable]
 public class ThunderscopeSettings
 {
-    public int ConfigurationVersion { get; set; } = 1;
+    public int Version { get; set; } = 1;
     public string HardwareDriver { get; set; } = "";
     public string HardwareRevision { get; set; } = "";
     public int MaxCaptureLength { get; set; }
@@ -24,7 +24,7 @@ public class ThunderscopeSettings
     {
         return new ThunderscopeSettings()
         {
-            ConfigurationVersion = 1,
+            Version = 1,
             HardwareDriver = "LiteX",
             HardwareRevision = "Rev5",
             MaxCaptureLength = 10000000,

@@ -23,7 +23,7 @@ class Program
         Sequence sequence = new();
         IJsonVariables variables = new SelfCalibrationVariables() { };
         var cancellationTokenSource = new CancellationTokenSource();
-        var variablesFile = VariablesFile.FromJsonFile("variables.json");
+        var settings = TestbenchSettings.Load();
 
         string loadPath = "../../../Resources/wwwroot/index.html";
 #if RELEASE
@@ -62,7 +62,7 @@ class Program
                         window.SendWebMessage(JsonSerializer.Serialize(LogDto.FromLog(), CamelCaseContext.Default.LogDto));
                         window.SendWebMessage(JsonSerializer.Serialize(VariablesDto.FromVariables(variables), DefaultCaseContext.Default.VariablesDto));
                         window.SendWebMessage(JsonSerializer.Serialize(SequenceDto.FromSequence(sequence), CamelCaseContext.Default.SequenceDto));
-                        window.SendWebMessage(JsonSerializer.Serialize(SequencesDto.CreateForTypes(variablesFile.SequenceTypes), CamelCaseContext.Default.SequencesDto));
+                        window.SendWebMessage(JsonSerializer.Serialize(SequencesDto.CreateForTypes(settings.SequenceTypes), CamelCaseContext.Default.SequencesDto));
                         break;
                     case "load-sequence":
                         var sequenceString = json.RootElement.GetProperty("sequence").GetString();
@@ -90,8 +90,8 @@ class Program
                                 {
                                     var newVariables = new FactoryBringUpVariables
                                     {
-                                        SigGen1Host = variablesFile.SigGen1Ip,
-                                        SigGen2Host = variablesFile.SigGen2Ip,
+                                        SigGen1Host = settings.SigGen1Ip,
+                                        SigGen2Host = settings.SigGen2Ip,
                                         FlashImages = new(StringComparer.OrdinalIgnoreCase)
                                         {
                                             ["XC7A35T"] = "thunderscope_full_prod_0.5.0.bin",
@@ -107,8 +107,8 @@ class Program
                                 {
                                     var newVariables = new FactoryVariables
                                     {
-                                        SigGen1Host = variablesFile.SigGen1Ip,
-                                        SigGen2Host = variablesFile.SigGen2Ip
+                                        SigGen1Host = settings.SigGen1Ip,
+                                        SigGen2Host = settings.SigGen2Ip
                                     };
                                     var newSequence = new FactoryTrimSequence(modalUiContext, newVariables);
                                     variables = newVariables;
@@ -119,8 +119,8 @@ class Program
                                 {
                                     var newVariables = new FactoryVariables
                                     {
-                                        SigGen1Host = variablesFile.SigGen1Ip,
-                                        SigGen2Host = variablesFile.SigGen2Ip
+                                        SigGen1Host = settings.SigGen1Ip,
+                                        SigGen2Host = settings.SigGen2Ip
                                     };
                                     var newSequence = new FactoryCalibrationSequence(modalUiContext, newVariables);
                                     variables = newVariables;
@@ -131,8 +131,8 @@ class Program
                                 {
                                     var newVariables = new FactoryVariables
                                     {
-                                        SigGen1Host = variablesFile.SigGen1Ip,
-                                        SigGen2Host = variablesFile.SigGen2Ip
+                                        SigGen1Host = settings.SigGen1Ip,
+                                        SigGen2Host = settings.SigGen2Ip
                                     };
                                     var newSequence = new FactoryVerificationSequence(modalUiContext, newVariables);
                                     variables = newVariables;
@@ -143,8 +143,8 @@ class Program
                                 {
                                     var newVariables = new FactoryVariables
                                     {
-                                        SigGen1Host = variablesFile.SigGen1Ip,
-                                        SigGen2Host = variablesFile.SigGen2Ip
+                                        SigGen1Host = settings.SigGen1Ip,
+                                        SigGen2Host = settings.SigGen2Ip
                                     };
                                     var newSequence = new DeveloperCalibrationSequence(modalUiContext, newVariables);
                                     variables = newVariables;
@@ -155,8 +155,8 @@ class Program
                                 {
                                     var newVariables = new FactoryVariables
                                     {
-                                        SigGen1Host = variablesFile.SigGen1Ip,
-                                        SigGen2Host = variablesFile.SigGen2Ip
+                                        SigGen1Host = settings.SigGen1Ip,
+                                        SigGen2Host = settings.SigGen2Ip
                                     };
                                     var newSequence = new DeveloperVerificationSequence(modalUiContext, newVariables);
                                     variables = newVariables;

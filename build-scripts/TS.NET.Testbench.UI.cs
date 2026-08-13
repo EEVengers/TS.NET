@@ -126,7 +126,7 @@ static bool BuildForRid(string rid, string rootDirectory, string scriptDirectory
 	// Files to preserve across publishes (if they already exist in the publish folder).
 	var filesToPreserve = new List<string>
 	{
-		"variables.json",
+		"settings.yaml",
 		nativeLibraryFileName
 	};
 

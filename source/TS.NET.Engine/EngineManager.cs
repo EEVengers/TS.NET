@@ -297,10 +297,10 @@ public class EngineManager
         try
         {
             var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var localApplicationDataConfigurationFile = Path.Combine(localAppData, "ThunderScope", "thunderscope.yaml");
-            // Windows: %LocalAppData%\ThunderScope\thunderscope.yaml
-            // macOS: ~/Library/Application Support/ThunderScope/thunderscope.yaml
-            // Linux: $XDG_CONFIG_HOME/ThunderScope/thunderscope.yaml or $HOME/.config/ThunderScope/thunderscope.yaml
+            var localApplicationDataConfigurationFile = Path.Combine(localAppData, "ThunderScope", "TS.NET.Engine", "settings.yaml");
+            // Windows: %LocalAppData%\ThunderScope\TS.NET.Engine\settings.yaml
+            // macOS: ~/Library/Application Support/ThunderScope/TS.NET.Engine/settings.yaml
+            // Linux: $XDG_CONFIG_HOME/ThunderScope/TS.NET.Engine/settings.yaml or $HOME/.config/ThunderScope/TS.NET.Engine/settings.yaml
             Directory.CreateDirectory(Path.GetDirectoryName(localApplicationDataConfigurationFile)!);
             if (!File.Exists(localApplicationDataConfigurationFile))
                 WriteDefaultConfiguration(localApplicationDataConfigurationFile);
@@ -311,7 +311,7 @@ public class EngineManager
         }
         catch { }
 
-        const string workingDirectoryConfigurationFile = "thunderscope.yaml";
+        const string workingDirectoryConfigurationFile = "settings.yaml";
         try
         {
             if (!File.Exists(workingDirectoryConfigurationFile))
@@ -343,7 +343,7 @@ public class EngineManager
 
     private static Stream OpenDefaultConfigurationStream()
     {
-        return typeof(EngineManager).Assembly.GetManifestResourceStream("TS.NET.Engine.thunderscope.yaml")
+        return typeof(EngineManager).Assembly.GetManifestResourceStream("TS.NET.Engine.settings.yaml")
             ?? throw new InvalidOperationException("Embedded default configuration was not found.");
     }
 

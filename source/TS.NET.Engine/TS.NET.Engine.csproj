@@ -23,7 +23,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="TS.NET.Engine.ico" />
-    <EmbeddedResource Include="thunderscope.yaml" />
+    <EmbeddedResource Include="settings.yaml" />
   </ItemGroup>
 
   <ItemGroup>

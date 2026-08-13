@@ -6,7 +6,6 @@ namespace TS.NET.Testbench.UI;
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.Unspecified, PropertyNameCaseInsensitive = true, NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals, ReadCommentHandling = JsonCommentHandling.Skip)]
 [JsonSerializable(typeof(VariablesDto))]
-[JsonSerializable(typeof(VariablesFile))]
 internal partial class DefaultCaseContext : JsonSerializerContext { }
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, UseStringEnumConverter = true, NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals)]
