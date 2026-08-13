@@ -1,4 +1,5 @@
 ﻿using Photino.NET;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -14,6 +15,8 @@ namespace TS.NET.Testbench.UI;
 
 class Program
 {
+    private static string? reportFilePath;
+
     [STAThread]
     static void Main(string[] args)
     {
@@ -199,13 +202,25 @@ class Program
                         break;
                     case "start-sequence":
                         cancellationTokenSource = new();
+                        reportFilePath = null;
+                        window.SendWebMessage(JsonSerializer.Serialize(new ReportAvailabilityUpdateDto { Type = "report-availability-update", Available = false }, CamelCaseContext.Default.ReportAvailabilityUpdateDto));
                         sequence.PreRun();
                         //Variables.Instance.Sequence = sequence.Name;
                         window.SendWebMessage(JsonSerializer.Serialize(SequenceDto.FromSequence(sequence), CamelCaseContext.Default.SequenceDto));
-                        RunSequenceAndReport(sequence, cancellationTokenSource);
+                        RunSequenceAndReport(sequence, cancellationTokenSource, () => window.SendWebMessage(JsonSerializer.Serialize(new ReportAvailabilityUpdateDto { Type = "report-availability-update", Available = true }, CamelCaseContext.Default.ReportAvailabilityUpdateDto)));
                         break;
                     case "stop-sequence":
                         cancellationTokenSource?.Cancel();
+                        break;
+                    case "open-report":
+                        if (reportFilePath is not null && File.Exists(reportFilePath))
+                        {
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = reportFilePath,
+                                UseShellExecute = true
+                            });
+                        }
                         break;
                     case "set-skip":
                         var stepIndex = json.RootElement.GetProperty("stepIndex").GetInt32();
@@ -296,7 +311,7 @@ class Program
         }
     }
 
-    private async static Task RunSequenceAndReport(Sequence sequence, CancellationTokenSource cancellationTokenSource)
+    private async static Task RunSequenceAndReport(Sequence sequence, CancellationTokenSource cancellationTokenSource, Action reportGenerated)
     {
         try
         {
@@ -305,6 +320,8 @@ class Program
             sequence.ToXml(fileName + ".xml");
             var reportGenerator = new HtmlReportGenerator();
             reportGenerator.Render(sequence, fileName + ".html");
+            reportFilePath = Path.GetFullPath(fileName + ".html");
+            reportGenerated();
         }
         catch (Exception ex)
         {

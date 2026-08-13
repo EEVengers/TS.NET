@@ -20,6 +20,7 @@ internal partial class DefaultCaseContext : JsonSerializerContext { }
 [JsonSerializable(typeof(StepUpdateDto))]
 [JsonSerializable(typeof(LogUpdateDto))]
 [JsonSerializable(typeof(SequenceStatusUpdateDto))]
+[JsonSerializable(typeof(ReportAvailabilityUpdateDto))]
 [JsonSerializable(typeof(string))]
 [JsonSerializable(typeof(ModalUiUpdateDto))]
 internal partial class CamelCaseContext : JsonSerializerContext { }
