@@ -1,4 +1,6 @@
-﻿using System;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace TS.NET.Driver.Libtslitex
@@ -6,6 +8,30 @@ namespace TS.NET.Driver.Libtslitex
     internal static partial class Interop
     {
         private const string library = "tslitex";
+
+        [ModuleInitializer]
+        [SuppressMessage("Usage", "CA2255", Justification = "The resolver must be registered before the first native import is invoked.")]
+        internal static void InitializeNativeLibraryResolver()
+        {
+            NativeLibrary.SetDllImportResolver(typeof(Interop).Assembly, ResolveLibrary);
+        }
+
+        private static nint ResolveLibrary(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+        {
+            if (!OperatingSystem.IsWindows() || !string.Equals(libraryName, library, StringComparison.Ordinal))
+            {
+                return nint.Zero;
+            }
+
+            if (NativeLibrary.TryLoad(libraryName, assembly, searchPath, out nint handle))
+            {
+                return handle;
+            }
+
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var localApplicationDataConfigurationFile = Path.Combine(localAppData, "Programs", "ThunderScope", "libtslitex", libraryName);
+            return NativeLibrary.TryLoad(localApplicationDataConfigurationFile, out handle) ? handle : nint.Zero;
+        }
 
         [StructLayout(LayoutKind.Sequential)]
         public struct tsChannelParam_t

@@ -102,14 +102,22 @@ public class EngineManager
             case "litex":
             case "libtslitex":
                 {
-                    string[] files = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "*tslitex*", SearchOption.TopDirectoryOnly);
-                    if (files.Length == 0)
+                    IReadOnlyList<Driver.Libtslitex.ThunderscopeLiteXDevice> devices;
+                    try
                     {
-                        logger?.LogCritical($"tslitex not found");
+                        devices = Driver.Libtslitex.Thunderscope.ListDevices();
+                    }
+                    catch (DllNotFoundException ex)
+                    {
+                        logger?.LogCritical("Unable to load libtslitex. (DllNotFoundException)");
+                        return false;
+                    }
+                    catch (BadImageFormatException ex)
+                    {
+                        logger?.LogCritical("Unable to load libtslitex. (BadImageFormatException)");
                         return false;
                     }
 
-                    var devices = Driver.Libtslitex.Thunderscope.ListDevices();
                     if (devices.Count > 0)
                     {
                         StringBuilder sb = new();
