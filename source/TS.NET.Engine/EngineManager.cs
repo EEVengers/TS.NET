@@ -107,12 +107,12 @@ public class EngineManager
                     {
                         devices = Driver.Libtslitex.Thunderscope.ListDevices();
                     }
-                    catch (DllNotFoundException ex)
+                    catch (DllNotFoundException)
                     {
                         logger?.LogCritical("Unable to load libtslitex. (DllNotFoundException)");
                         return false;
                     }
-                    catch (BadImageFormatException ex)
+                    catch (BadImageFormatException)
                     {
                         logger?.LogCritical("Unable to load libtslitex. (BadImageFormatException)");
                         return false;

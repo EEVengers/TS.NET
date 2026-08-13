@@ -1,17 +1,17 @@
 name: Build, test & publish
 on: [push]
 jobs:
-  build:   
+  build:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        dotnet-version: [ '10.0.x' ]
+        dotnet-version: ["10.0.x"]
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v6.0.0
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
       - name: Install dependencies
@@ -24,81 +24,81 @@ jobs:
         run: dotnet test --no-restore --verbosity normal
         working-directory: source
         continue-on-error: true
-      - name:  Publish TS.NET.Engine
+      - name: Publish TS.NET.Engine
         working-directory: source
-        run:   |
-               if [ "$RUNNER_OS" == "Linux" ]; then
-                    dotnet publish ./TS.NET.Engine/TS.NET.Engine.csproj -r linux-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Engine/linux-x64
-               elif [ "$RUNNER_OS" == "Windows" ]; then
-                    dotnet publish ./TS.NET.Engine/TS.NET.Engine.csproj -r win-x64 -c Release --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true -p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Engine/win-x64
-               elif [ "$RUNNER_OS" == "macOS" ]; then
-                    dotnet publish ./TS.NET.Engine/TS.NET.Engine.csproj -r osx-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Engine/macos-x64
-                    dotnet publish ./TS.NET.Engine/TS.NET.Engine.csproj -r osx-arm64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Engine/macos-arm64
-               else
-                    echo "$RUNNER_OS not supported"
-                    exit 1
-               fi
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+               dotnet publish ./TS.NET.Engine/TS.NET.Engine.csproj -r linux-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Engine/linux-x64
+          elif [ "$RUNNER_OS" == "Windows" ]; then
+               dotnet publish ./TS.NET.Engine/TS.NET.Engine.csproj -r win-x64 -c Release --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true -p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Engine/win-x64
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+               dotnet publish ./TS.NET.Engine/TS.NET.Engine.csproj -r osx-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Engine/macos-x64
+               dotnet publish ./TS.NET.Engine/TS.NET.Engine.csproj -r osx-arm64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Engine/macos-arm64
+          else
+               echo "$RUNNER_OS not supported"
+               exit 1
+          fi
         shell: bash
       - name: Upload TS.NET.Engine win-x64 build
         if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
-          name: TS.NET.Engine-win-x64
+          name: TS.NET.Engine-win-x64${{ github.ref_type == 'tag' && format('-{0}', github.ref_name) || '' }}
           path: builds/TS.NET.Engine/win-x64/*
       - name: Upload TS.NET.Engine linux-x64 build
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
-          name: TS.NET.Engine-linux-x64
+          name: TS.NET.Engine-linux-x64${{ github.ref_type == 'tag' && format('-{0}', github.ref_name) || '' }}
           path: builds/TS.NET.Engine/linux-x64/*
       - name: Upload TS.NET.Engine macos-x64 build
         if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
-          name: TS.NET.Engine-macos-x64
+          name: TS.NET.Engine-macos-x64${{ github.ref_type == 'tag' && format('-{0}', github.ref_name) || '' }}
           path: builds/TS.NET.Engine/macos-x64/*
       - name: Upload TS.NET.Engine macos-arm64 build
         if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
-          name: TS.NET.Engine-macos-arm64
+          name: TS.NET.Engine-macos-arm64${{ github.ref_type == 'tag' && format('-{0}', github.ref_name) || '' }}
           path: builds/TS.NET.Engine/macos-arm64/*
-      - name:  Publish TS.NET.Testbench.UI
+      - name: Publish TS.NET.Testbench.UI
         working-directory: source
-        run:   |
-               if [ "$RUNNER_OS" == "Linux" ]; then
-                    dotnet publish ./TS.NET.Testbench.UI/TS.NET.Testbench.UI.csproj -r linux-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Testbench.UI/linux-x64
-               elif [ "$RUNNER_OS" == "Windows" ]; then
-                    dotnet publish ./TS.NET.Testbench.UI/TS.NET.Testbench.UI.csproj -r win-x64 -c Release --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true -p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Testbench.UI/win-x64
-               elif [ "$RUNNER_OS" == "macOS" ]; then
-                    dotnet publish ./TS.NET.Testbench.UI/TS.NET.Testbench.UI.csproj -r osx-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Testbench.UI/macos-x64
-                    dotnet publish ./TS.NET.Testbench.UI/TS.NET.Testbench.UI.csproj -r osx-arm64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Testbench.UI/macos-arm64
-               else
-                    echo "$RUNNER_OS not supported"
-                    exit 1
-               fi
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+               dotnet publish ./TS.NET.Testbench.UI/TS.NET.Testbench.UI.csproj -r linux-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Testbench.UI/linux-x64
+          elif [ "$RUNNER_OS" == "Windows" ]; then
+               dotnet publish ./TS.NET.Testbench.UI/TS.NET.Testbench.UI.csproj -r win-x64 -c Release --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true -p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Testbench.UI/win-x64
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+               dotnet publish ./TS.NET.Testbench.UI/TS.NET.Testbench.UI.csproj -r osx-x64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Testbench.UI/macos-x64
+               dotnet publish ./TS.NET.Testbench.UI/TS.NET.Testbench.UI.csproj -r osx-arm64 -c Release --self-contained /p:PublishSingleFile=true /p:PublishTrimmed=true /p:IncludeNativeLibrariesForSelfExtract=true --output ../builds/TS.NET.Testbench.UI/macos-arm64
+          else
+               echo "$RUNNER_OS not supported"
+               exit 1
+          fi
         shell: bash
       - name: Upload TS.NET.Testbench.UI win-x64 build
         if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
-          name: TS.NET.Testbench.UI-win-x64
+          name: TS.NET.Testbench.UI-win-x64${{ github.ref_type == 'tag' && format('-{0}', github.ref_name) || '' }}
           path: builds/TS.NET.Testbench.UI/win-x64/*
       - name: Upload TS.NET.Testbench.UI linux-x64 build
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
-          name: TS.NET.Testbench.UI-linux-x64
-          path: builds/TS.NET.Testbench.UI/linux-x64/*          
+          name: TS.NET.Testbench.UI-linux-x64${{ github.ref_type == 'tag' && format('-{0}', github.ref_name) || '' }}
+          path: builds/TS.NET.Testbench.UI/linux-x64/*
       - name: Upload TS.NET.Testbench.UI macos-x64 build
         if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
-          name: TS.NET.Testbench.UI-macos-x64
-          path: builds/TS.NET.Testbench.UI/macos-x64/*   
+          name: TS.NET.Testbench.UI-macos-x64${{ github.ref_type == 'tag' && format('-{0}', github.ref_name) || '' }}
+          path: builds/TS.NET.Testbench.UI/macos-x64/*
       - name: Upload TS.NET.Testbench.UI macos-arm64 build
         if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
-          name: TS.NET.Testbench.UI-macos-arm64
+          name: TS.NET.Testbench.UI-macos-arm64${{ github.ref_type == 'tag' && format('-{0}', github.ref_name) || '' }}
           path: builds/TS.NET.Testbench.UI/macos-arm64/*
