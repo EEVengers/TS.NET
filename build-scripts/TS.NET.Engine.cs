@@ -151,6 +151,14 @@ static bool BuildForRid(string rid, string rootDirectory, string scriptDirectory
 		preservedFiles.Add(file);
 	}
 
+	if (Directory.Exists(publishFolder))
+	{
+		Console.ForegroundColor = ConsoleColor.Yellow;
+		Console.WriteLine($"Cleaning publish folder for {rid}...");
+		Console.ResetColor();
+		Directory.Delete(publishFolder, recursive: true);
+	}
+
 	Console.ForegroundColor = ConsoleColor.Yellow;
 	Console.WriteLine($"Publishing project for {rid}...");
 	Console.ResetColor();

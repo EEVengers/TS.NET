@@ -42,4 +42,14 @@
     <ProjectReference Include="..\TS.NET\TS.NET.csproj" />
   </ItemGroup>
 
+  <Target Name="DeleteFiles" AfterTargets="Publish">
+    <ItemGroup>
+      <FilesToDelete Include="$(PublishDir)*.pdb;" />
+    </ItemGroup>
+    <Delete Files="@(FilesToDelete)">
+      <Output TaskParameter="DeletedFiles" ItemName="FilesDeleted" />
+    </Delete>
+    <Message Text="Deleted PDB files: @(FilesDeleted)" Importance="high" />
+  </Target>
+
 </Project>

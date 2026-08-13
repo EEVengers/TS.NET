@@ -96,70 +96,79 @@ class Program
 
         var engine = new EngineManager(loggerFactory, appCancellationTokenSource);
         var deviceSerial = deviceIndex.ToString();
-        if (!engine.TryStart(configurationFile, calibrationFile, deviceSerial))
-            return;
-
-        if (ngscopeclient && OperatingSystem.IsWindows())
+        var persistWindow = true;
+        if (engine.TryStart(configurationFile, calibrationFile, deviceSerial))
         {
-            var ngscopeclientPaths = new[]
+            if (ngscopeclient && OperatingSystem.IsWindows())
             {
+                var ngscopeclientPaths = new[]
+                {
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "ThunderScope", "ngscopeclient", "ngscopeclient.exe"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ngscopeclient", "ngscopeclient.exe"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "ngscopeclient", "ngscopeclient.exe")
             };
-            var ngscopeclientPath = ngscopeclientPaths.FirstOrDefault(File.Exists);
+                var ngscopeclientPath = ngscopeclientPaths.FirstOrDefault(File.Exists);
 
-            if (ngscopeclientPath is not null)
-            {
-                var ngscopeclientProcess = Process.Start(new ProcessStartInfo
+                if (ngscopeclientPath is not null)
                 {
-                    FileName = ngscopeclientPath,
-                    Arguments = "ThunderScope:thunderscope:twinlan:127.0.0.1:5025:5026",
-                    WorkingDirectory = Path.GetDirectoryName(ngscopeclientPath)!,
-                    UseShellExecute = true
-                });
-                logger.LogInformation($"ngscopeclient started.");
-
-                if (ngscopeclientProcess is not null)
-                {
-                    ngscopeclientProcess.Exited += (_, _) =>
+                    var ngscopeclientProcess = Process.Start(new ProcessStartInfo
                     {
-                        logger.LogInformation("ngscopeclient exited, stopping engine.");
-                        appCancellationTokenSource.Cancel();
-                    };
-                    ngscopeclientProcess.EnableRaisingEvents = true;
+                        FileName = ngscopeclientPath,
+                        Arguments = "ThunderScope:thunderscope:twinlan:127.0.0.1:5025:5026",
+                        WorkingDirectory = Path.GetDirectoryName(ngscopeclientPath)!,
+                        UseShellExecute = true
+                    });
+                    logger.LogInformation($"ngscopeclient started.");
+
+                    if (ngscopeclientProcess is not null)
+                    {
+                        ngscopeclientProcess.Exited += (_, _) =>
+                        {
+                            logger.LogInformation("ngscopeclient exited, stopping engine.");
+                            appCancellationTokenSource.Cancel();
+                            persistWindow = false;
+                        };
+                        ngscopeclientProcess.EnableRaisingEvents = true;
+                    }
+                }
+                else
+                {
+                    logger.LogWarning("ngscopeclient not found.");
                 }
             }
-            else
+
+            DateTimeOffset startTime = DateTimeOffset.UtcNow;
+            while (!appCancellationTokenSource.IsCancellationRequested)
             {
-                logger.LogWarning("ngscopeclient not found.");
+                if (Console.KeyAvailable)
+                {
+                    var key = Console.ReadKey();
+                    switch (key.Key)
+                    {
+                        case ConsoleKey.Escape:
+                            persistWindow = false;
+                            appCancellationTokenSource.Cancel();
+                            break;
+                    }
+                }
+                else
+                {
+                    if (seconds > 0)
+                    {
+                        if (DateTimeOffset.UtcNow.Subtract(startTime).TotalSeconds >= seconds)
+                            break;
+                    }
+                    Thread.Sleep(100);
+                }
             }
+
+            engine.Stop();
         }
 
-        DateTimeOffset startTime = DateTimeOffset.UtcNow;
-        while (!appCancellationTokenSource.IsCancellationRequested)
+        if (persistWindow)
         {
-            if (Console.KeyAvailable)
-            {
-                var key = Console.ReadKey();
-                switch (key.Key)
-                {
-                    case ConsoleKey.Escape:
-                        appCancellationTokenSource.Cancel();
-                        break;
-                }
-            }
-            else
-            {
-                if (seconds > 0)
-                {
-                    if (DateTimeOffset.UtcNow.Subtract(startTime).TotalSeconds >= seconds)
-                        break;
-                }
-                Thread.Sleep(100);
-            }
+            Console.WriteLine("Press any key to exit.");
+            Console.ReadKey();
         }
-
-        engine.Stop();
     }
 }
