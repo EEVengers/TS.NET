@@ -290,6 +290,9 @@ public class EngineManager
         {
             var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             var localApplicationDataConfigurationFile = Path.Combine(localAppData, "ThunderScope", "thunderscope.yaml");
+            // Windows: %LocalAppData%\ThunderScope\thunderscope.yaml
+            // macOS: ~/Library/Application Support/ThunderScope/thunderscope.yaml
+            // Linux: $XDG_CONFIG_HOME/ThunderScope/thunderscope.yaml or $HOME/.config/ThunderScope/thunderscope.yaml
             Directory.CreateDirectory(Path.GetDirectoryName(localApplicationDataConfigurationFile)!);
             if (!File.Exists(localApplicationDataConfigurationFile))
                 WriteDefaultConfiguration(localApplicationDataConfigurationFile);

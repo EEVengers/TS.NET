@@ -317,10 +317,15 @@ class Program
         {
             await sequence.Run(cancellationTokenSource);
             var fileName = $"{sequence.Name} - {sequence.StartTimestamp:yyyy-MM-dd HHmmss}";
-            sequence.ToXml(fileName + ".xml");
+            var resultsDirectory = Path.Combine(AppContext.BaseDirectory, "results");
+            Directory.CreateDirectory(resultsDirectory);
+            var xmlFilePath = Path.Combine(resultsDirectory, fileName + ".xml");
+            var htmlFilePath = Path.Combine(resultsDirectory, fileName + ".html");
+
+            sequence.ToXml(xmlFilePath);
             var reportGenerator = new HtmlReportGenerator();
-            reportGenerator.Render(sequence, fileName + ".html");
-            reportFilePath = Path.GetFullPath(fileName + ".html");
+            reportGenerator.Render(sequence, htmlFilePath);
+            reportFilePath = htmlFilePath;
             reportGenerated();
         }
         catch (Exception ex)
