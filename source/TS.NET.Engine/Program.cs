@@ -92,6 +92,7 @@ class Program
 
         var loggerFactory = new LoggerFactory().AddSerilog(serilog);
         var logger = loggerFactory.CreateLogger("TS.NET.Engine");
+        logger.LogInformation("Version: {Version}", typeof(Program).Assembly.GetName().Version?.ToString(3));
         var appCancellationTokenSource = new CancellationTokenSource();
 
         var engine = new EngineManager(loggerFactory, appCancellationTokenSource);
