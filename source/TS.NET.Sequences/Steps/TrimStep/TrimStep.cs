@@ -44,7 +44,7 @@ public class TrimStep : ModalUiStep
             });
 
             var resolution = AdcResolution.EightBit;
-            Instruments.Instance.SetThunderscopeChannel(ChannelsEnabled);
+            Instruments.Instance.SetThunderscopeChannel(ChannelsEnabled!);
             Instruments.Instance.SetThunderscopeResolution(resolution);
             Instruments.Instance.SetThunderscopeRate(SampleRateHz);
             var pathCalibration = Utility.GetChannelPathCalibration(ChannelIndex, PgaPreampGain, PgaLadder, variables);
@@ -71,7 +71,7 @@ public class TrimStep : ModalUiStep
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var bodePoints = new Dictionary<uint, double>();
-                SigGens.Instance.SetSdgParameterFrequency(ChannelIndex, BodeFrequencies[0]);
+                SigGens.Instance.SetSdgParameterFrequency(ChannelIndex, BodeFrequencies![0]);
                 var signalAtRef = Instruments.Instance.GetThunderscopeVppAtFrequencyLsq(ChannelIndex, BodeFrequencies[0], SampleRateHz, pathCalibration.BufferInputVpp, resolution, out float rangePercentAtRef) * scaleFactor;
                 bodePoints[BodeFrequencies[0]] = 1.0;
                 for (int i = 1; i < BodeFrequencies.Length && continueLoop; i++)

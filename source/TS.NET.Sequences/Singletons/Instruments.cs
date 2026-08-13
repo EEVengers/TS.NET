@@ -1,5 +1,4 @@
 using CommunityToolkit.HighPerformance.Buffers;
-using System;
 using System.Diagnostics;
 using System.Numerics.Tensors;
 using System.Text;
@@ -14,7 +13,6 @@ public class Instruments
 
     //private ThunderscopeScpiConnection? thunderScope;
     private Driver.Libtslitex.Thunderscope? thunderScope;
-    private ThunderscopeDataConnection? thunderScopeData;
 
     private ThunderscopeMemory? dataMemory;
     private ThunderscopeMemory? shuffleMemory;
@@ -113,7 +111,6 @@ public class Instruments
     public void Close()
     {
         thunderScope?.Close();
-        thunderScopeData?.Close();
     }
 
     public bool TryReadUserCalibration(out Calibration? calibration)

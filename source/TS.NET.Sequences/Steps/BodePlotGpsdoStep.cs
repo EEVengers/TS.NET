@@ -23,10 +23,10 @@ public class BodePlotGpsdoStep : Step
 
             var resolution = AdcResolution.EightBit;
 
-            Instruments.Instance.SetThunderscopeChannel(ChannelsEnabled);
+            Instruments.Instance.SetThunderscopeChannel(ChannelsEnabled!);
             Instruments.Instance.SetThunderscopeResolution(resolution);
             Instruments.Instance.SetThunderscopeRate(SampleRateHz);
-            Instruments.Instance.SetThunderscopeBranchGains(Frontend.GetAdcBranchGain(variables.Calibration, ChannelsEnabled, SampleRateHz));
+            Instruments.Instance.SetThunderscopeBranchGains(Frontend.GetAdcBranchGain(variables.Calibration, ChannelsEnabled!, SampleRateHz));
 
             var pathCalibration = Utility.GetChannelPathCalibration(ChannelIndex, PgaPreampGain, PgaLadder, variables);
             var scaleFactor = Attenuator ? variables.Calibration.Frontend[ChannelIndex].AttenuatorScale : 1.0;

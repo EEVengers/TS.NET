@@ -45,7 +45,7 @@ class Program
         window = new PhotinoWindow()
             .SetLogVerbosity(0)
             .SetTitle("Testbench")
-            .SetIconFile(ExtractEmbeddedResourceToTempFile("icon.ico", "TS.NET.Testbench.UI"))
+            .SetIconFile(ExtractEmbeddedResourceToTempFile("TS.NET.Testbench.UI.ico", "TS.NET.Testbench.UI"))
             .SetUseOsDefaultSize(false)
             .SetNotificationsEnabled(false)
             .Center()
@@ -207,7 +207,7 @@ class Program
                         sequence.PreRun();
                         //Variables.Instance.Sequence = sequence.Name;
                         window.SendWebMessage(JsonSerializer.Serialize(SequenceDto.FromSequence(sequence), CamelCaseContext.Default.SequenceDto));
-                        RunSequenceAndReport(sequence, cancellationTokenSource, () => window.SendWebMessage(JsonSerializer.Serialize(new ReportAvailabilityUpdateDto { Type = "report-availability-update", Available = true }, CamelCaseContext.Default.ReportAvailabilityUpdateDto)));
+                        _ = RunSequenceAndReport(sequence, cancellationTokenSource, () => window.SendWebMessage(JsonSerializer.Serialize(new ReportAvailabilityUpdateDto { Type = "report-availability-update", Available = true }, CamelCaseContext.Default.ReportAvailabilityUpdateDto)));
                         break;
                     case "stop-sequence":
                         cancellationTokenSource?.Cancel();
@@ -225,7 +225,7 @@ class Program
                     case "set-skip":
                         var stepIndex = json.RootElement.GetProperty("stepIndex").GetInt32();
                         var skip = json.RootElement.GetProperty("skip").GetBoolean();
-                        sequence.Steps[stepIndex - 1].Skip = skip;
+                        sequence.Steps![stepIndex - 1].Skip = skip;
                         break;
                     case "modal-ui-event":
                         try
@@ -268,7 +268,7 @@ class Program
 
 #if DEBUG
         // Initialise live reload service in debug mode
-        var sourceDirectory = Path.GetFullPath(Path.Combine(GetThisDirectory(), @"Resources/wwwroot"));
+        var sourceDirectory = Path.GetFullPath(Path.Combine(GetThisDirectory() ?? string.Empty, @"Resources/wwwroot"));
         var liveReloadService = new LiveReloadService(window, sourceDirectory, loadPath);
         liveReloadService.Start();
 #endif
@@ -281,7 +281,7 @@ class Program
     }
 
 #if DEBUG
-    private static string GetThisDirectory([CallerFilePath] string path = null)
+    private static string? GetThisDirectory([CallerFilePath] string? path = null)
     {
         return Path.GetDirectoryName(path);
     }
@@ -293,11 +293,11 @@ class Program
 
         Assembly assembly = Assembly.GetExecutingAssembly();
         //var names = assembly.GetManifestResourceNames();
-        using (Stream resourceStream = assembly.GetManifestResourceStream(resourceName))
+        using (Stream? resourceStream = assembly.GetManifestResourceStream(resourceName))
         {
             if (resourceStream == null)
             {
-                return null;
+                return string.Empty;
             }
 
             string tempFile = Path.Combine(Path.GetTempPath(), fileName);

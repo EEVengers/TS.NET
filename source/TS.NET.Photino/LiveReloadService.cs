@@ -69,7 +69,7 @@ public class LiveReloadService : IDisposable
     private void OnFileChanged(object sender, FileSystemEventArgs e)
     {
         // Ignore temporary files and editor backup files
-        if (e.Name.Contains("~") || e.Name.Contains(".tmp"))
+        if (e.Name is null || e.Name.Contains("~") || e.Name.Contains(".tmp"))
             return;
 
         lock (pendingChangesLock)

@@ -2,7 +2,6 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using System.Globalization;
 using System.Text.Json;
-using TS.NET.JTAG;
 using TS.NET.Sequencer;
 
 namespace TS.NET.Sequences;
@@ -59,6 +58,11 @@ public class FactoryHwidStep : ModalUiStep
                         {
                             var serial = eventData.GetProperty("serialNumber").GetString() ?? string.Empty;
                             if (string.IsNullOrWhiteSpace(serial))
+                            {
+                                return;
+                            }
+
+                            if (pendingGeneratedRow is null)
                             {
                                 return;
                             }

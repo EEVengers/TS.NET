@@ -36,7 +36,7 @@ public class PhotinoServer
         //Try to read files from the embedded resources - from a slightly different path, prefixed with Resources/
         var manifestEmbeddedFileProvider =
             new ManifestEmbeddedFileProvider(
-                System.Reflection.Assembly.GetEntryAssembly(),
+                System.Reflection.Assembly.GetEntryAssembly()!,
                 $"Resources/{webRootFolder}");
 
         var physicalWebRoot = Path.Combine(builder.Environment.ContentRootPath, webRootFolder);

@@ -218,7 +218,7 @@ public class EngineManager
         switch (thunderscopeSettings.WaveformBufferReader)
         {
             case "DataServer":
-                dataServer = new DataServer(loggerFactory.CreateLogger(nameof(DataServer)), thunderscopeSettings, dataEndpoint, captureBuffer, seq => scpiServer?.OnUpdateSequence(seq));
+                dataServer = new DataServer(loggerFactory.CreateLogger(nameof(DataServer)), thunderscopeSettings, dataEndpoint!, captureBuffer, seq => scpiServer?.OnUpdateSequence(seq));
                 waveformBufferReader = dataServer;
                 break;
             case "None":
@@ -245,7 +245,7 @@ public class EngineManager
             logger: loggerFactory.CreateLogger(nameof(ScpiServer)),
             thunderscopeSettings,
             thunderscopeSerial,
-            scpiEndpoint,
+            scpiEndpoint!,
             processingControl);
         scpiServer.Start(startSemaphore);
 

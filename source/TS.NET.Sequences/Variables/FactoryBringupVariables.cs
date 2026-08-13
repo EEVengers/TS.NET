@@ -10,7 +10,7 @@ public class FactoryBringUpVariables : FactoryVariables, IJsonVariables
 
     public Hwid Hwid { get; set; } = new();
 
-    public string ToJson()
+    public new string ToJson()
     {
         return JsonSerializer.Serialize(this, DefaultCaseContext.Default.FactoryBringUpVariables);
     }

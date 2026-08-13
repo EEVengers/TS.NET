@@ -47,7 +47,7 @@ public class TrimStep2 : ModalUiStep
             });
 
             var resolution = AdcResolution.EightBit;
-            Instruments.Instance.SetThunderscopeChannel(ChannelsEnabled);
+            Instruments.Instance.SetThunderscopeChannel(ChannelsEnabled!);
             Instruments.Instance.SetThunderscopeResolution(resolution);
             Instruments.Instance.SetThunderscopeRate(SampleRateHz);
             var pathCalibration = Utility.GetChannelPathCalibration(ChannelIndex, PgaPreampGain, PgaLadder, variables);

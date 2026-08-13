@@ -138,7 +138,7 @@ public static class Frontend
     {
         // Note: PGA input voltage should not go beyond +/-0.6V from 2.5V so that enforces a limit in some gain scenarios. 
         //       Datasheet says +/-0.6V. Testing shows up to +/-1.3V. Use datasheet specification.
-        const double pgaInputMaxDeviationFromBiasV = 0.6;
+        // const double pgaInputMaxDeviationFromBiasV = 0.6;
 
         FrontendPathCalibration? selectedPath = null;
         bool attenuator = false;
