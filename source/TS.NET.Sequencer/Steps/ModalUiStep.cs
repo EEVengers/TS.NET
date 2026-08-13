@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -83,6 +84,7 @@ public class ModalUiStep : Step
         modalUiContext.ThrowIfEventHandlerException();
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2091", Justification = "Use TrimmerRootDescriptor & Linker.xml in top-level application to prevent trimming of needed types.")]
     public Task UpdateUi<T>(Dictionary<string, object?> viewModel) where T : IComponent
     {
         // https://learn.microsoft.com/en-us/aspnet/core/blazor/components/render-components-outside-of-aspnetcore?view=aspnetcore-10.0

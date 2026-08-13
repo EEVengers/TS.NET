@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Xml.Serialization;
 using TimeZoneConverter;
@@ -112,6 +113,7 @@ public class Sequence
         return localId;
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Use TrimmerRootDescriptor & Linker.xml in top-level application to prevent trimming of needed types.")]
     public void ToXml(string path)
     {
         var baseSequence = new Sequence
@@ -138,6 +140,7 @@ public class Sequence
         serializer.Serialize(stream, baseSequence);
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Use TrimmerRootDescriptor & Linker.xml in top-level application to prevent trimming of needed types.")]
     public static Sequence FromXml(string path)
     {
         XmlSerializer serializer = new(typeof(Sequence));
