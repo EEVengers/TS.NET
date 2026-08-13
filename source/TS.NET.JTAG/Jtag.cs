@@ -508,8 +508,8 @@ public sealed class Jtag : IDisposable
 
             var candidates = new[]
             {
-                Path.Combine(AppContext.BaseDirectory, "Bitfiles", proxyName),
-                Path.Combine(Directory.GetCurrentDirectory(), "Bitfiles", proxyName),
+                Path.Combine(AppContext.BaseDirectory, "bitfiles", proxyName),
+                Path.Combine(Directory.GetCurrentDirectory(), "bitfiles", proxyName),
             };
 
             foreach (var candidate in candidates)
