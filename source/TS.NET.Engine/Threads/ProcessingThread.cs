@@ -407,6 +407,7 @@ public class ProcessingThread : IThread
                             break;
                         case ProcessingStop processingStop:
                             Stop();
+                            startWhenAllProcessingControlRequestsProcessed = false;
                             uiNotifications?.TryWrite(processingStop);
                             logger.LogDebug($"{nameof(ProcessingStop)}");
                             break;
@@ -836,9 +837,10 @@ public class ProcessingThread : IThread
                 if (startWhenAllProcessingControlRequestsProcessed)
                 {
                     currentHardwareConfig = thunderscope.GetConfiguration();        // Required for ResetTrigger() to set the correct trigger level
-                    ResetBuffers();     // 30ms
-                    ResetTrigger();     // 0.1ms
-                    Start();            // 3ms
+                    ResetBuffers();         // 30ms
+                    ResetTrigger();         // 0.1ms
+                    runMode = true;
+                    thunderscope.Start();   // 3ms         
                     startWhenAllProcessingControlRequestsProcessed = false;
                 }
 
@@ -1473,13 +1475,6 @@ public class ProcessingThread : IThread
                     newMask &= (byte)~(1 << channelIndex);
                 }
                 return newMask;
-            }
-
-            void Start()
-            {
-                // This is generally called *after* ResetBuffers() & ResetTrigger()
-                runMode = true;
-                thunderscope.Start();
             }
 
             void Stop()
