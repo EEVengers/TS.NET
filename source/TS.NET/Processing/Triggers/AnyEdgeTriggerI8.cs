@@ -77,14 +77,15 @@ public class AnyEdgeTriggerI8 : ITriggerI8
 
     public void Process(ReadOnlySpan<sbyte> input, ulong sampleStartIndex, ref EdgeTriggerResults results)
     {
+        results.ArmCount = 0;
+        results.TriggerCount = 0;
+        results.CaptureEndCount = 0;
+
         if (!validParameters)
             return;
 
         int inputLength = input.Length;
         int v256Length = inputLength - Vector256<sbyte>.Count;
-        results.ArmCount = 0;
-        results.TriggerCount = 0;
-        results.CaptureEndCount = 0;
 
         int i = 0;
 
