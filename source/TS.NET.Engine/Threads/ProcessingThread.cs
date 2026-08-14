@@ -117,7 +117,7 @@ public class ProcessingThread : IThread
                 TriggerInterpolation = true,
                 AutoTimeoutMs = 1000,
                 EdgeTriggerParameters = new EdgeTriggerParameters() { LevelV = 0, Direction = EdgeDirection.Rising, HysteresisPercent = 5 },
-                WindowTriggerParameters = new WindowTriggerParameters() { UpperLevelV = 1, LowerLevelV = -1, Direction = WindowDirection.Enter },
+                WindowTriggerParameters = new WindowTriggerParameters() { UpperLevelV = 1, LowerLevelV = -1, Direction = WindowDirection.Enter, HysteresisPercent = 5 },
                 BurstTriggerParameters = new BurstTriggerParameters() { LevelV = 0, Direction = BurstEdgeDirection.Rising, HysteresisPercent = 5, QuietUpperLevelV = 1, QuietLowerLevelV = -1, QuietTimeFs = 1000000000000L },
                 BoxcarAveraging = BoxcarAveraging.None
             };
@@ -580,6 +580,19 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(ProcessingSetEdgeTriggerHysteresis)} (no change)");
                             }
                             break;
+                        case ProcessingSetWindowTriggerHysteresis processingSetWindowTriggerHysteresis:
+                            if (processingConfig.WindowTriggerParameters.HysteresisPercent != processingSetWindowTriggerHysteresis.Percent)
+                            {
+                                processingConfig.WindowTriggerParameters.HysteresisPercent = processingSetWindowTriggerHysteresis.Percent;
+                                ResetTrigger();
+                                uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
+                                logger.LogDebug($"{nameof(ProcessingSetWindowTriggerHysteresis)} (percent: {processingConfig.WindowTriggerParameters.HysteresisPercent})");
+                            }
+                            else
+                            {
+                                logger.LogDebug($"{nameof(ProcessingSetWindowTriggerHysteresis)} (no change)");
+                            }
+                            break;
                         case ProcessingSetWindowTriggerUpperLevel processingSetWindowTriggerUpperLevel:
                             if (processingConfig.WindowTriggerParameters.UpperLevelV != processingSetWindowTriggerUpperLevel.LevelVolts)
                             {
@@ -741,6 +754,10 @@ public class ProcessingThread : IThread
                         case ProcessingGetEdgeTriggerHysteresisRequest processingGetEdgeTriggerHysteresisRequest:
                             processingControl.Response.Writer.Write(new ProcessingGetEdgeTriggerHysteresisResponse(processingConfig.EdgeTriggerParameters.HysteresisPercent));
                             logger.LogDebug($"{nameof(ProcessingGetEdgeTriggerHysteresisRequest)}");
+                            break;
+                        case ProcessingGetWindowTriggerHysteresisRequest processingGetWindowTriggerHysteresisRequest:
+                            processingControl.Response.Writer.Write(new ProcessingGetWindowTriggerHysteresisResponse(processingConfig.WindowTriggerParameters.HysteresisPercent));
+                            logger.LogDebug($"{nameof(ProcessingGetWindowTriggerHysteresisRequest)}");
                             break;
                         case ProcessingGetWindowTriggerUpperLevelRequest processingGetWindowTriggerUpperLevelRequest:
                             processingControl.Response.Writer.Write(new ProcessingGetWindowTriggerUpperLevelResponse(processingConfig.WindowTriggerParameters.UpperLevelV));
@@ -1440,7 +1457,7 @@ public class ProcessingThread : IThread
                         EdgeDirection.Any => new AnyEdgeTriggerI8(triggerChannelParameters, processingConfig.EdgeTriggerParameters),
                         _ => throw new NotImplementedException()
                     },
-                    //TriggerType.Window => new WindowTriggerI8(triggerChannelParameters, processingConfig.WindowTriggerParameters),    // Not ready until hysteresis is implemented
+                    TriggerType.Window => new WindowTriggerI8(triggerChannelParameters, processingConfig.WindowTriggerParameters),
                     TriggerType.Burst => new BurstTriggerI8(triggerChannelParameters, processingConfig.BurstTriggerParameters),
                     _ => throw new NotImplementedException()
                 };
@@ -1453,7 +1470,7 @@ public class ProcessingThread : IThread
                         EdgeDirection.Any => new AnyEdgeTriggerI16(triggerChannelParameters, processingConfig.EdgeTriggerParameters),
                         _ => throw new NotImplementedException()
                     },
-                    //TriggerType.Window => new WindowTriggerI16(triggerChannelParameters, processingConfig.WindowTriggerParameters),   // Not ready until hysteresis is implemented
+                    TriggerType.Window => new WindowTriggerI16(triggerChannelParameters, processingConfig.WindowTriggerParameters),
                     TriggerType.Burst => new BurstTriggerI16(triggerChannelParameters, processingConfig.BurstTriggerParameters),
                     _ => throw new NotImplementedException()
                 };

@@ -472,6 +472,13 @@ internal class ScpiServer : IThread
                                     processingControl.Request.Writer.Write(new ProcessingSetEdgeTriggerHysteresis(hysteresis));
                                     return null;
                                 }
+                            case var _ when command.StartsWith("WINDOW:HYS") && argument != null:
+                                {
+                                    float hysteresis = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
+                                    logger.LogDebug($"Set window trigger hysteresis to {hysteresis}%");
+                                    processingControl.Request.Writer.Write(new ProcessingSetWindowTriggerHysteresis(hysteresis));
+                                    return null;
+                                }
                             case var _ when command.StartsWith("WINDOW:UPPER") && argument != null:
                                 {
                                     float level = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
@@ -1115,6 +1122,22 @@ internal class ScpiServer : IThread
                             else
                             {
                                 logger.LogError($"TRIG:WINDOW:DIR? - No response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            return "Error: No/bad response from channel.\n";
+                        }
+                    case var _ when command.StartsWith("WINDOW:HYS"):
+                        {
+                            processingControl.Request.Writer.Write(new ProcessingGetWindowTriggerHysteresisRequest());
+                            if (processingControl.Response.Reader.TryRead(out var response, processingControlTimeoutMs))
+                            {
+                                if (response is ProcessingGetWindowTriggerHysteresisResponse triggerHysteresisResponse)
+                                    return Invariant($"{triggerHysteresisResponse.Percent:0.######}\n");
+
+                                logger.LogError($"TRIG:WINDOW:HYS? - Invalid response from {nameof(processingControl.Response.Reader)}");
+                            }
+                            else
+                            {
+                                logger.LogError($"TRIG:WINDOW:HYS? - No response from {nameof(processingControl.Response.Reader)}");
                             }
                             return "Error: No/bad response from channel.\n";
                         }

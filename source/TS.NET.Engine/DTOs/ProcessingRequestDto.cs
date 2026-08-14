@@ -25,6 +25,7 @@ public record ProcessingSetEdgeTriggerHysteresis(float Percent) : ProcessingRequ
 public record ProcessingSetWindowTriggerUpperLevel(float LevelVolts) : ProcessingRequestDto, INotificationDto;
 public record ProcessingSetWindowTriggerLowerLevel(float LevelVolts) : ProcessingRequestDto, INotificationDto;
 public record ProcessingSetWindowTriggerDirection(WindowDirection Direction) : ProcessingRequestDto, INotificationDto;
+public record ProcessingSetWindowTriggerHysteresis(float Percent) : ProcessingRequestDto, INotificationDto;
 public record ProcessingSetBurstTriggerLevel(float LevelVolts) : ProcessingRequestDto, INotificationDto;
 public record ProcessingSetBurstTriggerDirection(BurstEdgeDirection Edge) : ProcessingRequestDto, INotificationDto;
 public record ProcessingSetBurstTriggerHysteresis(float Percent) : ProcessingRequestDto, INotificationDto;
@@ -61,6 +62,7 @@ public record ProcessingGetEdgeTriggerHysteresisRequest() : ProcessingRequestDto
 public record ProcessingGetWindowTriggerUpperLevelRequest() : ProcessingRequestDto;
 public record ProcessingGetWindowTriggerLowerLevelRequest() : ProcessingRequestDto;
 public record ProcessingGetWindowTriggerDirectionRequest() : ProcessingRequestDto;
+public record ProcessingGetWindowTriggerHysteresisRequest() : ProcessingRequestDto;
 public record ProcessingGetBurstTriggerLevelRequest() : ProcessingRequestDto;
 public record ProcessingGetBurstTriggerDirectionRequest() : ProcessingRequestDto;
 public record ProcessingGetBurstTriggerHysteresisRequest() : ProcessingRequestDto;

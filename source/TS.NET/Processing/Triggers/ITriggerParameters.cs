@@ -12,7 +12,7 @@
 
     public record struct EdgeTriggerParameters(float LevelV, EdgeDirection Direction, float HysteresisPercent) : ITriggerParameters;
 
-    public record struct WindowTriggerParameters(float UpperLevelV, float LowerLevelV, WindowDirection Direction) : ITriggerParameters;
+    public record struct WindowTriggerParameters(float UpperLevelV, float LowerLevelV, WindowDirection Direction, float HysteresisPercent) : ITriggerParameters;
 
     public record struct BurstTriggerParameters(float LevelV, BurstEdgeDirection Direction, float HysteresisPercent, float QuietUpperLevelV, float QuietLowerLevelV, long QuietTimeFs) : ITriggerParameters;
 }

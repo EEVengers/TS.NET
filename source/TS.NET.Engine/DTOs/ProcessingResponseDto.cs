@@ -27,6 +27,7 @@ public record ProcessingGetEdgeTriggerHysteresisResponse(double Percent) : Proce
 public record ProcessingGetWindowTriggerUpperLevelResponse(double LevelVolts) : ProcessingResponseDto();
 public record ProcessingGetWindowTriggerLowerLevelResponse(double LevelVolts) : ProcessingResponseDto();
 public record ProcessingGetWindowTriggerDirectionResponse(WindowDirection Direction) : ProcessingResponseDto();
+public record ProcessingGetWindowTriggerHysteresisResponse(double Percent) : ProcessingResponseDto();
 public record ProcessingGetBurstTriggerLevelResponse(double LevelVolts) : ProcessingResponseDto();
 public record ProcessingGetBurstTriggerDirectionResponse(BurstEdgeDirection Direction) : ProcessingResponseDto();
 public record ProcessingGetBurstTriggerHysteresisResponse(double Percent) : ProcessingResponseDto();
