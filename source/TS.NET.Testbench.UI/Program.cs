@@ -50,9 +50,11 @@ class Program
             .SetNotificationsEnabled(false)
             .Center()
             .SetResizable(true)
-            .RegisterWebMessageReceivedHandler((object sender, string message) =>
+            .RegisterWebMessageReceivedHandler((sender, message) =>
             {
-                var window = (PhotinoWindow)sender;
+                if (sender is not PhotinoWindow window)
+                    return;
+
                 var json = JsonDocument.Parse(message);
                 var command = json.RootElement.GetProperty("command").GetString();
 
