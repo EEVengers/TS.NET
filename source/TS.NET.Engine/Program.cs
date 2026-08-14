@@ -157,7 +157,10 @@ class Program
                     if (seconds > 0)
                     {
                         if (DateTimeOffset.UtcNow.Subtract(startTime).TotalSeconds >= seconds)
-                            break;
+                        {
+                            persistWindow = false;
+                            appCancellationTokenSource.Cancel();
+                        }
                     }
                     Thread.Sleep(100);
                 }
