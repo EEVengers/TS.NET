@@ -21,29 +21,29 @@ public class TestbenchSettings
         try
         {
             var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var localApplicationDataVariablesFile = Path.Combine(localAppData, "ThunderScope", "TS.NET.Testbench.UI", "settings.yaml");
+            var localApplicationDataSettingsFile = Path.Combine(localAppData, "ThunderScope", "TS.NET.Testbench.UI", "settings.yaml");
             // Windows: %LocalAppData%\ThunderScope\TS.NET.Testbench.UI\settings.yaml
             // macOS: ~/Library/Application Support/ThunderScope/TS.NET.Testbench.UI/settings.yaml
             // Linux: $XDG_CONFIG_HOME/ThunderScope/TS.NET.Testbench.UI/settings.yaml or $HOME/.config/ThunderScope/TS.NET.Testbench.UI/settings.yaml
-            Directory.CreateDirectory(Path.GetDirectoryName(localApplicationDataVariablesFile)!);
-            if (!File.Exists(localApplicationDataVariablesFile))
-                WriteDefaultVariables(localApplicationDataVariablesFile);
+            Directory.CreateDirectory(Path.GetDirectoryName(localApplicationDataSettingsFile)!);
+            if (!File.Exists(localApplicationDataSettingsFile))
+                WriteDefaultSettings(localApplicationDataSettingsFile);
 
-            return FromYamlFile(localApplicationDataVariablesFile);
+            return FromYamlFile(localApplicationDataSettingsFile);
         }
         catch { }
 
-        const string workingDirectoryVariablesFile = "settings.yaml";
+        const string workingDirectorySettingsFile = "settings.yaml";
         try
         {
-            if (!File.Exists(workingDirectoryVariablesFile))
-                WriteDefaultVariables(workingDirectoryVariablesFile);
+            if (!File.Exists(workingDirectorySettingsFile))
+                WriteDefaultSettings(workingDirectorySettingsFile);
 
-            return FromYamlFile(workingDirectoryVariablesFile);
+            return FromYamlFile(workingDirectorySettingsFile);
         }
         catch { }
 
-        return ReadDefaultVariables();
+        return ReadDefaultSettings();
     }
 
     private static TestbenchSettings FromYamlFile(string file)
@@ -65,24 +65,24 @@ public class TestbenchSettings
         return deserializer.Deserialize<TestbenchSettings>(yaml);
     }
 
-    private static void WriteDefaultVariables(string variablesFile)
+    private static void WriteDefaultSettings(string settingsFile)
     {
-        using var resourceStream = OpenDefaultVariablesStream();
-        using var outputStream = File.Create(variablesFile);
+        using var resourceStream = OpenDefaultSettingsStream();
+        using var outputStream = File.Create(settingsFile);
         resourceStream.CopyTo(outputStream);
     }
 
-    private static TestbenchSettings ReadDefaultVariables()
+    private static TestbenchSettings ReadDefaultSettings()
     {
-        using var resourceStream = OpenDefaultVariablesStream();
+        using var resourceStream = OpenDefaultSettingsStream();
         using var reader = new StreamReader(resourceStream);
         return FromYaml(reader.ReadToEnd());
     }
 
-    private static Stream OpenDefaultVariablesStream()
+    private static Stream OpenDefaultSettingsStream()
     {
         return typeof(TestbenchSettings).Assembly.GetManifestResourceStream("TS.NET.Testbench.UI.settings.yaml")
-            ?? throw new InvalidOperationException("Embedded default variables were not found.");
+            ?? throw new InvalidOperationException("Embedded default settings were not found.");
     }
 }
 

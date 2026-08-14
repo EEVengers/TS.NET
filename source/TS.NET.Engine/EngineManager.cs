@@ -34,7 +34,7 @@ public class EngineManager
         this.appCancellationTokenSource = appCancellationTokenSource;
     }
 
-    public bool TryStart(string configurationFile, string calibrationFile, string deviceSerial)
+    public bool TryStart(string settingsFile, string calibrationFile, string deviceSerial)
     {
         Console.CancelKeyPress += (sender, e) => { StopLibtslitex(); Environment.Exit(0); };    // Handle Ctrl+C or Ctrl+Break event.
         AppDomain.CurrentDomain.ProcessExit += (sender, e) => { StopLibtslitex(); };            // Handle UI window close
@@ -46,16 +46,8 @@ public class EngineManager
         // Commented out for now, more testing needed on Windows
         //using FileStream fs = new(lockFilePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
 
-        thunderscopeSettings = LoadConfiguration(configurationFile);
+        thunderscopeSettings = LoadSettings(settingsFile);
 
-        if (thunderscopeSettings.ScpiServer == "")
-        {   // Backwards compatibility for old configuration files
-            thunderscopeSettings.ScpiServer = "127.0.0.1:5025";
-        }
-        if (thunderscopeSettings.DataServer == "")
-        {   // Backwards compatibility for old configuration files
-            thunderscopeSettings.DataServer = "127.0.0.1:5026";
-        }
         if (!TryParseServer(thunderscopeSettings.ScpiServer, out var scpiEndpoint))
         {
             logger?.LogCritical($"Invalid SCPI server address: {thunderscopeSettings.ScpiServer}");
@@ -274,21 +266,21 @@ public class EngineManager
         return IPEndPoint.TryParse(value, out endpoint);
     }
 
-    private ThunderscopeSettings LoadConfiguration(string configurationFile)
+    private ThunderscopeSettings LoadSettings(string settingsFile)
     {
-        // Order of priority for configuration file:
-        // 1. Configuration file specified on CLI
-        // 2. Configuration file loaded from LocalApplicationData
-        // 3. Default configuration file created in LocalApplicationData
-        // 4. Default configuration file created in working directory
-        // 5. Default configuration from memory
+        // Order of priority for settings file:
+        // 1. Settings file specified on CLI
+        // 2. Settings file loaded from LocalApplicationData
+        // 3. Default settings file created in LocalApplicationData
+        // 4. Default settings file created in working directory
+        // 5. Default settings from memory
 
         try
         {
-            if (!string.IsNullOrWhiteSpace(configurationFile) && File.Exists(configurationFile))
+            if (!string.IsNullOrWhiteSpace(settingsFile) && File.Exists(settingsFile))
             {
-                var settings = ThunderscopeSettings.FromYamlFile(configurationFile);
-                logger.LogInformation("Configuration loaded from CLI");
+                var settings = ThunderscopeSettings.FromYamlFile(settingsFile);
+                logger.LogInformation("Settings loaded from CLI");
                 return settings;
             }
         }
@@ -297,54 +289,54 @@ public class EngineManager
         try
         {
             var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var localApplicationDataConfigurationFile = Path.Combine(localAppData, "ThunderScope", "TS.NET.Engine", "settings.yaml");
+            var localApplicationDataSettingsFile = Path.Combine(localAppData, "ThunderScope", "TS.NET.Engine", "settings.yaml");
             // Windows: %LocalAppData%\ThunderScope\TS.NET.Engine\settings.yaml
             // macOS: ~/Library/Application Support/ThunderScope/TS.NET.Engine/settings.yaml
             // Linux: $XDG_CONFIG_HOME/ThunderScope/TS.NET.Engine/settings.yaml or $HOME/.config/ThunderScope/TS.NET.Engine/settings.yaml
-            Directory.CreateDirectory(Path.GetDirectoryName(localApplicationDataConfigurationFile)!);
-            if (!File.Exists(localApplicationDataConfigurationFile))
-                WriteDefaultConfiguration(localApplicationDataConfigurationFile);
+            Directory.CreateDirectory(Path.GetDirectoryName(localApplicationDataSettingsFile)!);
+            if (!File.Exists(localApplicationDataSettingsFile))
+                WriteDefaultSettings(localApplicationDataSettingsFile);
 
-            var settings = ThunderscopeSettings.FromYamlFile(localApplicationDataConfigurationFile);
-            logger.LogInformation("Configuration loaded from LocalApplicationData");
+            var settings = ThunderscopeSettings.FromYamlFile(localApplicationDataSettingsFile);
+            logger.LogInformation("Settings loaded from LocalApplicationData");
             return settings;
         }
         catch { }
 
-        const string workingDirectoryConfigurationFile = "settings.yaml";
+        const string workingDirectorySettingsFile = "settings.yaml";
         try
         {
-            if (!File.Exists(workingDirectoryConfigurationFile))
-                WriteDefaultConfiguration(workingDirectoryConfigurationFile);
+            if (!File.Exists(workingDirectorySettingsFile))
+                WriteDefaultSettings(workingDirectorySettingsFile);
 
-            var settings = ThunderscopeSettings.FromYamlFile(workingDirectoryConfigurationFile);
-            logger.LogInformation("Configuration loaded from working directory");
+            var settings = ThunderscopeSettings.FromYamlFile(workingDirectorySettingsFile);
+            logger.LogInformation("Settings loaded from working directory");
             return settings;
         }
         catch { }
 
-        logger.LogInformation("Configuration loaded from default");
-        return ReadDefaultConfiguration();
+        logger.LogInformation("Settings loaded from default");
+        return ReadDefaultSettings();
     }
 
-    private static void WriteDefaultConfiguration(string configurationFile)
+    private static void WriteDefaultSettings(string settingsFile)
     {
-        using var resourceStream = OpenDefaultConfigurationStream();
-        using var outputStream = File.Create(configurationFile);
+        using var resourceStream = OpenDefaultSettingsStream();
+        using var outputStream = File.Create(settingsFile);
         resourceStream.CopyTo(outputStream);
     }
 
-    private static ThunderscopeSettings ReadDefaultConfiguration()
+    private static ThunderscopeSettings ReadDefaultSettings()
     {
-        using var resourceStream = OpenDefaultConfigurationStream();
+        using var resourceStream = OpenDefaultSettingsStream();
         using var reader = new StreamReader(resourceStream);
         return ThunderscopeSettings.FromYaml(reader.ReadToEnd());
     }
 
-    private static Stream OpenDefaultConfigurationStream()
+    private static Stream OpenDefaultSettingsStream()
     {
         return typeof(EngineManager).Assembly.GetManifestResourceStream("TS.NET.Engine.settings.yaml")
-            ?? throw new InvalidOperationException("Embedded default configuration was not found.");
+            ?? throw new InvalidOperationException("Embedded default settings was not found.");
     }
 
     public void Stop()

@@ -17,7 +17,7 @@ class Program
 
         // To do: have something better than array index. Hardware serial?
         var deviceIndexOption = new Option<int>(name: "-i", description: "The ThunderScope to use if there are multiple connected to the host.", getDefaultValue: () => { return 0; });
-        var configurationFilePathOption = new Option<string>(name: "-config", description: "Configuration file to use.", getDefaultValue: () => { return ""; });
+        var settingsFilePathOption = new Option<string>(name: "-settings", description: "Settings file to use.", getDefaultValue: () => { return ""; });
         var calibrationFilePathOption = new Option<string>(name: "-calibration", description: "Calibration file to use.", getDefaultValue: () => { return ""; });
         var secondsOption = new Option<int>(name: "-seconds", description: "Run for an integer number of seconds. Useful for profiling.", getDefaultValue: () => { return 0; });
         var membenchOption = new Option<bool>(name: "-membench", description: "Run memory benchmark.", getDefaultValue: () => { return false; });
@@ -27,7 +27,7 @@ class Program
         var rootCommand = new RootCommand("TS.NET.Engine")
         {
             deviceIndexOption,
-            configurationFilePathOption,
+            settingsFilePathOption,
             calibrationFilePathOption,
             secondsOption,
             membenchOption,
@@ -35,11 +35,11 @@ class Program
             debugLogOption
         };
 
-        rootCommand.SetHandler(Start, deviceIndexOption, configurationFilePathOption, calibrationFilePathOption, secondsOption, membenchOption, ngscopeclientOption, debugLogOption);
+        rootCommand.SetHandler(Start, deviceIndexOption, settingsFilePathOption, calibrationFilePathOption, secondsOption, membenchOption, ngscopeclientOption, debugLogOption);
         return await rootCommand.InvokeAsync(args);
     }
 
-    static void Start(int deviceIndex, string configurationFile, string calibrationFile, int seconds, bool membench, bool ngscopeclient, bool debugLog)
+    static void Start(int deviceIndex, string settingsFile, string calibrationFile, int seconds, bool membench, bool ngscopeclient, bool debugLog)
     {
         if (membench)
         {
@@ -98,7 +98,7 @@ class Program
         var engine = new EngineManager(loggerFactory, appCancellationTokenSource);
         var deviceSerial = deviceIndex.ToString();
         var persistWindow = true;
-        if (engine.TryStart(configurationFile, calibrationFile, deviceSerial))
+        if (engine.TryStart(settingsFile, calibrationFile, deviceSerial))
         {
             if (ngscopeclient && OperatingSystem.IsWindows())
             {
