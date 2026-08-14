@@ -268,29 +268,29 @@ public class ProcessingThread : IThread
                                 break;
                             }
 
-                        case HardwareSetChannelFrontendRequest hardwareConfigureChannelFrontendDto:
+                        case HardwareSetChannelFrontendRequest hardwareSetChannelFrontendRequest:
                             {
-                                var channelIndex = ((HardwareSetChannelFrontendRequest)request).ChannelIndex;
+                                var channelIndex = hardwareSetChannelFrontendRequest.ChannelIndex;
                                 var channelFrontend = thunderscope.GetChannelFrontend(channelIndex);
                                 switch (request)
                                 {
-                                    case HardwareSetVoltOffset hardwareSetOffsetRequest:
-                                        channelFrontend.RequestedVoltOffset = hardwareSetOffsetRequest.VoltOffset;
+                                    case HardwareSetVoltOffset hardwareSetVoltOffset:
+                                        channelFrontend.RequestedVoltOffset = hardwareSetVoltOffset.VoltOffset;
                                         break;
                                     case HardwareSetVoltFullScale hardwareSetVoltFullScale:
                                         channelFrontend.RequestedVoltFullScale = hardwareSetVoltFullScale.VoltFullScale;
                                         break;
-                                    case HardwareSetBandwidth hardwareSetBandwidthRequest:
-                                        logger.LogDebug($"{nameof(HardwareSetBandwidth)} (channel: {channelIndex}, bandwidth: {hardwareSetBandwidthRequest.Bandwidth})");
-                                        channelFrontend.Bandwidth = hardwareSetBandwidthRequest.Bandwidth;
+                                    case HardwareSetBandwidth hardwareSetBandwidth:
+                                        logger.LogDebug($"{nameof(HardwareSetBandwidth)} (channel: {channelIndex}, bandwidth: {hardwareSetBandwidth.Bandwidth})");
+                                        channelFrontend.Bandwidth = hardwareSetBandwidth.Bandwidth;
                                         break;
-                                    case HardwareSetCoupling hardwareSetCouplingRequest:
-                                        logger.LogDebug($"{nameof(HardwareSetCoupling)} (channel: {channelIndex}, coupling: {hardwareSetCouplingRequest.Coupling})");
-                                        channelFrontend.Coupling = hardwareSetCouplingRequest.Coupling;
+                                    case HardwareSetCoupling hardwareSetCoupling:
+                                        logger.LogDebug($"{nameof(HardwareSetCoupling)} (channel: {channelIndex}, coupling: {hardwareSetCoupling.Coupling})");
+                                        channelFrontend.Coupling = hardwareSetCoupling.Coupling;
                                         break;
-                                    case HardwareSetTermination hardwareSetTerminationRequest:
-                                        logger.LogDebug($"{nameof(HardwareSetTermination)} (channel: {channelIndex}, termination: {hardwareSetTerminationRequest.Termination})");
-                                        channelFrontend.RequestedTermination = hardwareSetTerminationRequest.Termination;
+                                    case HardwareSetTermination hardwareSetTermination:
+                                        logger.LogDebug($"{nameof(HardwareSetTermination)} (channel: {channelIndex}, termination: {hardwareSetTermination.Termination})");
+                                        channelFrontend.RequestedTermination = hardwareSetTermination.Termination;
                                         break;
                                     default:
                                         logger.LogWarning($"Unknown {nameof(HardwareSetChannelFrontendRequest)}: {request}");
@@ -305,8 +305,8 @@ public class ProcessingThread : IThread
                                 thunderscope.SetChannelFrontend(channelIndex, channelFrontend);
                                 switch (request)
                                 {
-                                    case HardwareSetVoltOffset hardwareSetOffsetRequest:
-                                        logger.LogDebug($"{nameof(HardwareSetVoltOffset)} (channel: {channelIndex}, requested: {hardwareSetOffsetRequest.VoltOffset}, actual: {currentHardwareConfig.Frontend[channelIndex].ActualVoltOffset:F4}, min: {currentHardwareConfig.Frontend[channelIndex].MinVoltOffset:F4}, max: {currentHardwareConfig.Frontend[channelIndex].MaxVoltOffset:F4})");
+                                    case HardwareSetVoltOffset hardwareSetVoltOffset:
+                                        logger.LogDebug($"{nameof(HardwareSetVoltOffset)} (channel: {channelIndex}, requested: {hardwareSetVoltOffset.VoltOffset}, actual: {currentHardwareConfig.Frontend[channelIndex].ActualVoltOffset:F4}, min: {currentHardwareConfig.Frontend[channelIndex].MinVoltOffset:F4}, max: {currentHardwareConfig.Frontend[channelIndex].MaxVoltOffset:F4})");
                                         break;
                                     case HardwareSetVoltFullScale hardwareSetVoltFullScale:
                                         logger.LogDebug($"{nameof(HardwareSetVoltFullScale)} (channel: {channelIndex}, requested: {hardwareSetVoltFullScale.VoltFullScale}, actual: {currentHardwareConfig.Frontend[channelIndex].ActualVoltFullScale:F4})");
@@ -347,7 +347,7 @@ public class ProcessingThread : IThread
                             break;
                         case HardwareGetChannelFrontendRequest hardwareGetChannelFrontendRequest:
                             {
-                                var channelIndex = ((HardwareSetChannelFrontendRequest)request).ChannelIndex;
+                                var channelIndex = hardwareGetChannelFrontendRequest.ChannelIndex;
                                 var channelFrontend = thunderscope.GetChannelFrontend(channelIndex);
                                 currentHardwareConfig.Frontend[channelIndex] = channelFrontend;
                                 switch (request)
@@ -461,8 +461,8 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(ProcessingSetDepth)} (no change)");
                             }
                             break;
-                        case ProcessingSetTriggerSource processingSetTriggerSourceDto:
-                            if (processingConfig.TriggerChannel != processingSetTriggerSourceDto.Channel)
+                        case ProcessingSetTriggerSource processingSetTriggerSource:
+                            if (processingConfig.TriggerChannel != processingSetTriggerSource.Channel)
                             {
                                 // If coming out of external trigger mode, disable external trigger input
                                 if (processingConfig.TriggerChannel == TriggerChannel.External)
@@ -471,7 +471,7 @@ public class ProcessingThread : IThread
                                     thunderscope.SetExtSyncMode(currentHardwareConfig.ExtSyncMode);
                                 }
 
-                                processingConfig.TriggerChannel = processingSetTriggerSourceDto.Channel;
+                                processingConfig.TriggerChannel = processingSetTriggerSource.Channel;
 
                                 // If going into external trigger mode, enable external trigger input
                                 if (processingConfig.TriggerChannel == TriggerChannel.External)
@@ -489,10 +489,10 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerSource)} (no change)");
                             }
                             break;
-                        case ProcessingSetTriggerType processingSetTriggerTypeDto:
-                            if (processingConfig.TriggerType != processingSetTriggerTypeDto.Type)
+                        case ProcessingSetTriggerType processingSetTriggerType:
+                            if (processingConfig.TriggerType != processingSetTriggerType.Type)
                             {
-                                processingConfig.TriggerType = processingSetTriggerTypeDto.Type;
+                                processingConfig.TriggerType = processingSetTriggerType.Type;
                                 ResetTrigger();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerType)} (type: {processingConfig.TriggerType})");
@@ -502,10 +502,10 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerType)} (no change)");
                             }
                             break;
-                        case ProcessingSetTriggerDelay processingSetTriggerDelayDto:
-                            if (processingConfig.TriggerDelayFs != processingSetTriggerDelayDto.Femtoseconds)
+                        case ProcessingSetTriggerDelay processingSetTriggerDelay:
+                            if (processingConfig.TriggerDelayFs != processingSetTriggerDelay.Femtoseconds)
                             {
-                                processingConfig.TriggerDelayFs = processingSetTriggerDelayDto.Femtoseconds;
+                                processingConfig.TriggerDelayFs = processingSetTriggerDelay.Femtoseconds;
                                 ResetTrigger();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerDelay)} (femtoseconds: {processingConfig.TriggerDelayFs})");
@@ -515,10 +515,10 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerDelay)} (no change)");
                             }
                             break;
-                        case ProcessingSetTriggerHoldoff processingSetTriggerHoldoffDto:
-                            if (processingConfig.TriggerHoldoffFs != processingSetTriggerHoldoffDto.Femtoseconds)
+                        case ProcessingSetTriggerHoldoff processingSetTriggerHoldoff:
+                            if (processingConfig.TriggerHoldoffFs != processingSetTriggerHoldoff.Femtoseconds)
                             {
-                                processingConfig.TriggerHoldoffFs = processingSetTriggerHoldoffDto.Femtoseconds;
+                                processingConfig.TriggerHoldoffFs = processingSetTriggerHoldoff.Femtoseconds;
                                 ResetTrigger();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerHoldoff)} (femtoseconds: {processingConfig.TriggerHoldoffFs})");
@@ -540,8 +540,8 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(ProcessingSetTriggerInterpolation)} (no change)");
                             }
                             break;
-                        case ProcessingSetEdgeTriggerLevel processingSetTriggerLevelDto:
-                            var requestedTriggerLevel = processingSetTriggerLevelDto.LevelVolts;
+                        case ProcessingSetEdgeTriggerLevel processingSetEdgeTriggerLevel:
+                            var requestedTriggerLevel = processingSetEdgeTriggerLevel.LevelVolts;
                             if (requestedTriggerLevel != processingConfig.EdgeTriggerParameters.LevelV)
                             {
                                 processingConfig.EdgeTriggerParameters.LevelV = requestedTriggerLevel;
@@ -658,10 +658,10 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(ProcessingSetBurstTriggerHysteresis)} (no change)");
                             }
                             break;
-                        case ProcessingSetBurstTriggerQuietUpperLevel processingSetBurstTriggerUpperLevel:
-                            if (processingConfig.BurstTriggerParameters.QuietUpperLevelV != processingSetBurstTriggerUpperLevel.LevelVolts)
+                        case ProcessingSetBurstTriggerQuietUpperLevel processingSetBurstTriggerQuietUpperLevel:
+                            if (processingConfig.BurstTriggerParameters.QuietUpperLevelV != processingSetBurstTriggerQuietUpperLevel.LevelVolts)
                             {
-                                processingConfig.BurstTriggerParameters.QuietUpperLevelV = processingSetBurstTriggerUpperLevel.LevelVolts;
+                                processingConfig.BurstTriggerParameters.QuietUpperLevelV = processingSetBurstTriggerQuietUpperLevel.LevelVolts;
                                 ResetTrigger();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietUpperLevel)} (level: {processingConfig.BurstTriggerParameters.QuietUpperLevelV})");
@@ -671,10 +671,10 @@ public class ProcessingThread : IThread
                                 logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietUpperLevel)} (no change)");
                             }
                             break;
-                        case ProcessingSetBurstTriggerQuietLowerLevel processingSetBurstTriggerLowerLevel:
-                            if (processingConfig.BurstTriggerParameters.QuietLowerLevelV != processingSetBurstTriggerLowerLevel.LevelVolts)
+                        case ProcessingSetBurstTriggerQuietLowerLevel processingSetBurstTriggerQuietLowerLevel:
+                            if (processingConfig.BurstTriggerParameters.QuietLowerLevelV != processingSetBurstTriggerQuietLowerLevel.LevelVolts)
                             {
-                                processingConfig.BurstTriggerParameters.QuietLowerLevelV = processingSetBurstTriggerLowerLevel.LevelVolts;
+                                processingConfig.BurstTriggerParameters.QuietLowerLevelV = processingSetBurstTriggerQuietLowerLevel.LevelVolts;
                                 ResetTrigger();
                                 uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
                                 logger.LogDebug($"{nameof(ProcessingSetBurstTriggerQuietLowerLevel)} (level: {processingConfig.BurstTriggerParameters.QuietLowerLevelV})");
