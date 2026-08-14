@@ -101,12 +101,9 @@ public class FallingEdgeTriggerI16 : ITriggerI16
                             {
                                 while (i < v256Length)
                                 {
-                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Min(armLevelVector256, inputVector), armLevelVector256);
-                                    // Convert 16-bit comparison results to 8-bit and extract mask
-                                    var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
-                                    var conditionFound = Avx2.MoveMask(packedResult) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (conditionFound)
+                                    var inputVector = Vector256.Load(samplesPtr + i);
+                                    var resultVector = Vector256.GreaterThanOrEqual(inputVector, armLevelVector256);
+                                    if (resultVector != Vector256<short>.Zero)
                                         break;
                                     i += Vector256<short>.Count;
                                 }
@@ -140,12 +137,9 @@ public class FallingEdgeTriggerI16 : ITriggerI16
                             {
                                 while (i < v256Length)
                                 {
-                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector256, inputVector), triggerLevelVector256);
-                                    // Convert 16-bit comparison results to 8-bit and extract mask
-                                    var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
-                                    var conditionFound = Avx2.MoveMask(packedResult) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (conditionFound)
+                                    var inputVector = Vector256.Load(samplesPtr + i);
+                                    var resultVector = Vector256.LessThan(inputVector, triggerLevelVector256);
+                                    if (resultVector != Vector256<short>.Zero)
                                         break;
                                     i += Vector256<short>.Count;
                                 }

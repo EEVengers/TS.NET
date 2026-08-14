@@ -100,8 +100,8 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                             {
                                 while (i < v256Length)
                                 {
-                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Max(armLevelVector256, inputVector), armLevelVector256);
+                                    var inputVector = Vector256.Load(samplesPtr + i);
+                                    var resultVector = Vector256.LessThanOrEqual(inputVector, armLevelVector256);
                                     if (resultVector != Vector256<sbyte>.Zero)
                                         break;
                                     i += Vector256<sbyte>.Count;
@@ -169,8 +169,8 @@ public class RisingEdgeTriggerI8 : ITriggerI8
                             {
                                 while (i < v256Length)
                                 {
-                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector256, inputVector), triggerLevelVector256);
+                                    var inputVector = Vector256.Load(samplesPtr + i);
+                                    var resultVector = Vector256.GreaterThan(inputVector, triggerLevelVector256);
                                     if (resultVector != Vector256<sbyte>.Zero)
                                         break;
                                     i += Vector256<sbyte>.Count;

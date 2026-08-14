@@ -41,8 +41,8 @@ public class AnyEdgeTriggerI16 : ITriggerI16
         int lowerArmCount = levelCount - hysteresisCount;
 
         if (levelCount < TriggerUtility.AdcMin(adcResolution) ||
-            levelCount > TriggerUtility.AdcMax(adcResolution) || 
-            upperArmCount > TriggerUtility.AdcMax(adcResolution) || 
+            levelCount > TriggerUtility.AdcMax(adcResolution) ||
+            upperArmCount > TriggerUtility.AdcMax(adcResolution) ||
             lowerArmCount < TriggerUtility.AdcMin(adcResolution))
         {
             validParameters = false;
@@ -110,19 +110,12 @@ public class AnyEdgeTriggerI16 : ITriggerI16
                             {
                                 while (i < v256Length)
                                 {
-                                    uint resultCount = 0;
-                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var lowerArmRegion = Avx2.CompareEqual(Avx2.Max(lowerArmLevelVector256, inputVector), lowerArmLevelVector256);
-                                    // Convert 16-bit comparison results to 8-bit and extract mask
-                                    var packedResult = Avx2.PackSignedSaturate(lowerArmRegion, Vector256<short>.Zero);
-                                    resultCount = (uint)Avx2.MoveMask(packedResult);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
+                                    var inputVector = Vector256.Load(samplesPtr + i);
+                                    var lowerArmRegion = Vector256.LessThanOrEqual(inputVector, lowerArmLevelVector256);
+                                    if (lowerArmRegion != Vector256<short>.Zero)
                                         break;
-                                    var upperArmRegion = Avx2.CompareEqual(Avx2.Min(upperArmLevelVector256, inputVector), upperArmLevelVector256);
-                                    // Convert 16-bit comparison results to 8-bit and extract mask
-                                    packedResult = Avx2.PackSignedSaturate(upperArmRegion, Vector256<short>.Zero);
-                                    resultCount = (uint)Avx2.MoveMask(packedResult);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
+                                    var upperArmRegion = Vector256.GreaterThanOrEqual(inputVector, upperArmLevelVector256);
+                                    if (upperArmRegion != Vector256<short>.Zero)
                                         break;
                                     i += Vector256<short>.Count;
                                 }
@@ -166,12 +159,9 @@ public class AnyEdgeTriggerI16 : ITriggerI16
                             {
                                 while (i < v256Length)
                                 {
-                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector256, inputVector), triggerLevelVector256);
-                                    // Convert 16-bit comparison results to 8-bit and extract mask
-                                    var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
-                                    uint resultCount = (uint)Avx2.MoveMask(packedResult);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
+                                    var inputVector = Vector256.Load(samplesPtr + i);
+                                    var resultVector = Vector256.GreaterThan(inputVector, triggerLevelVector256);
+                                    if (resultVector != Vector256<short>.Zero)
                                         break;
                                     i += Vector256<short>.Count;
                                 }
@@ -206,12 +196,9 @@ public class AnyEdgeTriggerI16 : ITriggerI16
                             {
                                 while (i < v256Length)
                                 {
-                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector256, inputVector), triggerLevelVector256);
-                                    // Convert 16-bit comparison results to 8-bit and extract mask
-                                    var packedResult = Avx2.PackSignedSaturate(resultVector, Vector256<short>.Zero);
-                                    uint resultCount = (uint)Avx2.MoveMask(packedResult);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
+                                    var inputVector = Vector256.Load(samplesPtr + i);
+                                    var resultVector = Vector256.LessThan(inputVector, triggerLevelVector256);
+                                    if (resultVector != Vector256<short>.Zero)
                                         break;
                                     i += Vector256<short>.Count;
                                 }

@@ -854,6 +854,9 @@ public class ProcessingThread : IThread
                         periodicReadSamplesPerChannel += sampleLengthPerChannel;
 
                         // Shuffle
+                        // Possible improvement: postShuffleMemory could come from the acquisitionBuffer,
+                        // and in the single channel case, be a straight memcopy to keep memory bandwidth
+                        // roughly the same between single/dual/quad.
                         switch (currentHardwareConfig.Acquisition.AdcChannelMode)
                         {
                             case AdcChannelMode.Single:

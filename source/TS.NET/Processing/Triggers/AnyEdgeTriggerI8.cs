@@ -39,9 +39,9 @@ public class AnyEdgeTriggerI8 : ITriggerI8
         int upperArmCount = levelCount + hysteresisCount;
         int lowerArmCount = levelCount - hysteresisCount;
 
-        if (levelCount < TriggerUtility.AdcMin(AdcResolution.EightBit) || 
-            levelCount > TriggerUtility.AdcMax(AdcResolution.EightBit) || 
-            upperArmCount > TriggerUtility.AdcMax(AdcResolution.EightBit) || 
+        if (levelCount < TriggerUtility.AdcMin(AdcResolution.EightBit) ||
+            levelCount > TriggerUtility.AdcMax(AdcResolution.EightBit) ||
+            upperArmCount > TriggerUtility.AdcMax(AdcResolution.EightBit) ||
             lowerArmCount < TriggerUtility.AdcMin(AdcResolution.EightBit))
         {
             validParameters = false;
@@ -109,15 +109,12 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                             {
                                 while (i < v256Length)
                                 {
-                                    uint resultCount = 0;
-                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var lowerArmRegion = Avx2.CompareEqual(Avx2.Max(lowerArmLevelVector256, inputVector), lowerArmLevelVector256);
-                                    resultCount = (uint)Avx2.MoveMask(lowerArmRegion);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
+                                    var inputVector = Vector256.Load(samplesPtr + i);
+                                    var lowerArmRegion = Vector256.LessThanOrEqual(inputVector, lowerArmLevelVector256);
+                                    if (lowerArmRegion != Vector256<sbyte>.Zero)
                                         break;
-                                    var upperArmRegion = Avx2.CompareEqual(Avx2.Min(upperArmLevelVector256, inputVector), upperArmLevelVector256);
-                                    resultCount = (uint)Avx2.MoveMask(upperArmRegion);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
+                                    var upperArmRegion = Vector256.GreaterThanOrEqual(inputVector, upperArmLevelVector256);
+                                    if (upperArmRegion != Vector256<sbyte>.Zero)
                                         break;
                                     i += Vector256<sbyte>.Count;
                                 }
@@ -161,10 +158,9 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                             {
                                 while (i < v256Length)
                                 {
-                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Min(triggerLevelVector256, inputVector), triggerLevelVector256);
-                                    uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
+                                    var inputVector = Vector256.Load(samplesPtr + i);
+                                    var resultVector = Vector256.GreaterThan(inputVector, triggerLevelVector256);
+                                    if (resultVector != Vector256<sbyte>.Zero)
                                         break;
                                     i += Vector256<sbyte>.Count;
                                 }
@@ -199,10 +195,9 @@ public class AnyEdgeTriggerI8 : ITriggerI8
                             {
                                 while (i < v256Length)
                                 {
-                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector256, inputVector), triggerLevelVector256);
-                                    uint resultCount = (uint)Avx2.MoveMask(resultVector);     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (resultCount != 0)
+                                    var inputVector = Vector256.Load(samplesPtr + i);
+                                    var resultVector = Vector256.LessThan(inputVector, triggerLevelVector256);
+                                    if (resultVector != Vector256<sbyte>.Zero)
                                         break;
                                     i += Vector256<sbyte>.Count;
                                 }

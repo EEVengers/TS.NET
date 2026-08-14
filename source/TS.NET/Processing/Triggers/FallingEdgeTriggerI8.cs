@@ -100,10 +100,9 @@ public class FallingEdgeTriggerI8 : ITriggerI8
                             {
                                 while (i < v256Length)
                                 {
-                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Min(armLevelVector256, inputVector), armLevelVector256);
-                                    var conditionFound = Avx2.MoveMask(resultVector) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (conditionFound)
+                                    var inputVector = Vector256.Load(samplesPtr + i);
+                                    var resultVector = Vector256.GreaterThanOrEqual(inputVector, armLevelVector256);
+                                    if (resultVector != Vector256<sbyte>.Zero)
                                         break;
                                     i += Vector256<sbyte>.Count;
                                 }
@@ -137,10 +136,9 @@ public class FallingEdgeTriggerI8 : ITriggerI8
                             {
                                 while (i < v256Length)
                                 {
-                                    var inputVector = Avx.LoadVector256(samplesPtr + i);
-                                    var resultVector = Avx2.CompareEqual(Avx2.Max(triggerLevelVector256, inputVector), triggerLevelVector256);
-                                    var conditionFound = Avx2.MoveMask(resultVector) != 0;     // Quick way to do horizontal vector scan of byte[n] > 0
-                                    if (conditionFound)
+                                    var inputVector = Vector256.Load(samplesPtr + i);
+                                    var resultVector = Vector256.LessThan(inputVector, triggerLevelVector256);
+                                    if (resultVector != Vector256<sbyte>.Zero)
                                         break;
                                     i += Vector256<sbyte>.Count;
                                 }

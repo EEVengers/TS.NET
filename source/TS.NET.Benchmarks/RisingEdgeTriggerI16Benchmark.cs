@@ -1,0 +1,84 @@
+using System.Runtime.InteropServices;
+using BenchmarkDotNet.Attributes;
+
+namespace TS.NET.Benchmarks
+{
+    public unsafe class RisingEdgeTriggerI16Benchmark
+    {
+        private const int shortBufferSize = 1 << 23;
+        private void* inputP_DC;
+        private void* inputP_500MHz;
+        private void* inputP_50percent;
+
+        private readonly Memory<int> captureEndIndicesU64 = new int[shortBufferSize / 64];
+        private readonly RisingEdgeTriggerI16 trigger = new(new TriggerChannelParameters(1_000_000_000, 1, 0), new EdgeTriggerParameters() { LevelV = 0, HysteresisPercent = 5, Direction = EdgeDirection.Rising });
+        private EdgeTriggerResults edgeTriggerResults = new()
+        {
+            ArmIndices = new ulong[1000],
+            TriggerIndices = new ulong[1000],
+            CaptureEndIndices = new ulong[1000]
+        };
+
+        [GlobalSetup]
+        public void Setup()
+        {
+            inputP_DC = NativeMemory.AlignedAlloc(shortBufferSize * sizeof(short), 32);
+            var input_DC = new Span<short>((short*)inputP_DC, shortBufferSize);
+            input_DC.Fill(short.MaxValue);
+
+            inputP_500MHz = NativeMemory.AlignedAlloc(shortBufferSize * sizeof(short), 32);
+            var input_500MHz = new Span<short>((short*)inputP_500MHz, shortBufferSize);
+            input_500MHz.Fill(short.MinValue);
+            for (int i = 0; i < input_500MHz.Length; i += 2)
+            {
+                input_500MHz[i] = short.MaxValue;
+            }
+
+            inputP_50percent = NativeMemory.AlignedAlloc(shortBufferSize * sizeof(short), 32);
+            var input_50percent = new Span<short>((short*)inputP_50percent, shortBufferSize);
+            input_50percent.Fill(short.MinValue);
+            for (int i = 0; i < input_50percent.Length; i += 2097152)
+            {
+                input_50percent[i] = short.MaxValue;
+            }
+        }
+
+        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: DC (32767), 1006632960 samples")]
+        public void RisingEdge1()
+        {
+            var input = new Span<short>((short*)inputP_DC, shortBufferSize);
+            trigger.SetHorizontal(1000000, 0, 0);
+            // Processing 120 blocks of 8Mi samples is an approximation of 1 second of production usage
+            for (int i = 0; i < 120; i++)
+                trigger.Process(input: input, 0, ref edgeTriggerResults);
+        }
+
+        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: 476.8Hz, 1006632960 samples")]
+        public void RisingEdge2()
+        {
+            var input = new Span<short>((short*)inputP_50percent, shortBufferSize);
+            trigger.SetHorizontal(1000000, 0, 0);
+            // Processing 120 blocks of 8Mi samples is an approximation of 1 second of production usage
+            for (int i = 0; i < 120; i++)
+                trigger.Process(input: input, 0, ref edgeTriggerResults);
+        }
+
+        [Benchmark(Description = "Rising edge (hysteresis: 10), width: 1ms, signal: 500MHz, 1006632960 samples")]
+        public void RisingEdge3()
+        {
+            var input = new Span<short>((short*)inputP_500MHz, shortBufferSize);
+            trigger.SetHorizontal(1000000, 0, 0);
+            // Processing 120 blocks of 8Mi samples is an approximation of 1 second of production usage
+            for (int i = 0; i < 120; i++)
+                trigger.Process(input: input, 0, ref edgeTriggerResults);
+        }
+
+        [GlobalCleanup]
+        public void Cleanup()
+        {
+            NativeMemory.AlignedFree(inputP_DC);
+            NativeMemory.AlignedFree(inputP_500MHz);
+            NativeMemory.AlignedFree(inputP_50percent);
+        }
+    }
+}
