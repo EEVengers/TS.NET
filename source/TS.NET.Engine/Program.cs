@@ -16,7 +16,7 @@ class Program
         //    p.PriorityClass = ProcessPriorityClass.High;
 
         // To do: have something better than array index. Hardware serial?
-        var deviceIndexOption = new Option<int>(name: "-i", description: "The ThunderScope to use if there are multiple connected to the host.", getDefaultValue: () => { return 0; });
+        var deviceSerialOption = new Option<string>(name: "-serial", description: "ThunderScope serial to use if there are multiple.", getDefaultValue: () => { return ""; });
         var settingsFilePathOption = new Option<string>(name: "-settings", description: "Settings file to use.", getDefaultValue: () => { return ""; });
         var calibrationFilePathOption = new Option<string>(name: "-calibration", description: "Calibration file to use.", getDefaultValue: () => { return ""; });
         var secondsOption = new Option<int>(name: "-seconds", description: "Run for an integer number of seconds. Useful for profiling.", getDefaultValue: () => { return 0; });
@@ -26,7 +26,7 @@ class Program
 
         var rootCommand = new RootCommand("TS.NET.Engine")
         {
-            deviceIndexOption,
+            deviceSerialOption,
             settingsFilePathOption,
             calibrationFilePathOption,
             secondsOption,
@@ -35,16 +35,16 @@ class Program
             debugLogOption
         };
 
-        rootCommand.SetHandler(Start, deviceIndexOption, settingsFilePathOption, calibrationFilePathOption, secondsOption, membenchOption, ngscopeclientOption, debugLogOption);
+        rootCommand.SetHandler(Start, deviceSerialOption, settingsFilePathOption, calibrationFilePathOption, secondsOption, membenchOption, ngscopeclientOption, debugLogOption);
         return await rootCommand.InvokeAsync(args);
     }
 
-    static void Start(int deviceIndex, string settingsFile, string calibrationFile, int seconds, bool membench, bool ngscopeclient, bool debugLog)
+    static void Start(string deviceSerial, string settingsFile, string calibrationFile, int seconds, bool membench, bool ngscopeclient, bool debugLog)
     {
         if (membench)
         {
             Utility.MemoryBenchmark();
-            Console.WriteLine("Press any key to exit.");
+            Console.WriteLine("Press any key to exit");
             Console.ReadKey();
             return;
         }
@@ -96,77 +96,87 @@ class Program
         var appCancellationTokenSource = new CancellationTokenSource();
 
         var engine = new EngineManager(loggerFactory, appCancellationTokenSource);
-        var deviceSerial = deviceIndex.ToString();
         var persistWindow = true;
-        if (engine.TryStart(settingsFile, calibrationFile, deviceSerial))
+
+        try
         {
-            if (ngscopeclient && OperatingSystem.IsWindows())
+            if (engine.TryStart(settingsFile, calibrationFile, deviceSerial))
             {
-                var ngscopeclientPaths = new[]
+                logger.LogInformation("Engine started");
+
+                if (ngscopeclient && OperatingSystem.IsWindows())
                 {
+                    var ngscopeclientPaths = new[]
+                    {
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "ThunderScope", "ngscopeclient", "ngscopeclient.exe"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ngscopeclient", "ngscopeclient.exe"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "ngscopeclient", "ngscopeclient.exe")
             };
-                var ngscopeclientPath = ngscopeclientPaths.FirstOrDefault(File.Exists);
+                    var ngscopeclientPath = ngscopeclientPaths.FirstOrDefault(File.Exists);
 
-                if (ngscopeclientPath is not null)
-                {
-                    var ngscopeclientProcess = Process.Start(new ProcessStartInfo
+                    if (ngscopeclientPath is not null)
                     {
-                        FileName = ngscopeclientPath,
-                        Arguments = "ThunderScope:thunderscope:twinlan:127.0.0.1:5025:5026",
-                        WorkingDirectory = Path.GetDirectoryName(ngscopeclientPath)!,
-                        UseShellExecute = true
-                    });
-                    logger.LogInformation($"ngscopeclient started.");
-
-                    if (ngscopeclientProcess is not null)
-                    {
-                        ngscopeclientProcess.Exited += (_, _) =>
+                        var ngscopeclientProcess = Process.Start(new ProcessStartInfo
                         {
-                            logger.LogInformation("ngscopeclient exited, stopping engine.");
-                            appCancellationTokenSource.Cancel();
-                            persistWindow = false;
-                        };
-                        ngscopeclientProcess.EnableRaisingEvents = true;
-                    }
-                }
-                else
-                {
-                    logger.LogWarning("ngscopeclient not found.");
-                }
-            }
+                            FileName = ngscopeclientPath,
+                            Arguments = "ThunderScope:thunderscope:twinlan:127.0.0.1:5025:5026",
+                            WorkingDirectory = Path.GetDirectoryName(ngscopeclientPath)!,
+                            UseShellExecute = true
+                        });
+                        logger.LogInformation($"ngscopeclient started");
 
-            DateTimeOffset startTime = DateTimeOffset.UtcNow;
-            while (!appCancellationTokenSource.IsCancellationRequested)
-            {
-                if (Console.KeyAvailable)
-                {
-                    var key = Console.ReadKey();
-                    switch (key.Key)
-                    {
-                        case ConsoleKey.Escape:
-                            persistWindow = false;
-                            appCancellationTokenSource.Cancel();
-                            break;
-                    }
-                }
-                else
-                {
-                    if (seconds > 0)
-                    {
-                        if (DateTimeOffset.UtcNow.Subtract(startTime).TotalSeconds >= seconds)
+                        if (ngscopeclientProcess is not null)
                         {
-                            persistWindow = false;
-                            appCancellationTokenSource.Cancel();
+                            ngscopeclientProcess.Exited += (_, _) =>
+                            {
+                                logger.LogInformation("ngscopeclient exited, stopping engine");
+                                appCancellationTokenSource.Cancel();
+                                persistWindow = false;
+                            };
+                            ngscopeclientProcess.EnableRaisingEvents = true;
                         }
                     }
-                    Thread.Sleep(100);
+                    else
+                    {
+                        logger.LogWarning("ngscopeclient not found");
+                    }
                 }
-            }
 
-            engine.Stop();
+                DateTimeOffset startTime = DateTimeOffset.UtcNow;
+                while (!appCancellationTokenSource.IsCancellationRequested)
+                {
+                    if (Console.KeyAvailable)
+                    {
+                        var key = Console.ReadKey();
+                        switch (key.Key)
+                        {
+                            case ConsoleKey.Escape:
+                                persistWindow = false;
+                                appCancellationTokenSource.Cancel();
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        if (seconds > 0)
+                        {
+                            if (DateTimeOffset.UtcNow.Subtract(startTime).TotalSeconds >= seconds)
+                            {
+                                persistWindow = false;
+                                appCancellationTokenSource.Cancel();
+                            }
+                        }
+                        Thread.Sleep(100);
+                    }
+                }
+
+                engine.ReleaseDeviceMutexIfExists();
+                engine.Stop();
+            }
+        }
+        finally
+        {
+            engine.ReleaseDeviceMutexIfExists();
         }
 
         if (persistWindow)

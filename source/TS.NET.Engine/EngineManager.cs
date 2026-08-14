@@ -18,6 +18,7 @@ public class EngineManager
     private readonly ILogger logger;
     private readonly CancellationTokenSource appCancellationTokenSource;
 
+    private static volatile Mutex? deviceMutex;     // OS reclaims mutex on process exit
     private ThunderscopeSettings? thunderscopeSettings = null;
     private IThunderscope? thunderscope = null;
 
@@ -67,7 +68,7 @@ public class EngineManager
             }
             else
             {
-                logger?.LogDebug("x86/x64 CPU with AVX2.");
+                logger?.LogDebug("x86/x64 CPU with AVX2");
             }
         }
         if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
@@ -78,7 +79,7 @@ public class EngineManager
             }
             else
             {
-                logger?.LogDebug("AArch64 CPU with Neon.");
+                logger?.LogDebug("AArch64 CPU with Neon");
             }
         }
 
@@ -129,20 +130,49 @@ public class EngineManager
                                 sb.AppendLine("");
 
                         }
-                        logger?.LogInformation(sb.ToString());
+                        logger?.LogDebug(sb.ToString());
                     }
 
-                    // Later this will switch to using device serial.
-                    uint deviceIndex = uint.Parse(deviceSerial);
-                    if (deviceIndex >= devices.Count)
+                    if (devices.Count == 0)
                     {
-                        logger?.LogCritical($"Device index {deviceIndex} out of range, {devices.Count} devices available");
+                        logger?.LogCritical("No ThunderScopes found");
                         return false;
                     }
-                    if (!string.IsNullOrWhiteSpace(devices[(int)deviceIndex].Serial.Trim()))
+
+                    if (string.IsNullOrWhiteSpace(deviceSerial))
                     {
-                        thunderscopeSerial = devices[(int)deviceIndex].Serial.Trim();
+                        // Pick the first thunderscope
+                        deviceSerial = devices[0].Serial;
                     }
+                    deviceSerial = deviceSerial.Trim();
+
+                    if(!devices.Any(d => d.Serial.Trim() == deviceSerial))
+                    {
+                        logger?.LogCritical($"ThunderScope with serial {deviceSerial} not found");
+                        return false;
+                    }
+
+                    uint deviceIndex = 0;
+                    for (int i = 0; i < devices.Count; i++)
+                    {
+                        if (devices[i].Serial.Trim() == deviceSerial)
+                        {
+                            deviceIndex = (uint)i;
+                            break;
+                        }
+                    }
+
+                    if (OperatingSystem.IsWindows())        // Remove this when tested on Linux/macOS
+                    {
+                        if (!TryAcquireDeviceMutex(deviceSerial))
+                        {
+                            logger?.LogCritical($"Another instance of TS.NET.Engine is already running for {deviceSerial}");
+                            return false;
+                        }
+                    }
+
+                    logger?.LogInformation($"Using ThunderScope with serial: {deviceSerial}");
+
                     var ts = new Driver.Libtslitex.Thunderscope(loggerFactory, 1024 * 1024);
                     ts.Open(deviceIndex);
 
@@ -368,6 +398,44 @@ public class EngineManager
                         break;
                     }
             }
+        }
+    }
+
+    private static bool TryAcquireDeviceMutex(string deviceSerial)
+    {
+        string name = $"TS.NET.Engine.{deviceSerial}";
+        try
+        {
+            deviceMutex = new Mutex(true, name, out var createdNew);
+
+            if (createdNew)
+                return true;
+
+            deviceMutex.Dispose();
+            deviceMutex = null;
+            return false;
+
+        }
+        catch (AbandonedMutexException)
+        {
+            // Despite the exception, mutex was acquired
+            return true;
+        }
+    }
+
+    public void ReleaseDeviceMutexIfExists()
+    {
+        Mutex? mutex = Interlocked.Exchange(ref deviceMutex, null);
+        if (mutex is null)
+            return;
+
+        try
+        {
+            mutex.ReleaseMutex();
+        }
+        finally
+        {
+            mutex.Dispose();
         }
     }
 }

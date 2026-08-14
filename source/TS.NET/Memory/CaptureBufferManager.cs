@@ -166,7 +166,7 @@ namespace TS.NET
 
                 if (readInProgress)
                 {
-                    logger.LogWarning("Reconfiguring while a read is in progress; the read buffer may be corrupted.");
+                    logger.LogWarning("Reconfiguring while a read is in progress; the read buffer may be corrupted");
                     // To do - determine the affected buffers, and add them to a "configurationChangedBuffers" queue, to be emptied and added to availableBuffers on next FinishRead()
                     // then this warning can be removed
                 }

@@ -458,7 +458,7 @@ internal class ScpiServer : IThread
                                             edgeDirection = EdgeDirection.Any;
                                             break;
                                         default:
-                                            logger.LogError("Edge trigger direction must be RISING, FALLING, or ANY.");
+                                            logger.LogError("Edge trigger direction must be RISING, FALLING, or ANY");
                                             return null;
                                     }
                                     logger.LogDebug($"Set [edge] trigger direction to {edgeDirection}");
@@ -505,7 +505,7 @@ internal class ScpiServer : IThread
                                             windowDirection = WindowDirection.Exit;
                                             break;
                                         default:
-                                            logger.LogError("Window trigger direction must be ENTER or EXIT.");
+                                            logger.LogError("Window trigger direction must be ENTER or EXIT");
                                             return null;
                                     }
                                     logger.LogDebug($"Set window trigger direction to {windowDirection}");
@@ -531,7 +531,7 @@ internal class ScpiServer : IThread
                                             burstEdgeDirection = BurstEdgeDirection.Falling;
                                             break;
                                         default:
-                                            logger.LogError("Burst trigger edge must be RISING or FALLING.");
+                                            logger.LogError("Burst trigger edge must be RISING or FALLING");
                                             return null;
                                     }
                                     logger.LogDebug($"Set burst trigger edge to {burstEdgeDirection}");
