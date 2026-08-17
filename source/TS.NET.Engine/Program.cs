@@ -170,13 +170,13 @@ class Program
                     }
                 }
 
-                engine.ReleaseDeviceMutexIfExists();
+                EngineManager.ReleaseDeviceMutexIfExists();
                 engine.Stop();
             }
         }
         finally
         {
-            engine.ReleaseDeviceMutexIfExists();
+            EngineManager.ReleaseDeviceMutexIfExists();
         }
 
         if (persistWindow)

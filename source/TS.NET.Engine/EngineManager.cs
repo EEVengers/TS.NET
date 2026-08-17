@@ -18,7 +18,9 @@ public class EngineManager
     private readonly ILogger logger;
     private readonly CancellationTokenSource appCancellationTokenSource;
 
-    private static volatile Mutex? deviceMutex;     // OS reclaims mutex on process exit
+    private static Mutex? deviceMutex;     // OS reclaims mutex on process exit
+    private static FileStream? deviceLockFile;
+    private static readonly Lock deviceLockSync = new();
     private ThunderscopeSettings? thunderscopeSettings = null;
     private IThunderscope? thunderscope = null;
 
@@ -162,7 +164,7 @@ public class EngineManager
                         }
                     }
 
-                    if (OperatingSystem.IsWindows())        // Remove this when tested on Linux/macOS
+                    if (!OperatingSystem.IsMacOS())        // Remove this when tested on macOS
                     {
                         if (!TryAcquireDeviceMutex(deviceSerial))
                         {
@@ -403,6 +405,9 @@ public class EngineManager
 
     private static bool TryAcquireDeviceMutex(string deviceSerial)
     {
+        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+            return TryAcquireUnixDeviceLock(deviceSerial);
+
         string name = $"TS.NET.Engine.{deviceSerial}";
         try
         {
@@ -423,8 +428,47 @@ public class EngineManager
         }
     }
 
-    public void ReleaseDeviceMutexIfExists()
+    private static bool TryAcquireUnixDeviceLock(string deviceSerial)
     {
+        string path = Path.Combine(Path.GetTempPath(), $"TS.NET.Engine.{deviceSerial}.lock");
+        lock (deviceLockSync)
+        {
+            if (deviceLockFile is not null)
+                return false;
+
+            try
+            {
+                var lockFile = File.Open(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                deviceLockFile = lockFile;
+                return true;
+            }
+            catch (IOException)
+            {
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Failed to acquire lock file '{path}': {ex}");
+                return false;
+            }
+        }
+    }
+
+    public static void ReleaseDeviceMutexIfExists()
+    {
+        FileStream? lockFile;
+        lock (deviceLockSync)
+        {
+            lockFile = deviceLockFile;
+            deviceLockFile = null;
+        }
+
+        if (lockFile is not null)
+        {
+            lockFile.Dispose();
+            return;
+        }
+
         Mutex? mutex = Interlocked.Exchange(ref deviceMutex, null);
         if (mutex is null)
             return;
