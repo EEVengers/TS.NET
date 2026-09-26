@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Net;
-using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
@@ -100,6 +99,13 @@ public class EngineManager
                     try
                     {
                         devices = Driver.Libtslitex.Thunderscope.ListDevices();
+                        var librarySource = Driver.Libtslitex.Thunderscope.LoadedLibraryLocation switch
+                        {
+                            Driver.Libtslitex.LibraryLocation.WorkingDirectory => "libtslitex loaded from working directory",
+                            Driver.Libtslitex.LibraryLocation.LocalApplicationData => "libtslitex loaded from LocalApplicationData",
+                            _ => "libtslitex loaded from unknown source"
+                        };
+                        logger?.LogInformation(librarySource);
                     }
                     catch (DllNotFoundException)
                     {

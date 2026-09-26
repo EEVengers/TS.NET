@@ -6,6 +6,8 @@ public record ThunderscopeLiteXDevice(uint DeviceID, uint HardwareRev, uint Gate
 
 public class Thunderscope : IThunderscope
 {
+    public static LibraryLocation? LoadedLibraryLocation => Interop.LoadedLibraryLocation;
+
     private readonly ILogger logger;
     private bool open = false;
     private bool running = false;
@@ -140,7 +142,7 @@ public class Thunderscope : IThunderscope
             var retVal = Interop.DataEnable(tsHandle, 1);
             if (retVal < 0)
                 throw new ThunderscopeException($"Could not start ({GetLibraryReturnString(retVal)})");
-            
+
             RefreshFrontendValues();
         }
 
@@ -454,7 +456,7 @@ public class Thunderscope : IThunderscope
     private void RefreshFrontendValues()
     {
         CheckOpen();
-        
+
         for (int chIdx = 0; chIdx < 4; chIdx++)
         {
             Interop.tsChannelParam_t tsChannel;
@@ -466,7 +468,7 @@ public class Thunderscope : IThunderscope
             channelFrontend[chIdx].ActualTermination = (tsChannel.term == 0) ? ThunderscopeTermination.OneMegaohm : ThunderscopeTermination.FiftyOhm;
             channelFrontend[chIdx].ActualVoltFullScale = tsChannel.volt_scale_uV / 1000000.0;
             channelFrontend[chIdx].ActualVoltOffset = tsChannel.volt_offset_uV / 1000000.0;
-            
+
             logger.LogInformation($"Refresh channel {chIdx}: Req scale {channelFrontend[chIdx].RequestedVoltFullScale}Vpp, Act scale {channelFrontend[chIdx].ActualVoltFullScale}Vpp");
         }
     }
