@@ -6,6 +6,8 @@ public record ThunderscopeLiteXDevice(uint DeviceID, uint HardwareRev, uint Gate
 
 public class Thunderscope : IThunderscope
 {
+    public static LibraryLocation? LoadedLibraryLocation => Interop.LoadedLibraryLocation;
+
     private readonly ILogger logger;
     private bool open = false;
     private bool running = false;
@@ -140,6 +142,8 @@ public class Thunderscope : IThunderscope
             var retVal = Interop.DataEnable(tsHandle, 1);
             if (retVal < 0)
                 throw new ThunderscopeException($"Could not start ({GetLibraryReturnString(retVal)})");
+
+            RefreshFrontendValues();
         }
 
         running = true;
@@ -438,22 +442,35 @@ public class Thunderscope : IThunderscope
         if (retVal < 0)
             logger.LogCritical($"Failed to set channel {channelIndex} configuration ({GetLibraryReturnString(retVal)})");
 
-
-        retVal = Interop.GetChannelConfig(tsHandle, (uint)channelIndex, out tsChannel);
-
-        if (retVal < 0)
-            throw new ThunderscopeException($"Failed to get channel {channelIndex} configuration ({GetLibraryReturnString(retVal)})");
-
-        channelFrontend[channelIndex].ActualTermination = (tsChannel.term == 0) ? ThunderscopeTermination.OneMegaohm : ThunderscopeTermination.FiftyOhm;
-        channelFrontend[channelIndex].ActualVoltFullScale = tsChannel.volt_scale_uV * 1000000.0;
-        channelFrontend[channelIndex].ActualVoltOffset = tsChannel.volt_offset_uV * 1000000.0;
         channelFrontend[channelIndex].RequestedVoltFullScale = channel.RequestedVoltFullScale;
         channelFrontend[channelIndex].RequestedVoltOffset = channel.RequestedVoltOffset;
         channelFrontend[channelIndex].RequestedTermination = channel.RequestedTermination;
         channelFrontend[channelIndex].Bandwidth = channel.Bandwidth;
         channelFrontend[channelIndex].Coupling = channel.Coupling;
 
+        RefreshFrontendValues();
+
         channelManualOverride[channelIndex] = false;            // SetChannelManualControl sets to true, so immediately set to false
+    }
+
+    private void RefreshFrontendValues()
+    {
+        CheckOpen();
+
+        for (int chIdx = 0; chIdx < 4; chIdx++)
+        {
+            Interop.tsChannelParam_t tsChannel;
+            var retVal = Interop.GetChannelConfig(tsHandle, (uint)chIdx, out tsChannel);
+
+            if (retVal < 0)
+                throw new ThunderscopeException($"Failed to get channel {chIdx} configuration ({GetLibraryReturnString(retVal)})");
+
+            channelFrontend[chIdx].ActualTermination = (tsChannel.term == 0) ? ThunderscopeTermination.OneMegaohm : ThunderscopeTermination.FiftyOhm;
+            channelFrontend[chIdx].ActualVoltFullScale = tsChannel.volt_scale_uV / 1000000.0;
+            channelFrontend[chIdx].ActualVoltOffset = tsChannel.volt_offset_uV / 1000000.0;
+
+            logger.LogInformation($"Refresh channel {chIdx}: Req scale {channelFrontend[chIdx].RequestedVoltFullScale}Vpp, Act scale {channelFrontend[chIdx].ActualVoltFullScale}Vpp");
+        }
     }
 
     public void SetAdcBranchGainManualControl(byte[] branchGain)
@@ -508,6 +525,8 @@ public class Thunderscope : IThunderscope
         if (retVal < 0)
             throw new ThunderscopeException($"Failed to set libtslitex AFE{channelIndex} Calibration ({GetLibraryReturnString(retVal)})");
 
+        RefreshFrontendValues();
+
     }
 
     public void SetAdcCalibration(AdcCalibration adcCalibration)
@@ -535,6 +554,7 @@ public class Thunderscope : IThunderscope
                     tsAdcCal.branchFineGain[i].conf[j].gain[k] = (byte)adcCalibration.BranchGain[i].RateGain[j].Gain[k];
             }
         }
+        RefreshFrontendValues();
     }
 
     public AdcCalibration GetAdcCalibration()
@@ -627,6 +647,7 @@ public class Thunderscope : IThunderscope
             Start();
 
         GetAcquisitionConfig();     // Update cachedAdcChannelMode
+        RefreshFrontendValues();
     }
 
     public void SetChannelManualControl(int channelIndex, ThunderscopeChannelFrontendManualControl channel)
@@ -832,11 +853,12 @@ public class Thunderscope : IThunderscope
         };
         var retVal = Interop.SetSampleMode(tsHandle, (uint)sampleRateHz, format);
 
-
         if (retVal == -2)
             logger.LogTrace($"Failed to set sample rate ({sampleRateHz}): {GetLibraryReturnString(retVal)}");
         else if (retVal < 0)
             throw new ThunderscopeException($"Error trying to set sample rate {sampleRateHz} ({GetLibraryReturnString(retVal)})");
+
+        RefreshFrontendValues();
 
         if (restart)
             Start();

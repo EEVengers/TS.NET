@@ -5,9 +5,17 @@ using System.Runtime.InteropServices;
 
 namespace TS.NET.Driver.Libtslitex
 {
+    public enum LibraryLocation
+    {
+        WorkingDirectory,
+        LocalApplicationData
+    }
+
     internal static partial class Interop
     {
         private const string library = "tslitex";
+
+        internal static LibraryLocation? LoadedLibraryLocation { get; private set; }
 
         [ModuleInitializer]
         [SuppressMessage("Usage", "CA2255", Justification = "The resolver must be registered before the first native import is invoked.")]
@@ -24,13 +32,19 @@ namespace TS.NET.Driver.Libtslitex
             }
 
             if (NativeLibrary.TryLoad(libraryName, assembly, searchPath, out nint handle))
-            {
-                return handle;
-            }
+                return RecordLoadedLibrary(handle, LibraryLocation.WorkingDirectory);
 
             var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             var localApplicationDataConfigurationFile = Path.Combine(localAppData, "Programs", "ThunderScope", "libtslitex", libraryName);
-            return NativeLibrary.TryLoad(localApplicationDataConfigurationFile, out handle) ? handle : nint.Zero;
+            return NativeLibrary.TryLoad(localApplicationDataConfigurationFile, out handle)
+                ? RecordLoadedLibrary(handle, LibraryLocation.LocalApplicationData)
+                : nint.Zero;
+        }
+
+        private static nint RecordLoadedLibrary(nint handle, LibraryLocation source)
+        {
+            LoadedLibraryLocation = source;
+            return handle;
         }
 
         [StructLayout(LayoutKind.Sequential)]
