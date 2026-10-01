@@ -415,8 +415,6 @@ public class Thunderscope : IThunderscope
             _ => throw new NotImplementedException()
         };
 
-        logger.LogInformation($"Configure channel {channelIndex}: scale {tsChannel.volt_scale_uV}uVpp, offset {tsChannel.volt_offset_uV}uV, term {tsChannel.term}");
-
         retVal = Interop.SetChannelConfig(tsHandle, (uint)channelIndex, in tsChannel);
 
         // libtslitex will return an error code if the requested channel configuration is not valid
@@ -468,8 +466,6 @@ public class Thunderscope : IThunderscope
             channelFrontend[chIdx].ActualTermination = (tsChannel.term == 0) ? ThunderscopeTermination.OneMegaohm : ThunderscopeTermination.FiftyOhm;
             channelFrontend[chIdx].ActualVoltFullScale = tsChannel.volt_scale_uV / 1000000.0;
             channelFrontend[chIdx].ActualVoltOffset = tsChannel.volt_offset_uV / 1000000.0;
-
-            logger.LogInformation($"Refresh channel {chIdx}: Req scale {channelFrontend[chIdx].RequestedVoltFullScale}Vpp, Act scale {channelFrontend[chIdx].ActualVoltFullScale}Vpp");
         }
     }
 
