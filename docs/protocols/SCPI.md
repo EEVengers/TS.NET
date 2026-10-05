@@ -34,25 +34,25 @@ Commands/queries are logically grouped into subsystems, with the exception of th
 
 ### Commands
 
-| Command | Description |
-|---|---|
-| `RUN` | Start acquisition/processing. |
-| `STOP` | Stop acquisition/processing. |
-| `FORCE` | Force a trigger. |
-| `SINGLE` | Set mode to `Single`. |
-| `NORMAL` | Set mode to `Normal`. |
-| `AUTO` | Set mode to `Auto`. |
-| `STREAM` | Set mode to `Stream`. |
+| Command | Description | Version |
+| --- | --- | --- |
+| `RUN` | Start acquisition/processing. | ≥ 0.1.0 |
+| `STOP` | Stop acquisition/processing. | ≥ 0.1.0 |
+| `FORCE` | Force a trigger. | ≥ 0.1.0 |
+| `SINGLE` | Set mode to `Single`. | ≥ 0.1.0 |
+| `NORMAL` | Set mode to `Normal`. | ≥ 0.1.0 |
+| `AUTO` | Set mode to `Auto`. | ≥ 0.1.0 |
+| `STREAM` | Set mode to `Stream`. | ≥ 0.1.0 |
 
 ### Queries
 
-| Query | Response | Type  | Description |
-|---|---|---|---|
-| `*IDN?` | `EEVengers,ThunderScope,TS0001,0.1.0` | string | Standard identification string. |
-| `STATE?` | `RUN`, `STOP` | enum | Current run state. |
-| `MODE?` | `SINGLE`, `NORMAL`, `AUTO`, `STREAM` | enum | Current acquisition mode. |
-| `SEQNUM?` | `12345` | u32 | The last sequence number sent on the data server socket. |
-| `TEMP?` | `25.0` | f32 | FPGA temperature (formatted `F1`). |
+| Query | Response | Type | Description | Version |
+| --- | --- | --- | --- | --- |
+| `*IDN?` | `EEVengers,ThunderScope,TS0001,0.1.0` | string | Standard identification string. | ≥ 0.1.0 |
+| `STATE?` | `RUN`, `STOP` | enum | Current run state. | ≥ 0.1.0 |
+| `MODE?` | `SINGLE`, `NORMAL`, `AUTO`, `STREAM` | enum | Current acquisition mode. | ≥ 0.1.0 |
+| `SEQNUM?` | `12345` | u32 | The last sequence number sent on the data server socket. | ≥ 0.1.0 |
+| `TEMP?` | `25.0` | f32 | FPGA temperature (formatted `F1`). | ≥ 0.1.0 |
 
 ## Acquisition subsystem (`ACQ...`)
 
@@ -60,21 +60,21 @@ Subject matches `ACQ`/`ACQuisition` abbreviations via `subject.StartsWith("ACQ")
 
 ### Commands
 
-| Command | Type | Description |
-|---|---:|---|
-| `ACQ:RATE <rateHz>` | u64 | Set sample rate (Hz). |
-| `ACQ:DEPTH <samples>` | u32 | Set capture depth/length. |
-| `ACQ:RES <8\|12>` | enum | Set ADC resolution. Unsupported values default to 8-bit. |
+| Command | Type | Description | Version |
+| --- | ---: | --- | --- |
+| `ACQ:RATE <rateHz>` | u64 | Set sample rate (Hz). | ≥ 0.1.0 |
+| `ACQ:DEPTH <samples>` | u32 | Set capture depth/length. | ≥ 0.1.0 |
+| `ACQ:RES <8\|12>` | enum | Set ADC resolution. Unsupported values default to 8-bit. | ≥ 0.1.0 |
 
 ### Queries
 
-| Query | Response | Type | Description |
-|---|---|---|---|
-| `ACQ:RATE?` | `1000000000` | u64 | Get current sample rate. |
-| `ACQ:DEPTH?` | `1000000` | u32 | Get current depth. |
-| `ACQ:RES?` | `8`, `12` | enum | Get ADC resolution bits. |
-| `ACQ:RATES?` | `<r1>,<r2>,...` | [u64] | List supported sample rates. |
-| `ACQ:DEPTHS?` | `<d1>,<d2>,...` | [u32] | List supported depths. |
+| Query | Response | Type | Description | Version |
+| --- | --- | --- | --- | --- |
+| `ACQ:RATE?` | `1000000000` | u64 | Get current sample rate. | ≥ 0.1.0 |
+| `ACQ:DEPTH?` | `1000000` | u32 | Get current depth. | ≥ 0.1.0 |
+| `ACQ:RES?` | `8`, `12` | enum | Get ADC resolution bits. | ≥ 0.1.0 |
+| `ACQ:RATES?` | `<r1>,<r2>,...` | [u64] | List supported sample rates. | ≥ 0.1.0 |
+| `ACQ:DEPTHS?` | `<d1>,<d2>,...` | [u32] | List supported depths. | ≥ 0.1.0 |
 
 ## Trigger subsystem (`TRIG...`)
 
@@ -82,42 +82,42 @@ Subject matches `TRIG`/`TRIGger` abbreviations via `subject.StartsWith("TRIG")`.
 
 ### Commands
 
-| Command | Type | Description |
-|---|---:|---|
-| `TRIG:SOU <CHAN1\|CHAN2\|CHAN3\|CHAN4\|NONE>` | enum | Set trigger source channel or `NONE`. |
-| `TRIG:TYPE <EDGE\|BURST>` | enum | Set trigger type. |
-| `TRIG:DEL <femtoseconds>` | i64 | Set trigger delay in femtoseconds. Negative values clamp to 0 (to be reviewed). |
-| `TRIG:HOLD <femtoseconds>` | u64 | Set trigger holdoff in femtoseconds. |
-| `TRIG:INTER <true\|false>` | bool | Enable/disable trigger interpolation. `<1\|0>` is supported. |
-| `TRIG:EDGE:LEV <volts>` | f32 | Set edge trigger level in volts. |
-| `TRIG:EDGE:DIR <RISING\|FALLING\|ANY>` | enum | Set edge direction. |
-| `TRIG:EDGE:HYS <percent>` | f32 | Set edge-trigger hysteresis as a percentage of the full-scale range. Enter the numeric value only; for example, `5` means 5%. |
-| `TRIG:BURST:LEV <volts>` | f32 | Set burst trigger level in volts. |
-| `TRIG:BURST:DIR <RISING\|FALLING>` | enum | Set burst trigger edge direction. |
-| `TRIG:BURST:HYS <percent>` | f32 | Set burst-trigger hysteresis as a percentage of the full-scale range. Enter the numeric value only; for example, `5` means 5%. |
-| `TRIG:BURST:QUIET:UPPER <volts>` | f32 | Set the upper bound of the burst trigger quiet window. |
-| `TRIG:BURST:QUIET:LOWER <volts>` | f32 | Set the lower bound of the burst trigger quiet window. |
-| `TRIG:BURST:QUIET:TIME <femtoseconds>` | i64 | Set the required quiet-window duration before burst arming. |
+| Command | Type | Description | Version |
+| --- | ---: | --- | --- |
+| `TRIG:SOU <CHAN1\|CHAN2\|CHAN3\|CHAN4\|EXT\|NONE>` | enum | Set trigger source channel, external (`EXT`), or `NONE`. | `CHAN1\|CHAN2\|CHAN3\|CHAN4\|NONE` ≥ 0.1.0<br>`EXT` ≥ 0.3.0 |
+| `TRIG:TYPE <EDGE\|BURST>` | enum | Set trigger type. | ≥ 0.1.0 |
+| `TRIG:DEL <femtoseconds>` | i64 | Set trigger delay in femtoseconds. Negative values clamp to 0 (to be reviewed). | ≥ 0.1.0 |
+| `TRIG:HOLD <femtoseconds>` | u64 | Set trigger holdoff in femtoseconds. | ≥ 0.1.0 |
+| `TRIG:INTER <true\|false>` | bool | Enable/disable trigger interpolation. `<1\|0>` is supported. | ≥ 0.1.0 |
+| `TRIG:EDGE:LEV <volts>` | f32 | Set edge trigger level in volts. | ≥ 0.1.0 |
+| `TRIG:EDGE:DIR <RISING\|FALLING\|ANY>` | enum | Set edge direction. | ≥ 0.1.0 |
+| `TRIG:EDGE:HYS <percent>` | f32 | Set edge-trigger hysteresis as a percentage of the full-scale range. Enter the numeric value only; for example, `5` means 5%. | ≥ 0.1.0 |
+| `TRIG:BURST:LEV <volts>` | f32 | Set burst trigger level in volts. | ≥ 0.1.0 |
+| `TRIG:BURST:DIR <RISING\|FALLING>` | enum | Set burst trigger edge direction. | ≥ 0.1.0 |
+| `TRIG:BURST:HYS <percent>` | f32 | Set burst-trigger hysteresis as a percentage of the full-scale range. Enter the numeric value only; for example, `5` means 5%. | ≥ 0.1.0 |
+| `TRIG:BURST:QUIET:UPPER <volts>` | f32 | Set the upper bound of the burst trigger quiet window. | ≥ 0.1.0 |
+| `TRIG:BURST:QUIET:LOWER <volts>` | f32 | Set the lower bound of the burst trigger quiet window. | ≥ 0.1.0 |
+| `TRIG:BURST:QUIET:TIME <femtoseconds>` | i64 | Set the required quiet-window duration before burst arming. | ≥ 0.1.0 |
 
 ### Queries
 
-| Query | Response | Type | Description |
-|---|---|---|---|
-| `TRIG:SOU?` | `CHAN1`, `CHAN2`, `CHAN3`, `CHAN4`, `NONE` | enum | Get trigger source. (Formatting is `CHAN{(uint)channel}`). |
-| `TRIG:TYPE?` | `EDGE, BURST` | enum | Get trigger type as uppercase enum name. |
-| `TRIG:DEL?` | `<femtoseconds>` | i64 | Get trigger delay. |
-| `TRIG:HOLD?` | `<femtoseconds>` | u64 | Get trigger holdoff. |
-| `TRIG:INTER?` | `true`, `false` | bool | Get trigger interpolation enabled. |
-| `TRIG:EDGE:LEV?` | `<volts>` | f32 | Get edge trigger level (formatted `0.######`). |
-| `TRIG:EDGE:DIR?` | `RISING`, `FALLING`, `ANY` | enum | Get edge trigger direction as uppercase enum name. |
-| `TRIG:EDGE:HYS?` | `<percent>` | f32 | Get edge-trigger hysteresis as a numeric percentage (formatted `0.######`, without `%`). |
-| `TRIG:BURST:LEV?` | `<volts>` | f32 | Get burst trigger level (formatted `0.######`). |
-| `TRIG:BURST:DIR?` | `RISING`, `FALLING` | enum | Get burst trigger edge direction as uppercase enum name. |
-| `TRIG:BURST:EDGE?` | `RISING`, `FALLING` | enum | Alias for `TRIG:BURST:DIR?`. |
-| `TRIG:BURST:HYS?` | `<percent>` | f32 | Get burst-trigger hysteresis as a numeric percentage (formatted `0.######`, without `%`). |
-| `TRIG:BURST:QUIET:UPPER?` | `<volts>` | f32 | Get the upper quiet-window bound (formatted `0.######`). |
-| `TRIG:BURST:QUIET:LOWER?` | `<volts>` | f32 | Get the lower quiet-window bound (formatted `0.######`). |
-| `TRIG:BURST:QUIET:TIME?` | `<femtoseconds>` | i64 | Get the required quiet-window duration. |
+| Query | Response | Type | Description | Version |
+| --- | --- | --- | --- | --- |
+| `TRIG:SOU?` | `CHAN1`, `CHAN2`, `CHAN3`, `CHAN4`, `EXT`, `NONE` | enum | Get trigger source. | `CHAN1\|CHAN2\|CHAN3\|CHAN4\|NONE` ≥ 0.1.0<br>`EXT` ≥ 0.3.0 |
+| `TRIG:TYPE?` | `EDGE, BURST` | enum | Get trigger type as uppercase enum name. | ≥ 0.1.0 |
+| `TRIG:DEL?` | `<femtoseconds>` | i64 | Get trigger delay. | ≥ 0.1.0 |
+| `TRIG:HOLD?` | `<femtoseconds>` | u64 | Get trigger holdoff. | ≥ 0.1.0 |
+| `TRIG:INTER?` | `true`, `false` | bool | Get trigger interpolation enabled. | ≥ 0.1.0 |
+| `TRIG:EDGE:LEV?` | `<volts>` | f32 | Get edge trigger level (formatted `0.######`). | ≥ 0.1.0 |
+| `TRIG:EDGE:DIR?` | `RISING`, `FALLING`, `ANY` | enum | Get edge trigger direction as uppercase enum name. | ≥ 0.1.0 |
+| `TRIG:EDGE:HYS?` | `<percent>` | f32 | Get edge-trigger hysteresis as a numeric percentage (formatted `0.######`, without `%`). | ≥ 0.1.0 |
+| `TRIG:BURST:LEV?` | `<volts>` | f32 | Get burst trigger level (formatted `0.######`). | ≥ 0.1.0 |
+| `TRIG:BURST:DIR?` | `RISING`, `FALLING` | enum | Get burst trigger edge direction as uppercase enum name. | ≥ 0.1.0 |
+| `TRIG:BURST:EDGE?` | `RISING`, `FALLING` | enum | Alias for `TRIG:BURST:DIR?`. | ≥ 0.1.0 |
+| `TRIG:BURST:HYS?` | `<percent>` | f32 | Get burst-trigger hysteresis as a numeric percentage (formatted `0.######`, without `%`). | ≥ 0.1.0 |
+| `TRIG:BURST:QUIET:UPPER?` | `<volts>` | f32 | Get the upper quiet-window bound (formatted `0.######`). | ≥ 0.1.0 |
+| `TRIG:BURST:QUIET:LOWER?` | `<volts>` | f32 | Get the lower quiet-window bound (formatted `0.######`). | ≥ 0.1.0 |
+| `TRIG:BURST:QUIET:TIME?` | `<femtoseconds>` | i64 | Get the required quiet-window duration. | ≥ 0.1.0 |
 
 ## Channel subsystem (`CHAN<n>...`)
 
@@ -127,29 +127,29 @@ Subject matches `CHAN`/`CHANnel` abbreviations via `subject.StartsWith("CHAN")` 
 
 ### Commands
 
-| Command | Type | Description |
-|---|---:|---|
-| `CHAN<n>:ON` | - | Enable channel `<n>`. |
-| `CHAN<n>:OFF` | - | Disable channel `<n>`. |
-| `CHAN<n>:BAND <FULL\|750M\|650M\|350M\|200M\|100M\|20M>` | enum | Set channel bandwidth limit/filter. |
-| `CHAN<n>:COUP <DC\|AC>` | enum | Set channel coupling. |
-| `CHAN<n>:TERM <1M\|50>` | enum | Set channel termination. |
-| `CHAN<n>:OFFS <volts>` | f32 | Set channel voltage offset. Clamped to `[-50, 50]`. |
-| `CHAN<n>:RANG <volts>` | f32 | Set channel full-scale range. Clamped to `[-50, 50]`. |
+| Command | Type | Description | Version |
+| --- | ---: | --- | --- |
+| `CHAN<n>:ON` | - | Enable channel `<n>`. | ≥ 0.1.0 |
+| `CHAN<n>:OFF` | - | Disable channel `<n>`. | ≥ 0.1.0 |
+| `CHAN<n>:BAND <FULL\|750M\|650M\|350M\|200M\|100M\|20M>` | enum | Set channel bandwidth limit/filter. | ≥ 0.1.0 |
+| `CHAN<n>:COUP <DC\|AC>` | enum | Set channel coupling. | ≥ 0.1.0 |
+| `CHAN<n>:TERM <1M\|50>` | enum | Set channel termination. | ≥ 0.1.0 |
+| `CHAN<n>:OFFS <volts>` | f32 | Set channel voltage offset. Clamped to `[-50, 50]`. | ≥ 0.1.0 |
+| `CHAN<n>:RANG <volts>` | f32 | Set channel full-scale range. Clamped to `[-50, 50]`. | ≥ 0.1.0 |
 
 ### Queries
 
-| Query | Response | Type | Description |
-|---|---|---|---|
-| `CHAN<n>:STATE?` | `ON`, `OFF` | enum | Get whether channel `<n>` is enabled. |
-| `CHAN<n>:BAND?` | `FULL`, `750M`, `650M`, `350M`, `200M`, `100M`, `20M` | enum | Get channel bandwidth (maps from enum). |
-| `CHAN<n>:COUP?` | `DC`, `AC` | enum | Get channel coupling. |
-| `CHAN<n>:TERM?` | `1M`, `50` | enum | Get requested channel termination. |
-| `CHAN<n>:OFFS?` | `<volts>` | f32 | Get requested voltage offset (formatted `0.######`). |
-| `CHAN<n>:RANG?` | `<volts>` | f32 | Get requested full-scale range (formatted `0.######`). |
-| `CHAN<n>:TERM:ACT?` | `1M`, `50` | enum | Get actual channel termination (driver may coerce termination). |
-| `CHAN<n>:OFFS:ACT?` | `<volts>` | f32 | Get actual voltage offset (formatted `0.######`). |
-| `CHAN<n>:RANG:ACT?` | `<volts>` | f32 | Get actual full-scale range (formatted `0.######`). |
+| Query | Response | Type | Description | Version |
+| --- | --- | --- | --- | --- |
+| `CHAN<n>:STATE?` | `ON`, `OFF` | enum | Get whether channel `<n>` is enabled. | ≥ 0.1.0 |
+| `CHAN<n>:BAND?` | `FULL`, `750M`, `650M`, `350M`, `200M`, `100M`, `20M` | enum | Get channel bandwidth (maps from enum). | ≥ 0.1.0 |
+| `CHAN<n>:COUP?` | `DC`, `AC` | enum | Get channel coupling. | ≥ 0.1.0 |
+| `CHAN<n>:TERM?` | `1M`, `50` | enum | Get requested channel termination. | ≥ 0.1.0 |
+| `CHAN<n>:OFFS?` | `<volts>` | f32 | Get requested voltage offset (formatted `0.######`). | ≥ 0.1.0 |
+| `CHAN<n>:RANG?` | `<volts>` | f32 | Get requested full-scale range (formatted `0.######`). | ≥ 0.1.0 |
+| `CHAN<n>:TERM:ACT?` | `1M`, `50` | enum | Get actual channel termination (driver may coerce termination). | ≥ 0.3.0 |
+| `CHAN<n>:OFFS:ACT?` | `<volts>` | f32 | Get actual voltage offset (formatted `0.######`). | ≥ 0.3.0 |
+| `CHAN<n>:RANG:ACT?` | `<volts>` | f32 | Get actual full-scale range (formatted `0.######`). | ≥ 0.3.0 |
 
 ## Reference clock subsystem (`REFCL...`)
 
@@ -157,10 +157,10 @@ Subject matches `REFCL` via `subject.StartsWith("REFCL")`.
 
 ### Commands
 
-| Command | Type | Description |
-|---|---:|---|
-| `REFCL:MODE <IN\|OUT\|OFF>` | enum | Set mode of REFCLK IN/OUT BNC. |
-| `REFCL:FREQ <frequency>` | u32 | Set the input clock frequency if in IN mode, or output frequency if in OUT mode. |
+| Command | Type | Description | Version |
+| --- | ---: | --- | --- |
+| `REFCL:MODE <IN\|OUT\|OFF>` | enum | Set mode of REFCLK IN/OUT BNC. | ≥ 0.1.0 |
+| `REFCL:FREQ <frequency>` | u32 | Set the input clock frequency if in IN mode, or output frequency if in OUT mode. | ≥ 0.1.0 |
 
 ## Processing subsystem (`PRO...`)
 

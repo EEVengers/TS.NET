@@ -132,7 +132,16 @@ internal class ScpiServer : IThread
                     string message = sb.ToString(0, newlineIndex + 1);
                     sb.Remove(0, newlineIndex + 1);
 
-                    string? response = ProcessSCPICommand(logger, settings, thunderscopeSerial, processingControl, message.TrimEnd('\r', '\n'));
+                    string? response;
+                    try
+                    {
+                        response = ProcessSCPICommand(logger, settings, thunderscopeSerial, processingControl, message.TrimEnd('\r', '\n'));
+                    }
+                    catch (Exception ex) when (ex is FormatException or OverflowException)
+                    {
+                        logger.LogWarning($"Invalid SCPI parameter in command '{message.TrimEnd('\r', '\n')}': {ex.Message}");
+                        continue;
+                    }
 
                     if (response != null)
                     {
@@ -376,7 +385,7 @@ internal class ScpiServer : IThread
                                     TriggerType? triggerType = argument.ToUpper() switch
                                     {
                                         "EDGE" => TriggerType.Edge,
-                                        "WINDOW" => TriggerType.Window,
+                                        //"WINDOW" => TriggerType.Window,
                                         //"RUNT" => TriggerType.Runt,
                                         //"WIDTH" => TriggerType.Width,
                                         //"INTERVAL" => TriggerType.Interval,
@@ -388,7 +397,8 @@ internal class ScpiServer : IThread
 
                                     if (triggerType == null)
                                     {
-                                        logger.LogWarning("Trigger type parameter not recognised: {Argument}. Valid values: EDGE, WINDOW, RUNT, WIDTH, INTERVAL, BURST, DROPOUT, SLEWRATE", argument);
+                                        //logger.LogWarning("Trigger type parameter not recognised: {Argument}. Valid values: EDGE, WINDOW, RUNT, WIDTH, INTERVAL, BURST, DROPOUT, SLEWRATE", argument);
+                                        logger.LogWarning("Trigger type parameter not recognised: {Argument}. Valid values: EDGE, BURST", argument);
                                         return null;
                                     }
 
@@ -472,6 +482,7 @@ internal class ScpiServer : IThread
                                     processingControl.Request.Writer.Write(new ProcessingSetEdgeTriggerHysteresis(hysteresis));
                                     return null;
                                 }
+                            /*
                             case var _ when command.StartsWith("WINDOW:HYS") && argument != null:
                                 {
                                     float hysteresis = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
@@ -512,6 +523,7 @@ internal class ScpiServer : IThread
                                     processingControl.Request.Writer.Write(new ProcessingSetWindowTriggerDirection(windowDirection));
                                     return null;
                                 }
+                            */
                             case var _ when command.StartsWith("BURST:LEV") && argument != null:
                                 {
                                     float level = Convert.ToSingle(argument, CultureInfo.InvariantCulture);
@@ -673,6 +685,7 @@ internal class ScpiServer : IThread
                         }
                         break;
                     }
+                /*
                 case var _ when subject.StartsWith("PRO"):
                     {
                         // :PROcessing
@@ -706,6 +719,7 @@ internal class ScpiServer : IThread
                         }
                         break;
                     }
+                */
 
                 case var _ when subject.StartsWith("DEBUG"):
                     {
@@ -929,6 +943,8 @@ internal class ScpiServer : IThread
                                     case ProcessingGetTriggerSourceResponse triggerSourceResponse:
                                         if (triggerSourceResponse.Channel == TriggerChannel.None)
                                             return "NONE\n";
+                                        if (triggerSourceResponse.Channel == TriggerChannel.External)
+                                            return "EXT\n";
                                         return $"CHAN{(int)triggerSourceResponse.Channel}\n";
                                     default:
                                         logger.LogError($"TRIG:SOU? - Invalid response from {nameof(processingControl.Response.Reader)}");
@@ -1077,6 +1093,7 @@ internal class ScpiServer : IThread
                             }
                             return "Error: No/bad response from channel.\n";
                         }
+                    /*
                     case var _ when command.StartsWith("WINDOW:UPPER"):
                         {
                             processingControl.Request.Writer.Write(new ProcessingGetWindowTriggerUpperLevelRequest());
@@ -1141,6 +1158,7 @@ internal class ScpiServer : IThread
                             }
                             return "Error: No/bad response from channel.\n";
                         }
+                    */
                     case var _ when command.StartsWith("BURST:LEV"):
                         {
                             processingControl.Request.Writer.Write(new ProcessingGetBurstTriggerLevelRequest());
@@ -1327,7 +1345,8 @@ internal class ScpiServer : IThread
                             return "Error: No/bad response from channel.\n";
                         }
 
-                    case var _ when command.StartsWith("TERM", StringComparison.OrdinalIgnoreCase):
+                    case var _ when command.StartsWith("TERM", StringComparison.OrdinalIgnoreCase)
+                        && !command.StartsWith("TERM:ACT?", StringComparison.OrdinalIgnoreCase):
                         {
                             processingControl.Request.Writer.Write(new HardwareGetTerminationRequest(channelIndex));
                             if (processingControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
@@ -1353,7 +1372,8 @@ internal class ScpiServer : IThread
                             }
                             return "Error: No/bad response from channel.\n";
                         }
-                    case var _ when command.StartsWith("OFFS", StringComparison.OrdinalIgnoreCase):
+                    case var _ when command.StartsWith("OFFS", StringComparison.OrdinalIgnoreCase)
+                        && !command.StartsWith("OFFS:ACT?", StringComparison.OrdinalIgnoreCase):
                         {
                             processingControl.Request.Writer.Write(new HardwareGetVoltOffsetRequest(channelIndex));
                             if (processingControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
@@ -1368,7 +1388,8 @@ internal class ScpiServer : IThread
                             }
                             return "Error: No/bad response from channel.\n";
                         }
-                    case var _ when command.StartsWith("RANG", StringComparison.OrdinalIgnoreCase):
+                    case var _ when command.StartsWith("RANG", StringComparison.OrdinalIgnoreCase)
+                        && !command.StartsWith("RANG:ACT?", StringComparison.OrdinalIgnoreCase):
                         {
                             processingControl.Request.Writer.Write(new HardwareGetVoltFullScaleRequest(channelIndex));
                             if (processingControl.Response.Reader.TryRead(out var response, hardwareControlTimeoutMs))
