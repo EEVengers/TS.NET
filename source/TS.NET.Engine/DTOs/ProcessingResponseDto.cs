@@ -2,6 +2,8 @@
 
 public abstract record ProcessingResponseDto();
 
+public record ProcessingGetOperationCompleteResponse() : ProcessingResponseDto;
+
 //public record ProcessingGetRateResponseDto(uint SampleRate) : ProcessingResponseDto();
 public record ProcessingGetStateResponse(bool Run) : ProcessingResponseDto();
 

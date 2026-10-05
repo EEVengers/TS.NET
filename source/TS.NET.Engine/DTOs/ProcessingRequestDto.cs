@@ -1,6 +1,8 @@
 ﻿namespace TS.NET.Engine;
 
 public abstract record ProcessingRequestDto();
+public record ProcessingRequest(uint RequestId, ProcessingRequestDto Payload);
+public record ProcessingResponse(uint RequestId, ProcessingResponseDto Payload);
 
 // Only DTOs that generate a response, have "Request" in the name. 
 
@@ -45,6 +47,7 @@ public record HardwareSetCoupling(int ChannelIndex, ThunderscopeCoupling Couplin
 public record HardwareSetTermination(int ChannelIndex, ThunderscopeTermination Termination) : HardwareSetChannelFrontendRequest(ChannelIndex);
 
 // Get
+public record ProcessingGetOperationCompleteRequest() : ProcessingRequestDto;
 public record ProcessingGetStateRequest() : ProcessingRequestDto;
 
 public record ProcessingGetModeRequest() : ProcessingRequestDto;

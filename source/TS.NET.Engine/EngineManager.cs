@@ -247,7 +247,7 @@ public class EngineManager
         }
 
         //string bridgeNamespace = $"ThunderScope.{deviceIndex}";
-        BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl = new();
+        BlockingRequestResponse<ProcessingRequest, ProcessingResponse> processingControl = new();
 
         long captureBufferBytes = ((long)thunderscopeSettings.MaxCaptureLength) * 4 * ThunderscopeDataType.I16.ByteWidth();
         var captureBuffer = new CaptureBufferManager(loggerFactory.CreateLogger(nameof(CaptureBufferManager)), captureBufferBytes);

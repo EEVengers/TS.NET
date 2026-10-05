@@ -10,7 +10,7 @@ public class ProcessingThread : IThread
     private readonly CancellationTokenSource appCancellationTokenSource;
     private readonly ThunderscopeSettings settings;
     private readonly IThunderscope thunderscope;
-    private readonly BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl;
+    private readonly BlockingRequestResponse<ProcessingRequest, ProcessingResponse> processingControl;
     private readonly BlockingChannelWriter<INotificationDto>? uiNotifications;
     private readonly CaptureBufferManager captureBufferManager;
 
@@ -22,7 +22,7 @@ public class ProcessingThread : IThread
         CancellationTokenSource appCancellationTokenSource,
         ThunderscopeSettings settings,
         IThunderscope thunderscope,
-        BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
+        BlockingRequestResponse<ProcessingRequest, ProcessingResponse> processingControl,
         BlockingChannelWriter<INotificationDto>? uiNotifications,
         CaptureBufferManager captureBufferManager)
     {
@@ -61,7 +61,7 @@ public class ProcessingThread : IThread
         CancellationTokenSource appCancellationTokenSource,
         ThunderscopeSettings settings,
         IThunderscope thunderscope,
-        BlockingRequestResponse<ProcessingRequestDto, ProcessingResponseDto> processingControl,
+        BlockingRequestResponse<ProcessingRequest, ProcessingResponse> processingControl,
         BlockingChannelWriter<INotificationDto>? uiNotifications,
         CaptureBufferManager captureBufferManager,
         SemaphoreSlim startSemaphore,
@@ -181,6 +181,7 @@ public class ProcessingThread : IThread
             var postShuffleMemory = new ThunderscopeMemory(ThunderscopeSettings.SegmentLengthBytes);
             bool optimisationWarning = false;
             bool startWhenAllProcessingControlRequestsProcessed = false;
+            ProcessingRequest? operationCompleteRequest = null;
 
             logger.LogDebug("Started");
             startSemaphore.Release();
@@ -193,8 +194,23 @@ public class ProcessingThread : IThread
 
                 while (processingControl.Request.Reader.TryRead(out var request))
                 {
-                    switch (request)
+                    if (request == null)
                     {
+                        logger.LogError("Invalid processing control request");
+                        continue;
+                    }
+                    var requestDto = request.Payload;
+
+                    void Respond(ProcessingResponseDto response)
+                    {
+                        processingControl.Response.Writer.Write(new ProcessingResponse(request.RequestId, response));
+                    }
+
+                    switch (requestDto)
+                    {
+                        case ProcessingGetOperationCompleteRequest:
+                            operationCompleteRequest = request;
+                            break;
                         case HardwareSetRate hardwareSetRate:
                             if (currentHardwareConfig.Acquisition.SampleRateHz != hardwareSetRate.Rate)
                             {
@@ -272,7 +288,7 @@ public class ProcessingThread : IThread
                             {
                                 var channelIndex = hardwareSetChannelFrontendRequest.ChannelIndex;
                                 var channelFrontend = thunderscope.GetChannelFrontend(channelIndex);
-                                switch (request)
+                                switch (requestDto)
                                 {
                                     case HardwareSetVoltOffset hardwareSetVoltOffset:
                                         channelFrontend.RequestedVoltOffset = hardwareSetVoltOffset.VoltOffset;
@@ -293,7 +309,7 @@ public class ProcessingThread : IThread
                                         channelFrontend.RequestedTermination = hardwareSetTermination.Termination;
                                         break;
                                     default:
-                                        logger.LogWarning($"Unknown {nameof(HardwareSetChannelFrontendRequest)}: {request}");
+                                        logger.LogWarning($"Unknown {nameof(HardwareSetChannelFrontendRequest)}: {requestDto}");
                                         break;
                                 }
                                 var reset = runMode;
@@ -303,7 +319,7 @@ public class ProcessingThread : IThread
                                     startWhenAllProcessingControlRequestsProcessed = true;
                                 }
                                 thunderscope.SetChannelFrontend(channelIndex, channelFrontend);
-                                switch (request)
+                                switch (requestDto)
                                 {
                                     case HardwareSetVoltOffset hardwareSetVoltOffset:
                                         logger.LogDebug($"{nameof(HardwareSetVoltOffset)} (channel: {channelIndex}, requested: {hardwareSetVoltOffset.VoltOffset}, actual: {currentHardwareConfig.Frontend[channelIndex].ActualVoltOffset:F4}, min: {currentHardwareConfig.Frontend[channelIndex].MinVoltOffset:F4}, max: {currentHardwareConfig.Frontend[channelIndex].MaxVoltOffset:F4})");
@@ -334,15 +350,15 @@ public class ProcessingThread : IThread
                             }
 
                         case HardwareGetRateRequest hardwareGetRateRequest:
-                            processingControl.Response.Writer.Write(new HardwareGetRateResponse(currentHardwareConfig.Acquisition.SampleRateHz));
+                            Respond(new HardwareGetRateResponse(currentHardwareConfig.Acquisition.SampleRateHz));
                             logger.LogDebug($"{nameof(HardwareGetRateRequest)}");
                             break;
                         case HardwareGetResolutionRequest hardwareGetResolutionRequest:
-                            processingControl.Response.Writer.Write(new HardwareGetResolutionResponse(currentHardwareConfig.Acquisition.Resolution));
+                            Respond(new HardwareGetResolutionResponse(currentHardwareConfig.Acquisition.Resolution));
                             logger.LogDebug($"{nameof(HardwareGetResolutionRequest)}");
                             break;
                         case HardwareGetEnabledRequest hardwareGetEnabledRequest:
-                            processingControl.Response.Writer.Write(new HardwareGetEnabledResponse(currentHardwareConfig.Acquisition.EnabledChannels));
+                            Respond(new HardwareGetEnabledResponse(currentHardwareConfig.Acquisition.EnabledChannels));
                             logger.LogDebug($"{nameof(HardwareGetEnabledRequest)}");
                             break;
                         case HardwareGetChannelFrontendRequest hardwareGetChannelFrontendRequest:
@@ -350,36 +366,36 @@ public class ProcessingThread : IThread
                                 var channelIndex = hardwareGetChannelFrontendRequest.ChannelIndex;
                                 var channelFrontend = thunderscope.GetChannelFrontend(channelIndex);
                                 currentHardwareConfig.Frontend[channelIndex] = channelFrontend;
-                                switch (request)
+                                switch (requestDto)
                                 {
                                     case HardwareGetVoltOffsetRequest hardwareGetVoltOffsetRequest:
                                         {
                                             logger.LogDebug($"{nameof(HardwareGetVoltOffsetRequest)}");
-                                            processingControl.Response.Writer.Write(new HardwareGetVoltOffsetResponse(channelFrontend.RequestedVoltOffset, channelFrontend.ActualVoltOffset));
+                                            Respond(new HardwareGetVoltOffsetResponse(channelFrontend.RequestedVoltOffset, channelFrontend.ActualVoltOffset));
                                             break;
                                         }
                                     case HardwareGetVoltFullScaleRequest hardwareGetVoltFullScaleRequest:
                                         {
                                             logger.LogDebug($"{nameof(HardwareGetVoltFullScaleRequest)}");
-                                            processingControl.Response.Writer.Write(new HardwareGetVoltFullScaleResponse(channelFrontend.RequestedVoltFullScale, channelFrontend.ActualVoltFullScale));
+                                            Respond(new HardwareGetVoltFullScaleResponse(channelFrontend.RequestedVoltFullScale, channelFrontend.ActualVoltFullScale));
                                             break;
                                         }
                                     case HardwareGetBandwidthRequest hardwareGetBandwidthRequest:
                                         {
                                             logger.LogDebug($"{nameof(HardwareGetBandwidthRequest)}");
-                                            processingControl.Response.Writer.Write(new HardwareGetBandwidthResponse(channelFrontend.Bandwidth));
+                                            Respond(new HardwareGetBandwidthResponse(channelFrontend.Bandwidth));
                                             break;
                                         }
                                     case HardwareGetCouplingRequest hardwareGetCouplingRequest:
                                         {
                                             logger.LogDebug($"{nameof(HardwareGetCouplingRequest)}");
-                                            processingControl.Response.Writer.Write(new HardwareGetCouplingResponse(channelFrontend.Coupling));
+                                            Respond(new HardwareGetCouplingResponse(channelFrontend.Coupling));
                                             break;
                                         }
                                     case HardwareGetTerminationRequest hardwareGetTerminationRequest:
                                         {
                                             logger.LogDebug($"{nameof(HardwareGetTerminationRequest)}");
-                                            processingControl.Response.Writer.Write(new HardwareGetTerminationResponse(channelFrontend.RequestedTermination, channelFrontend.ActualTermination));
+                                            Respond(new HardwareGetTerminationResponse(channelFrontend.RequestedTermination, channelFrontend.ActualTermination));
                                             break;
                                         }
                                 }
@@ -393,7 +409,7 @@ public class ProcessingThread : IThread
                                     var status = liteXThunderscope.GetStatus();
                                     temp = (float)status.FpgaTemp;
                                 }
-                                processingControl.Response.Writer.Write(new HardwareGetTemperatureResponse(temp));
+                                Respond(new HardwareGetTemperatureResponse(temp));
                                 logger.LogDebug($"{nameof(HardwareGetTemperatureRequest)}");
                                 break;
                             }
@@ -712,87 +728,87 @@ public class ProcessingThread : IThread
                             break;
 
                         case ProcessingGetStateRequest processingGetStateRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetStateResponse(runMode));
+                            Respond(new ProcessingGetStateResponse(runMode));
                             logger.LogDebug($"{nameof(ProcessingGetStateRequest)}");
                             break;
                         case ProcessingGetModeRequest processingGetModeRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetModeResponse(processingConfig.Mode));
+                            Respond(new ProcessingGetModeResponse(processingConfig.Mode));
                             logger.LogDebug($"{nameof(ProcessingGetModeRequest)}");
                             break;
                         case ProcessingGetDepthRequest processingGetDepthRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetDepthResponse(processingConfig.ChannelDataLength));
+                            Respond(new ProcessingGetDepthResponse(processingConfig.ChannelDataLength));
                             logger.LogDebug($"{nameof(ProcessingGetDepthRequest)}");
                             break;
                         case ProcessingGetTriggerSourceRequest processingGetTriggerSourceRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetTriggerSourceResponse(processingConfig.TriggerChannel));
+                            Respond(new ProcessingGetTriggerSourceResponse(processingConfig.TriggerChannel));
                             logger.LogDebug($"{nameof(ProcessingGetTriggerSourceRequest)}");
                             break;
                         case ProcessingGetTriggerTypeRequest processingGetTriggerTypeRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetTriggerTypeResponse(processingConfig.TriggerType));
+                            Respond(new ProcessingGetTriggerTypeResponse(processingConfig.TriggerType));
                             logger.LogDebug($"{nameof(ProcessingGetTriggerTypeRequest)}");
                             break;
                         case ProcessingGetTriggerDelayRequest processingGetTriggerDelayRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetTriggerDelayResponse(processingConfig.TriggerDelayFs));
+                            Respond(new ProcessingGetTriggerDelayResponse(processingConfig.TriggerDelayFs));
                             logger.LogDebug($"{nameof(ProcessingGetTriggerDelayRequest)}");
                             break;
                         case ProcessingGetTriggerHoldoffRequest processingGetTriggerHoldoffRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetTriggerHoldoffResponse(processingConfig.TriggerHoldoffFs));
+                            Respond(new ProcessingGetTriggerHoldoffResponse(processingConfig.TriggerHoldoffFs));
                             logger.LogDebug($"{nameof(ProcessingGetTriggerHoldoffRequest)}");
                             break;
                         case ProcessingGetTriggerInterpolationRequest processingGetTriggerInterpolationRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetTriggerInterpolationResponse(processingConfig.TriggerInterpolation));
+                            Respond(new ProcessingGetTriggerInterpolationResponse(processingConfig.TriggerInterpolation));
                             logger.LogDebug($"{nameof(ProcessingGetTriggerInterpolationRequest)}");
                             break;
                         case ProcessingGetEdgeTriggerLevelRequest processingGetEdgeTriggerLevelRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetEdgeTriggerLevelResponse(processingConfig.EdgeTriggerParameters.LevelV));
+                            Respond(new ProcessingGetEdgeTriggerLevelResponse(processingConfig.EdgeTriggerParameters.LevelV));
                             logger.LogDebug($"{nameof(ProcessingGetEdgeTriggerLevelRequest)}");
                             break;
                         case ProcessingGetEdgeTriggerDirectionRequest processingGetEdgeTriggerDirectionRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetEdgeTriggerDirectionResponse(processingConfig.EdgeTriggerParameters.Direction));
+                            Respond(new ProcessingGetEdgeTriggerDirectionResponse(processingConfig.EdgeTriggerParameters.Direction));
                             logger.LogDebug($"{nameof(ProcessingGetEdgeTriggerDirectionRequest)}");
                             break;
                         case ProcessingGetEdgeTriggerHysteresisRequest processingGetEdgeTriggerHysteresisRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetEdgeTriggerHysteresisResponse(processingConfig.EdgeTriggerParameters.HysteresisPercent));
+                            Respond(new ProcessingGetEdgeTriggerHysteresisResponse(processingConfig.EdgeTriggerParameters.HysteresisPercent));
                             logger.LogDebug($"{nameof(ProcessingGetEdgeTriggerHysteresisRequest)}");
                             break;
                         case ProcessingGetWindowTriggerHysteresisRequest processingGetWindowTriggerHysteresisRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetWindowTriggerHysteresisResponse(processingConfig.WindowTriggerParameters.HysteresisPercent));
+                            Respond(new ProcessingGetWindowTriggerHysteresisResponse(processingConfig.WindowTriggerParameters.HysteresisPercent));
                             logger.LogDebug($"{nameof(ProcessingGetWindowTriggerHysteresisRequest)}");
                             break;
                         case ProcessingGetWindowTriggerUpperLevelRequest processingGetWindowTriggerUpperLevelRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetWindowTriggerUpperLevelResponse(processingConfig.WindowTriggerParameters.UpperLevelV));
+                            Respond(new ProcessingGetWindowTriggerUpperLevelResponse(processingConfig.WindowTriggerParameters.UpperLevelV));
                             logger.LogDebug($"{nameof(ProcessingGetWindowTriggerUpperLevelRequest)}");
                             break;
                         case ProcessingGetWindowTriggerLowerLevelRequest processingGetWindowTriggerLowerLevelRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetWindowTriggerLowerLevelResponse(processingConfig.WindowTriggerParameters.LowerLevelV));
+                            Respond(new ProcessingGetWindowTriggerLowerLevelResponse(processingConfig.WindowTriggerParameters.LowerLevelV));
                             logger.LogDebug($"{nameof(ProcessingGetWindowTriggerLowerLevelRequest)}");
                             break;
                         case ProcessingGetWindowTriggerDirectionRequest processingGetWindowTriggerDirectionRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetWindowTriggerDirectionResponse(processingConfig.WindowTriggerParameters.Direction));
+                            Respond(new ProcessingGetWindowTriggerDirectionResponse(processingConfig.WindowTriggerParameters.Direction));
                             logger.LogDebug($"{nameof(ProcessingGetWindowTriggerDirectionRequest)}");
                             break;
                         case ProcessingGetBurstTriggerLevelRequest processingGetBurstTriggerLevelRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerLevelResponse(processingConfig.BurstTriggerParameters.LevelV));
+                            Respond(new ProcessingGetBurstTriggerLevelResponse(processingConfig.BurstTriggerParameters.LevelV));
                             logger.LogDebug($"{nameof(ProcessingGetBurstTriggerLevelRequest)}");
                             break;
                         case ProcessingGetBurstTriggerDirectionRequest processingGetBurstTriggerDirectionRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerDirectionResponse(processingConfig.BurstTriggerParameters.Direction));
+                            Respond(new ProcessingGetBurstTriggerDirectionResponse(processingConfig.BurstTriggerParameters.Direction));
                             logger.LogDebug($"{nameof(ProcessingGetBurstTriggerDirectionRequest)}");
                             break;
                         case ProcessingGetBurstTriggerHysteresisRequest processingGetBurstTriggerHysteresisRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerHysteresisResponse(processingConfig.BurstTriggerParameters.HysteresisPercent));
+                            Respond(new ProcessingGetBurstTriggerHysteresisResponse(processingConfig.BurstTriggerParameters.HysteresisPercent));
                             logger.LogDebug($"{nameof(ProcessingGetBurstTriggerHysteresisRequest)}");
                             break;
                         case ProcessingGetBurstTriggerQuietUpperLevelRequest processingGetBurstTriggerQuietUpperLevelRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerQuietUpperLevelResponse(processingConfig.BurstTriggerParameters.QuietUpperLevelV));
+                            Respond(new ProcessingGetBurstTriggerQuietUpperLevelResponse(processingConfig.BurstTriggerParameters.QuietUpperLevelV));
                             logger.LogDebug($"{nameof(ProcessingGetBurstTriggerQuietUpperLevelRequest)}");
                             break;
                         case ProcessingGetBurstTriggerQuietLowerLevelRequest processingGetBurstTriggerQuietLowerLevelRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerQuietLowerLevelResponse(processingConfig.BurstTriggerParameters.QuietLowerLevelV));
+                            Respond(new ProcessingGetBurstTriggerQuietLowerLevelResponse(processingConfig.BurstTriggerParameters.QuietLowerLevelV));
                             logger.LogDebug($"{nameof(ProcessingGetBurstTriggerQuietLowerLevelRequest)}");
                             break;
                         case ProcessingGetBurstTriggerQuietTimeRequest processingGetBurstTriggerQuietTimeRequest:
-                            processingControl.Response.Writer.Write(new ProcessingGetBurstTriggerQuietTimeResponse(processingConfig.BurstTriggerParameters.QuietTimeFs));
+                            Respond(new ProcessingGetBurstTriggerQuietTimeResponse(processingConfig.BurstTriggerParameters.QuietTimeFs));
                             logger.LogDebug($"{nameof(ProcessingGetBurstTriggerQuietTimeRequest)}");
                             break;
 
@@ -841,14 +857,17 @@ public class ProcessingThread : IThread
                                             break;
                                         }
                                 }
-                                processingControl.Response.Writer.Write(new ProcessingGetRatesResponse(rates.ToArray()));
+                                Respond(new ProcessingGetRatesResponse(rates.ToArray()));
                                 logger.LogDebug($"{nameof(ProcessingGetRatesResponse)}");
                                 break;
                             }
                         default:
-                            logger.LogWarning($"Unknown ProcessingRequestDto: {request}");
+                            logger.LogWarning($"Unknown ProcessingRequestDto: {requestDto}");
                             break;
                     }
+                    // Complete deferred work at the barrier before consuming later commands.
+                    if (operationCompleteRequest != null)
+                        break;
                 }
 
                 if (startWhenAllProcessingControlRequestsProcessed)
@@ -859,6 +878,14 @@ public class ProcessingThread : IThread
                     runMode = true;
                     thunderscope.Start();   // 3ms         
                     startWhenAllProcessingControlRequestsProcessed = false;
+                }
+
+                if (operationCompleteRequest != null)
+                {
+                    processingControl.Response.Writer.Write(new ProcessingResponse(operationCompleteRequest.RequestId,
+                        new ProcessingGetOperationCompleteResponse()));
+                    logger.LogDebug($"{nameof(ProcessingGetOperationCompleteRequest)}");
+                    operationCompleteRequest = null;
                 }
 
                 if (thunderscope.Running())
