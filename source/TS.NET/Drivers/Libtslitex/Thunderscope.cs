@@ -532,7 +532,7 @@ public class Thunderscope : IThunderscope
         var tsAdcCal = new Interop.tsAdcCalibration_t();
         for (int i = 0; i < adcCalibration.LoadScale.Length; i++)
         {
-            tsAdcCal.loadCal[i].channels = (uint)adcCalibration.LoadScale[i].Channel.Aggregate(0, (current, chan) => 1 << chan);
+            tsAdcCal.loadCal[i].channels = (uint)adcCalibration.LoadScale[i].Channel.Aggregate(0, (current, chan) => current | (1 << chan));
             for (int j = 0; j < adcCalibration.LoadScale[i].RateScale.Length; j++)
             {
                 tsAdcCal.loadCal[i].conf[j].rate = adcCalibration.LoadScale[i].RateScale[j].Rate;
@@ -542,7 +542,7 @@ public class Thunderscope : IThunderscope
         }
         for (int i = 0; i < adcCalibration.BranchGain.Length; i++)
         {
-            tsAdcCal.branchFineGain[i].channels = (uint)adcCalibration.BranchGain[i].Channel.Aggregate(0, (current, chan) => 1 << chan);
+            tsAdcCal.branchFineGain[i].channels = (uint)adcCalibration.BranchGain[i].Channel.Aggregate(0, (current, chan) => current | (1 << chan));
             for (int j = 0; j < adcCalibration.BranchGain[i].RateGain.Length; j++)
             {
                 tsAdcCal.branchFineGain[i].conf[j].rate = adcCalibration.BranchGain[i].RateGain[j].Rate;
@@ -550,6 +550,11 @@ public class Thunderscope : IThunderscope
                     tsAdcCal.branchFineGain[i].conf[j].gain[k] = (byte)adcCalibration.BranchGain[i].RateGain[j].Gain[k];
             }
         }
+
+        var retVal = Interop.SetAdcCalibration(tsHandle, in tsAdcCal);
+        if (retVal < 0)
+            throw new ThunderscopeException($"Failed to set libtslitex ADC Calibration ({GetLibraryReturnString(retVal)})");
+
         RefreshFrontendValues();
     }
 
