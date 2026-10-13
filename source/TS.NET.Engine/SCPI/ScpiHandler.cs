@@ -150,39 +150,39 @@ internal class ScpiHandler
         }
     }
 
-    private string? Run(CommandContext context)
+    private void Run(CommandContext context)
     {
-        return context.Action(new ProcessingRun());
+        context.Action(new ProcessingRun());
     }
 
-    private string? Stop(CommandContext context)
+    private void Stop(CommandContext context)
     {
-        return context.Action(new ProcessingStop());
+        context.Action(new ProcessingStop());
     }
 
-    private string? Force(CommandContext context)
+    private void Force(CommandContext context)
     {
-        return context.Action(new ProcessingForce());
+        context.Action(new ProcessingForce());
     }
 
-    private string? Single(CommandContext context)
+    private void Single(CommandContext context)
     {
-        return context.Action(new ProcessingSetMode(Mode.Single));
+        context.Action(new ProcessingSetMode(Mode.Single));
     }
 
-    private string? Normal(CommandContext context)
+    private void Normal(CommandContext context)
     {
-        return context.Action(new ProcessingSetMode(Mode.Normal));
+        context.Action(new ProcessingSetMode(Mode.Normal));
     }
 
-    private string? Auto(CommandContext context)
+    private void Auto(CommandContext context)
     {
-        return context.Action(new ProcessingSetMode(Mode.Auto));
+        context.Action(new ProcessingSetMode(Mode.Auto));
     }
 
-    private string? Stream(CommandContext context)
+    private void Stream(CommandContext context)
     {
-        return context.Action(new ProcessingSetMode(Mode.Stream));
+        context.Action(new ProcessingSetMode(Mode.Stream));
     }
 
     private string GetIdentification(CommandContext context)
@@ -216,9 +216,9 @@ internal class ScpiHandler
         return context.Get<HardwareGetTemperatureResponse>(new HardwareGetTemperatureRequest(), r => Invariant($"{r.Temperature:F1}\n"));
     }
 
-    private string? SetAcquisitionRate(CommandContext context)
+    private void SetAcquisitionRate(CommandContext context)
     {
-        return context.Set(new HardwareSetRate(ParseUInt64(context.Argument)));
+        context.Set(new HardwareSetRate(ParseUInt64(context.Argument)));
     }
 
     private string GetAcquisitionRate(CommandContext context)
@@ -226,9 +226,16 @@ internal class ScpiHandler
         return context.Get<HardwareGetRateResponse>(new HardwareGetRateRequest(), r => Invariant($"{r.SampleRateHz}\n"));
     }
 
-    private string? SetAcquisitionDepth(CommandContext context)
+    private void SetAcquisitionDepth(CommandContext context)
     {
-        return context.Set(new ProcessingSetDepth(checked((int)ParseUInt32(context.Argument))));
+        uint depth = ParseUInt32(context.Argument);
+        if (depth < 1000 || depth > settings.MaxCaptureLength)
+        {
+            logger.LogWarning($"Ignoring acquisition depth {depth}; must be between 1000 and {settings.MaxCaptureLength} samples");
+            return;
+        }
+
+        context.Set(new ProcessingSetDepth((int)depth));
     }
 
     private string GetAcquisitionDepth(CommandContext context)
@@ -236,12 +243,12 @@ internal class ScpiHandler
         return context.Get<ProcessingGetDepthResponse>(new ProcessingGetDepthRequest(), r => Invariant($"{r.Depth}\n"));
     }
 
-    private string? SetAcquisitionResolution(CommandContext context)
+    private void SetAcquisitionResolution(CommandContext context)
     {
         uint bits = ParseUInt32(context.Argument);
         if (bits != 8 && bits != 12)
             logger.LogWarning($"Unsupported ADC resolution {bits}; defaulting to 8-bit");
-        return context.Set(new HardwareSetResolution(bits == 12 ? AdcResolution.TwelveBit : AdcResolution.EightBit));
+        context.Set(new HardwareSetResolution(bits == 12 ? AdcResolution.TwelveBit : AdcResolution.EightBit));
     }
 
     private string GetAcquisitionResolution(CommandContext context)
@@ -265,9 +272,9 @@ internal class ScpiHandler
         return context.Reply(GetDepths());
     }
 
-    private string? SetTriggerSource(CommandContext context)
+    private void SetTriggerSource(CommandContext context)
     {
-        return context.Set(new ProcessingSetTriggerSource(ParseTriggerSource(context.Argument)));
+        context.Set(new ProcessingSetTriggerSource(ParseTriggerSource(context.Argument)));
     }
 
     private string GetTriggerSource(CommandContext context)
@@ -280,9 +287,9 @@ internal class ScpiHandler
         });
     }
 
-    private string? SetTriggerType(CommandContext context)
+    private void SetTriggerType(CommandContext context)
     {
-        return context.Set(new ProcessingSetTriggerType(ParseChoice(context.Argument,
+        context.Set(new ProcessingSetTriggerType(ParseChoice(context.Argument,
             ("EDGE", TriggerType.Edge), ("BURST", TriggerType.Burst))));
     }
 
@@ -291,9 +298,9 @@ internal class ScpiHandler
         return context.Get<ProcessingGetTriggerTypeResponse>(new ProcessingGetTriggerTypeRequest(), r => $"{r.Type.ToString().ToUpperInvariant()}\n");
     }
 
-    private string? SetTriggerDelay(CommandContext context)
+    private void SetTriggerDelay(CommandContext context)
     {
-        return context.Set(new ProcessingSetTriggerDelay((ulong)Math.Max(0, ParseInt64(context.Argument))));
+        context.Set(new ProcessingSetTriggerDelay((ulong)Math.Max(0, ParseInt64(context.Argument))));
     }
 
     private string GetTriggerDelay(CommandContext context)
@@ -301,9 +308,9 @@ internal class ScpiHandler
         return context.Get<ProcessingGetTriggerDelayResponse>(new ProcessingGetTriggerDelayRequest(), r => Invariant($"{r.Femtoseconds}\n"));
     }
 
-    private string? SetTriggerHoldoff(CommandContext context)
+    private void SetTriggerHoldoff(CommandContext context)
     {
-        return context.Set(new ProcessingSetTriggerHoldoff(ParseUInt64(context.Argument)));
+        context.Set(new ProcessingSetTriggerHoldoff(ParseUInt64(context.Argument)));
     }
 
     private string GetTriggerHoldoff(CommandContext context)
@@ -311,7 +318,7 @@ internal class ScpiHandler
         return context.Get<ProcessingGetTriggerHoldoffResponse>(new ProcessingGetTriggerHoldoffRequest(), r => Invariant($"{r.Femtoseconds}\n"));
     }
 
-    private string? SetTriggerInterpolation(CommandContext context)
+    private void SetTriggerInterpolation(CommandContext context)
     {
         string argument = context.Argument;
         bool enabled;
@@ -324,7 +331,7 @@ internal class ScpiHandler
                 enabled = true;
                 break;
         }
-        return context.Set(new ProcessingSetTriggerInterpolation(enabled));
+        context.Set(new ProcessingSetTriggerInterpolation(enabled));
     }
 
     private string GetTriggerInterpolation(CommandContext context)
@@ -332,9 +339,9 @@ internal class ScpiHandler
         return context.Get<ProcessingGetTriggerInterpolationResponse>(new ProcessingGetTriggerInterpolationRequest(), r => r.Enabled ? "true\n" : "false\n");
     }
 
-    private string? SetTriggerEdgeLevel(CommandContext context)
+    private void SetTriggerEdgeLevel(CommandContext context)
     {
-        return context.Set(new ProcessingSetEdgeTriggerLevel(ParseFloat(context.Argument)));
+        context.Set(new ProcessingSetEdgeTriggerLevel(ParseFloat(context.Argument)));
     }
 
     private string GetTriggerEdgeLevel(CommandContext context)
@@ -342,9 +349,9 @@ internal class ScpiHandler
         return context.Get<ProcessingGetEdgeTriggerLevelResponse>(new ProcessingGetEdgeTriggerLevelRequest(), r => Invariant($"{r.LevelVolts:0.######}\n"));
     }
 
-    private string? SetTriggerEdgeDirection(CommandContext context)
+    private void SetTriggerEdgeDirection(CommandContext context)
     {
-        return context.Set(new ProcessingSetEdgeTriggerDirection(ParseChoice(context.Argument,
+        context.Set(new ProcessingSetEdgeTriggerDirection(ParseChoice(context.Argument,
             ("RISING", EdgeDirection.Rising), ("FALLING", EdgeDirection.Falling), ("ANY", EdgeDirection.Any))));
     }
 
@@ -353,9 +360,9 @@ internal class ScpiHandler
         return context.Get<ProcessingGetEdgeTriggerDirectionResponse>(new ProcessingGetEdgeTriggerDirectionRequest(), r => $"{r.Direction.ToString().ToUpperInvariant()}\n");
     }
 
-    private string? SetTriggerEdgeHysteresis(CommandContext context)
+    private void SetTriggerEdgeHysteresis(CommandContext context)
     {
-        return context.Set(new ProcessingSetEdgeTriggerHysteresis(ParseFloat(context.Argument)));
+        context.Set(new ProcessingSetEdgeTriggerHysteresis(ParseFloat(context.Argument)));
     }
 
     private string GetTriggerEdgeHysteresis(CommandContext context)
@@ -363,9 +370,9 @@ internal class ScpiHandler
         return context.Get<ProcessingGetEdgeTriggerHysteresisResponse>(new ProcessingGetEdgeTriggerHysteresisRequest(), r => Invariant($"{r.Percent:0.######}\n"));
     }
 
-    private string? SetTriggerWindowHysteresis(CommandContext context)
+    private void SetTriggerWindowHysteresis(CommandContext context)
     {
-        return context.Set(new ProcessingSetWindowTriggerHysteresis(ParseFloat(context.Argument)));
+        context.Set(new ProcessingSetWindowTriggerHysteresis(ParseFloat(context.Argument)));
     }
 
     private string GetTriggerWindowHysteresis(CommandContext context)
@@ -374,9 +381,9 @@ internal class ScpiHandler
             r => Invariant($"{r.Percent:0.######}\n"));
     }
 
-    private string? SetTriggerWindowUpper(CommandContext context)
+    private void SetTriggerWindowUpper(CommandContext context)
     {
-        return context.Set(new ProcessingSetWindowTriggerUpperLevel(ParseFloat(context.Argument)));
+        context.Set(new ProcessingSetWindowTriggerUpperLevel(ParseFloat(context.Argument)));
     }
 
     private string GetTriggerWindowUpper(CommandContext context)
@@ -385,9 +392,9 @@ internal class ScpiHandler
             r => Invariant($"{r.LevelVolts:0.######}\n"));
     }
 
-    private string? SetTriggerWindowLower(CommandContext context)
+    private void SetTriggerWindowLower(CommandContext context)
     {
-        return context.Set(new ProcessingSetWindowTriggerLowerLevel(ParseFloat(context.Argument)));
+        context.Set(new ProcessingSetWindowTriggerLowerLevel(ParseFloat(context.Argument)));
     }
 
     private string GetTriggerWindowLower(CommandContext context)
@@ -396,9 +403,9 @@ internal class ScpiHandler
             r => Invariant($"{r.LevelVolts:0.######}\n"));
     }
 
-    private string? SetTriggerWindowDirection(CommandContext context)
+    private void SetTriggerWindowDirection(CommandContext context)
     {
-        return context.Set(new ProcessingSetWindowTriggerDirection(ParseChoice(context.Argument,
+        context.Set(new ProcessingSetWindowTriggerDirection(ParseChoice(context.Argument,
             ("ENTER", WindowDirection.Enter), ("EXIT", WindowDirection.Exit))));
     }
 
@@ -408,9 +415,9 @@ internal class ScpiHandler
             r => $"{r.Direction.ToString().ToUpperInvariant()}\n");
     }
 
-    private string? SetTriggerBurstLevel(CommandContext context)
+    private void SetTriggerBurstLevel(CommandContext context)
     {
-        return context.Set(new ProcessingSetBurstTriggerLevel(ParseFloat(context.Argument)));
+        context.Set(new ProcessingSetBurstTriggerLevel(ParseFloat(context.Argument)));
     }
 
     private string GetTriggerBurstLevel(CommandContext context)
@@ -418,9 +425,9 @@ internal class ScpiHandler
         return context.Get<ProcessingGetBurstTriggerLevelResponse>(new ProcessingGetBurstTriggerLevelRequest(), r => Invariant($"{r.LevelVolts:0.######}\n"));
     }
 
-    private string? SetTriggerBurstDirection(CommandContext context)
+    private void SetTriggerBurstDirection(CommandContext context)
     {
-        return context.Set(new ProcessingSetBurstTriggerDirection(ParseChoice(context.Argument,
+        context.Set(new ProcessingSetBurstTriggerDirection(ParseChoice(context.Argument,
             ("RISING", BurstEdgeDirection.Rising), ("FALLING", BurstEdgeDirection.Falling))));
     }
 
@@ -429,9 +436,9 @@ internal class ScpiHandler
         return context.Get<ProcessingGetBurstTriggerDirectionResponse>(new ProcessingGetBurstTriggerDirectionRequest(), r => $"{r.Direction.ToString().ToUpperInvariant()}\n");
     }
 
-    private string? SetTriggerBurstHysteresis(CommandContext context)
+    private void SetTriggerBurstHysteresis(CommandContext context)
     {
-        return context.Set(new ProcessingSetBurstTriggerHysteresis(ParseFloat(context.Argument)));
+        context.Set(new ProcessingSetBurstTriggerHysteresis(ParseFloat(context.Argument)));
     }
 
     private string GetTriggerBurstHysteresis(CommandContext context)
@@ -439,9 +446,9 @@ internal class ScpiHandler
         return context.Get<ProcessingGetBurstTriggerHysteresisResponse>(new ProcessingGetBurstTriggerHysteresisRequest(), r => Invariant($"{r.Percent:0.######}\n"));
     }
 
-    private string? SetTriggerBurstQuietUpper(CommandContext context)
+    private void SetTriggerBurstQuietUpper(CommandContext context)
     {
-        return context.Set(new ProcessingSetBurstTriggerQuietUpperLevel(ParseFloat(context.Argument)));
+        context.Set(new ProcessingSetBurstTriggerQuietUpperLevel(ParseFloat(context.Argument)));
     }
 
     private string GetTriggerBurstQuietUpper(CommandContext context)
@@ -449,9 +456,9 @@ internal class ScpiHandler
         return context.Get<ProcessingGetBurstTriggerQuietUpperLevelResponse>(new ProcessingGetBurstTriggerQuietUpperLevelRequest(), r => Invariant($"{r.LevelVolts:0.######}\n"));
     }
 
-    private string? SetTriggerBurstQuietLower(CommandContext context)
+    private void SetTriggerBurstQuietLower(CommandContext context)
     {
-        return context.Set(new ProcessingSetBurstTriggerQuietLowerLevel(ParseFloat(context.Argument)));
+        context.Set(new ProcessingSetBurstTriggerQuietLowerLevel(ParseFloat(context.Argument)));
     }
 
     private string GetTriggerBurstQuietLower(CommandContext context)
@@ -459,9 +466,9 @@ internal class ScpiHandler
         return context.Get<ProcessingGetBurstTriggerQuietLowerLevelResponse>(new ProcessingGetBurstTriggerQuietLowerLevelRequest(), r => Invariant($"{r.LevelVolts:0.######}\n"));
     }
 
-    private string? SetTriggerBurstQuietTime(CommandContext context)
+    private void SetTriggerBurstQuietTime(CommandContext context)
     {
-        return context.Set(new ProcessingSetBurstTriggerQuietTime(ParseInt64(context.Argument)));
+        context.Set(new ProcessingSetBurstTriggerQuietTime(ParseInt64(context.Argument)));
     }
 
     private string GetTriggerBurstQuietTime(CommandContext context)
@@ -469,14 +476,14 @@ internal class ScpiHandler
         return context.Get<ProcessingGetBurstTriggerQuietTimeResponse>(new ProcessingGetBurstTriggerQuietTimeRequest(), r => Invariant($"{r.Femtoseconds}\n"));
     }
 
-    private string? EnableChannel(CommandContext context)
+    private void EnableChannel(CommandContext context)
     {
-        return context.Action(new HardwareSetChannelEnabled(context.ChannelIndex, true));
+        context.Action(new HardwareSetChannelEnabled(context.ChannelIndex, true));
     }
 
-    private string? DisableChannel(CommandContext context)
+    private void DisableChannel(CommandContext context)
     {
-        return context.Action(new HardwareSetChannelEnabled(context.ChannelIndex, false));
+        context.Action(new HardwareSetChannelEnabled(context.ChannelIndex, false));
     }
 
     private string GetChannelState(CommandContext context)
@@ -485,9 +492,9 @@ internal class ScpiHandler
             r => ((r.EnabledChannels >> context.ChannelIndex) & 1) != 0 ? "ON\n" : "OFF\n", HardwareControlTimeoutMs);
     }
 
-    private string? SetChannelBandwidth(CommandContext context)
+    private void SetChannelBandwidth(CommandContext context)
     {
-        return context.Set(new HardwareSetBandwidth(context.ChannelIndex, ParseBandwidth(context.Argument)));
+        context.Set(new HardwareSetBandwidth(context.ChannelIndex, ParseBandwidth(context.Argument)));
     }
 
     private string GetChannelBandwidth(CommandContext context)
@@ -496,9 +503,9 @@ internal class ScpiHandler
             r => FormatBandwidth(r.Bandwidth) + "\n", HardwareControlTimeoutMs);
     }
 
-    private string? SetChannelCoupling(CommandContext context)
+    private void SetChannelCoupling(CommandContext context)
     {
-        return context.Set(new HardwareSetCoupling(context.ChannelIndex, ParseCoupling(context.Argument)));
+        context.Set(new HardwareSetCoupling(context.ChannelIndex, ParseCoupling(context.Argument)));
     }
 
     private string GetChannelCoupling(CommandContext context)
@@ -511,9 +518,9 @@ internal class ScpiHandler
         }, HardwareControlTimeoutMs);
     }
 
-    private string? SetChannelTermination(CommandContext context)
+    private void SetChannelTermination(CommandContext context)
     {
-        return context.Set(new HardwareSetTermination(context.ChannelIndex, ParseTermination(context.Argument)));
+        context.Set(new HardwareSetTermination(context.ChannelIndex, ParseTermination(context.Argument)));
     }
 
     private string GetChannelTermination(CommandContext context)
@@ -528,9 +535,9 @@ internal class ScpiHandler
             r => FormatTermination(r.ActualTermination) + "\n", HardwareControlTimeoutMs);
     }
 
-    private string? SetChannelOffset(CommandContext context)
+    private void SetChannelOffset(CommandContext context)
     {
-        return context.Set(new HardwareSetVoltOffset(context.ChannelIndex, Math.Clamp(ParseFloat(context.Argument), -50, 50)));
+        context.Set(new HardwareSetVoltOffset(context.ChannelIndex, Math.Clamp(ParseFloat(context.Argument), -50, 50)));
     }
 
     private string GetChannelOffset(CommandContext context)
@@ -544,9 +551,9 @@ internal class ScpiHandler
         return context.Get<HardwareGetVoltOffsetResponse>(new HardwareGetVoltOffsetRequest(context.ChannelIndex), r => Invariant($"{r.ActualVoltOffset:0.######}\n"), HardwareControlTimeoutMs);
     }
 
-    private string? SetChannelRange(CommandContext context)
+    private void SetChannelRange(CommandContext context)
     {
-        return context.Set(new HardwareSetVoltFullScale(context.ChannelIndex, Math.Clamp(ParseFloat(context.Argument), -50, 50)));
+        context.Set(new HardwareSetVoltFullScale(context.ChannelIndex, Math.Clamp(ParseFloat(context.Argument), -50, 50)));
     }
 
     private string GetChannelRange(CommandContext context)
@@ -559,17 +566,17 @@ internal class ScpiHandler
         return context.Get<HardwareGetVoltFullScaleResponse>(new HardwareGetVoltFullScaleRequest(context.ChannelIndex), r => Invariant($"{r.ActualVoltFullScale:0.######}\n"), HardwareControlTimeoutMs);
     }
 
-    private string? SetReferenceClockMode(CommandContext context)
+    private void SetReferenceClockMode(CommandContext context)
     {
-        return context.Set(new HardwareSetRefClockMode(ParseChoice(context.Argument, ("IN", ThunderscopeRefClockMode.Input), ("OUT", ThunderscopeRefClockMode.Output), ("OFF", ThunderscopeRefClockMode.Disabled))));
+        context.Set(new HardwareSetRefClockMode(ParseChoice(context.Argument, ("IN", ThunderscopeRefClockMode.Input), ("OUT", ThunderscopeRefClockMode.Output), ("OFF", ThunderscopeRefClockMode.Disabled))));
     }
 
-    private string? SetReferenceClockFrequency(CommandContext context)
+    private void SetReferenceClockFrequency(CommandContext context)
     {
-        return context.Set(new HardwareSetRefClockFrequency(ParseUInt32(context.Argument)));
+        context.Set(new HardwareSetRefClockFrequency(ParseUInt32(context.Argument)));
     }
 
-    private string? SetFrontendManualControl(CommandContext context)
+    private void SetFrontendManualControl(CommandContext context)
     {
         var args = SplitArguments(context.Argument, 9);
         int channelIndex = ParseChannelIndex(args[0]);
@@ -584,14 +591,23 @@ internal class ScpiHandler
             PgaHighGain = byte.Parse(args[7], CultureInfo.InvariantCulture),
             PgaFilter = ParseBandwidth(args[8])
         };
-        return context.Set(new HardwareSetChannelManualControl(channelIndex, channel));
+        context.Set(new HardwareSetChannelManualControl(channelIndex, channel));
     }
 
-    private string? SetBranchGainsManualControl(CommandContext context)
+    private void SetBranchGainsManualControl(CommandContext context)
     {
         var args = SplitArguments(context.Argument, 8);
         var gains = args.Select(value => (byte)(sbyte.Parse(value, CultureInfo.InvariantCulture) & 0x7F)).ToArray();
-        return context.Set(new HardwareSetAdcBranchGainsManualControl(gains));
+        context.Set(new HardwareSetAdcBranchGainsManualControl(gains));
+    }
+
+    private void Register(string path, Action<CommandContext> execute, int? channelIndex = null)
+    {
+        Register(path, context =>
+        {
+            execute(context);
+            return null;
+        }, channelIndex);
     }
 
     private void Register(string path, Func<CommandContext, string?> execute, int? channelIndex = null)
@@ -601,11 +617,10 @@ internal class ScpiHandler
         commands.Register(header, isQuery, new CommandHandler(header, channelIndex, execute));
     }
 
-    private string? Send(ProcessingRequestDto request, CancellationToken cancellationToken)
+    private void Send(ProcessingRequestDto request, CancellationToken cancellationToken)
     {
         SendRequest(request, cancellationToken);
         logger.LogDebug($"SCPI sent {request}");
-        return null;
     }
 
     private uint SendRequest(ProcessingRequestDto request, CancellationToken cancellationToken)
@@ -829,16 +844,16 @@ internal class ScpiHandler
             CancellationToken = cancellationToken;
         }
 
-        public string? Action(ProcessingRequestDto request)
+        public void Action(ProcessingRequestDto request)
         {
             RequireNoArguments();
-            return handler.Send(request, CancellationToken);
+            handler.Send(request, CancellationToken);
         }
 
-        public string? Set(ProcessingRequestDto request)
+        public void Set(ProcessingRequestDto request)
         {
             RequireArgument();
-            return handler.Send(request, CancellationToken);
+            handler.Send(request, CancellationToken);
         }
 
         public string Get<TResponse>(ProcessingRequestDto request, Func<TResponse, string> format, int timeoutMs = ProcessingControlTimeoutMs) where TResponse : ProcessingResponseDto
