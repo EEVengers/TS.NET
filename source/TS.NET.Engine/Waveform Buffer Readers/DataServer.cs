@@ -211,7 +211,7 @@ internal class DataServer : IThread
                 if (ackBytes == ackBuffer.Length)
                 {
                     lastAck = BinaryPrimitives.ReadUInt32LittleEndian(ackBuffer);
-                    if(inflight > 0)
+                    if (inflight > 0)
                         inflight--;
                     ackBytes = 0;
                     //logger.LogInformation($"Got ACK: {lastAck}, {inflight} in flight");
@@ -293,12 +293,12 @@ internal class DataServer : IThread
                         {
                             // [Payload tag][Payload length][Payload bytes]
                             uint payLoadLength = (uint)(sizeof(WaveformHeader) + channelCount * (sizeof(ChannelHeader) + captureBuffer.GetChannelReadByteBuffer(0).Length));
-                            socket.Send("DATA"u8);
+                            Send(socket, "DATA"u8, cancelToken);
                             Span<byte> payloadLengthBytes = scratchBuffer.Slice(0, 4);
                             BinaryPrimitives.WriteUInt32LittleEndian(payloadLengthBytes, payLoadLength);
-                            socket.Send(payloadLengthBytes);
+                            Send(socket, payloadLengthBytes, cancelToken);
                         }
-                        socket.Send(new ReadOnlySpan<byte>(&waveformHeader, sizeof(WaveformHeader)));
+                        Send(socket, new ReadOnlySpan<byte>(&waveformHeader, sizeof(WaveformHeader)), cancelToken);
                         for (byte captureBufferIndex = 0; captureBufferIndex < captureBuffer.ChannelCount; captureBufferIndex++)
                         {
                             // Build channel header
@@ -307,9 +307,9 @@ internal class DataServer : IThread
                             channelHeader.channelIndex = (byte)channelIndex;
                             channelHeader.scale = (float)(thunderscopeChannel.ActualVoltFullScale / TriggerUtility.AdcRange(captureBuffer.Metadata.HardwareConfig.Acquisition.Resolution));
                             channelHeader.offset = (float)thunderscopeChannel.ActualVoltOffset;
-                            socket.Send(new ReadOnlySpan<byte>(&channelHeader, sizeof(ChannelHeader)));
+                            Send(socket, new ReadOnlySpan<byte>(&channelHeader, sizeof(ChannelHeader)), cancelToken);
                             var channelBuffer = captureBuffer.GetChannelReadByteBuffer(captureBufferIndex);
-                            socket.Send(channelBuffer);
+                            Send(socket, channelBuffer, cancelToken);
                         }
                     }
 
@@ -347,6 +347,19 @@ internal class DataServer : IThread
             {
                 cancelToken.WaitHandle.WaitOne(TimeSpan.FromMilliseconds(1));
             }
+        }
+    }
+
+    private static void Send(Socket socket, ReadOnlySpan<byte> data, CancellationToken cancelToken)
+    {
+        int offset = 0;
+        while (offset < data.Length)
+        {
+            cancelToken.ThrowIfCancellationRequested();
+            int sent = socket.Send(data.Slice(offset), SocketFlags.None);
+            if (sent == 0)
+                throw new IOException("Socket send failed");
+            offset += sent;
         }
     }
 }
