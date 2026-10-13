@@ -1306,6 +1306,7 @@ public class ProcessingThread : IThread
                 int channelLength = processingConfig.ChannelDataLength;
                 while (acquisitionBuffer.SamplesInBufferPerChannel > channelLength)
                 {
+                    cancelToken.ThrowIfCancellationRequested();
                     if (captureBufferManager.TryStartWrite(out var buffer))
                     {
                         int channelCount = currentHardwareConfig.Acquisition.EnabledChannelsCount();
@@ -1357,6 +1358,10 @@ public class ProcessingThread : IThread
                             ProcessingConfig = processingConfig
                         };
                         captureBufferManager.FinishWrite(captureMetadata);
+                    }
+                    else
+                    {
+                        return;
                     }
                 }
             }
