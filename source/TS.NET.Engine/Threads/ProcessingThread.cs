@@ -124,6 +124,7 @@ public class ProcessingThread : IThread
             uiNotifications?.TryWrite(NotificationMapper.ToNotification(processingConfig));
             uiNotifications?.TryWrite(new ProcessingStop());
             var currentHardwareConfig = initialHardwareConfig;
+            ulong? expectedSampleStartIndex = null;
 
             // Periodic debug display variables
             DateTimeOffset startTime = DateTimeOffset.UtcNow;
@@ -892,6 +893,12 @@ public class ProcessingThread : IThread
                 {
                     if (thunderscope.TryRead(preShuffleMemory.DataSpanU8, out var sampleStartIndex, out var sampleLengthPerChannel))
                     {
+                        if (expectedSampleStartIndex.HasValue && sampleStartIndex != expectedSampleStartIndex.Value)
+                        {
+                            logger.LogWarning($"Sample discontinuity: expected {expectedSampleStartIndex.Value}, received {sampleStartIndex}");
+                        }
+                        expectedSampleStartIndex = sampleStartIndex + (ulong)sampleLengthPerChannel;
+
                         totalReadChunks++;
                         totalReadBytes += preShuffleMemory.LengthBytes;
                         totalReadSamplesPerChannel += sampleLengthPerChannel;
@@ -1449,6 +1456,7 @@ public class ProcessingThread : IThread
             void ResetBuffers()
             {
                 logger.LogDebug("ResetBuffers");
+                expectedSampleStartIndex = null;
 
                 // Reset acquisition buffers
                 acquisitionBuffer.Reset();
