@@ -7,6 +7,8 @@ namespace TS.NET.Engine;
 
 internal class ScpiSession
 {
+    private const int MaxCommandLength = 4096;
+
     private readonly Socket socket;
     private readonly ILogger logger;
     private readonly ScpiHandler handler;
@@ -74,6 +76,11 @@ internal class ScpiSession
                     if (sb[scanIndex] != '\n')
                     {
                         scanIndex++;
+                        if (scanIndex > MaxCommandLength)
+                        {
+                            logger.LogWarning($"SCPI command exceeds {MaxCommandLength} bytes, dropping session ({sessionId})");
+                            return;
+                        }
                         continue;
                     }
 
