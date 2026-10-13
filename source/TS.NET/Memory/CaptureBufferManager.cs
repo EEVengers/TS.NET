@@ -37,6 +37,11 @@ namespace TS.NET
         private readonly byte* buffer = buffer;
         private readonly int bufferLength = bufferLength;
 
+        internal bool Overlaps(byte* otherBuffer, int otherBufferLength)
+        {
+            return buffer < otherBuffer + otherBufferLength && otherBuffer < buffer + bufferLength;
+        }
+
         public Span<T> GetChannelWriteBuffer<T>(int channelIndex) where T : unmanaged
         {
             int byteWidth = DataType.ByteWidth();
@@ -96,6 +101,7 @@ namespace TS.NET
         private readonly ILogger logger;
         private readonly BlockingCollection<CaptureBuffer> availableBuffers;
         private readonly BlockingCollection<CaptureBuffer> filledBuffers;
+        private readonly List<CaptureBuffer> deferredBuffers = [];
         private readonly long maxMemoryLimitBytes;
 
         private int ManagerConfiguration = 1;
@@ -163,13 +169,7 @@ namespace TS.NET
             {
                 while (availableBuffers.TryTake(out _)) { }
                 while (filledBuffers.TryTake(out _)) { }
-
-                if (readInProgress)
-                {
-                    logger.LogWarning("Reconfiguring while a read is in progress; the read buffer may be corrupted");
-                    // To do - determine the affected buffers, and add them to a "configurationChangedBuffers" queue, to be emptied and added to availableBuffers on next FinishRead()
-                    // then this warning can be removed
-                }
+                deferredBuffers.Clear();
 
                 var captureByteLength = checked((int)potentialTotalCaptureLengthBytes);
                 maxCaptureCount = (int)(maxMemoryLimitBytes / potentialTotalCaptureLengthBytes);
@@ -187,8 +187,12 @@ namespace TS.NET
                 {
                     unsafe
                     {
-                        var bufferP = memory.AsPointer(i * captureByteLength, captureByteLength);
-                        availableBuffers.Add(new CaptureBuffer(ManagerConfiguration, channelCount, channelCaptureLength, captureDataType, bufferP, captureByteLength));
+                        var bufferP = memory.AsPointer((long)i * captureByteLength, captureByteLength);
+                        var captureBuffer = new CaptureBuffer(ManagerConfiguration, channelCount, channelCaptureLength, captureDataType, bufferP, captureByteLength);
+                        if (currentReadBuffer != null && currentReadBuffer.Overlaps(bufferP, captureByteLength))
+                            deferredBuffers.Add(captureBuffer);
+                        else
+                            availableBuffers.Add(captureBuffer);
                     }
                 }
 
@@ -301,6 +305,9 @@ namespace TS.NET
                 {
                     availableBuffers.Add(currentReadBuffer);
                 }
+                foreach (var buffer in deferredBuffers)
+                    availableBuffers.Add(buffer);
+                deferredBuffers.Clear();
                 readInProgress = false;
                 currentReadBuffer = null;
             }
