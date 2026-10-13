@@ -323,7 +323,12 @@ internal class DataServer : IThread
 
                         float fa = channelScale * pointA + channelOffset;
                         float fb = channelScale * pointB + channelOffset;
-                        float triggerLevel = captureBuffer.Metadata.ProcessingConfig.EdgeTriggerParameters.LevelV;
+                        float triggerLevel = captureBuffer.Metadata.ProcessingConfig.TriggerType switch
+                        {
+                            TriggerType.Edge => captureBuffer.Metadata.ProcessingConfig.EdgeTriggerParameters.LevelV,
+                            TriggerType.Burst => captureBuffer.Metadata.ProcessingConfig.BurstTriggerParameters.LevelV,
+                            _ => throw new NotImplementedException()
+                        };
                         float slope = fb - fa;
                         float delta = triggerLevel - fa;
                         float phase = delta / slope;

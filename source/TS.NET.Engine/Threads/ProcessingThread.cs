@@ -1200,7 +1200,7 @@ public class ProcessingThread : IThread
                 var elapsedTime = periodicUpdateTimer.Elapsed.TotalSeconds;
                 if (elapsedTime >= 10)
                 {
-                    var oneSecondReadBytes = periodicReadBytes / periodicUpdateTimer.Elapsed.TotalSeconds;
+                    var oneSecondReadBytes = periodicReadBytes / elapsedTime;
                     logger.LogDebug($"[Stream] MB/sec: {(oneSecondReadBytes / 1000 / 1000):F3}, MiB/sec: {(oneSecondReadBytes / 1024 / 1024):F3}");
 
                     if (thunderscope is Driver.Libtslitex.Thunderscope liteXThunderscope)
