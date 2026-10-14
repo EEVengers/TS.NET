@@ -624,6 +624,8 @@ public class Thunderscope : IThunderscope
             throw new ThunderscopeException($"Failed to get channel {channelIndex} config ({GetLibraryReturnString(retVal)})");
 
         tsChannel.active = enabled ? (byte)1 : (byte)0;
+        tsChannel.volt_scale_uV = (uint)(channelFrontend[channelIndex].RequestedVoltFullScale * 1000000);
+        tsChannel.volt_offset_uV = (int)(channelFrontend[channelIndex].RequestedVoltOffset * 1000000);
 
         retVal = Interop.SetChannelConfig(tsHandle, (uint)channelIndex, in tsChannel);
 
