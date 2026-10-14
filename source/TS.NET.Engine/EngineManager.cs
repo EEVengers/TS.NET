@@ -102,7 +102,7 @@ public class EngineManager
                         var librarySource = Driver.Libtslitex.Thunderscope.LoadedLibraryLocation switch
                         {
                             Driver.Libtslitex.LibraryLocation.WorkingDirectory => "libtslitex loaded from working directory",
-                            Driver.Libtslitex.LibraryLocation.LocalApplicationData => "libtslitex loaded from LocalApplicationData",
+                            Driver.Libtslitex.LibraryLocation.LocalApplicationData => "libtslitex loaded from local application data",
                             _ => "libtslitex loaded from unknown source"
                         };
                         logger?.LogInformation(librarySource);
@@ -337,7 +337,7 @@ public class EngineManager
                 WriteDefaultSettings(localApplicationDataSettingsFile);
 
             var settings = ThunderscopeSettings.FromYamlFile(localApplicationDataSettingsFile);
-            logger.LogInformation("Settings loaded from LocalApplicationData");
+            logger.LogInformation("Settings loaded from local application data");
             return settings;
         }
         catch { }
