@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
 
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <InvariantGlobalization>true</InvariantGlobalization>
@@ -40,6 +40,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TS.NET\TS.NET.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="TS.NET.Tests" />
   </ItemGroup>
 
   <Target Name="DeleteFiles" AfterTargets="Publish">
