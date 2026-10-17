@@ -321,6 +321,46 @@ public sealed class Jtag : IDisposable
         }
     }
 
+    public void SetQuadEnable(int chainIndex, CancellationToken cancellationToken)
+    {
+        const byte quadEnableMask = 0x40;       // b6:QE
+        const byte writableStatusMask = 0xFC;   // b0:WIP and b1:WEL are volatile
+
+        lock (sync)
+        {
+            ThrowIfDisposed();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var spiProxy = OpenSpiProxy(chainIndex);
+            spiProxy.WaitWhileBusy(TimeSpan.FromSeconds(3), cancellationToken);
+            var status = spiProxy.Read(SpiFlashOpcodes.ReadStatusRegister, [], 1)[0];
+            if ((status & quadEnableMask) != 0)
+            {
+                logger.LogInformation($"SPI flash quad enable is already set (status 0x{status:X2})");
+                return;
+            }
+
+            var expectedStatus = (byte)((status & writableStatusMask) | quadEnableMask);
+            spiProxy.WriteEnable();
+            var writeEnabledStatus = spiProxy.Read(SpiFlashOpcodes.ReadStatusRegister, [], 1)[0];
+            if ((writeEnabledStatus & 0x02) == 0)
+            {
+                throw new InvalidOperationException("SPI flash write enable latch was not set before writing quad enable.");
+            }
+
+            spiProxy.Write(SpiFlashOpcodes.WriteStatusRegister, [expectedStatus]);
+            spiProxy.WaitWhileBusy(TimeSpan.FromSeconds(3), cancellationToken);
+
+            var actualStatus = spiProxy.Read(SpiFlashOpcodes.ReadStatusRegister, [], 1)[0];
+            if ((actualStatus & writableStatusMask) != expectedStatus)
+            {
+                throw new InvalidDataException($"SPI flash quad enable verification failed: expected status 0x{expectedStatus:X2}, actual 0x{actualStatus:X2}.");
+            }
+
+            logger.LogInformation($"SPI flash quad enable set and verified (status 0x{actualStatus:X2})");
+        }
+    }
+
     public void ProgramSpiFlashSector(int chainIndex, int address, ReadOnlySpan<byte> data, CancellationToken cancellationToken)
     {
         if (data.Length <= 0)

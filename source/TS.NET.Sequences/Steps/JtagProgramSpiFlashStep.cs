@@ -27,6 +27,7 @@ public class JtagProgramSpiFlashStep : Step
             var flashImage = Utility.FindFlashImagePath(variables);
 
             jtag.ProgramSpiFlash(0, flashImage, cancellationToken);
+            jtag.SetQuadEnable(0, cancellationToken);
             Result!.Summary = Path.GetFileName(flashImage);
             return Status.Passed;
         };

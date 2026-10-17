@@ -2,6 +2,7 @@ namespace TS.NET.JTAG;
 
 internal static class SpiFlashOpcodes
 {
+    internal const byte WriteStatusRegister = 0x01;
     internal const byte Read = 0x03;
     internal const byte ReadStatusRegister = 0x05;
     internal const byte WriteEnable = 0x06;
