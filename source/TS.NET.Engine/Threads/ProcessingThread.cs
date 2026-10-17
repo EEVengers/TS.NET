@@ -429,7 +429,7 @@ public class ProcessingThread : IThread
                             logger.LogDebug($"{nameof(ProcessingStop)}");
                             break;
                         case ProcessingForce processingForce:
-                            if (runMode)        // FORCE is ignored if not in runMode.
+                            if (runMode || startWhenAllProcessingControlRequestsProcessed)
                             {
                                 modeAfterForce = processingConfig.Mode;
                                 forceTriggerLatch = true;
