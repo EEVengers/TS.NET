@@ -171,8 +171,8 @@ public static class Utility
 
         var candidates = new[]
         {
-            Path.Combine(AppContext.BaseDirectory, "Bitfiles", flashImage),
-            Path.Combine(Directory.GetCurrentDirectory(), "Bitfiles", flashImage),
+            Path.Combine(AppContext.BaseDirectory, "bitfiles", flashImage),
+            Path.Combine(Directory.GetCurrentDirectory(), "bitfiles", flashImage),
         };
 
         foreach (var candidate in candidates)
