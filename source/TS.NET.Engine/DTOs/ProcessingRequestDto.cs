@@ -49,6 +49,7 @@ public record HardwareSetTermination(int ChannelIndex, ThunderscopeTermination T
 // Get
 public record ProcessingGetOperationCompleteRequest() : ProcessingRequestDto;
 public record ProcessingGetStateRequest() : ProcessingRequestDto;
+public record ProcessingGetSequenceNumberRequest() : ProcessingRequestDto;
 
 public record ProcessingGetModeRequest() : ProcessingRequestDto;
 public record ProcessingGetDepthRequest() : ProcessingRequestDto;

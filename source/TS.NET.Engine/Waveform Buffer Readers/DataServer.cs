@@ -12,7 +12,6 @@ internal class DataServer : IThread
     private readonly ThunderscopeSettings settings;
     private readonly IPEndPoint endpoint;
     private readonly ICaptureBufferManagerReader captureBufferManager;
-    private readonly Action<uint> onSequenceUpdate;
 
     private CancellationTokenSource? listenerCancelTokenSource;
     private Task? taskListener;
@@ -26,14 +25,12 @@ internal class DataServer : IThread
         ILogger logger,
         ThunderscopeSettings settings,
         IPEndPoint endpoint,
-        ICaptureBufferManagerReader captureBuffer,
-        Action<uint> onSequenceUpdate)
+        ICaptureBufferManagerReader captureBuffer)
     {
         this.logger = logger;
         this.settings = settings;
         this.endpoint = endpoint;
         this.captureBufferManager = captureBuffer;
-        this.onSequenceUpdate = onSequenceUpdate;
     }
 
     public void Start(SemaphoreSlim startSemaphore)
@@ -112,7 +109,6 @@ internal class DataServer : IThread
     private void LoopSession(ILogger logger, Socket socket, CancellationToken cancelToken)
     {
         string sessionID = socket.RemoteEndPoint?.ToString() ?? "Unknown";
-        uint sequenceNumber = 0;
         uint lastAck = 0;
         uint inflight = 0;
         byte[] ackBuffer = new byte[4];
@@ -139,20 +135,16 @@ internal class DataServer : IThread
                     }
                     else
                     {
-                        //logger.LogInformation($"Sending waveform (seq={sequenceNumber})");
                         inflight++;
                         switch (mode)
                         {
                             case Mode.Credit:
-                                SendScopehal(socket, sequenceNumber, sendTag: false, cancelToken);
+                                SendScopehal(socket, sendTag: false, cancelToken);
                                 break;
                             case Mode.CreditWithTag:
-                                SendScopehal(socket, sequenceNumber, sendTag: true, cancelToken);
+                                SendScopehal(socket, sendTag: true, cancelToken);
                                 break;
                         }
-
-                        onSequenceUpdate(sequenceNumber);       // Possible timing issue here
-                        sequenceNumber++;
                     }
                 }
                 else
@@ -167,8 +159,7 @@ internal class DataServer : IThread
                     {
                         case (byte)'S':
                             mode = Mode.OnDemand;
-                            SendScopehal(socket, sequenceNumber, sendTag: false, cancelToken);
-                            sequenceNumber++;
+                            SendScopehal(socket, sendTag: false, cancelToken);
                             break;
                         case (byte)'C':
                             mode = Mode.Credit;
@@ -222,7 +213,7 @@ internal class DataServer : IThread
         }
     }
 
-    private void SendScopehal(Socket socket, uint sequenceNumber, bool sendTag, CancellationToken cancelToken)
+    private void SendScopehal(Socket socket, bool sendTag, CancellationToken cancelToken)
     {
         bool loop = true;
         Span<byte> scratchBuffer = stackalloc byte[4];
@@ -238,7 +229,7 @@ internal class DataServer : IThread
                     WaveformHeader waveformHeader = new()
                     {
                         version = 1,
-                        seqnum = sequenceNumber,
+                        seqnum = captureBuffer.Metadata.SequenceNumber,
                         numChannels = (ushort)channelCount,
                         fsPerSample = femtosecondsPerSample,
                         triggerFs = (long)captureBuffer.Metadata.ProcessingConfig.TriggerDelayFs,

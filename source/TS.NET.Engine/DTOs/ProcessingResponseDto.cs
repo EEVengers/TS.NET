@@ -6,6 +6,7 @@ public record ProcessingGetOperationCompleteResponse() : ProcessingResponseDto;
 
 //public record ProcessingGetRateResponseDto(uint SampleRate) : ProcessingResponseDto();
 public record ProcessingGetStateResponse(bool Run) : ProcessingResponseDto();
+public record ProcessingGetSequenceNumberResponse(uint SequenceNumber) : ProcessingResponseDto;
 
 public record ProcessingGetRatesResponse(ulong[] SampleRatesHz) : ProcessingResponseDto;
 

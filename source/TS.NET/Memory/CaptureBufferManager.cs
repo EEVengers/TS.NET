@@ -19,6 +19,7 @@ namespace TS.NET
 
     public struct CaptureMetadata
     {
+        public uint SequenceNumber;     // Continuous from app start, no reset. Consumers should allow for uint.MaxValue->0 rollover.
         public bool Triggered;
         public int TriggerChannelCaptureIndex;
         public ThunderscopeHardwareConfig HardwareConfig;
@@ -112,6 +113,7 @@ namespace TS.NET
         private CaptureBuffer? currentReadBuffer;
 
         private int maxCaptureCount;
+        private uint lastCaptureSequence;
 
         // Stats (similar to CaptureCircularBuffer)
         private long captureWrites;
@@ -128,6 +130,7 @@ namespace TS.NET
         //public int ChannelCount { get { return channelCount; } }
 
         public long MaxCaptureCount { get { return maxCaptureCount; } }
+        public uint LastCaptureSequence => lastCaptureSequence;
         public long CurrentCaptureCount { get { lock (readLock) { return filledBuffers.Count; } } }
         public long CaptureWrites { get { return captureWrites; } }
         public long CaptureDrops { get { return captureDrops; } }
@@ -262,9 +265,11 @@ namespace TS.NET
             intervalCaptureWrites++;
 
             captureMetadata.CapturesPerSec = cachedCapturesPerSec;
+            captureMetadata.SequenceNumber = unchecked(lastCaptureSequence + 1);
             currentWriteBuffer.Metadata = captureMetadata;
 
             filledBuffers.Add(currentWriteBuffer);
+            lastCaptureSequence = captureMetadata.SequenceNumber;
             writeInProgress = false;
             currentWriteBuffer = null;
         }

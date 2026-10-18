@@ -19,7 +19,6 @@ internal class ScpiHandler
     private readonly Lock commandLock = new();
 
     private uint requestIdCounter;
-    private uint sequence;
 
     public ScpiHandler(ILogger logger, ThunderscopeSettings settings, string thunderscopeSerial,
         BlockingRequestResponse<ProcessingRequest, ProcessingResponse> processingControl)
@@ -118,11 +117,6 @@ internal class ScpiHandler
         Register("DEBUG:BRANCHGAINS", SetBranchGainsManualControl);
     }
 
-    public void OnUpdateSequence(uint seq)
-    {
-        Volatile.Write(ref sequence, seq);
-    }
-
     public string? ProcessSCPICommand(string message, CancellationToken cancellationToken = default)
     {
         lock (commandLock)
@@ -208,7 +202,7 @@ internal class ScpiHandler
 
     private string GetSequenceNumber(CommandContext context)
     {
-        return context.Reply(Invariant($"{Volatile.Read(ref sequence)}\n"));
+        return context.Get<ProcessingGetSequenceNumberResponse>(new ProcessingGetSequenceNumberRequest(), r => Invariant($"{r.SequenceNumber}\n"));
     }
 
     private string GetTemperature(CommandContext context)

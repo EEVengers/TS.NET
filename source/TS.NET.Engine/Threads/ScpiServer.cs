@@ -64,11 +64,6 @@ internal class ScpiServer : IThread
         socketListener = null;
     }
 
-    public void OnUpdateSequence(uint seq)
-    {
-        handler.OnUpdateSequence(seq);
-    }
-
     private void LoopListener(Socket socket, CancellationToken cancellationToken)
     {
         try
@@ -87,10 +82,8 @@ internal class ScpiServer : IThread
                     if (session?.IsActive == true)
                         logger.LogDebug($"Dropping SCPI session {session.RemoteEndpoint} and accepting new SCPI session");
 
-                    // Finish the previous session before resetting the shared sequence state.
                     session?.Stop();
                     acceptedSocket.NoDelay = true;
-                    handler.OnUpdateSequence(0);
                     session = new ScpiSession(acceptedSocket, logger, handler);
                     session.Start();
                 }

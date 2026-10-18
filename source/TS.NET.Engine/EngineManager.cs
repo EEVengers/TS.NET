@@ -258,7 +258,7 @@ public class EngineManager
         switch (thunderscopeSettings.WaveformBufferReader)
         {
             case "DataServer":
-                waveformBufferReader = new DataServer(loggerFactory.CreateLogger(nameof(DataServer)), thunderscopeSettings, dataEndpoint!, captureBuffer, seq => scpiServer?.OnUpdateSequence(seq));
+                waveformBufferReader = new DataServer(loggerFactory.CreateLogger(nameof(DataServer)), thunderscopeSettings, dataEndpoint!, captureBuffer);
                 break;
             case "None":
                 waveformBufferReader = new EmptyWaveformBufferReader();

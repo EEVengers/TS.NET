@@ -732,6 +732,10 @@ public class ProcessingThread : IThread
                             Respond(new ProcessingGetStateResponse(runMode));
                             logger.LogDebug($"{nameof(ProcessingGetStateRequest)}");
                             break;
+                        case ProcessingGetSequenceNumberRequest:
+                            Respond(new ProcessingGetSequenceNumberResponse(captureBufferManager.LastCaptureSequence));
+                            logger.LogDebug($"{nameof(ProcessingGetSequenceNumberRequest)}");
+                            break;
                         case ProcessingGetModeRequest processingGetModeRequest:
                             Respond(new ProcessingGetModeResponse(processingConfig.Mode));
                             logger.LogDebug($"{nameof(ProcessingGetModeRequest)}");
