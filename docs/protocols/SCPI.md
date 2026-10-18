@@ -52,7 +52,7 @@ Commands/queries are logically grouped into subsystems, with the exception of th
 | `*OPC?` | `1` | - | Wait for previous SCPI commands to complete. | ≥ 0.3.0 |
 | `STATE?` | `RUN`, `STOP` | enum | Current run state. | ≥ 0.1.0 |
 | `MODE?` | `SINGLE`, `NORMAL`, `AUTO`, `STREAM` | enum | Current acquisition mode. | ≥ 0.1.0 |
-| `SEQNUM?` | `12345` | u32 | The last sequence number sent on the data server socket. | ≥ 0.1.0 |
+| `SEQNUM?` | `12345` | u32 | The last completed capture sequence number. Returns `0` before the first capture. | ≥ 0.1.0 |
 | `TEMP?` | `25.0` | f32 | FPGA temperature (formatted `F1`). | ≥ 0.1.0 |
 
 ## Acquisition subsystem (`ACQ...`)
