@@ -171,8 +171,16 @@ class Program
                                     var newSequence = new DeveloperHwidSequence(modalUiContext, newVariables);
                                     variables = newVariables;
                                     sequence = newSequence;
+                                    break;
                                 }
-                                break;
+                            case "developer-load-user-calibration":
+                                {
+                                    var newVariables = new FactoryVariables();
+                                    var newSequence = new DeveloperLoadUserCalibrationSequence(modalUiContext, newVariables);
+                                    variables = newVariables;
+                                    sequence = newSequence;
+                                    break;
+                                }
                             default:
                                 throw new InvalidDataException();
                         }

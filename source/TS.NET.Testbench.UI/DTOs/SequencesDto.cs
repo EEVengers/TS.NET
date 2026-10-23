@@ -43,6 +43,13 @@ public class SequencesDto : MessageDto
         },
         new()
         {
+            Id = "developer-load-user-calibration",
+            Name = "Developer load user calibration",
+            Description = "Developer sequence. Loads a calibration JSON file and saves user calibration to the device.",
+            Type = "developer"
+        },
+        new()
+        {
             Id = "factory-bring-up",
             Name = "Factory bring-up",
             Description = "Factory sequence. JTAG programming & HWID. Requires JTAG-HS2.",
@@ -97,5 +104,4 @@ public class SequenceInfoDto
     public required string Description { get; init; }
     public required string Type { get; init; }
 }
-
 
