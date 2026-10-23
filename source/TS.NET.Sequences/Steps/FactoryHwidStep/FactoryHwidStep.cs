@@ -29,7 +29,7 @@ public class FactoryHwidStep : ModalUiStep
 
                     if (string.IsNullOrWhiteSpace(serialForLookup))
                     {
-                        return;
+                        throw new TestbenchException("Serial number cannot be empty");
                     }
 
                     var fuseDnaValue = variables.FpgaDna ?? 0UL;
@@ -59,12 +59,12 @@ public class FactoryHwidStep : ModalUiStep
                             var serial = eventData.GetProperty("serialNumber").GetString() ?? string.Empty;
                             if (string.IsNullOrWhiteSpace(serial))
                             {
-                                return;
+                                throw new TestbenchException("Serial number cannot be empty");
                             }
 
                             if (pendingGeneratedRow is null)
                             {
-                                return;
+                                throw new TestbenchException("Unit data not loaded");
                             }
 
                             PersistMetadata(pendingGeneratedRow.Serial, pendingGeneratedRow.BuildDate, pendingGeneratedRow.ManufacturingSignature);
