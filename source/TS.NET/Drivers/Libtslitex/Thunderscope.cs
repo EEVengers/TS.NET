@@ -365,6 +365,7 @@ public class Thunderscope : IThunderscope
         health.AdcSamplesLost = litexState.adc_lost_buffer_count;
         health.AdcFrameSync = (litexState.flags & 0x2) > 0;
         health.RefClockInValid = (litexState.flags & 0x40) > 0;
+        health.DmaInputGateDrop = (litexState.flags & (1u << 11)) != 0;
         health.FpgaTemp = litexState.temp_c / 1000.0;
         health.VccInt = litexState.vcc_int / 1000.0;
         health.VccAux = litexState.vcc_aux / 1000.0;

@@ -11,6 +11,7 @@ namespace TS.NET.Driver.Libtslitex
         public uint AdcSamplesLost;
         public bool AdcFrameSync;
         public bool RefClockInValid;
+        public bool DmaInputGateDrop;
         public double FpgaTemp;
         public double VccInt;
         public double VccAux;
